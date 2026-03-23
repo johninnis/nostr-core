@@ -1,0 +1,31 @@
+parameters:
+    level: 9
+    paths:
+        - src
+        - tests
+    tmpDir: var/phpstan
+    reportUnmatchedIgnoredErrors: false
+    ignoreErrors:
+        # PHP cannot express generic array types natively (e.g. array<string,mixed>)
+        -
+            identifier: missingType.iterableValue
+        # PHP cannot express generic class types natively (e.g. Collection<Event>)
+        -
+            identifier: missingType.generics
+        # nostriphant/nip-19 uses __callStatic which PHPStan cannot resolve
+        - '#Call to an undefined static method nostriphant\\NIP19\\Bech32::#'
+        # paragonie/ecc uses dynamic method dispatch that PHPStan cannot resolve
+        - '#Call to an undefined method Mdanter\\Ecc\\[a-zA-Z\\\\]+::[a-zA-Z]+\(\)#'
+        # PHPStan infers port range from parse_url but the explicit bounds check is intentional defensive code
+        -
+            message: '#Comparison operation .* between int<1, 65535> and 65535 is always false#'
+            path: src/Domain/ValueObject/Protocol/RelayUrl.php
+            count: 1
+        # FFI dynamically defines methods from C headers at runtime
+        -
+            message: '#Call to an undefined method FFI::#'
+            path: src/Domain/ValueObject/Identity/Secp256k1.php
+        # FFI instance is guaranteed non-null when these methods are called (guarded by isAvailable)
+        -
+            message: '#Cannot call method .+ on FFI\|null#'
+            path: src/Domain/ValueObject/Identity/Secp256k1.php
