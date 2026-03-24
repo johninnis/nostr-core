@@ -8,6 +8,7 @@ use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
@@ -150,6 +151,23 @@ final class EventFactory
             Timestamp::now(),
             EventKind::muteList(),
             $muteTags,
+            EventContent::fromString('')
+        );
+    }
+
+    public static function createAuth(
+        PublicKey $pubkey,
+        RelayUrl $relayUrl,
+        string $challenge,
+    ): Event {
+        return new Event(
+            $pubkey,
+            Timestamp::now(),
+            EventKind::clientAuth(),
+            new TagCollection([
+                Tag::fromArray(['relay', (string) $relayUrl]),
+                Tag::fromArray(['challenge', $challenge]),
+            ]),
             EventContent::fromString('')
         );
     }
