@@ -39,7 +39,7 @@
         ],
         "test-all": "phpunit",
         "test-unit": "phpunit --testsuite=Unit",
-        "test-coverage": "XDEBUG_MODE=coverage phpunit --coverage-html var/tests/coverage/html",
+        "test-coverage": "XDEBUG_MODE=coverage phpunit --coverage-html var/tests/coverage/html --coverage-text --coverage-clover var/tests/coverage/clover.xml",
         "analyse": "phpstan analyse",
         "fix-style": "php-cs-fixer fix",
         "check-style": "php-cs-fixer fix --dry-run --diff"

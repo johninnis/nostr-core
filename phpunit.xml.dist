@@ -26,11 +26,4 @@
             <directory>src</directory>
         </include>
     </source>
-    <coverage>
-        <report>
-            <html outputDirectory="var/tests/coverage/html"/>
-            <text outputFile="var/tests/coverage/coverage.txt"/>
-            <clover outputFile="var/tests/coverage/clover.xml"/>
-        </report>
-    </coverage>
 </phpunit>
