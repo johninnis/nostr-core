@@ -8,8 +8,10 @@ use Innis\Nostr\Core\Domain\Factory\EventFactory;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use PHPUnit\Framework\TestCase;
 
 final class EventFactoryTest extends TestCase
@@ -102,6 +104,30 @@ final class EventFactoryTest extends TestCase
 
         $this->assertTrue($event->getKind()->equals($customKind));
         $this->assertTrue($event->getContent()->equals($content));
+    }
+
+    public function testCanCreateAuth(): void
+    {
+        $relayUrl = RelayUrl::fromString('wss://relay.example.com');
+        $this->assertNotNull($relayUrl);
+        $challenge = 'test-challenge-string';
+
+        $event = EventFactory::createAuth(
+            $this->keyPair->getPublicKey(),
+            $relayUrl,
+            $challenge
+        );
+
+        $this->assertSame(EventKind::CLIENT_AUTH, $event->getKind()->toInt());
+        $this->assertSame('', (string) $event->getContent());
+
+        $relayTags = $event->getTags()->findByType(TagType::fromString('relay'));
+        $challengeTags = $event->getTags()->findByType(TagType::fromString('challenge'));
+
+        $this->assertCount(1, $relayTags);
+        $this->assertSame('wss://relay.example.com', $relayTags[0]->getValue());
+        $this->assertCount(1, $challengeTags);
+        $this->assertSame('test-challenge-string', $challengeTags[0]->getValue());
     }
 
     public function testFactoryMethodsCreateEventsWithReasonableTimestamps(): void
