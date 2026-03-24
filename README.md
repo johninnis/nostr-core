@@ -27,7 +27,7 @@ This library takes a different approach:
 
 ## Requirements
 
-- PHP 8.1 or higher
+- PHP 8.3 or higher
 - BCMath extension (for ECC operations)
 
 ### Optional (recommended)
