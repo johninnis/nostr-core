@@ -86,4 +86,35 @@ final class PrivateKeyTest extends TestCase
 
         $this->assertNotEquals($key1->toHex(), $key2->toHex());
     }
+
+    public function testFromBech32ReturnsNullForInvalidChecksum(): void
+    {
+        $this->assertNull(PrivateKey::fromBech32('nsec1invalidchecksum'));
+    }
+
+    public function testFromHexReturnsNullForUppercaseHex(): void
+    {
+        $this->assertNull(PrivateKey::fromHex(strtoupper(self::VALID_PRIVATE_KEY_HEX)));
+    }
+
+    public function testSignAndVerifyRoundTrip(): void
+    {
+        $privateKey = PrivateKey::generate();
+        $publicKey = $privateKey->getPublicKey();
+        $message = random_bytes(32);
+
+        $signature = $privateKey->sign($message);
+
+        $this->assertTrue($publicKey->verify($message, $signature));
+    }
+
+    public function testGetPublicKeyIsIdempotent(): void
+    {
+        $privateKey = PrivateKey::generate();
+
+        $pubkey1 = $privateKey->getPublicKey();
+        $pubkey2 = $privateKey->getPublicKey();
+
+        $this->assertTrue($pubkey1->equals($pubkey2));
+    }
 }

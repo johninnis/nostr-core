@@ -100,4 +100,35 @@ final class EventKindTest extends TestCase
         $this->assertTrue($kind1->equals($kind2));
         $this->assertFalse($kind1->equals($kind3));
     }
+
+    public function testAdditionalStaticFactoryMethods(): void
+    {
+        $this->assertSame(6, EventKind::repost()->toInt());
+        $this->assertSame(7, EventKind::reaction()->toInt());
+        $this->assertSame(1111, EventKind::comment()->toInt());
+        $this->assertSame(30023, EventKind::longformContent()->toInt());
+        $this->assertSame(30311, EventKind::liveEvent()->toInt());
+        $this->assertSame(10002, EventKind::relayList()->toInt());
+        $this->assertSame(10000, EventKind::muteList()->toInt());
+        $this->assertSame(21, EventKind::video()->toInt());
+        $this->assertSame(22, EventKind::shortFormVideo()->toInt());
+        $this->assertSame(22242, EventKind::clientAuth()->toInt());
+        $this->assertSame(24133, EventKind::nostrConnect()->toInt());
+        $this->assertSame(9735, EventKind::zapReceipt()->toInt());
+        $this->assertSame(9321, EventKind::nutzap()->toInt());
+    }
+
+    public function testToStringReturnsKindAsString(): void
+    {
+        $this->assertSame('42', (string) EventKind::fromInt(42));
+    }
+
+    public function testBoundaryKindValues(): void
+    {
+        $zero = EventKind::fromInt(0);
+        $max = EventKind::fromInt(65535);
+
+        $this->assertSame(0, $zero->toInt());
+        $this->assertSame(65535, $max->toInt());
+    }
 }

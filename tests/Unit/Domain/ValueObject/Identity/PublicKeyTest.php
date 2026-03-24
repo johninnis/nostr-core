@@ -71,4 +71,27 @@ final class PublicKeyTest extends TestCase
         $result = $publicKey->verify('test message', $signature);
         $this->assertIsBool($result);
     }
+
+    public function testFromBech32ReturnsNullForInvalidPrefix(): void
+    {
+        $this->assertNull(PublicKey::fromBech32('nsec1abc'));
+    }
+
+    public function testFromBech32ReturnsNullForInvalidChecksum(): void
+    {
+        $this->assertNull(PublicKey::fromBech32('npub1invalidchecksum'));
+    }
+
+    public function testFromHexReturnsNullForUppercaseHex(): void
+    {
+        $this->assertNull(PublicKey::fromHex(strtoupper(self::VALID_PUBLIC_KEY_HEX)));
+    }
+
+    public function testVerifyReturnsFalseForWrongLengthSignature(): void
+    {
+        $publicKey = PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
+        $shortSig = Signature::fromHex(str_repeat('a', 128)) ?? throw new RuntimeException('Invalid test sig');
+
+        $this->assertFalse($publicKey->verify('test', $shortSig));
+    }
 }

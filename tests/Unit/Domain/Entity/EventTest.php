@@ -419,6 +419,137 @@ final class EventTest extends TestCase
         $this->assertSame('reply', $replyChain->getParentEvent()->getMarker());
     }
 
+    public function testIsRepostReturnsTrueForRepostKind(): void
+    {
+        $event = $this->createEventWithKindAndContent(EventKind::REPOST, '', [
+            ['e', '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'],
+        ]);
+
+        $this->assertTrue($event->isRepost());
+    }
+
+    public function testIsRepostReturnsTrueForGenericRepostKind(): void
+    {
+        $event = $this->createEventWithKindAndContent(EventKind::GENERIC_REPOST, '', [
+            ['e', '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'],
+        ]);
+
+        $this->assertTrue($event->isRepost());
+    }
+
+    public function testIsRepostReturnsFalseForTextNoteKind(): void
+    {
+        $this->assertFalse($this->event->isRepost());
+    }
+
+    public function testIsReplyReturnsFalseForRepostWithEventTags(): void
+    {
+        $event = $this->createEventWithKindAndContent(EventKind::REPOST, '', [
+            ['e', '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'],
+        ]);
+
+        $this->assertFalse($event->isReply());
+    }
+
+    public function testIsReplyReturnsFalseForGenericRepostWithEventTags(): void
+    {
+        $event = $this->createEventWithKindAndContent(EventKind::GENERIC_REPOST, '', [
+            ['e', '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'],
+        ]);
+
+        $this->assertFalse($event->isReply());
+    }
+
+    public function testIsReplyReturnsTrueForCommentKindWithEventTags(): void
+    {
+        $event = $this->createEventWithKindAndContent(EventKind::COMMENT, 'A comment', [
+            ['e', '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef', 'wss://relay.com', str_repeat('a', 64)],
+        ]);
+
+        $this->assertTrue($event->isReply());
+    }
+
+    public function testGetPublishedAtReturnsTimestampWhenTagExists(): void
+    {
+        $event = $this->createEventWithKindAndContent(1, 'Test', [
+            ['published_at', '1700000000'],
+        ]);
+
+        $publishedAt = $event->getPublishedAt();
+        $this->assertNotNull($publishedAt);
+        $this->assertSame(1700000000, $publishedAt->toInt());
+    }
+
+    public function testGetPublishedAtReturnsNullWhenNoTag(): void
+    {
+        $this->assertNull($this->event->getPublishedAt());
+    }
+
+    public function testWithTagsReturnsNewEventWithReplacedTags(): void
+    {
+        $newTags = new TagCollection([Tag::hashtag('nostr')]);
+        $newEvent = $this->event->withTags($newTags);
+
+        $this->assertTrue($this->event->getTags()->isEmpty());
+        $this->assertFalse($newEvent->getTags()->isEmpty());
+        $this->assertTrue($newEvent->getTags()->equals($newTags));
+    }
+
+    public function testWithTagsPreservesOtherFields(): void
+    {
+        $newTags = new TagCollection([Tag::hashtag('nostr')]);
+        $newEvent = $this->event->withTags($newTags);
+
+        $this->assertTrue($newEvent->getPubkey()->equals($this->event->getPubkey()));
+        $this->assertTrue($newEvent->getKind()->equals($this->event->getKind()));
+        $this->assertTrue($newEvent->getContent()->equals($this->event->getContent()));
+        $this->assertTrue($newEvent->getCreatedAt()->equals($this->event->getCreatedAt()));
+    }
+
+    public function testToStringReturnsEventIdForSignedEvent(): void
+    {
+        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey());
+
+        $this->assertSame($signedEvent->getId()->toHex(), (string) $signedEvent);
+    }
+
+    public function testToStringReturnsEmptyStringForUnsignedEvent(): void
+    {
+        $this->assertSame('', (string) $this->event);
+    }
+
+    public function testFromArrayHandlesNonStringContent(): void
+    {
+        $array = [
+            'pubkey' => $this->keyPair->getPublicKey()->toHex(),
+            'created_at' => 1234567890,
+            'kind' => 1,
+            'tags' => [],
+            'content' => ['key' => 'value'],
+        ];
+
+        $event = Event::fromArray($array);
+
+        $this->assertSame('{"key":"value"}', (string) $event->getContent());
+    }
+
+    public function testFromArrayHandlesEmptySignature(): void
+    {
+        $array = [
+            'pubkey' => $this->keyPair->getPublicKey()->toHex(),
+            'created_at' => 1234567890,
+            'kind' => 1,
+            'tags' => [],
+            'content' => 'test',
+            'sig' => '',
+        ];
+
+        $event = Event::fromArray($array);
+
+        $this->assertFalse($event->isSigned());
+        $this->assertNull($event->getSignature());
+    }
+
     private function createEventWithKindAndContent(int $kind, string $content, array $tagArrays): Event
     {
         $tags = [];

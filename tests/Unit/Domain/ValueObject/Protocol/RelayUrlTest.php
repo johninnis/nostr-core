@@ -6,9 +6,16 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol;
 
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class RelayUrlTest extends TestCase
 {
+    private function createRelayUrl(string $url): RelayUrl
+    {
+        return RelayUrl::fromString($url)
+            ?? throw new RuntimeException('Invalid test URL: '.$url);
+    }
+
     public function testValidWssUrl(): void
     {
         $url = RelayUrl::fromString('wss://relay.damus.io');
@@ -145,5 +152,111 @@ final class RelayUrlTest extends TestCase
     public function testRejectsConcatenatedUrls(): void
     {
         $this->assertNull(RelayUrl::fromString('wss://relay.example.com/wss://other.relay.com'));
+    }
+
+    public function testIsSecureReturnsTrueForWss(): void
+    {
+        $url = RelayUrl::fromString('wss://relay.example.com')
+            ?? throw new RuntimeException('Invalid test URL');
+
+        $this->assertTrue($url->isSecure());
+    }
+
+    public function testIsSecureReturnsFalseForWs(): void
+    {
+        $url = RelayUrl::fromString('ws://localhost:7777')
+            ?? throw new RuntimeException('Invalid test URL');
+
+        $this->assertFalse($url->isSecure());
+    }
+
+    public function testGetHostReturnsHost(): void
+    {
+        $url = RelayUrl::fromString('wss://relay.damus.io')
+            ?? throw new RuntimeException('Invalid test URL');
+
+        $this->assertSame('relay.damus.io', $url->getHost());
+    }
+
+    public function testGetPortReturnsPortWhenPresent(): void
+    {
+        $url = RelayUrl::fromString('wss://relay.example.com:8080')
+            ?? throw new RuntimeException('Invalid test URL');
+
+        $this->assertSame(8080, $url->getPort());
+    }
+
+    public function testGetPortReturnsNullWhenAbsent(): void
+    {
+        $url = RelayUrl::fromString('wss://relay.damus.io')
+            ?? throw new RuntimeException('Invalid test URL');
+
+        $this->assertNull($url->getPort());
+    }
+
+    public function testGetPathReturnsPathWhenPresent(): void
+    {
+        $url = RelayUrl::fromString('wss://relay.example.com/nostr')
+            ?? throw new RuntimeException('Invalid test URL');
+
+        $this->assertSame('/nostr', $url->getPath());
+    }
+
+    public function testGetPathReturnsSlashWhenAbsent(): void
+    {
+        $url = RelayUrl::fromString('wss://relay.damus.io')
+            ?? throw new RuntimeException('Invalid test URL');
+
+        $this->assertSame('/', $url->getPath());
+    }
+
+    public function testEqualsReturnsTrueForSameUrl(): void
+    {
+        $url1 = $this->createRelayUrl('wss://relay.damus.io');
+        $url2 = $this->createRelayUrl('wss://relay.damus.io');
+
+        $this->assertTrue($url1->equals($url2));
+    }
+
+    public function testEqualsReturnsFalseForDifferentUrl(): void
+    {
+        $url1 = $this->createRelayUrl('wss://relay.damus.io');
+        $url2 = $this->createRelayUrl('wss://relay.example.com');
+
+        $this->assertFalse($url1->equals($url2));
+    }
+
+    public function testRejectsEmptyString(): void
+    {
+        $this->assertNull(RelayUrl::fromString(''));
+    }
+
+    public function testRejectsWhitespaceOnly(): void
+    {
+        $this->assertNull(RelayUrl::fromString('   '));
+    }
+
+    public function testRejectsHttpUrl(): void
+    {
+        $this->assertNull(RelayUrl::fromString('https://relay.example.com'));
+    }
+
+    public function testRejectsUrlExceeding200Characters(): void
+    {
+        $longPath = str_repeat('a', 180);
+        $this->assertNull(RelayUrl::fromString('wss://relay.example.com/'.$longPath));
+    }
+
+    public function testRejectsUrlWithEncodedSpacesInPath(): void
+    {
+        $this->assertNull(RelayUrl::fromString('wss://relay.example.com/path%20with%20spaces'));
+    }
+
+    public function testPreservesQueryString(): void
+    {
+        $url = RelayUrl::fromString('wss://relay.example.com?auth=token');
+
+        $this->assertNotNull($url);
+        $this->assertSame('wss://relay.example.com?auth=token', (string) $url);
     }
 }

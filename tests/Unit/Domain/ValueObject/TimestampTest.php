@@ -94,4 +94,35 @@ final class TimestampTest extends TestCase
         $this->assertFalse($later->isBefore($earlier));
         $this->assertFalse($earlier->isBefore($earlier));
     }
+
+    public function testCompareToReturnsNegativeForEarlierTimestamp(): void
+    {
+        $earlier = Timestamp::fromInt(1000);
+        $later = Timestamp::fromInt(2000);
+
+        $this->assertSame(-1, $earlier->compareTo($later));
+    }
+
+    public function testCompareToReturnsPositiveForLaterTimestamp(): void
+    {
+        $earlier = Timestamp::fromInt(1000);
+        $later = Timestamp::fromInt(2000);
+
+        $this->assertSame(1, $later->compareTo($earlier));
+    }
+
+    public function testCompareToReturnsZeroForEqualTimestamps(): void
+    {
+        $t1 = Timestamp::fromInt(1000);
+        $t2 = Timestamp::fromInt(1000);
+
+        $this->assertSame(0, $t1->compareTo($t2));
+    }
+
+    public function testZeroTimestampIsValid(): void
+    {
+        $timestamp = Timestamp::fromInt(0);
+
+        $this->assertSame(0, $timestamp->toInt());
+    }
 }

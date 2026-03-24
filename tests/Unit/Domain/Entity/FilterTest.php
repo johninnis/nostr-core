@@ -249,4 +249,248 @@ final class FilterTest extends TestCase
         $this->assertSame(1234567900, $until->toInt());
         $this->assertSame(10, $filter->getLimit());
     }
+
+    public function testHasIdsReturnsTrueWhenIdsAreSet(): void
+    {
+        $filter = new Filter(ids: ['event-id']);
+
+        $this->assertTrue($filter->hasIds());
+    }
+
+    public function testHasIdsReturnsFalseWhenIdsAreNull(): void
+    {
+        $filter = new Filter();
+
+        $this->assertFalse($filter->hasIds());
+    }
+
+    public function testHasAuthorsReturnsTrueWhenAuthorsAreSet(): void
+    {
+        $filter = new Filter(authors: ['author-pubkey']);
+
+        $this->assertTrue($filter->hasAuthors());
+    }
+
+    public function testHasAuthorsReturnsFalseWhenAuthorsAreNull(): void
+    {
+        $filter = new Filter();
+
+        $this->assertFalse($filter->hasAuthors());
+    }
+
+    public function testHasKindsReturnsTrueWhenKindsAreSet(): void
+    {
+        $filter = new Filter(kinds: [1]);
+
+        $this->assertTrue($filter->hasKinds());
+    }
+
+    public function testHasKindsReturnsFalseWhenKindsAreNull(): void
+    {
+        $filter = new Filter();
+
+        $this->assertFalse($filter->hasKinds());
+    }
+
+    public function testHasLimitReturnsTrueWhenLimitIsSet(): void
+    {
+        $filter = new Filter(limit: 100);
+
+        $this->assertTrue($filter->hasLimit());
+    }
+
+    public function testHasLimitReturnsFalseWhenLimitIsNull(): void
+    {
+        $filter = new Filter();
+
+        $this->assertFalse($filter->hasLimit());
+    }
+
+    public function testWithAuthorsReturnsNewFilterWithUpdatedAuthors(): void
+    {
+        $filter = new Filter(
+            ids: ['event-id'],
+            authors: ['original-author'],
+            kinds: [1],
+            limit: 10
+        );
+
+        $newFilter = $filter->withAuthors(['new-author-1', 'new-author-2']);
+
+        $this->assertSame(['original-author'], $filter->getAuthors());
+        $this->assertSame(['new-author-1', 'new-author-2'], $newFilter->getAuthors());
+        $this->assertSame(['event-id'], $newFilter->getIds());
+        $this->assertSame([1], $newFilter->getKinds());
+        $this->assertSame(10, $newFilter->getLimit());
+    }
+
+    public function testMatchesEventBySinceTimestamp(): void
+    {
+        $keyPair = KeyPair::generate();
+        $event = new Event(
+            $keyPair->getPublicKey(),
+            Timestamp::fromInt(1234567895),
+            EventKind::textNote(),
+            TagCollection::empty(),
+            EventContent::fromString('test')
+        );
+
+        $filterMatches = new Filter(since: Timestamp::fromInt(1234567890));
+        $filterDoesNotMatch = new Filter(since: Timestamp::fromInt(1234567900));
+
+        $this->assertTrue($filterMatches->matches($event));
+        $this->assertFalse($filterDoesNotMatch->matches($event));
+    }
+
+    public function testMatchesEventByUntilTimestamp(): void
+    {
+        $keyPair = KeyPair::generate();
+        $event = new Event(
+            $keyPair->getPublicKey(),
+            Timestamp::fromInt(1234567895),
+            EventKind::textNote(),
+            TagCollection::empty(),
+            EventContent::fromString('test')
+        );
+
+        $filterMatches = new Filter(until: Timestamp::fromInt(1234567900));
+        $filterDoesNotMatch = new Filter(until: Timestamp::fromInt(1234567890));
+
+        $this->assertTrue($filterMatches->matches($event));
+        $this->assertFalse($filterDoesNotMatch->matches($event));
+    }
+
+    public function testMatchesEmptyFilterMatchesAnyEvent(): void
+    {
+        $keyPair = KeyPair::generate();
+        $event = new Event(
+            $keyPair->getPublicKey(),
+            Timestamp::now(),
+            EventKind::textNote(),
+            TagCollection::empty(),
+            EventContent::fromString('test')
+        );
+
+        $filter = new Filter();
+
+        $this->assertTrue($filter->matches($event));
+    }
+
+    public function testDoesNotMatchEventWithWrongId(): void
+    {
+        $keyPair = KeyPair::generate();
+        $event = new Event(
+            $keyPair->getPublicKey(),
+            Timestamp::now(),
+            EventKind::textNote(),
+            TagCollection::empty(),
+            EventContent::fromString('test')
+        );
+        $signedEvent = $event->sign($keyPair->getPrivateKey());
+
+        $filter = new Filter(ids: ['0000000000000000000000000000000000000000000000000000000000000000']);
+
+        $this->assertFalse($filter->matches($signedEvent));
+    }
+
+    public function testDoesNotMatchEventWithWrongAuthor(): void
+    {
+        $keyPair = KeyPair::generate();
+        $event = new Event(
+            $keyPair->getPublicKey(),
+            Timestamp::now(),
+            EventKind::textNote(),
+            TagCollection::empty(),
+            EventContent::fromString('test')
+        );
+
+        $filter = new Filter(authors: [str_repeat('0', 64)]);
+
+        $this->assertFalse($filter->matches($event));
+    }
+
+    public function testThrowsExceptionForLimitAboveMaximum(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Limit must be between 1 and 5000');
+
+        new Filter(limit: 5001);
+    }
+
+    public function testToArrayOmitsNullFields(): void
+    {
+        $filter = new Filter(kinds: [1]);
+
+        $array = $filter->toArray();
+
+        $this->assertArrayHasKey('kinds', $array);
+        $this->assertArrayNotHasKey('ids', $array);
+        $this->assertArrayNotHasKey('authors', $array);
+        $this->assertArrayNotHasKey('since', $array);
+        $this->assertArrayNotHasKey('until', $array);
+        $this->assertArrayNotHasKey('limit', $array);
+    }
+
+    public function testToArrayConvertsEventKindObjectsToIntegers(): void
+    {
+        $filter = new Filter(kinds: [EventKind::textNote()]);
+
+        $array = $filter->toArray();
+
+        $this->assertSame([1], $array['kinds']);
+    }
+
+    public function testFromArrayHandlesMultipleTagTypes(): void
+    {
+        $data = [
+            '#t' => ['nostr'],
+            '#p' => [str_repeat('a', 64)],
+        ];
+
+        $filter = Filter::fromArray($data);
+
+        $tags = $filter->getTags();
+        $this->assertNotNull($tags);
+        $this->assertSame(['nostr'], $tags['t']);
+        $this->assertSame([str_repeat('a', 64)], $tags['p']);
+    }
+
+    public function testFromArrayWithoutTagsReturnsNullTags(): void
+    {
+        $data = ['kinds' => [1]];
+
+        $filter = Filter::fromArray($data);
+
+        $this->assertNull($filter->getTags());
+    }
+
+    public function testToStringReturnsJsonRepresentation(): void
+    {
+        $filter = new Filter(kinds: [1], limit: 10);
+
+        $string = (string) $filter;
+
+        $decoded = json_decode($string, true);
+        $this->assertIsArray($decoded);
+        $this->assertSame([1], $decoded['kinds']);
+        $this->assertSame(10, $decoded['limit']);
+    }
+
+    public function testRoundTripFromArrayToArray(): void
+    {
+        $data = [
+            'ids' => ['abc123'],
+            'authors' => ['def456'],
+            'kinds' => [1, 7],
+            '#t' => ['nostr'],
+            'since' => 1234567890,
+            'until' => 1234567900,
+            'limit' => 50,
+        ];
+
+        $filter = Filter::fromArray($data);
+        $output = $filter->toArray();
+
+        $this->assertSame($data, $output);
+    }
 }
