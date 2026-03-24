@@ -4,23 +4,29 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Entity;
 
+use Innis\Nostr\Core\Domain\Enum\SubscriptionState;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use InvalidArgumentException;
 
-final class Subscription
+final readonly class Subscription
 {
     public function __construct(
         private SubscriptionId $id,
         private array $filters,
         private Timestamp $createdAt,
-        private bool $active = true,
+        private SubscriptionState $state = SubscriptionState::PENDING,
     ) {
         foreach ($this->filters as $filter) {
             if (!$filter instanceof Filter) {
                 throw new InvalidArgumentException('All filters must be Filter instances');
             }
         }
+    }
+
+    public static function create(SubscriptionId $id, array $filters): self
+    {
+        return new self($id, $filters, Timestamp::now());
     }
 
     public function getId(): SubscriptionId
@@ -38,22 +44,24 @@ final class Subscription
         return $this->createdAt;
     }
 
-    public function isActive(): bool
+    public function getState(): SubscriptionState
     {
-        return $this->active;
+        return $this->state;
     }
 
-    public function close(): self
+    public function isOpen(): bool
     {
-        $closed = clone $this;
-        $closed->active = false;
+        return $this->state->isOpen();
+    }
 
-        return $closed;
+    public function withState(SubscriptionState $state): self
+    {
+        return new self($this->id, $this->filters, $this->createdAt, $state);
     }
 
     public function matchesEvent(Event $event): bool
     {
-        if (!$this->active) {
+        if (!$this->state->isReceivingEvents()) {
             return false;
         }
 
@@ -72,7 +80,7 @@ final class Subscription
             'id' => (string) $this->id,
             'filters' => array_map(static fn (Filter $filter) => $filter->toArray(), $this->filters),
             'created_at' => $this->createdAt->toInt(),
-            'active' => $this->active,
+            'state' => $this->state->value,
         ];
     }
 
@@ -87,11 +95,15 @@ final class Subscription
 
         $filters = array_map(static fn (array $filterData) => Filter::fromArray($filterData), $data['filters']);
 
+        $state = isset($data['state'])
+            ? SubscriptionState::from($data['state'])
+            : (($data['active'] ?? true) ? SubscriptionState::ACTIVE : SubscriptionState::CLOSED_BY_CLIENT);
+
         return new self(
             SubscriptionId::fromString($data['id']),
             $filters,
             Timestamp::fromInt($data['created_at']),
-            $data['active'] ?? true
+            $state,
         );
     }
 }
