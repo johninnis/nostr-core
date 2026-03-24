@@ -169,7 +169,7 @@ final class EventCollectionTest extends TestCase
         $collection = new EventCollection([$event1, $event2]);
 
         $mapped = $collection->map(
-            fn (Event $event) => new Event(
+            static fn (Event $event) => new Event(
                 $event->getPubkey(),
                 $event->getCreatedAt(),
                 $event->getKind(),

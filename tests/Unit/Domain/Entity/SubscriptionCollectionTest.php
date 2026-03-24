@@ -125,7 +125,7 @@ final class SubscriptionCollectionTest extends TestCase
             ->withUpdatedState(SubscriptionId::fromString('sub-1'), SubscriptionState::ACTIVE);
 
         $active = $collection->filter(
-            static fn (Subscription $s) => $s->getState() === SubscriptionState::ACTIVE
+            static fn (Subscription $s) => SubscriptionState::ACTIVE === $s->getState()
         );
 
         $this->assertSame(1, $active->count());
