@@ -12,7 +12,7 @@ final readonly class EventContent
 
     public function isEmpty(): bool
     {
-        return $this->content === '';
+        return '' === $this->content;
     }
 
     public function getLength(): int
@@ -20,7 +20,7 @@ final readonly class EventContent
         return mb_strlen($this->content, 'UTF-8');
     }
 
-    public function equals(EventContent $other): bool
+    public function equals(self $other): bool
     {
         return $this->content === $other->content;
     }

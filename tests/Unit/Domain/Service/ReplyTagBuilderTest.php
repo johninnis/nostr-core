@@ -13,6 +13,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class ReplyTagBuilderTest extends TestCase
 {
@@ -74,9 +75,9 @@ final class ReplyTagBuilderTest extends TestCase
 
     public function testBuildFromValues(): void
     {
-        $replyToId = EventId::fromHex(str_repeat('a', 64)) ?? throw new \RuntimeException('Invalid test event ID');
+        $replyToId = EventId::fromHex(str_repeat('a', 64)) ?? throw new RuntimeException('Invalid test event ID');
         $replyToAuthor = $this->keyPair1->getPublicKey();
-        $rootId = EventId::fromHex(str_repeat('b', 64)) ?? throw new \RuntimeException('Invalid test event ID');
+        $rootId = EventId::fromHex(str_repeat('b', 64)) ?? throw new RuntimeException('Invalid test event ID');
         $rootAuthor = $this->keyPair2->getPublicKey();
 
         $tags = $this->builder->buildFromValues($replyToId, $replyToAuthor, $rootId, $rootAuthor);
@@ -91,15 +92,15 @@ final class ReplyTagBuilderTest extends TestCase
 
     public function testBuildFromValuesSameAuthor(): void
     {
-        $replyToId = EventId::fromHex(str_repeat('a', 64)) ?? throw new \RuntimeException('Invalid test event ID');
-        $rootId = EventId::fromHex(str_repeat('b', 64)) ?? throw new \RuntimeException('Invalid test event ID');
+        $replyToId = EventId::fromHex(str_repeat('a', 64)) ?? throw new RuntimeException('Invalid test event ID');
+        $rootId = EventId::fromHex(str_repeat('b', 64)) ?? throw new RuntimeException('Invalid test event ID');
         $author = $this->keyPair1->getPublicKey();
 
         $tags = $this->builder->buildFromValues($replyToId, $author, $rootId, $author);
 
         $tagArray = $tags->toArray();
         $this->assertCount(3, $tagArray);
-        $pTags = array_filter($tagArray, fn ($t) => $t[0] === 'p');
+        $pTags = array_filter($tagArray, static fn ($t) => 'p' === $t[0]);
         $this->assertCount(1, $pTags);
     }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Payment;
 
 use Innis\Nostr\Core\Domain\ValueObject\Payment\ZapAmount;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 final class ZapAmountTest extends TestCase
@@ -42,7 +43,7 @@ final class ZapAmountTest extends TestCase
 
     public function testNegativeMillisatsThrows(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Amount cannot be negative');
 
         ZapAmount::fromMillisats(-1);
@@ -50,7 +51,7 @@ final class ZapAmountTest extends TestCase
 
     public function testNegativeSatsThrows(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Amount cannot be negative');
 
         ZapAmount::fromSats(-1);

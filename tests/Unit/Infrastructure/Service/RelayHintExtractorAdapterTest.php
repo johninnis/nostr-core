@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Infrastructure\Service;
 
+use Exception;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Service\Bech32EncoderInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
@@ -15,6 +16,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Infrastructure\Service\RelayHintExtractorAdapter;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class RelayHintExtractorAdapterTest extends TestCase
 {
@@ -32,7 +34,7 @@ final class RelayHintExtractorAdapterTest extends TestCase
         $tags = TagCollection::fromArray([
             ['r', 'wss://relay.example.com'],
             ['r', 'wss://nostr.example.org'],
-            ['p', 'pubkey123', 'wss://third.com']
+            ['p', 'pubkey123', 'wss://third.com'],
         ]);
 
         $relays = $this->extractor->extractRelayHintsFromTags($tags);
@@ -48,7 +50,7 @@ final class RelayHintExtractorAdapterTest extends TestCase
         $tags = TagCollection::fromArray([
             ['e', 'event123', 'wss://relay1.com'],
             ['p', 'pubkey456', 'wss://relay2.com', 'petname'],
-            ['e', 'event789']
+            ['e', 'event789'],
         ]);
 
         $relays = $this->extractor->extractRelayHintsFromTags($tags);
@@ -94,7 +96,7 @@ final class RelayHintExtractorAdapterTest extends TestCase
             ->expects($this->once())
             ->method('decodeComplexEntity')
             ->with($nevent)
-            ->willThrowException(new \Exception('Invalid nevent'));
+            ->willThrowException(new Exception('Invalid nevent'));
 
         $relay = $this->extractor->extractRelayHintFromNevent($nevent);
 
@@ -110,7 +112,7 @@ final class RelayHintExtractorAdapterTest extends TestCase
             ->method('decodeComplexEntity')
             ->willReturnMap([
                 ['nevent1abc123', ['relays' => ['wss://relay1.com']]],
-                ['nevent1def456', ['relays' => ['wss://relay2.com']]]
+                ['nevent1def456', ['relays' => ['wss://relay2.com']]],
             ]);
 
         $relays = $this->extractor->extractRelayHintsFromContent($content);
@@ -124,7 +126,7 @@ final class RelayHintExtractorAdapterTest extends TestCase
     {
         $event = $this->createRepostEvent([
             ['e', 'event123', 'wss://repost-relay.com'],
-            ['p', 'author456']
+            ['p', 'author456'],
         ]);
 
         $relays = $this->extractor->extractRelayHints($event);
@@ -139,13 +141,13 @@ final class RelayHintExtractorAdapterTest extends TestCase
             ['r', 'wss://relay.com'],
             ['r', 'wss://relay.com'],
             ['e', 'event123', 'wss://relay.com'],
-            ['p', 'pubkey456', 'wss://different.com']
+            ['p', 'pubkey456', 'wss://different.com'],
         ]);
 
         $relays = $this->extractor->extractRelayHintsFromTags($tags);
 
         $this->assertCount(2, $relays);
-        $relayUrls = array_map(fn ($relay) => (string) $relay, $relays);
+        $relayUrls = array_map(static fn ($relay) => (string) $relay, $relays);
         $this->assertContains('wss://relay.com', $relayUrls);
         $this->assertContains('wss://different.com', $relayUrls);
     }
@@ -155,7 +157,7 @@ final class RelayHintExtractorAdapterTest extends TestCase
         $tags = TagCollection::fromArray([
             ['r', 'invalid-url'],
             ['r', 'wss://valid-relay.com'],
-            ['e', 'event123', 'not-a-url']
+            ['e', 'event123', 'not-a-url'],
         ]);
 
         $relays = $this->extractor->extractRelayHintsFromTags($tags);
@@ -172,7 +174,7 @@ final class RelayHintExtractorAdapterTest extends TestCase
         }
 
         return new Event(
-            PublicKey::fromHex('fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210') ?? throw new \RuntimeException('Invalid test pubkey'),
+            PublicKey::fromHex('fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210') ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1234567890),
             EventKind::fromInt(6),
             new TagCollection($tags),

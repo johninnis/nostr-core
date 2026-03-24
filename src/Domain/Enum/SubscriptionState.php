@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Domain\ValueObject\Protocol;
+namespace Innis\Nostr\Core\Domain\Enum;
 
 enum SubscriptionState: string
 {
@@ -14,26 +14,26 @@ enum SubscriptionState: string
 
     public function isPending(): bool
     {
-        return $this === self::PENDING;
+        return self::PENDING === $this;
     }
 
     public function isOpen(): bool
     {
-        return \in_array($this, [self::PENDING, self::ACTIVE, self::LIVE], true);
+        return in_array($this, [self::PENDING, self::ACTIVE, self::LIVE], true);
     }
 
     public function isReceivingEvents(): bool
     {
-        return \in_array($this, [self::ACTIVE, self::LIVE], true);
+        return in_array($this, [self::ACTIVE, self::LIVE], true);
     }
 
     public function isLive(): bool
     {
-        return $this === self::LIVE;
+        return self::LIVE === $this;
     }
 
     public function isTerminal(): bool
     {
-        return \in_array($this, [self::CLOSED_BY_RELAY, self::CLOSED_BY_CLIENT], true);
+        return in_array($this, [self::CLOSED_BY_RELAY, self::CLOSED_BY_CLIENT], true);
     }
 }

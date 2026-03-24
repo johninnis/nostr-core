@@ -8,6 +8,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Secp256k1;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class Secp256k1Test extends TestCase
 {
@@ -29,7 +30,7 @@ final class Secp256k1Test extends TestCase
 
         $pubkey = \Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey::fromHex($pubkeyHex);
         $this->assertNotNull($pubkey);
-        $result = $pubkey->verify($msgBytes, \Innis\Nostr\Core\Domain\ValueObject\Identity\Signature::fromHex($sigHex) ?? throw new \RuntimeException('Invalid test sig'));
+        $result = $pubkey->verify($msgBytes, \Innis\Nostr\Core\Domain\ValueObject\Identity\Signature::fromHex($sigHex) ?? throw new RuntimeException('Invalid test sig'));
 
         $this->assertSame($expected, $result);
     }
@@ -66,7 +67,7 @@ final class Secp256k1Test extends TestCase
 
     public function testSignAndVerifyRoundTrip(): void
     {
-        $privateKey = PrivateKey::fromHex('0000000000000000000000000000000000000000000000000000000000000003') ?? throw new \RuntimeException('Invalid test key');
+        $privateKey = PrivateKey::fromHex('0000000000000000000000000000000000000000000000000000000000000003') ?? throw new RuntimeException('Invalid test key');
         $publicKey = $privateKey->getPublicKey();
 
         $message = hash('sha256', 'test message for round trip', true);
@@ -77,7 +78,7 @@ final class Secp256k1Test extends TestCase
 
     public function testDerivePublicKeyMatchesBip340Vector(): void
     {
-        $privateKey = PrivateKey::fromHex('0000000000000000000000000000000000000000000000000000000000000003') ?? throw new \RuntimeException('Invalid test key');
+        $privateKey = PrivateKey::fromHex('0000000000000000000000000000000000000000000000000000000000000003') ?? throw new RuntimeException('Invalid test key');
         $publicKey = $privateKey->getPublicKey();
 
         $this->assertSame(
@@ -88,7 +89,7 @@ final class Secp256k1Test extends TestCase
 
     public function testVerifyRejectsInvalidSignature(): void
     {
-        $privateKey = PrivateKey::fromHex('0000000000000000000000000000000000000000000000000000000000000003') ?? throw new \RuntimeException('Invalid test key');
+        $privateKey = PrivateKey::fromHex('0000000000000000000000000000000000000000000000000000000000000003') ?? throw new RuntimeException('Invalid test key');
         $publicKey = $privateKey->getPublicKey();
         $message = hash('sha256', 'test message', true);
 
@@ -100,7 +101,7 @@ final class Secp256k1Test extends TestCase
 
     public function testSignProducesDifferentSignaturesForDifferentMessages(): void
     {
-        $privateKey = PrivateKey::fromHex('0000000000000000000000000000000000000000000000000000000000000003') ?? throw new \RuntimeException('Invalid test key');
+        $privateKey = PrivateKey::fromHex('0000000000000000000000000000000000000000000000000000000000000003') ?? throw new RuntimeException('Invalid test key');
 
         $sig1 = $privateKey->sign(hash('sha256', 'message one', true));
         $sig2 = $privateKey->sign(hash('sha256', 'message two', true));

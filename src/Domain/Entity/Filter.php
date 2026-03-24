@@ -7,6 +7,7 @@ namespace Innis\Nostr\Core\Domain\Entity;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use InvalidArgumentException;
 
 final readonly class Filter
 {
@@ -17,40 +18,40 @@ final readonly class Filter
         private ?array $tags = null,
         private ?Timestamp $since = null,
         private ?Timestamp $until = null,
-        private ?int $limit = null
+        private ?int $limit = null,
     ) {
-        if ($this->limit !== null && ($this->limit < 1 || $this->limit > 5000)) {
-            throw new \InvalidArgumentException('Limit must be between 1 and 5000');
+        if (null !== $this->limit && ($this->limit < 1 || $this->limit > 5000)) {
+            throw new InvalidArgumentException('Limit must be between 1 and 5000');
         }
 
-        if ($this->since !== null && $this->until !== null && $this->since->isAfter($this->until)) {
-            throw new \InvalidArgumentException('Since timestamp cannot be after until timestamp');
+        if (null !== $this->since && null !== $this->until && $this->since->isAfter($this->until)) {
+            throw new InvalidArgumentException('Since timestamp cannot be after until timestamp');
         }
     }
 
     public function matches(Event $event): bool
     {
-        if ($this->ids !== null && !$this->matchesIds($event)) {
+        if (null !== $this->ids && !$this->matchesIds($event)) {
             return false;
         }
 
-        if ($this->authors !== null && !$this->matchesAuthors($event)) {
+        if (null !== $this->authors && !$this->matchesAuthors($event)) {
             return false;
         }
 
-        if ($this->kinds !== null && !$this->matchesKinds($event)) {
+        if (null !== $this->kinds && !$this->matchesKinds($event)) {
             return false;
         }
 
-        if ($this->tags !== null && !$this->matchesTags($event)) {
+        if (null !== $this->tags && !$this->matchesTags($event)) {
             return false;
         }
 
-        if ($this->since !== null && $event->getCreatedAt()->isBefore($this->since)) {
+        if (null !== $this->since && $event->getCreatedAt()->isBefore($this->since)) {
             return false;
         }
 
-        if ($this->until !== null && $event->getCreatedAt()->isAfter($this->until)) {
+        if (null !== $this->until && $event->getCreatedAt()->isAfter($this->until)) {
             return false;
         }
 
@@ -64,7 +65,7 @@ final readonly class Filter
 
     public function hasIds(): bool
     {
-        return $this->ids !== null;
+        return null !== $this->ids;
     }
 
     public function getAuthors(): ?array
@@ -74,7 +75,7 @@ final readonly class Filter
 
     public function hasAuthors(): bool
     {
-        return $this->authors !== null;
+        return null !== $this->authors;
     }
 
     public function getKinds(): ?array
@@ -84,7 +85,7 @@ final readonly class Filter
 
     public function hasKinds(): bool
     {
-        return $this->kinds !== null;
+        return null !== $this->kinds;
     }
 
     public function getTags(): ?array
@@ -109,7 +110,7 @@ final readonly class Filter
 
     public function hasLimit(): bool
     {
-        return $this->limit !== null;
+        return null !== $this->limit;
     }
 
     public function withAuthors(array $authors): self
@@ -129,36 +130,36 @@ final readonly class Filter
     {
         $filter = [];
 
-        if ($this->ids !== null) {
+        if (null !== $this->ids) {
             $filter['ids'] = $this->ids;
         }
 
-        if ($this->authors !== null) {
+        if (null !== $this->authors) {
             $filter['authors'] = $this->authors;
         }
 
-        if ($this->kinds !== null) {
+        if (null !== $this->kinds) {
             $filter['kinds'] = array_map(
-                fn ($kind) => $kind instanceof EventKind ? $kind->toInt() : $kind,
+                static fn ($kind) => $kind instanceof EventKind ? $kind->toInt() : $kind,
                 $this->kinds
             );
         }
 
-        if ($this->tags !== null) {
+        if (null !== $this->tags) {
             foreach ($this->tags as $tagName => $values) {
                 $filter["#{$tagName}"] = $values;
             }
         }
 
-        if ($this->since !== null) {
+        if (null !== $this->since) {
             $filter['since'] = $this->since->toInt();
         }
 
-        if ($this->until !== null) {
+        if (null !== $this->until) {
             $filter['until'] = $this->until->toInt();
         }
 
-        if ($this->limit !== null) {
+        if (null !== $this->limit) {
             $filter['limit'] = $this->limit;
         }
 
@@ -169,7 +170,7 @@ final readonly class Filter
     {
         $tags = [];
         foreach ($data as $key => $value) {
-            if (str_starts_with($key, '#') && \is_array($value)) {
+            if (str_starts_with($key, '#') && is_array($value)) {
                 $tags[substr($key, 1)] = $value;
                 unset($data[$key]);
             }
@@ -188,22 +189,22 @@ final readonly class Filter
 
     private function matchesIds(Event $event): bool
     {
-        return $this->ids === null || \in_array($event->getId()->toHex(), $this->ids, true);
+        return null === $this->ids || in_array($event->getId()->toHex(), $this->ids, true);
     }
 
     private function matchesAuthors(Event $event): bool
     {
-        return $this->authors === null || \in_array($event->getPubkey()->toHex(), $this->authors, true);
+        return null === $this->authors || in_array($event->getPubkey()->toHex(), $this->authors, true);
     }
 
     private function matchesKinds(Event $event): bool
     {
-        return $this->kinds === null || \in_array($event->getKind()->toInt(), $this->kinds, true);
+        return null === $this->kinds || in_array($event->getKind()->toInt(), $this->kinds, true);
     }
 
     private function matchesTags(Event $event): bool
     {
-        if ($this->tags === null) {
+        if (null === $this->tags) {
             return true;
         }
 

@@ -8,6 +8,7 @@ use Innis\Nostr\Core\Domain\Service\Bech32EncoderInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use InvalidArgumentException;
 use nostriphant\NIP19\Bech32;
 
 final class Bech32EncoderAdapter implements Bech32EncoderInterface
@@ -21,45 +22,48 @@ final class Bech32EncoderAdapter implements Bech32EncoderInterface
             case 'npub':
                 return [
                     'type' => 'pubkey',
-                    'pubkey' => $decoded()
+                    'pubkey' => $decoded(),
                 ];
 
             case 'note':
                 return [
                     'type' => 'event',
-                    'event_id' => $decoded()
+                    'event_id' => $decoded(),
                 ];
 
             case 'nprofile':
                 $data = $decoded->data;
+
                 return [
                     'type' => 'profile',
                     'pubkey' => $data->pubkey ?? '',
-                    'relays' => $data->relays ?? []
+                    'relays' => $data->relays ?? [],
                 ];
 
             case 'nevent':
                 $data = $decoded->data;
+
                 return [
                     'type' => 'event',
                     'event_id' => $data->id ?? '',
                     'relays' => $data->relays ?? [],
                     'author' => $data->author ?? null,
-                    'kind' => $data->kind ?? null
+                    'kind' => $data->kind ?? null,
                 ];
 
             case 'naddr':
                 $data = $decoded->data;
+
                 return [
                     'type' => 'address',
                     'identifier' => $data->identifier ?? '',
                     'pubkey' => $data->pubkey ?? '',
                     'kind' => $data->kind ?? null,
-                    'relays' => $data->relays ?? []
+                    'relays' => $data->relays ?? [],
                 ];
 
             default:
-                throw new \InvalidArgumentException("Unknown bech32 prefix: {$prefix}");
+                throw new InvalidArgumentException("Unknown bech32 prefix: {$prefix}");
         }
     }
 

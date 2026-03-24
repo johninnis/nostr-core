@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Entity;
 
-use Innis\Nostr\Core\Domain\ValueObject\Content\ContentReferenceType;
+use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
+use InvalidArgumentException;
 
 final readonly class ContentReference
 {
@@ -22,10 +23,10 @@ final readonly class ContentReference
         private array $relays = [],
         private ?string $error = null,
         private ?string $addressableIdentifier = null,
-        private ?int $kind = null
+        private ?int $kind = null,
     ) {
         if ($position < 0) {
-            throw new \InvalidArgumentException('Position must be non-negative');
+            throw new InvalidArgumentException('Position must be non-negative');
         }
     }
 
@@ -76,17 +77,17 @@ final readonly class ContentReference
 
     public function hasError(): bool
     {
-        return $this->error !== null;
+        return null !== $this->error;
     }
 
     public function isEventReference(): bool
     {
-        return $this->eventId !== null;
+        return null !== $this->eventId;
     }
 
     public function isPubkeyReference(): bool
     {
-        return $this->publicKey !== null;
+        return null !== $this->publicKey;
     }
 
     public function getAddressableIdentifier(): ?string
@@ -101,7 +102,7 @@ final readonly class ContentReference
 
     public function isAddressableReference(): bool
     {
-        return $this->addressableIdentifier !== null && $this->kind !== null && $this->publicKey !== null;
+        return null !== $this->addressableIdentifier && null !== $this->kind && null !== $this->publicKey;
     }
 
     public function toArray(): array
@@ -114,18 +115,18 @@ final readonly class ContentReference
             'decoded_type' => $this->decodedType,
             'event_id' => $this->eventId?->toHex(),
             'public_key' => $this->publicKey?->toHex(),
-            'relays' => array_map(fn (RelayUrl $relay) => (string) $relay, $this->relays),
+            'relays' => array_map(static fn (RelayUrl $relay) => (string) $relay, $this->relays),
             'error' => $this->error,
             'addressable_identifier' => $this->addressableIdentifier,
-            'kind' => $this->kind
+            'kind' => $this->kind,
         ];
     }
 
     public static function fromArray(array $data): self
     {
         $relays = [];
-        if (isset($data['relays']) && \is_array($data['relays'])) {
-            $relays = array_values(array_filter(array_map(fn (string $url) => RelayUrl::fromString($url), $data['relays'])));
+        if (isset($data['relays']) && is_array($data['relays'])) {
+            $relays = array_values(array_filter(array_map(static fn (string $url) => RelayUrl::fromString($url), $data['relays'])));
         }
 
         return new self(

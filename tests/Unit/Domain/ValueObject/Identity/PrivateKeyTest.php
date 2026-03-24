@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Identity;
 
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class PrivateKeyTest extends TestCase
 {
@@ -33,7 +34,7 @@ final class PrivateKeyTest extends TestCase
     {
         $privateKey = PrivateKey::generate();
 
-        $this->assertSame(64, \strlen($privateKey->toHex()));
+        $this->assertSame(64, strlen($privateKey->toHex()));
         $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $privateKey->toHex());
     }
 
@@ -42,7 +43,7 @@ final class PrivateKeyTest extends TestCase
         $privateKey = PrivateKey::generate();
         $publicKey = $privateKey->getPublicKey();
 
-        $this->assertSame(64, \strlen($publicKey->toHex()));
+        $this->assertSame(64, strlen($publicKey->toHex()));
         $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $publicKey->toHex());
     }
 
@@ -51,13 +52,13 @@ final class PrivateKeyTest extends TestCase
         $privateKey = PrivateKey::generate();
         $signature = $privateKey->sign('test message');
 
-        $this->assertSame(128, \strlen($signature->toHex()));
+        $this->assertSame(128, strlen($signature->toHex()));
         $this->assertMatchesRegularExpression('/^[a-f0-9]{128}$/', $signature->toHex());
     }
 
     public function testCanConvertToBech32(): void
     {
-        $privateKey = PrivateKey::fromHex(self::VALID_PRIVATE_KEY_HEX) ?? throw new \RuntimeException('Invalid test key');
+        $privateKey = PrivateKey::fromHex(self::VALID_PRIVATE_KEY_HEX) ?? throw new RuntimeException('Invalid test key');
         $bech32 = $privateKey->toBech32();
 
         $this->assertStringStartsWith('nsec1', $bech32);
@@ -65,7 +66,7 @@ final class PrivateKeyTest extends TestCase
 
     public function testCanCreateFromBech32(): void
     {
-        $privateKey = PrivateKey::fromHex(self::VALID_PRIVATE_KEY_HEX) ?? throw new \RuntimeException('Invalid test key');
+        $privateKey = PrivateKey::fromHex(self::VALID_PRIVATE_KEY_HEX) ?? throw new RuntimeException('Invalid test key');
         $bech32 = $privateKey->toBech32();
         $recreated = PrivateKey::fromBech32($bech32);
 

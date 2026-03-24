@@ -12,7 +12,7 @@ final readonly class HighlightMetadata
     public function __construct(
         private ?string $context,
         private ?string $comment,
-        private ?string $sourceUrl
+        private ?string $sourceUrl,
     ) {
     }
 

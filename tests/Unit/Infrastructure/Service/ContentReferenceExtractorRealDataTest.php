@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Infrastructure\Service;
 
+use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
 use Innis\Nostr\Core\Domain\Service\Bech32EncoderInterface;
-use Innis\Nostr\Core\Domain\ValueObject\Content\ContentReferenceType;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Infrastructure\Service\ContentReferenceExtractorAdapter;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -32,7 +32,7 @@ final class ContentReferenceExtractorRealDataTest extends TestCase
             ->with('nevent1qvzqqqqqqypzqxh7p36w84mcf6af8f0rlf255mhtqxfg6ynnnt5t5jpj0p5q3cmdqqsdxkwnafkgnfg68g6xkqau25548fewg440x5s8r4uud0sednkewugdc6hft')
             ->willReturn([
                 'type' => 'event',
-                'event_id' => 'd359d3ea6c89a51a3a346b03bc552953a72e456af352071d79c6be196ced9771'
+                'event_id' => 'd359d3ea6c89a51a3a346b03bc552953a72e456af352071d79c6be196ced9771',
             ]);
 
         $references = $this->extractor->extractContentReferences($content);
@@ -54,7 +54,7 @@ final class ContentReferenceExtractorRealDataTest extends TestCase
             ->with('naddr1qvzqqqr4gupzq3e0gs8jnmued6f2rp4c6vs07xqvs4vs8zpwt82smcdch4txjvq7qys8wumn8ghj7cnfw33k76twd4shs6tdv9kxjum5wvhx7mnvd9hx2tcpzemhxue69uhk2er9dchxummnw3ezumrpdejz7qqlvd5xjmnp945hxttswfjhqurfdenj6en0wgkhxmmdv46xs6twvuk7xtlq')
             ->willReturn([
                 'type' => 'address',
-                'event_id' => '5570e03f9a762570a1668508895316500b38ae3f9b311871dbb637f2844d0c67'
+                'event_id' => '5570e03f9a762570a1668508895316500b38ae3f9b311871dbb637f2844d0c67',
             ]);
 
         $references = $this->extractor->extractContentReferences($content);
@@ -74,5 +74,4 @@ final class ContentReferenceExtractorRealDataTest extends TestCase
 
         $this->assertEmpty($references);
     }
-
 }

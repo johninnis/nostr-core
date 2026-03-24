@@ -26,7 +26,7 @@ final class ReplyTagBuilder
         EventId $replyToId,
         PublicKey $replyToAuthor,
         ?EventId $rootId = null,
-        ?PublicKey $rootAuthor = null
+        ?PublicKey $rootAuthor = null,
     ): TagCollection {
         $tags = [];
 
@@ -35,13 +35,13 @@ final class ReplyTagBuilder
 
         $tags[] = Tag::event($effectiveRootId->toHex(), null, 'root');
 
-        if ($rootId !== null && !$rootId->equals($replyToId)) {
+        if (null !== $rootId && !$rootId->equals($replyToId)) {
             $tags[] = Tag::event($replyToId->toHex(), null, 'reply');
         }
 
         $tags[] = Tag::pubkey($effectiveRootAuthor->toHex());
 
-        if ($rootAuthor !== null && !$rootAuthor->equals($replyToAuthor)) {
+        if (null !== $rootAuthor && !$rootAuthor->equals($replyToAuthor)) {
             $tags[] = Tag::pubkey($replyToAuthor->toHex());
         }
 

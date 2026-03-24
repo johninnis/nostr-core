@@ -24,6 +24,7 @@ final class EventValidationService
     {
         try {
             $this->validateEvent($event);
+
             return true;
         } catch (InvalidEventException) {
             return false;

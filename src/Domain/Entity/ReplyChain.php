@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\Entity;
 
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use InvalidArgumentException;
 
 final readonly class ReplyChain
 {
@@ -14,17 +15,17 @@ final readonly class ReplyChain
         private ?EventReference $rootEvent,
         private ?EventReference $parentEvent,
         private array $conversationParticipants,
-        private array $mentionedEvents
+        private array $mentionedEvents,
     ) {
         foreach ($this->conversationParticipants as $participant) {
             if (!$participant instanceof PublicKey) {
-                throw new \InvalidArgumentException('All conversation participants must be PublicKey instances');
+                throw new InvalidArgumentException('All conversation participants must be PublicKey instances');
             }
         }
 
         foreach ($this->mentionedEvents as $event) {
             if (!$event instanceof EventReference) {
-                throw new \InvalidArgumentException('All mentioned events must be EventReference instances');
+                throw new InvalidArgumentException('All mentioned events must be EventReference instances');
             }
         }
     }
@@ -61,22 +62,22 @@ final readonly class ReplyChain
 
     public function hasRoot(): bool
     {
-        return $this->rootEvent !== null;
+        return null !== $this->rootEvent;
     }
 
     public function hasParent(): bool
     {
-        return $this->parentEvent !== null;
+        return null !== $this->parentEvent;
     }
 
     public function getParticipantCount(): int
     {
-        return \count($this->conversationParticipants);
+        return count($this->conversationParticipants);
     }
 
     public function getMentionedEventCount(): int
     {
-        return \count($this->mentionedEvents);
+        return count($this->mentionedEvents);
     }
 
     public function toArray(): array
@@ -87,30 +88,30 @@ final readonly class ReplyChain
             'root_event' => $this->rootEvent?->toArray(),
             'parent_event' => $this->parentEvent?->toArray(),
             'conversation_participants' => array_map(
-                fn (PublicKey $key) => $key->toHex(),
+                static fn (PublicKey $key) => $key->toHex(),
                 $this->conversationParticipants
             ),
             'mentioned_events' => array_map(
-                fn (EventReference $ref) => $ref->toArray(),
+                static fn (EventReference $ref) => $ref->toArray(),
                 $this->mentionedEvents
-            )
+            ),
         ];
     }
 
     public static function fromArray(array $data): self
     {
         $participants = [];
-        if (isset($data['conversation_participants']) && \is_array($data['conversation_participants'])) {
+        if (isset($data['conversation_participants']) && is_array($data['conversation_participants'])) {
             $participants = array_values(array_filter(array_map(
-                fn (string $hex) => PublicKey::fromHex($hex),
+                static fn (string $hex) => PublicKey::fromHex($hex),
                 $data['conversation_participants']
             )));
         }
 
         $mentionedEvents = [];
-        if (isset($data['mentioned_events']) && \is_array($data['mentioned_events'])) {
+        if (isset($data['mentioned_events']) && is_array($data['mentioned_events'])) {
             $mentionedEvents = array_map(
-                fn (array $eventData) => EventReference::fromArray($eventData),
+                static fn (array $eventData) => EventReference::fromArray($eventData),
                 $data['mentioned_events']
             );
         }

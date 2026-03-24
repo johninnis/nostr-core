@@ -10,7 +10,7 @@ final readonly class RelayUrl
         private string $url,
         private string $host,
         private ?int $port,
-        private string $path
+        private string $path,
     ) {
     }
 
@@ -34,19 +34,19 @@ final readonly class RelayUrl
         return $this->path;
     }
 
-    public function equals(RelayUrl $other): bool
+    public function equals(self $other): bool
     {
         return $this->url === $other->url;
     }
 
     public static function fromString(?string $url): ?self
     {
-        if ($url === null) {
+        if (null === $url) {
             return null;
         }
 
         $normalised = self::normalise($url);
-        if ($normalised === null) {
+        if (null === $normalised) {
             return null;
         }
 
@@ -78,7 +78,7 @@ final readonly class RelayUrl
         }
 
         $parsed = parse_url($trimmed);
-        if ($parsed === false || !isset($parsed['scheme'], $parsed['host'])) {
+        if (false === $parsed || !isset($parsed['scheme'], $parsed['host'])) {
             return null;
         }
 
@@ -86,22 +86,22 @@ final readonly class RelayUrl
             return null;
         }
 
-        $normalised = strtolower($parsed['scheme']) . '://' . strtolower($parsed['host']);
+        $normalised = strtolower($parsed['scheme']).'://'.strtolower($parsed['host']);
 
         if (isset($parsed['port'])) {
-            $normalised .= ':' . $parsed['port'];
+            $normalised .= ':'.$parsed['port'];
         }
 
-        if (isset($parsed['path']) && $parsed['path'] !== '/') {
+        if (isset($parsed['path']) && '/' !== $parsed['path']) {
             $cleanPath = rtrim($parsed['path'], ',.;!');
             $cleanPath = rtrim($cleanPath, '/');
-            if (!empty($cleanPath) && $cleanPath !== '/') {
+            if (!empty($cleanPath) && '/' !== $cleanPath) {
                 $normalised .= $cleanPath;
             }
         }
 
         if (isset($parsed['query'])) {
-            $normalised .= '?' . $parsed['query'];
+            $normalised .= '?'.$parsed['query'];
         }
 
         return $normalised;
@@ -113,19 +113,19 @@ final readonly class RelayUrl
             return false;
         }
 
-        if (\strlen($url) > 200) {
+        if (strlen($url) > 200) {
             return false;
         }
 
         $parsed = parse_url($url);
 
-        if ($parsed === false
+        if (false === $parsed
             || !isset($parsed['scheme'], $parsed['host'])
-            || !\in_array($parsed['scheme'], ['ws', 'wss'], true)) {
+            || !in_array($parsed['scheme'], ['ws', 'wss'], true)) {
             return false;
         }
 
-        $afterHost = substr($url, strpos($url, $parsed['host']) + \strlen($parsed['host']));
+        $afterHost = substr($url, strpos($url, $parsed['host']) + strlen($parsed['host']));
         if (preg_match('/wss?:\/\//', $afterHost)) {
             return false;
         }

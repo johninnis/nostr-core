@@ -4,18 +4,20 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Tag;
 
+use InvalidArgumentException;
+
 final readonly class Tag
 {
     public function __construct(
         private TagType $type,
-        private array $values
+        private array $values,
     ) {
         // Tags can be empty (flag-style tags like ["content-warning"])
         // So we don't validate that values must exist
 
         foreach ($this->values as $value) {
-            if (!\is_string($value)) {
-                throw new \InvalidArgumentException('All tag values must be strings');
+            if (!is_string($value)) {
+                throw new InvalidArgumentException('All tag values must be strings');
             }
         }
     }
@@ -37,7 +39,7 @@ final readonly class Tag
 
     public function hasValue(string $value): bool
     {
-        return \in_array($value, $this->values, true);
+        return in_array($value, $this->values, true);
     }
 
     public function toArray(): array
@@ -45,7 +47,7 @@ final readonly class Tag
         return array_merge([(string) $this->type], $this->values);
     }
 
-    public function equals(Tag $other): bool
+    public function equals(self $other): bool
     {
         return $this->type->equals($other->type) && $this->values === $other->values;
     }
@@ -55,10 +57,10 @@ final readonly class Tag
         $values = [$eventId];
 
         // Per NIP-10: if marker is provided, relay URL must be at position 2 (even if empty)
-        if ($marker !== null) {
+        if (null !== $marker) {
             $values[] = $relayUrl ?? '';
             $values[] = $marker;
-        } elseif ($relayUrl !== null) {
+        } elseif (null !== $relayUrl) {
             $values[] = $relayUrl;
         }
 
@@ -68,10 +70,10 @@ final readonly class Tag
     public static function pubkey(string $pubkey, ?string $relayUrl = null, ?string $petname = null): self
     {
         $values = [$pubkey];
-        if ($relayUrl !== null) {
+        if (null !== $relayUrl) {
             $values[] = $relayUrl;
         }
-        if ($petname !== null) {
+        if (null !== $petname) {
             $values[] = $petname;
         }
 
@@ -91,7 +93,7 @@ final readonly class Tag
     public static function fromArray(array $data): self
     {
         if (empty($data)) {
-            throw new \InvalidArgumentException('Tag array cannot be empty');
+            throw new InvalidArgumentException('Tag array cannot be empty');
         }
 
         $type = TagType::fromString((string) array_shift($data));

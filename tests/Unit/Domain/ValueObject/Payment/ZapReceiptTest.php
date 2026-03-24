@@ -12,6 +12,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Payment\ZapReceipt;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class ZapReceiptTest extends TestCase
 {
@@ -217,7 +218,7 @@ final class ZapReceiptTest extends TestCase
     public function testNonZapReceiptReturnsNull(): void
     {
         $event = new Event(
-            PublicKey::fromHex(self::RECEIPT_PUBKEY) ?? throw new \RuntimeException('Invalid test pubkey'),
+            PublicKey::fromHex(self::RECEIPT_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1700000000),
             EventKind::textNote(),
             TagCollection::empty(),
@@ -262,7 +263,7 @@ final class ZapReceiptTest extends TestCase
     private function buildReceiptEvent(array $rawTags): Event
     {
         return new Event(
-            PublicKey::fromHex(self::RECEIPT_PUBKEY) ?? throw new \RuntimeException('Invalid test pubkey'),
+            PublicKey::fromHex(self::RECEIPT_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1700000000),
             EventKind::zapReceipt(),
             TagCollection::fromArray($rawTags),

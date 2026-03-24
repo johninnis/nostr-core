@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Throwable;
 
 final class EmbeddedEventExtractor
 {
@@ -15,12 +16,12 @@ final class EmbeddedEventExtractor
         }
 
         $content = (string) $event->getContent();
-        if ($content === '') {
+        if ('' === $content) {
             return null;
         }
 
         $embeddedData = json_decode($content, true);
-        if (!\is_array($embeddedData)) {
+        if (!is_array($embeddedData)) {
             return null;
         }
 
@@ -30,7 +31,7 @@ final class EmbeddedEventExtractor
 
         try {
             return Event::fromArray($embeddedData);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return null;
         }
     }

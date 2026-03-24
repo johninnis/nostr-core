@@ -11,6 +11,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client\EventMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 final class EventMessageTest extends TestCase
@@ -63,7 +64,7 @@ final class EventMessageTest extends TestCase
 
     public function testFromArrayThrowsExceptionForInvalidFormat(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid EVENT message format');
 
         EventMessage::fromArray(['INVALID', 'data']);
@@ -71,7 +72,7 @@ final class EventMessageTest extends TestCase
 
     public function testFromArrayThrowsExceptionForWrongLength(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid EVENT message format');
 
         EventMessage::fromArray(['EVENT']);

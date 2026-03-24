@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol;
 
-use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionState;
+use Innis\Nostr\Core\Domain\Enum\SubscriptionState;
 use PHPUnit\Framework\TestCase;
 
 final class SubscriptionStateTest extends TestCase

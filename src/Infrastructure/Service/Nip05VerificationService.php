@@ -34,7 +34,7 @@ final class Nip05VerificationService implements Nip05VerificationServiceInterfac
             'User-Agent' => 'Nostr-PHP/1.0',
         ]);
 
-        if ($data === null) {
+        if (null === $data) {
             return Nip05VerificationResult::failure(
                 $identifier,
                 $expectedPubkey,

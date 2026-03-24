@@ -7,12 +7,13 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
+use InvalidArgumentException;
 
 final readonly class EventMessage extends RelayMessage
 {
     public function __construct(
         private SubscriptionId $subscriptionId,
-        private Event $event
+        private Event $event,
     ) {
     }
 
@@ -38,8 +39,8 @@ final readonly class EventMessage extends RelayMessage
 
     public static function fromArray(array $data): static
     {
-        if (\count($data) !== 3 || $data[0] !== 'EVENT') {
-            throw new \InvalidArgumentException('Invalid EVENT message format');
+        if (3 !== count($data) || 'EVENT' !== $data[0]) {
+            throw new InvalidArgumentException('Invalid EVENT message format');
         }
 
         return new self(

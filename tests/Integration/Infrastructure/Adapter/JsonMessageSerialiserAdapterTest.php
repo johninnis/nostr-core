@@ -16,6 +16,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\OkMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Infrastructure\Adapter\JsonMessageSerialiserAdapter;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 final class JsonMessageSerialiserAdapterTest extends TestCase
@@ -117,7 +118,7 @@ final class JsonMessageSerialiserAdapterTest extends TestCase
 
     public function testThrowsExceptionForInvalidClientMessageJson(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid JSON for client message');
 
         $this->serialiser->deserialiseClientMessage('invalid json');
@@ -125,7 +126,7 @@ final class JsonMessageSerialiserAdapterTest extends TestCase
 
     public function testThrowsExceptionForInvalidRelayMessageJson(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid JSON for relay message');
 
         $this->serialiser->deserialiseRelayMessage('invalid json');
@@ -136,7 +137,7 @@ final class JsonMessageSerialiserAdapterTest extends TestCase
         $json = json_encode(['UNKNOWN', 'data']);
         $this->assertNotFalse($json);
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Unknown client message type: UNKNOWN');
 
         $this->serialiser->deserialiseClientMessage($json);
@@ -147,7 +148,7 @@ final class JsonMessageSerialiserAdapterTest extends TestCase
         $json = json_encode(['UNKNOWN', 'data']);
         $this->assertNotFalse($json);
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Unknown relay message type: UNKNOWN');
 
         $this->serialiser->deserialiseRelayMessage($json);
@@ -158,7 +159,7 @@ final class JsonMessageSerialiserAdapterTest extends TestCase
         $json = json_encode([]);
         $this->assertNotFalse($json);
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid JSON for client message');
 
         $this->serialiser->deserialiseClientMessage($json);
@@ -169,7 +170,7 @@ final class JsonMessageSerialiserAdapterTest extends TestCase
         $json = json_encode([]);
         $this->assertNotFalse($json);
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid JSON for relay message');
 
         $this->serialiser->deserialiseRelayMessage($json);

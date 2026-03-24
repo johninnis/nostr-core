@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
+use Exception;
 use Mdanter\Ecc\EccFactory;
 use nostriphant\NIP19\Bech32;
 
@@ -28,21 +29,22 @@ final readonly class PublicKey
     public function verify(string $messageBytes, Signature $signature): bool
     {
         try {
-            if (\strlen($signature->toHex()) !== 128) {
+            if (128 !== strlen($signature->toHex())) {
                 return false;
             }
 
             if (Secp256k1::isAvailable()) {
                 $sigBytes = hex2bin($signature->toHex());
                 $pubkeyBytes = hex2bin($this->key);
-                if ($sigBytes === false || $pubkeyBytes === false) {
+                if (false === $sigBytes || false === $pubkeyBytes) {
                     return false;
                 }
+
                 return Secp256k1::verify($sigBytes, $messageBytes, $pubkeyBytes);
             }
 
             return $this->verifySchnorr($messageBytes, $signature->toHex(), $this->key);
-        } catch (\Exception) {
+        } catch (Exception) {
             return false;
         }
     }
@@ -59,7 +61,7 @@ final readonly class PublicKey
         // P = lift_x(int(pk))
         $P_x = gmp_init($publicKey, 16);
         $P = SchnorrMathHelper::liftX($P_x, $curve, $p);
-        if ($P === null) {
+        if (null === $P) {
             return false;
         }
 
@@ -72,7 +74,7 @@ final readonly class PublicKey
         }
 
         // e = int(hash_BIP0340/challenge(bytes(r) || bytes(P) || m)) mod n
-        $eInput = SchnorrMathHelper::gmpToBytes($r, 32) . SchnorrMathHelper::gmpToBytes($P_x, 32) . $message;
+        $eInput = SchnorrMathHelper::gmpToBytes($r, 32).SchnorrMathHelper::gmpToBytes($P_x, 32).$message;
         $eHash = SchnorrMathHelper::taggedHash('BIP0340/challenge', $eInput);
         $e = gmp_mod(gmp_init(bin2hex($eHash), 16), $n);
 
@@ -90,21 +92,21 @@ final readonly class PublicKey
             return false;
         }
 
-        if (gmp_cmp(gmp_mod($R->getY(), 2), 0) !== 0) {
+        if (0 !== gmp_cmp(gmp_mod($R->getY(), 2), 0)) {
             return false;
         }
 
-        return gmp_cmp($R->getX(), $r) === 0;
+        return 0 === gmp_cmp($R->getX(), $r);
     }
 
-    public function equals(PublicKey $other): bool
+    public function equals(self $other): bool
     {
         return $this->key === $other->key;
     }
 
     public static function fromHex(string $hex): ?self
     {
-        if (!preg_match('/^[a-f0-9]{' . self::HEX_LENGTH . '}$/', $hex)) {
+        if (!preg_match('/^[a-f0-9]{'.self::HEX_LENGTH.'}$/', $hex)) {
             return null;
         }
 
@@ -121,8 +123,8 @@ final readonly class PublicKey
             $decoded = new Bech32($bech32);
             $hex = $decoded();
 
-            return \is_string($hex) ? new self($hex) : null;
-        } catch (\Exception) {
+            return is_string($hex) ? new self($hex) : null;
+        } catch (Exception) {
             return null;
         }
     }

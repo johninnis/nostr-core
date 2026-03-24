@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client;
 
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\ClientMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
+use InvalidArgumentException;
 
 final readonly class CloseMessage extends ClientMessage
 {
@@ -30,8 +31,8 @@ final readonly class CloseMessage extends ClientMessage
 
     public static function fromArray(array $data): static
     {
-        if (\count($data) !== 2 || $data[0] !== 'CLOSE') {
-            throw new \InvalidArgumentException('Invalid CLOSE message format');
+        if (2 !== count($data) || 'CLOSE' !== $data[0]) {
+            throw new InvalidArgumentException('Invalid CLOSE message format');
         }
 
         return new self(SubscriptionId::fromString($data[1]));

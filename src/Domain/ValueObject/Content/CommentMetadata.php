@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Content;
 
+use Innis\Nostr\Core\Domain\Enum\CommentScope;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 
@@ -12,7 +13,7 @@ final readonly class CommentMetadata
     public function __construct(
         private string $rootKind,
         private string $parentKind,
-        private CommentScope $rootScope
+        private CommentScope $rootScope,
     ) {
     }
 
@@ -44,7 +45,7 @@ final readonly class CommentMetadata
         }
 
         $rootScope = self::determineRootScope($tags);
-        if ($rootScope === null) {
+        if (null === $rootScope) {
             return null;
         }
 

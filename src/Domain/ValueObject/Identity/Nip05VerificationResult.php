@@ -22,7 +22,7 @@ final readonly class Nip05VerificationResult
     public static function failure(
         Nip05Identifier $identifier,
         PublicKey $pubkey,
-        string $reason
+        string $reason,
     ): self {
         return new self($identifier, $pubkey, false, $reason);
     }

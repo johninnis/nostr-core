@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Tag;
 
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 final class TagTest extends TestCase
@@ -32,7 +33,7 @@ final class TagTest extends TestCase
 
     public function testThrowsExceptionForNonStringValues(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('All tag values must be strings');
 
         new Tag(TagType::event(), ['valid', 123]);
@@ -122,7 +123,7 @@ final class TagTest extends TestCase
 
     public function testFromArrayThrowsExceptionForEmptyArray(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Tag array cannot be empty');
 
         Tag::fromArray([]);

@@ -100,7 +100,7 @@ final readonly class Nip11Info
             'version' => $this->version,
             'banner' => $this->banner,
             'icon' => $this->icon,
-        ], fn ($value) => $value !== null);
+        ], static fn ($value) => null !== $value);
     }
 
     public function getLimitation(): ?array

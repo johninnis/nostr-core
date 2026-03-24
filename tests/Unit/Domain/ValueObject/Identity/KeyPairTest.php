@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Identity;
 
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 final class KeyPairTest extends TestCase
@@ -15,8 +16,8 @@ final class KeyPairTest extends TestCase
         $keyPair = KeyPair::generate();
 
         $this->assertInstanceOf(KeyPair::class, $keyPair);
-        $this->assertSame(64, \strlen($keyPair->getPrivateKey()->toHex()));
-        $this->assertSame(64, \strlen($keyPair->getPublicKey()->toHex()));
+        $this->assertSame(64, strlen($keyPair->getPrivateKey()->toHex()));
+        $this->assertSame(64, strlen($keyPair->getPublicKey()->toHex()));
     }
 
     public function testCanCreateFromPrivateKey(): void
@@ -33,7 +34,7 @@ final class KeyPairTest extends TestCase
         $privateKey = PrivateKey::generate();
         $wrongPublicKey = PrivateKey::generate()->getPublicKey();
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Private key does not match public key');
 
         new KeyPair($privateKey, $wrongPublicKey);
@@ -46,7 +47,7 @@ final class KeyPairTest extends TestCase
 
         $signature = $keyPair->sign($message);
 
-        $this->assertSame(128, \strlen($signature->toHex()));
+        $this->assertSame(128, strlen($signature->toHex()));
     }
 
     public function testCanVerifyWithKeyPair(): void

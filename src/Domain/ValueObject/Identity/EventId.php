@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
+use Exception;
 use nostriphant\NIP19\Bech32;
 
 final readonly class EventId
@@ -22,7 +23,7 @@ final readonly class EventId
         return (string) Bech32::note($this->id);
     }
 
-    public function equals(EventId $other): bool
+    public function equals(self $other): bool
     {
         return $this->id === $other->id;
     }
@@ -46,8 +47,8 @@ final readonly class EventId
             $decoded = new Bech32($bech32);
             $hex = $decoded();
 
-            return \is_string($hex) ? self::fromHex($hex) : null;
-        } catch (\Exception) {
+            return is_string($hex) ? self::fromHex($hex) : null;
+        } catch (Exception) {
             return null;
         }
     }

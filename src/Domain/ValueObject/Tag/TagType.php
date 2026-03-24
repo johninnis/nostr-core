@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Tag;
 
+use InvalidArgumentException;
+
 final readonly class TagType
 {
     public const EVENT = 'e';
@@ -32,12 +34,12 @@ final readonly class TagType
 
     public function __construct(private string $type)
     {
-        if ($this->type === '') {
-            throw new \InvalidArgumentException('Tag type cannot be empty');
+        if ('' === $this->type) {
+            throw new InvalidArgumentException('Tag type cannot be empty');
         }
     }
 
-    public function equals(TagType $other): bool
+    public function equals(self $other): bool
     {
         return $this->type === $other->type;
     }

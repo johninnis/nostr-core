@@ -16,7 +16,7 @@ final readonly class LongformMetadata
         private ?string $summary,
         private ?string $image,
         private ?Timestamp $publishedAt,
-        private array $topics
+        private array $topics,
     ) {
     }
 
@@ -112,8 +112,8 @@ final readonly class LongformMetadata
             && $this->summary === $other->summary
             && $this->image === $other->image
             && (
-                ($this->publishedAt === null && $other->publishedAt === null)
-                || ($this->publishedAt !== null && $other->publishedAt !== null && $this->publishedAt->equals($other->publishedAt))
+                (null === $this->publishedAt && null === $other->publishedAt)
+                || (null !== $this->publishedAt && null !== $other->publishedAt && $this->publishedAt->equals($other->publishedAt))
             )
             && $this->topics === $other->topics;
     }

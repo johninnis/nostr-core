@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
+use InvalidArgumentException;
+
 final readonly class KeyPair
 {
     public function __construct(
         private PrivateKey $privateKey,
-        private PublicKey $publicKey
+        private PublicKey $publicKey,
     ) {
         if (!$this->privateKey->getPublicKey()->equals($this->publicKey)) {
-            throw new \InvalidArgumentException('Private key does not match public key');
+            throw new InvalidArgumentException('Private key does not match public key');
         }
     }
 

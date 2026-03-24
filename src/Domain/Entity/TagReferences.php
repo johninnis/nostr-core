@@ -7,6 +7,7 @@ namespace Innis\Nostr\Core\Domain\Entity;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\PubkeyReference;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\RelayReference;
+use InvalidArgumentException;
 
 final readonly class TagReferences
 {
@@ -16,41 +17,41 @@ final readonly class TagReferences
         private array $quotes,
         private array $addressable,
         private array $relays,
-        private array $challenges
+        private array $challenges,
     ) {
         foreach ($this->events as $event) {
             if (!$event instanceof EventReference) {
-                throw new \InvalidArgumentException('All events must be EventReference instances');
+                throw new InvalidArgumentException('All events must be EventReference instances');
             }
         }
 
         foreach ($this->pubkeys as $pubkey) {
             if (!$pubkey instanceof PubkeyReference) {
-                throw new \InvalidArgumentException('All pubkeys must be PubkeyReference instances');
+                throw new InvalidArgumentException('All pubkeys must be PubkeyReference instances');
             }
         }
 
         foreach ($this->quotes as $quote) {
             if (!$quote instanceof EventReference) {
-                throw new \InvalidArgumentException('All quotes must be EventReference instances');
+                throw new InvalidArgumentException('All quotes must be EventReference instances');
             }
         }
 
         foreach ($this->addressable as $coordinate) {
             if (!$coordinate instanceof EventCoordinate) {
-                throw new \InvalidArgumentException('All addressable must be EventCoordinate instances');
+                throw new InvalidArgumentException('All addressable must be EventCoordinate instances');
             }
         }
 
         foreach ($this->relays as $relay) {
             if (!$relay instanceof RelayReference) {
-                throw new \InvalidArgumentException('All relays must be RelayReference instances');
+                throw new InvalidArgumentException('All relays must be RelayReference instances');
             }
         }
 
         foreach ($this->challenges as $challenge) {
-            if (!\is_string($challenge)) {
-                throw new \InvalidArgumentException('All challenges must be strings');
+            if (!is_string($challenge)) {
+                throw new InvalidArgumentException('All challenges must be strings');
             }
         }
     }
@@ -89,26 +90,26 @@ final readonly class TagReferences
     {
         return [
             'events' => array_map(
-                fn (EventReference $ref) => $ref->toArray(),
+                static fn (EventReference $ref) => $ref->toArray(),
                 $this->events
             ),
             'pubkeys' => array_map(
-                fn (PubkeyReference $ref) => $ref->toArray(),
+                static fn (PubkeyReference $ref) => $ref->toArray(),
                 $this->pubkeys
             ),
             'quotes' => array_map(
-                fn (EventReference $ref) => $ref->toArray(),
+                static fn (EventReference $ref) => $ref->toArray(),
                 $this->quotes
             ),
             'addressable' => array_map(
-                fn (EventCoordinate $coord) => $coord->toArray(),
+                static fn (EventCoordinate $coord) => $coord->toArray(),
                 $this->addressable
             ),
             'relays' => array_map(
-                fn (RelayReference $ref) => $ref->toArray(),
+                static fn (RelayReference $ref) => $ref->toArray(),
                 $this->relays
             ),
-            'challenges' => $this->challenges
+            'challenges' => $this->challenges,
         ];
     }
 
@@ -116,23 +117,23 @@ final readonly class TagReferences
     {
         return new self(
             array_map(
-                fn (array $ref) => EventReference::fromArray($ref),
+                static fn (array $ref) => EventReference::fromArray($ref),
                 $data['events'] ?? []
             ),
             array_map(
-                fn (array $ref) => PubkeyReference::fromArray($ref),
+                static fn (array $ref) => PubkeyReference::fromArray($ref),
                 $data['pubkeys'] ?? []
             ),
             array_map(
-                fn (array $ref) => EventReference::fromArray($ref),
+                static fn (array $ref) => EventReference::fromArray($ref),
                 $data['quotes'] ?? []
             ),
             array_values(array_filter(array_map(
-                fn (array $ref) => EventCoordinate::fromArray($ref),
+                static fn (array $ref) => EventCoordinate::fromArray($ref),
                 $data['addressable'] ?? []
             ))),
             array_map(
-                fn (array $ref) => RelayReference::fromArray($ref),
+                static fn (array $ref) => RelayReference::fromArray($ref),
                 $data['relays'] ?? []
             ),
             $data['challenges'] ?? []

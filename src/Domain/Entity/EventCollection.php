@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Entity;
 
+use ArrayIterator;
+use Countable;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use InvalidArgumentException;
+use IteratorAggregate;
+use JsonSerializable;
 
-final class EventCollection implements \IteratorAggregate, \Countable, \JsonSerializable
+final class EventCollection implements IteratorAggregate, Countable, JsonSerializable
 {
     private array $events = [];
 
@@ -16,7 +21,7 @@ final class EventCollection implements \IteratorAggregate, \Countable, \JsonSeri
     {
         foreach ($events as $event) {
             if (!$event instanceof Event) {
-                throw new \InvalidArgumentException('All items must be Event instances');
+                throw new InvalidArgumentException('All items must be Event instances');
             }
         }
         $this->events = array_values($events);
@@ -26,6 +31,7 @@ final class EventCollection implements \IteratorAggregate, \Countable, \JsonSeri
     {
         $events = $this->events;
         $events[] = $event;
+
         return new self($events);
     }
 
@@ -33,8 +39,9 @@ final class EventCollection implements \IteratorAggregate, \Countable, \JsonSeri
     {
         $events = array_filter(
             $this->events,
-            fn (Event $event) => !$event->getId()->equals($eventId)
+            static fn (Event $event) => !$event->getId()->equals($eventId)
         );
+
         return new self($events);
     }
 
@@ -45,6 +52,7 @@ final class EventCollection implements \IteratorAggregate, \Countable, \JsonSeri
                 return true;
             }
         }
+
         return false;
     }
 
@@ -52,8 +60,9 @@ final class EventCollection implements \IteratorAggregate, \Countable, \JsonSeri
     {
         $filtered = array_filter(
             $this->events,
-            fn (Event $event) => $event->getKind()->equals($kind)
+            static fn (Event $event) => $event->getKind()->equals($kind)
         );
+
         return new self($filtered);
     }
 
@@ -61,20 +70,23 @@ final class EventCollection implements \IteratorAggregate, \Countable, \JsonSeri
     {
         $filtered = array_filter(
             $this->events,
-            fn (Event $event) => $event->getPubkey()->equals($author)
+            static fn (Event $event) => $event->getPubkey()->equals($author)
         );
+
         return new self($filtered);
     }
 
     public function filter(callable $predicate): self
     {
         $filtered = array_filter($this->events, $predicate);
+
         return new self($filtered);
     }
 
     public function map(callable $callback): self
     {
         $mapped = array_map($callback, $this->events);
+
         return new self($mapped);
     }
 
@@ -86,16 +98,19 @@ final class EventCollection implements \IteratorAggregate, \Countable, \JsonSeri
     public function sortByTimestamp(bool $ascending = true): self
     {
         $events = $this->events;
-        usort($events, function (Event $a, Event $b) use ($ascending) {
+        usort($events, static function (Event $a, Event $b) use ($ascending) {
             $comparison = $a->getCreatedAt()->compareTo($b->getCreatedAt());
+
             return $ascending ? $comparison : -$comparison;
         });
+
         return new self($events);
     }
 
     public function slice(int $offset, ?int $length = null): self
     {
-        $sliced = \array_slice($this->events, $offset, $length);
+        $sliced = array_slice($this->events, $offset, $length);
+
         return new self($sliced);
     }
 
@@ -106,7 +121,7 @@ final class EventCollection implements \IteratorAggregate, \Countable, \JsonSeri
 
     public function last(): ?Event
     {
-        return $this->events[\count($this->events) - 1] ?? null;
+        return $this->events[count($this->events) - 1] ?? null;
     }
 
     public function isEmpty(): bool
@@ -121,10 +136,10 @@ final class EventCollection implements \IteratorAggregate, \Countable, \JsonSeri
 
     public function toJsonArray(): array
     {
-        return array_map(fn (Event $event) => $event->toArray(), $this->events);
+        return array_map(static fn (Event $event) => $event->toArray(), $this->events);
     }
 
-    public function merge(EventCollection $other): self
+    public function merge(self $other): self
     {
         return new self(array_merge($this->events, $other->events));
     }
@@ -145,14 +160,14 @@ final class EventCollection implements \IteratorAggregate, \Countable, \JsonSeri
         return new self($unique);
     }
 
-    public function getIterator(): \ArrayIterator
+    public function getIterator(): ArrayIterator
     {
-        return new \ArrayIterator($this->events);
+        return new ArrayIterator($this->events);
     }
 
     public function count(): int
     {
-        return \count($this->events);
+        return count($this->events);
     }
 
     public function jsonSerialize(): array

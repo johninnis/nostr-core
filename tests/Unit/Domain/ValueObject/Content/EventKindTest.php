@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Content;
 
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 final class EventKindTest extends TestCase
@@ -19,7 +20,7 @@ final class EventKindTest extends TestCase
 
     public function testThrowsExceptionForNegativeKind(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Event kind must be between 0 and 65535');
 
         EventKind::fromInt(-1);
@@ -27,7 +28,7 @@ final class EventKindTest extends TestCase
 
     public function testThrowsExceptionForTooLargeKind(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Event kind must be between 0 and 65535');
 
         EventKind::fromInt(65536);

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Content;
 
+use Innis\Nostr\Core\Domain\Enum\CommentScope;
 use Innis\Nostr\Core\Domain\ValueObject\Content\CommentMetadata;
-use Innis\Nostr\Core\Domain\ValueObject\Content\CommentScope;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use PHPUnit\Framework\TestCase;
 

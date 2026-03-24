@@ -17,7 +17,7 @@ final class EventFactory
     public static function createTextNote(
         PublicKey $pubkey,
         string $content,
-        ?TagCollection $tags = null
+        ?TagCollection $tags = null,
     ): Event {
         return new Event(
             $pubkey,
@@ -31,7 +31,7 @@ final class EventFactory
     public static function createMetadata(
         PublicKey $pubkey,
         string $metadata,
-        ?TagCollection $tags = null
+        ?TagCollection $tags = null,
     ): Event {
         return new Event(
             $pubkey,
@@ -45,7 +45,7 @@ final class EventFactory
     public static function createEncryptedDirectMessage(
         PublicKey $pubkey,
         string $encryptedContent,
-        TagCollection $tags
+        TagCollection $tags,
     ): Event {
         return new Event(
             $pubkey,
@@ -59,7 +59,7 @@ final class EventFactory
     public static function createEventDeletion(
         PublicKey $pubkey,
         TagCollection $tags,
-        string $reason = ''
+        string $reason = '',
     ): Event {
         return new Event(
             $pubkey,
@@ -75,7 +75,7 @@ final class EventFactory
         EventKind $kind,
         EventContent $content,
         ?TagCollection $tags = null,
-        ?Timestamp $createdAt = null
+        ?Timestamp $createdAt = null,
     ): Event {
         return new Event(
             $pubkey,
@@ -90,7 +90,7 @@ final class EventFactory
     {
         $tags = new TagCollection([
             Tag::event($originalEvent->getId()->toHex()),
-            Tag::pubkey($originalEvent->getPubkey()->toHex())
+            Tag::pubkey($originalEvent->getPubkey()->toHex()),
         ]);
 
         return new Event(
@@ -105,11 +105,11 @@ final class EventFactory
     public static function createReaction(
         PublicKey $pubkey,
         Event $targetEvent,
-        string $reaction = '+'
+        string $reaction = '+',
     ): Event {
         $tags = new TagCollection([
             Tag::event($targetEvent->getId()->toHex()),
-            Tag::pubkey($targetEvent->getPubkey()->toHex())
+            Tag::pubkey($targetEvent->getPubkey()->toHex()),
         ]);
 
         return new Event(
@@ -163,23 +163,23 @@ final class EventFactory
         ?string $image = null,
         ?Timestamp $publishedAt = null,
         array $hashtags = [],
-        ?Timestamp $createdAt = null
+        ?Timestamp $createdAt = null,
     ): Event {
         $tags = [Tag::identifier($identifier)];
 
-        if ($title !== null) {
+        if (null !== $title) {
             $tags[] = Tag::fromArray(['title', $title]);
         }
 
-        if ($summary !== null) {
+        if (null !== $summary) {
             $tags[] = Tag::fromArray(['summary', $summary]);
         }
 
-        if ($image !== null) {
+        if (null !== $image) {
             $tags[] = Tag::fromArray(['image', $image]);
         }
 
-        if ($publishedAt !== null) {
+        if (null !== $publishedAt) {
             $tags[] = Tag::fromArray(['published_at', (string) $publishedAt->toInt()]);
         }
 

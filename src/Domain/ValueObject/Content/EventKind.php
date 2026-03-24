@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Content;
 
+use InvalidArgumentException;
+
 final readonly class EventKind
 {
     public const METADATA = 0;
@@ -48,7 +50,7 @@ final readonly class EventKind
     public function __construct(private int $kind)
     {
         if ($this->kind < 0 || $this->kind > 65535) {
-            throw new \InvalidArgumentException('Event kind must be between 0 and 65535');
+            throw new InvalidArgumentException('Event kind must be between 0 and 65535');
         }
     }
 
@@ -77,7 +79,7 @@ final readonly class EventKind
         return $this->kind >= self::PARAMETERISED_REPLACEABLE_MIN && $this->kind <= self::PARAMETERISED_REPLACEABLE_MAX;
     }
 
-    public function equals(EventKind $other): bool
+    public function equals(self $other): bool
     {
         return $this->kind === $other->kind;
     }

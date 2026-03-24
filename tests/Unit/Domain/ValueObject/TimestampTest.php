@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject;
 
+use DateTimeImmutable;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 final class TimestampTest extends TestCase
@@ -19,7 +21,7 @@ final class TimestampTest extends TestCase
 
     public function testThrowsExceptionForNegativeTimestamp(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Timestamp cannot be negative');
 
         Timestamp::fromInt(-1);
@@ -36,7 +38,7 @@ final class TimestampTest extends TestCase
 
     public function testCanCreateFromDateTime(): void
     {
-        $dateTime = new \DateTimeImmutable('2023-01-01 12:00:00 UTC');
+        $dateTime = new DateTimeImmutable('2023-01-01 12:00:00 UTC');
         $timestamp = Timestamp::fromDateTime($dateTime);
 
         $this->assertSame(1672574400, $timestamp->toInt());
@@ -47,7 +49,7 @@ final class TimestampTest extends TestCase
         $timestamp = Timestamp::fromInt(1672574400);
         $dateTime = $timestamp->toDateTime();
 
-        $this->assertInstanceOf(\DateTimeImmutable::class, $dateTime);
+        $this->assertInstanceOf(DateTimeImmutable::class, $dateTime);
         $this->assertSame('2023-01-01 12:00:00', $dateTime->format('Y-m-d H:i:s'));
     }
 

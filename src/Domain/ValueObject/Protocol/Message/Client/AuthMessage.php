@@ -7,13 +7,14 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\ClientMessage;
+use InvalidArgumentException;
 
 final readonly class AuthMessage extends ClientMessage
 {
     public function __construct(private Event $event)
     {
-        if ($this->event->getKind()->toInt() !== EventKind::CLIENT_AUTH) {
-            throw new \InvalidArgumentException('AUTH message must contain a kind 22242 event');
+        if (EventKind::CLIENT_AUTH !== $this->event->getKind()->toInt()) {
+            throw new InvalidArgumentException('AUTH message must contain a kind 22242 event');
         }
     }
 
@@ -34,8 +35,8 @@ final readonly class AuthMessage extends ClientMessage
 
     public static function fromArray(array $data): static
     {
-        if (\count($data) !== 2 || $data[0] !== 'AUTH') {
-            throw new \InvalidArgumentException('Invalid AUTH message format');
+        if (2 !== count($data) || 'AUTH' !== $data[0]) {
+            throw new InvalidArgumentException('Invalid AUTH message format');
         }
 
         return new self(Event::fromArray($data[1]));

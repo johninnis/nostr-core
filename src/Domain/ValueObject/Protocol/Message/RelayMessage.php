@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message;
 
+use InvalidArgumentException;
+
 abstract readonly class RelayMessage
 {
     abstract public function getType(): string;
+
     abstract public function toArray(): array;
+
     abstract public static function fromArray(array $data): static;
 
     final public function toJson(): string
@@ -19,8 +23,8 @@ abstract readonly class RelayMessage
     {
         $data = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
 
-        if (!\is_array($data) || empty($data)) {
-            throw new \InvalidArgumentException('Invalid JSON message format');
+        if (!is_array($data) || empty($data)) {
+            throw new InvalidArgumentException('Invalid JSON message format');
         }
 
         return static::fromArray($data);

@@ -15,6 +15,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class EventReferenceExtractionServiceTest extends TestCase
 {
@@ -59,7 +60,7 @@ final class EventReferenceExtractionServiceTest extends TestCase
         ];
 
         $event = new Event(
-            PublicKey::fromHex('1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef') ?? throw new \RuntimeException('Invalid test pubkey'),
+            PublicKey::fromHex('1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef') ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1234567890),
             EventKind::fromInt(1),
             new TagCollection($tags),
@@ -73,8 +74,8 @@ final class EventReferenceExtractionServiceTest extends TestCase
         $allEventIds = $result->getAllEventIds();
         $allPublicKeys = $result->getAllPublicKeys();
 
-        $eventIdHexes = array_map(fn ($id) => $id->toHex(), $allEventIds);
-        $pubkeyHexes = array_map(fn ($key) => $key->toHex(), $allPublicKeys);
+        $eventIdHexes = array_map(static fn ($id) => $id->toHex(), $allEventIds);
+        $pubkeyHexes = array_map(static fn ($key) => $key->toHex(), $allPublicKeys);
 
         $this->assertContains('1111111111111111111111111111111111111111111111111111111111111111', $eventIdHexes);
         $this->assertContains('3333333333333333333333333333333333333333333333333333333333333333', $eventIdHexes);
@@ -92,7 +93,7 @@ final class EventReferenceExtractionServiceTest extends TestCase
         ];
 
         $event = new Event(
-            PublicKey::fromHex('1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef') ?? throw new \RuntimeException('Invalid test pubkey'),
+            PublicKey::fromHex('1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef') ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1234567890),
             EventKind::fromInt(1),
             new TagCollection($tags),
@@ -114,11 +115,11 @@ final class EventReferenceExtractionServiceTest extends TestCase
     {
         $tags = [
             Tag::fromArray(['e', '1111111111111111111111111111111111111111111111111111111111111111', 'wss://relay.com']),
-            Tag::fromArray(['p', '2222222222222222222222222222222222222222222222222222222222222222'])
+            Tag::fromArray(['p', '2222222222222222222222222222222222222222222222222222222222222222']),
         ];
 
         return new Event(
-            PublicKey::fromHex('1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef') ?? throw new \RuntimeException('Invalid test pubkey'),
+            PublicKey::fromHex('1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef') ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1234567890),
             EventKind::fromInt(1),
             new TagCollection($tags),

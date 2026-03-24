@@ -13,7 +13,9 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class EventTest extends TestCase
 {
@@ -56,7 +58,7 @@ final class EventTest extends TestCase
     {
         $wrongKeyPair = KeyPair::generate();
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Private key does not match event public key');
 
         $this->event->sign($wrongKeyPair->getPrivateKey());
@@ -80,7 +82,7 @@ final class EventTest extends TestCase
         $calculatedId2 = $this->event->calculateId();
 
         $this->assertTrue($calculatedId1->equals($calculatedId2));
-        $this->assertSame(64, \strlen($calculatedId1->toHex()));
+        $this->assertSame(64, strlen($calculatedId1->toHex()));
     }
 
     public function testGetIdReturnsCalculatedIdForUnsignedEvent(): void
@@ -160,7 +162,7 @@ final class EventTest extends TestCase
             // Missing 'kind', 'tags', 'content'
         ];
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Missing required field: kind');
 
         Event::fromArray($incompleteArray);
@@ -173,7 +175,7 @@ final class EventTest extends TestCase
             'created_at' => time(),
             'kind' => 1,
             'tags' => [],
-            'content' => 'Hello'
+            'content' => 'Hello',
         ];
 
         $event = Event::fromArray($array);
@@ -425,7 +427,7 @@ final class EventTest extends TestCase
         }
 
         return new Event(
-            PublicKey::fromHex('fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210') ?? throw new \RuntimeException('Invalid test pubkey'),
+            PublicKey::fromHex('fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210') ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1234567890),
             EventKind::fromInt($kind),
             new TagCollection($tags),

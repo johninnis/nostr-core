@@ -14,7 +14,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 final class EventReferenceExtractionService implements EventReferenceExtractionServiceInterface
 {
     public function __construct(
-        private ContentReferenceExtractorInterface $contentExtractor
+        private ContentReferenceExtractorInterface $contentExtractor,
     ) {
     }
 
@@ -44,21 +44,21 @@ final class EventReferenceExtractionService implements EventReferenceExtractionS
     private static function analyseQuote(Event $event): QuoteAnalysis
     {
         $hasQuoteTag = false;
-        $isRepost = $event->getKind()->toInt() === EventKind::REPOST;
+        $isRepost = EventKind::REPOST === $event->getKind()->toInt();
 
         foreach ($event->getTags()->toArray() as $tagArray) {
-            if ($tagArray[0] === 'q') {
+            if ('q' === $tagArray[0]) {
                 $hasQuoteTag = true;
                 break;
             }
         }
 
-        $hasEventInContent = preg_match(
+        $hasEventInContent = 1 === preg_match(
             '/nostr:(note1[a-z0-9]{58}|nevent1[a-z0-9]+)/i',
             (string) $event->getContent()
-        ) === 1;
+        );
 
-        $isQuote = $hasQuoteTag || ($event->getKind()->toInt() === EventKind::TEXT_NOTE && $hasEventInContent);
+        $isQuote = $hasQuoteTag || (EventKind::TEXT_NOTE === $event->getKind()->toInt() && $hasEventInContent);
 
         return new QuoteAnalysis(
             $hasQuoteTag,
@@ -71,14 +71,14 @@ final class EventReferenceExtractionService implements EventReferenceExtractionS
     private function mergeAllReferences(
         TagReferences $tagReferences,
         array $contentReferences,
-        ReplyChain $replyChain
+        ReplyChain $replyChain,
     ): array {
         $eventIds = [];
         $publicKeys = [];
 
         foreach ($tagReferences->getEvents() as $ref) {
             $eventIds[] = $ref->getEventId();
-            if ($ref->getAuthor() !== null) {
+            if (null !== $ref->getAuthor()) {
                 $publicKeys[] = $ref->getAuthor();
             }
         }
@@ -89,24 +89,24 @@ final class EventReferenceExtractionService implements EventReferenceExtractionS
 
         foreach ($tagReferences->getQuotes() as $ref) {
             $eventIds[] = $ref->getEventId();
-            if ($ref->getAuthor() !== null) {
+            if (null !== $ref->getAuthor()) {
                 $publicKeys[] = $ref->getAuthor();
             }
         }
 
         foreach ($contentReferences as $ref) {
-            if ($ref->getEventId() !== null) {
+            if (null !== $ref->getEventId()) {
                 $eventIds[] = $ref->getEventId();
             }
-            if ($ref->getPublicKey() !== null) {
+            if (null !== $ref->getPublicKey()) {
                 $publicKeys[] = $ref->getPublicKey();
             }
         }
 
-        if ($replyChain->getRootEvent() !== null) {
+        if (null !== $replyChain->getRootEvent()) {
             $eventIds[] = $replyChain->getRootEvent()->getEventId();
         }
-        if ($replyChain->getParentEvent() !== null) {
+        if (null !== $replyChain->getParentEvent()) {
             $eventIds[] = $replyChain->getParentEvent()->getEventId();
         }
         foreach ($replyChain->getMentionedEvents() as $mention) {

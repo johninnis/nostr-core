@@ -6,13 +6,14 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay;
 
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
+use InvalidArgumentException;
 
 final readonly class OkMessage extends RelayMessage
 {
     public function __construct(
         private EventId $eventId,
         private bool $accepted,
-        private string $message = ''
+        private string $message = '',
     ) {
     }
 
@@ -43,12 +44,12 @@ final readonly class OkMessage extends RelayMessage
 
     public static function fromArray(array $data): static
     {
-        if (\count($data) < 3 || $data[0] !== 'OK') {
-            throw new \InvalidArgumentException('Invalid OK message format');
+        if (count($data) < 3 || 'OK' !== $data[0]) {
+            throw new InvalidArgumentException('Invalid OK message format');
         }
 
         return new self(
-            EventId::fromHex($data[1]) ?? throw new \InvalidArgumentException('Invalid event ID in OK message'),
+            EventId::fromHex($data[1]) ?? throw new InvalidArgumentException('Invalid event ID in OK message'),
             (bool) $data[2],
             $data[3] ?? ''
         );

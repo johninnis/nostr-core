@@ -12,6 +12,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 final class FilterTest extends TestCase
@@ -43,7 +44,7 @@ final class FilterTest extends TestCase
 
     public function testThrowsExceptionForInvalidLimit(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Limit must be between 1 and 5000');
 
         new Filter(limit: 0);
@@ -51,7 +52,7 @@ final class FilterTest extends TestCase
 
     public function testThrowsExceptionForInvalidTimeRange(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Since timestamp cannot be after until timestamp');
 
         new Filter(
@@ -231,7 +232,7 @@ final class FilterTest extends TestCase
             '#t' => ['nostr'],
             'since' => 1234567890,
             'until' => 1234567900,
-            'limit' => 10
+            'limit' => 10,
         ];
 
         $filter = Filter::fromArray($data);

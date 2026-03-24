@@ -35,7 +35,7 @@ final class ContentReferenceTagBuilder
             }
 
             $pubkey = $ref->getPublicKey();
-            if ($pubkey !== null) {
+            if (null !== $pubkey) {
                 $pubkeyHex = $pubkey->toHex();
                 if (!isset($seenPubkeys[$pubkeyHex])) {
                     $seenPubkeys[$pubkeyHex] = true;
@@ -44,7 +44,7 @@ final class ContentReferenceTagBuilder
             }
 
             $eventId = $ref->getEventId();
-            if ($eventId !== null) {
+            if (null !== $eventId) {
                 $eventIdHex = $eventId->toHex();
                 if (!isset($seenEventIds[$eventIdHex])) {
                     $seenEventIds[$eventIdHex] = true;
@@ -56,8 +56,8 @@ final class ContentReferenceTagBuilder
 
             if ($ref->isAddressableReference()) {
                 $refPubkey = $ref->getPublicKey();
-                if ($refPubkey !== null) {
-                    $coordinate = $ref->getKind() . ':' . $refPubkey->toHex() . ':' . $ref->getAddressableIdentifier();
+                if (null !== $refPubkey) {
+                    $coordinate = $ref->getKind().':'.$refPubkey->toHex().':'.$ref->getAddressableIdentifier();
                     $tags = $tags->add(Tag::fromArray(['a', $coordinate]));
                 }
             }

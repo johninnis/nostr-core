@@ -15,7 +15,7 @@ final readonly class Signature
         return $this->signature;
     }
 
-    public function equals(Signature $other): bool
+    public function equals(self $other): bool
     {
         return $this->signature === $other->signature;
     }

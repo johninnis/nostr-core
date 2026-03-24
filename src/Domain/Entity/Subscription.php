@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Domain\Entity;
 
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use InvalidArgumentException;
 
 final class Subscription
 {
@@ -13,11 +14,11 @@ final class Subscription
         private SubscriptionId $id,
         private array $filters,
         private Timestamp $createdAt,
-        private bool $active = true
+        private bool $active = true,
     ) {
         foreach ($this->filters as $filter) {
             if (!$filter instanceof Filter) {
-                throw new \InvalidArgumentException('All filters must be Filter instances');
+                throw new InvalidArgumentException('All filters must be Filter instances');
             }
         }
     }
@@ -69,9 +70,9 @@ final class Subscription
     {
         return [
             'id' => (string) $this->id,
-            'filters' => array_map(fn (Filter $filter) => $filter->toArray(), $this->filters),
+            'filters' => array_map(static fn (Filter $filter) => $filter->toArray(), $this->filters),
             'created_at' => $this->createdAt->toInt(),
-            'active' => $this->active
+            'active' => $this->active,
         ];
     }
 
@@ -79,12 +80,12 @@ final class Subscription
     {
         $requiredFields = ['id', 'filters', 'created_at'];
         foreach ($requiredFields as $field) {
-            if (!\array_key_exists($field, $data)) {
-                throw new \InvalidArgumentException("Missing required field: {$field}");
+            if (!array_key_exists($field, $data)) {
+                throw new InvalidArgumentException("Missing required field: {$field}");
             }
         }
 
-        $filters = array_map(fn (array $filterData) => Filter::fromArray($filterData), $data['filters']);
+        $filters = array_map(static fn (array $filterData) => Filter::fromArray($filterData), $data['filters']);
 
         return new self(
             SubscriptionId::fromString($data['id']),

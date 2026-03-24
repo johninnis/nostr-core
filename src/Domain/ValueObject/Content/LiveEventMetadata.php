@@ -15,7 +15,7 @@ final readonly class LiveEventMetadata
         private ?string $summary,
         private ?string $image,
         private ?string $status,
-        private ?string $streaming
+        private ?string $streaming,
     ) {
     }
 

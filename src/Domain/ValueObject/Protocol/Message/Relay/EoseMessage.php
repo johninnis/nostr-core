@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay;
 
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
+use InvalidArgumentException;
 
 final readonly class EoseMessage extends RelayMessage
 {
@@ -30,8 +31,8 @@ final readonly class EoseMessage extends RelayMessage
 
     public static function fromArray(array $data): static
     {
-        if (\count($data) !== 2 || $data[0] !== 'EOSE') {
-            throw new \InvalidArgumentException('Invalid EOSE message format');
+        if (2 !== count($data) || 'EOSE' !== $data[0]) {
+            throw new InvalidArgumentException('Invalid EOSE message format');
         }
 
         return new self(SubscriptionId::fromString($data[1]));

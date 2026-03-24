@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
+use FFI;
+use RuntimeException;
+use Throwable;
+
 final class Secp256k1
 {
     private const CDEF = <<<'C'
@@ -34,7 +38,7 @@ final class Secp256k1
 
     private static bool $initialised = false;
     private static bool $available = false;
-    private static ?\FFI $ffi = null;
+    private static ?FFI $ffi = null;
     private static mixed $context = null;
 
     public static function isAvailable(): bool
@@ -52,13 +56,13 @@ final class Secp256k1
         $ctx = self::$context;
 
         $pubkey = $ffi->new('secp256k1_xonly_pubkey');
-        if ($ffi->secp256k1_xonly_pubkey_parse($ctx, \FFI::addr($pubkey), self::toBuffer($pubkeyBytes)) !== 1) {
+        if (1 !== $ffi->secp256k1_xonly_pubkey_parse($ctx, FFI::addr($pubkey), self::toBuffer($pubkeyBytes))) {
             return false;
         }
 
-        $msgLen = \strlen($msgBytes);
+        $msgLen = strlen($msgBytes);
 
-        return $ffi->secp256k1_schnorrsig_verify($ctx, self::toBuffer($sigBytes), self::toBuffer($msgBytes), $msgLen, \FFI::addr($pubkey)) === 1;
+        return 1 === $ffi->secp256k1_schnorrsig_verify($ctx, self::toBuffer($sigBytes), self::toBuffer($msgBytes), $msgLen, FFI::addr($pubkey));
     }
 
     public static function sign(string $msgBytes, string $privkeyBytes): string
@@ -67,17 +71,17 @@ final class Secp256k1
         $ctx = self::$context;
 
         $keypair = $ffi->new('secp256k1_keypair');
-        if ($ffi->secp256k1_keypair_create($ctx, \FFI::addr($keypair), self::toBuffer($privkeyBytes)) !== 1) {
-            throw new \RuntimeException('Failed to create keypair from private key');
+        if (1 !== $ffi->secp256k1_keypair_create($ctx, FFI::addr($keypair), self::toBuffer($privkeyBytes))) {
+            throw new RuntimeException('Failed to create keypair from private key');
         }
 
         $sig = $ffi->new('unsigned char[64]');
 
-        if ($ffi->secp256k1_schnorrsig_sign32($ctx, $sig, self::toBuffer($msgBytes), \FFI::addr($keypair), self::toBuffer(random_bytes(32))) !== 1) {
-            throw new \RuntimeException('Schnorr signing failed');
+        if (1 !== $ffi->secp256k1_schnorrsig_sign32($ctx, $sig, self::toBuffer($msgBytes), FFI::addr($keypair), self::toBuffer(random_bytes(32)))) {
+            throw new RuntimeException('Schnorr signing failed');
         }
 
-        return \FFI::string($sig, 64);
+        return FFI::string($sig, 64);
     }
 
     public static function derivePublicKey(string $privkeyBytes): string
@@ -86,22 +90,22 @@ final class Secp256k1
         $ctx = self::$context;
 
         $keypair = $ffi->new('secp256k1_keypair');
-        if ($ffi->secp256k1_keypair_create($ctx, \FFI::addr($keypair), self::toBuffer($privkeyBytes)) !== 1) {
-            throw new \RuntimeException('Failed to create keypair from private key');
+        if (1 !== $ffi->secp256k1_keypair_create($ctx, FFI::addr($keypair), self::toBuffer($privkeyBytes))) {
+            throw new RuntimeException('Failed to create keypair from private key');
         }
 
         $pubkey = $ffi->new('secp256k1_xonly_pubkey');
-        $ffi->secp256k1_keypair_xonly_pub($ctx, \FFI::addr($pubkey), null, \FFI::addr($keypair));
+        $ffi->secp256k1_keypair_xonly_pub($ctx, FFI::addr($pubkey), null, FFI::addr($keypair));
 
         $output = $ffi->new('unsigned char[32]');
-        $ffi->secp256k1_xonly_pubkey_serialize($ctx, $output, \FFI::addr($pubkey));
+        $ffi->secp256k1_xonly_pubkey_serialize($ctx, $output, FFI::addr($pubkey));
 
-        return \FFI::string($output, 32);
+        return FFI::string($output, 32);
     }
 
     public static function reset(): void
     {
-        if (self::$context !== null && self::$ffi !== null) {
+        if (null !== self::$context && null !== self::$ffi) {
             self::$ffi->secp256k1_context_destroy(self::$context);
         }
 
@@ -117,8 +121,9 @@ final class Secp256k1
 
         try {
             $ffi = self::loadLibrary();
-            if ($ffi === null) {
+            if (null === $ffi) {
                 self::emitWarning('libsecp256k1 shared library not found. Install with: sudo apt install libsecp256k1-1');
+
                 return;
             }
 
@@ -129,19 +134,19 @@ final class Secp256k1
 
             self::$context = $ctx;
             self::$available = true;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             self::$ffi = null;
             self::$context = null;
-            self::emitWarning('FFI libsecp256k1 unavailable: ' . $e->getMessage() . '. Falling back to pure PHP (slower)');
+            self::emitWarning('FFI libsecp256k1 unavailable: '.$e->getMessage().'. Falling back to pure PHP (slower)');
         }
     }
 
-    private static function loadLibrary(): ?\FFI
+    private static function loadLibrary(): ?FFI
     {
         foreach (self::LIBRARY_NAMES as $name) {
             try {
-                return \FFI::cdef(self::CDEF, $name);
-            } catch (\FFI\Exception) {
+                return FFI::cdef(self::CDEF, $name);
+            } catch (FFI\Exception) {
                 continue;
             }
         }
@@ -149,17 +154,17 @@ final class Secp256k1
         return null;
     }
 
-    private static function toBuffer(string $data): \FFI\CData
+    private static function toBuffer(string $data): FFI\CData
     {
-        $len = \strlen($data);
+        $len = strlen($data);
         $buf = self::$ffi->new("unsigned char[{$len}]");
-        \FFI::memcpy($buf, $data, $len);
+        FFI::memcpy($buf, $data, $len);
 
         return $buf;
     }
 
     private static function emitWarning(string $message): void
     {
-        error_log('[Secp256k1] ' . $message);
+        error_log('[Secp256k1] '.$message);
     }
 }

@@ -28,7 +28,7 @@ final class TagReferenceExtractor
         $challenges = [];
 
         foreach ($tagArrays as $tagArray) {
-            if (empty($tagArray) || !\is_array($tagArray)) {
+            if (empty($tagArray) || !is_array($tagArray)) {
                 continue;
             }
 
@@ -37,7 +37,7 @@ final class TagReferenceExtractor
             switch ($tagType) {
                 case TagType::EVENT:
                     $eventId = isset($tagArray[1]) ? EventId::fromHex($tagArray[1]) : null;
-                    if ($eventId !== null) {
+                    if (null !== $eventId) {
                         $events[] = new EventReference(
                             $eventId,
                             RelayUrl::fromString($tagArray[2] ?? null),
@@ -49,7 +49,7 @@ final class TagReferenceExtractor
 
                 case TagType::PUBKEY:
                     $pubkey = isset($tagArray[1]) ? PublicKey::fromHex($tagArray[1]) : null;
-                    if ($pubkey !== null) {
+                    if (null !== $pubkey) {
                         $pubkeys[] = new PubkeyReference(
                             $pubkey,
                             RelayUrl::fromString($tagArray[2] ?? null),
@@ -62,12 +62,12 @@ final class TagReferenceExtractor
                     if (isset($tagArray[1])) {
                         if (str_contains($tagArray[1], ':')) {
                             $coordinate = EventCoordinate::fromString($tagArray[1], $tagArray[2] ?? null);
-                            if ($coordinate !== null) {
+                            if (null !== $coordinate) {
                                 $addressable[] = $coordinate;
                             }
                         } else {
                             $eventId = EventId::fromHex($tagArray[1]);
-                            if ($eventId !== null) {
+                            if (null !== $eventId) {
                                 $quotes[] = new EventReference(
                                     $eventId,
                                     RelayUrl::fromString($tagArray[2] ?? null),
@@ -82,23 +82,23 @@ final class TagReferenceExtractor
                 case 'a':
                     if (isset($tagArray[1])) {
                         $coordinate = EventCoordinate::fromATag($tagArray);
-                        if ($coordinate !== null) {
+                        if (null !== $coordinate) {
                             $addressable[] = $coordinate;
                         }
                     }
                     break;
 
                 case 'r':
-                    if (isset($tagArray[1]) && \is_string($tagArray[1])) {
+                    if (isset($tagArray[1]) && is_string($tagArray[1])) {
                         $relayUrl = RelayUrl::fromString($tagArray[1]);
-                        if ($relayUrl !== null) {
+                        if (null !== $relayUrl) {
                             $relays[] = new RelayReference($relayUrl, $tagArray[2] ?? null);
                         }
                     }
                     break;
 
                 case 'challenge':
-                    if (isset($tagArray[1]) && \is_string($tagArray[1])) {
+                    if (isset($tagArray[1]) && is_string($tagArray[1])) {
                         $challenges[] = $tagArray[1];
                     }
                     break;

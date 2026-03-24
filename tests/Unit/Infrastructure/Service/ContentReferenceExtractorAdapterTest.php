@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Infrastructure\Service;
 
+use Exception;
+use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
 use Innis\Nostr\Core\Domain\Service\Bech32EncoderInterface;
-use Innis\Nostr\Core\Domain\ValueObject\Content\ContentReferenceType;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Infrastructure\Service\ContentReferenceExtractorAdapter;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -29,13 +30,14 @@ final class ContentReferenceExtractorAdapterTest extends TestCase
         $this->bech32Encoder
             ->expects($this->exactly(2))
             ->method('decodeComplexEntity')
-            ->willReturnCallback(function ($bech32) {
-                if ($bech32 === 'npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz') {
+            ->willReturnCallback(static function ($bech32) {
+                if ('npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz' === $bech32) {
                     return ['type' => 'npub', 'pubkey' => 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'];
                 }
-                if ($bech32 === 'note10123456789abcdef0123456789abcdef0123456789abcdef0123456abc') {
+                if ('note10123456789abcdef0123456789abcdef0123456789abcdef0123456abc' === $bech32) {
                     return ['type' => 'note', 'event_id' => '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'];
                 }
+
                 return [];
             });
 
@@ -60,16 +62,17 @@ final class ContentReferenceExtractorAdapterTest extends TestCase
         $this->bech32Encoder
             ->expects($this->exactly(3))
             ->method('decodeComplexEntity')
-            ->willReturnCallback(function ($bech32) {
-                if ($bech32 === 'npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz') {
+            ->willReturnCallback(static function ($bech32) {
+                if ('npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz' === $bech32) {
                     return ['type' => 'npub', 'pubkey' => 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'];
                 }
-                if ($bech32 === 'note10123456789abcdef0123456789abcdef0123456789abcdef0123456abc') {
+                if ('note10123456789abcdef0123456789abcdef0123456789abcdef0123456abc' === $bech32) {
                     return ['type' => 'note', 'event_id' => '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'];
                 }
-                if ($bech32 === 'nevent1qqstna2yrezu5wghjvswqqculvvwxsrcvu7uc0f78gan4xqhvz49d9spr3mhxue69uhkummnw3ez6un9d3shjtn4de6x2argwghx6egpr4mhxue69uhkummnw3ez6ur4vgh8wetvd3hhyer9wghxuet5nxnepm') {
+                if ('nevent1qqstna2yrezu5wghjvswqqculvvwxsrcvu7uc0f78gan4xqhvz49d9spr3mhxue69uhkummnw3ez6un9d3shjtn4de6x2argwghx6egpr4mhxue69uhkummnw3ez6ur4vgh8wetvd3hhyer9wghxuet5nxnepm' === $bech32) {
                     return ['type' => 'nevent', 'event_id' => 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890', 'relays' => ['wss://relay.com']];
                 }
+
                 return [];
             });
 
@@ -117,7 +120,7 @@ final class ContentReferenceExtractorAdapterTest extends TestCase
             ->expects($this->once())
             ->method('decodeComplexEntity')
             ->with('npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz')
-            ->willThrowException(new \Exception('Invalid bech32'));
+            ->willThrowException(new Exception('Invalid bech32'));
 
         $references = $this->extractor->extractContentReferences($content);
 
@@ -138,7 +141,7 @@ final class ContentReferenceExtractorAdapterTest extends TestCase
                 'type' => 'event',
                 'event_id' => '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
                 'pubkey' => 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
-                'relays' => ['wss://relay1.com', 'wss://relay2.com']
+                'relays' => ['wss://relay1.com', 'wss://relay2.com'],
             ]);
 
         $references = $this->extractor->extractContentReferences($content);
@@ -168,7 +171,7 @@ final class ContentReferenceExtractorAdapterTest extends TestCase
                 'type' => 'event',
                 'event_id' => '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
                 'author' => 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
-                'relays' => ['wss://relay1.com']
+                'relays' => ['wss://relay1.com'],
             ]);
 
         $references = $this->extractor->extractContentReferences($content);
@@ -189,7 +192,7 @@ final class ContentReferenceExtractorAdapterTest extends TestCase
             ->method('decodeComplexEntity')
             ->willReturn([
                 'type' => 'nevent',
-                'relays' => ['wss://valid-relay.com', 'invalid-url', 'wss://another-valid.com']
+                'relays' => ['wss://valid-relay.com', 'invalid-url', 'wss://another-valid.com'],
             ]);
 
         $references = $this->extractor->extractContentReferences($content);
@@ -237,7 +240,7 @@ final class ContentReferenceExtractorAdapterTest extends TestCase
         $this->bech32Encoder
             ->expects($this->exactly(2))
             ->method('decodeComplexEntity')
-            ->willReturnCallback(function ($bech32) use ($bareNevent, $prefixedNevent) {
+            ->willReturnCallback(static function ($bech32) use ($bareNevent, $prefixedNevent) {
                 if ($bech32 === $bareNevent || $bech32 === $prefixedNevent) {
                     return [
                         'type' => 'nevent',
@@ -257,7 +260,7 @@ final class ContentReferenceExtractorAdapterTest extends TestCase
         $this->assertEquals($bareNevent, $references[0]->getIdentifier());
 
         $this->assertSame(ContentReferenceType::NostrUri, $references[1]->getType());
-        $this->assertEquals('nostr:' . $prefixedNevent, $references[1]->getRawText());
+        $this->assertEquals('nostr:'.$prefixedNevent, $references[1]->getRawText());
         $this->assertEquals($prefixedNevent, $references[1]->getIdentifier());
     }
 }

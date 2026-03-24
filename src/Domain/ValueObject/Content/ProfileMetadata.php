@@ -22,7 +22,7 @@ final readonly class ProfileMetadata
     {
         $data = json_decode($json, true);
 
-        if (!\is_array($data)) {
+        if (!is_array($data)) {
             return new self(null, null, null, null, null, null, null, null);
         }
 
@@ -42,7 +42,7 @@ final readonly class ProfileMetadata
     {
         $value = $data[$key] ?? null;
 
-        return \is_string($value) ? $value : null;
+        return is_string($value) ? $value : null;
     }
 
     public function getName(): ?string

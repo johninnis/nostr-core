@@ -42,7 +42,7 @@ final readonly class Nutzap implements PaymentReceipt
 
     public static function fromEvent(Event $event): ?self
     {
-        if ($event->getKind()->toInt() !== EventKind::NUTZAP) {
+        if (EventKind::NUTZAP !== $event->getKind()->toInt()) {
             return null;
         }
 
@@ -52,7 +52,7 @@ final readonly class Nutzap implements PaymentReceipt
         $amount = self::sumProofAmounts($tags);
 
         $message = (string) $event->getContent();
-        if ($message === '') {
+        if ('' === $message) {
             $message = null;
         }
 
@@ -67,7 +67,7 @@ final readonly class Nutzap implements PaymentReceipt
 
         foreach ($proofValues as $proofJson) {
             $decoded = json_decode($proofJson, true);
-            if (!\is_array($decoded)) {
+            if (!is_array($decoded)) {
                 continue;
             }
 
@@ -84,7 +84,7 @@ final readonly class Nutzap implements PaymentReceipt
         $unitValues = $tags->getValuesByType(TagType::unit());
         $unit = $unitValues[0] ?? 'sat';
 
-        return $unit === 'msat'
+        return 'msat' === $unit
             ? ZapAmount::fromMillisats($totalAmount)
             : ZapAmount::fromSats($totalAmount);
     }

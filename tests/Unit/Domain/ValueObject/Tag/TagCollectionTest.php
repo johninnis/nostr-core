@@ -13,6 +13,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Reference\RelayReference;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 final class TagCollectionTest extends TestCase
@@ -38,7 +39,7 @@ final class TagCollectionTest extends TestCase
 
     public function testThrowsExceptionForNonTagItems(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('All items must be Tag instances');
 
         new TagCollection(['not-a-tag']);
@@ -139,7 +140,7 @@ final class TagCollectionTest extends TestCase
     {
         $data = [
             ['e', 'event-id'],
-            ['p', 'pubkey-hex']
+            ['p', 'pubkey-hex'],
         ];
 
         $collection = TagCollection::fromArray($data);
@@ -153,7 +154,7 @@ final class TagCollectionTest extends TestCase
     {
         $tags = TagCollection::fromArray([
             ['e', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'wss://relay.com', 'reply', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'],
-            ['e', 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc', '', 'root']
+            ['e', 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc', '', 'root'],
         ]);
 
         $references = TagReferenceExtractor::extract($tags);
@@ -176,7 +177,7 @@ final class TagCollectionTest extends TestCase
     {
         $tags = TagCollection::fromArray([
             ['p', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'wss://relay.com', 'alice'],
-            ['p', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb']
+            ['p', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'],
         ]);
 
         $references = TagReferenceExtractor::extract($tags);
@@ -196,7 +197,7 @@ final class TagCollectionTest extends TestCase
     {
         $tags = TagCollection::fromArray([
             ['q', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'wss://relay.com', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'],
-            ['q', 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc']
+            ['q', 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'],
         ]);
 
         $references = TagReferenceExtractor::extract($tags);
@@ -220,7 +221,7 @@ final class TagCollectionTest extends TestCase
 
         $tags = TagCollection::fromArray([
             ['a', "30023:{$pubkey1}:my-article", 'wss://relay.com'],
-            ['a', "30001:{$pubkey2}:bookmark-list"]
+            ['a', "30001:{$pubkey2}:bookmark-list"],
         ]);
 
         $references = TagReferenceExtractor::extract($tags);
@@ -241,7 +242,7 @@ final class TagCollectionTest extends TestCase
     {
         $tags = TagCollection::fromArray([
             ['e', 'invalid_hex'],
-            ['p', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa']
+            ['p', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
         ]);
 
         $references = TagReferenceExtractor::extract($tags);
@@ -260,7 +261,7 @@ final class TagCollectionTest extends TestCase
             ['a', '1:invalidpubkey:identifier'],
             ['a', '30023:badpubkey:identifier'],
             ['a', "30023:{$validPubkey}:"],
-            ['a', "30023:{$validPubkey}:my-article"]
+            ['a', "30023:{$validPubkey}:my-article"],
         ]);
 
         $references = TagReferenceExtractor::extract($tags);
@@ -274,7 +275,7 @@ final class TagCollectionTest extends TestCase
     {
         $tags = TagCollection::fromArray([
             ['unknown', 'tag'],
-            ['other', 'value']
+            ['other', 'value'],
         ]);
 
         $references = TagReferenceExtractor::extract($tags);
@@ -291,7 +292,7 @@ final class TagCollectionTest extends TestCase
     {
         $tags = TagCollection::fromArray([
             ['r', 'wss://relay.com', 'read'],
-            ['r', 'wss://other.com']
+            ['r', 'wss://other.com'],
         ]);
 
         $references = TagReferenceExtractor::extract($tags);
@@ -308,7 +309,7 @@ final class TagCollectionTest extends TestCase
     public function testExtractReferencesExtractsChallengeTags(): void
     {
         $tags = TagCollection::fromArray([
-            ['challenge', 'abc123']
+            ['challenge', 'abc123'],
         ]);
 
         $references = TagReferenceExtractor::extract($tags);
@@ -321,7 +322,7 @@ final class TagCollectionTest extends TestCase
     {
         $tags = TagCollection::fromArray([
             ['p', 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'],
-            ['subject', 'Hello World']
+            ['subject', 'Hello World'],
         ]);
 
         $replyChain = ReplyChainAnalyser::analyse($tags);
@@ -339,7 +340,7 @@ final class TagCollectionTest extends TestCase
         $tags = TagCollection::fromArray([
             ['e', '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', 'wss://relay.com', 'root'],
             ['e', 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210', 'wss://relay.com', 'reply'],
-            ['p', 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890']
+            ['p', 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890'],
         ]);
 
         $replyChain = ReplyChainAnalyser::analyse($tags);
@@ -360,7 +361,7 @@ final class TagCollectionTest extends TestCase
     {
         $tags = TagCollection::fromArray([
             ['e', '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', 'wss://relay.com'],
-            ['p', 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210']
+            ['p', 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'],
         ]);
 
         $replyChain = ReplyChainAnalyser::analyse($tags);
@@ -379,7 +380,7 @@ final class TagCollectionTest extends TestCase
             ['e', '2222222222222222222222222222222222222222222222222222222222222222', 'wss://relay2.com'],
             ['e', '3333333333333333333333333333333333333333333333333333333333333333', 'wss://relay3.com'],
             ['p', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
-            ['p', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb']
+            ['p', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'],
         ]);
 
         $replyChain = ReplyChainAnalyser::analyse($tags);
@@ -401,7 +402,7 @@ final class TagCollectionTest extends TestCase
             ['e', '2222222222222222222222222222222222222222222222222222222222222222', '', 'mention'],
             ['e', '3333333333333333333333333333333333333333333333333333333333333333'],
             ['e', '4444444444444444444444444444444444444444444444444444444444444444', '', 'reply'],
-            ['p', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa']
+            ['p', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
         ]);
 
         $replyChain = ReplyChainAnalyser::analyse($tags);
@@ -418,7 +419,7 @@ final class TagCollectionTest extends TestCase
     {
         $tags = TagCollection::fromArray([
             ['e', '1111111111111111111111111111111111111111111111111111111111111111', 'wss://relay.com', 'reply', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
-            ['p', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb']
+            ['p', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'],
         ]);
 
         $replyChain = ReplyChainAnalyser::analyse($tags);
@@ -436,7 +437,7 @@ final class TagCollectionTest extends TestCase
     {
         $tags = TagCollection::fromArray([
             ['e', 'invalid_hex', 'wss://relay.com'],
-            ['p', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa']
+            ['p', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
         ]);
 
         $replyChain = ReplyChainAnalyser::analyse($tags);
@@ -450,7 +451,7 @@ final class TagCollectionTest extends TestCase
     {
         $tags = TagCollection::fromArray([
             ['e', '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'],
-            ['p', 'invalid_pubkey_format']
+            ['p', 'invalid_pubkey_format'],
         ]);
 
         $replyChain = ReplyChainAnalyser::analyse($tags);
@@ -462,7 +463,7 @@ final class TagCollectionTest extends TestCase
     public function testAnalyseReplyChainHandlesInvalidRelayUrls(): void
     {
         $tags = TagCollection::fromArray([
-            ['e', '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', 'invalid-url']
+            ['e', '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', 'invalid-url'],
         ]);
 
         $replyChain = ReplyChainAnalyser::analyse($tags);

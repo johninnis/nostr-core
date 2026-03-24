@@ -32,13 +32,13 @@ final class Nip11Service implements Nip11ServiceInterface
             'User-Agent' => 'Nostr-PHP/1.0',
         ]);
 
-        if ($data === null) {
+        if (null === $data) {
             return null;
         }
 
         $this->logger->info('Successfully fetched NIP-11 info', [
             'relay_url' => (string) $relayUrl,
-            'fields_count' => \count($data),
+            'fields_count' => count($data),
             'has_name' => isset($data['name']),
             'has_description' => isset($data['description']),
             'has_supported_nips' => isset($data['supported_nips']),
@@ -50,17 +50,17 @@ final class Nip11Service implements Nip11ServiceInterface
     private function convertWebSocketToHttp(string $wsUrl): string
     {
         if (str_starts_with($wsUrl, 'wss://')) {
-            return 'https://' . substr($wsUrl, 6);
+            return 'https://'.substr($wsUrl, 6);
         }
 
         if (str_starts_with($wsUrl, 'ws://')) {
-            return 'http://' . substr($wsUrl, 5);
+            return 'http://'.substr($wsUrl, 5);
         }
 
         if (str_starts_with($wsUrl, 'http://') || str_starts_with($wsUrl, 'https://')) {
             return $wsUrl;
         }
 
-        return 'https://' . $wsUrl;
+        return 'https://'.$wsUrl;
     }
 }

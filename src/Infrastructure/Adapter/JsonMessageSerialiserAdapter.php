@@ -18,6 +18,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\EventMessage as R
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\NoticeMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\OkMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
+use InvalidArgumentException;
 
 final class JsonMessageSerialiserAdapter implements MessageSerialiserInterface
 {
@@ -25,8 +26,8 @@ final class JsonMessageSerialiserAdapter implements MessageSerialiserInterface
     {
         $data = json_decode($json, true);
 
-        if ($data === null || !\is_array($data) || empty($data)) {
-            throw new \InvalidArgumentException('Invalid JSON for client message');
+        if (null === $data || !is_array($data) || empty($data)) {
+            throw new InvalidArgumentException('Invalid JSON for client message');
         }
 
         $type = $data[0] ?? '';
@@ -37,7 +38,7 @@ final class JsonMessageSerialiserAdapter implements MessageSerialiserInterface
             'CLOSE' => CloseMessage::fromArray($data),
             'AUTH' => ClientAuthMessage::fromArray($data),
             'COUNT' => CountMessage::fromArray($data),
-            default => throw new \InvalidArgumentException("Unknown client message type: {$type}")
+            default => throw new InvalidArgumentException("Unknown client message type: {$type}"),
         };
     }
 
@@ -45,8 +46,8 @@ final class JsonMessageSerialiserAdapter implements MessageSerialiserInterface
     {
         $data = json_decode($json, true);
 
-        if ($data === null || !\is_array($data) || empty($data)) {
-            throw new \InvalidArgumentException('Invalid JSON for relay message');
+        if (null === $data || !is_array($data) || empty($data)) {
+            throw new InvalidArgumentException('Invalid JSON for relay message');
         }
 
         $type = $data[0] ?? '';
@@ -58,7 +59,7 @@ final class JsonMessageSerialiserAdapter implements MessageSerialiserInterface
             'CLOSED' => ClosedMessage::fromArray($data),
             'NOTICE' => NoticeMessage::fromArray($data),
             'AUTH' => RelayAuthMessage::fromArray($data),
-            default => throw new \InvalidArgumentException("Unknown relay message type: {$type}")
+            default => throw new InvalidArgumentException("Unknown relay message type: {$type}"),
         };
     }
 }

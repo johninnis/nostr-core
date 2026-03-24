@@ -14,6 +14,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Infrastructure\Service\RelayHintExtractorAdapter;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class RelayHintExtractorRealDataTest extends TestCase
 {
@@ -29,21 +30,21 @@ final class RelayHintExtractorRealDataTest extends TestCase
     public function testExtractRelayHintsFromSecondTestEventTags(): void
     {
         $tags = TagCollection::fromArray([
-            ["e", "d359d3ea6c89a51a3a346b03bc552953a72e456af352071d79c6be196ced9771", "", "mention"],
-            ["r", "wss://nos.lol/"],
-            ["r", "wss://relay.primal.net/"],
-            ["r", "wss://nostr.mom/"],
-            ["r", "wss://nostr.oxtr.dev/"],
-            ["r", "wss://relay.damus.io/"],
-            ["r", "wss://bitcoiner.social/"],
-            ["r", "wss://nostr.bitcoiner.social/"],
-            ["r", "wss://relay.noderunners.network/"],
-            ["r", "wss://nostr-pub.wellorder.net/"]
+            ['e', 'd359d3ea6c89a51a3a346b03bc552953a72e456af352071d79c6be196ced9771', '', 'mention'],
+            ['r', 'wss://nos.lol/'],
+            ['r', 'wss://relay.primal.net/'],
+            ['r', 'wss://nostr.mom/'],
+            ['r', 'wss://nostr.oxtr.dev/'],
+            ['r', 'wss://relay.damus.io/'],
+            ['r', 'wss://bitcoiner.social/'],
+            ['r', 'wss://nostr.bitcoiner.social/'],
+            ['r', 'wss://relay.noderunners.network/'],
+            ['r', 'wss://nostr-pub.wellorder.net/'],
         ]);
 
         $relayHints = $this->extractor->extractRelayHintsFromTags($tags);
 
-        $relayStrings = array_map(fn ($relay) => (string) $relay, $relayHints);
+        $relayStrings = array_map(static fn ($relay) => (string) $relay, $relayHints);
 
         $this->assertCount(9, $relayHints);
         $this->assertContains('wss://nos.lol', $relayStrings);
@@ -60,19 +61,19 @@ final class RelayHintExtractorRealDataTest extends TestCase
     public function testExtractRelayHintsFromThirdTestEventTags(): void
     {
         $tags = TagCollection::fromArray([
-            ["a", "30023:472f440f29ef996e92a186b8d320ff180c855903882e59d50de1b8bd5669301e:china-is-prepping-for-something", "wss://bitcoinmaximalists.online/", "mention"],
-            ["r", "wss://bitcoinmaximalists.online/"],
-            ["r", "wss://eden.nostr.land/"],
-            ["r", "wss://nos.lol/"],
-            ["r", "wss://nostr.oxtr.dev/"],
-            ["r", "wss://relay.bitcoinpark.com/"],
-            ["r", "wss://relay.damus.io/"],
-            ["r", "wss://relay.snort.social/"]
+            ['a', '30023:472f440f29ef996e92a186b8d320ff180c855903882e59d50de1b8bd5669301e:china-is-prepping-for-something', 'wss://bitcoinmaximalists.online/', 'mention'],
+            ['r', 'wss://bitcoinmaximalists.online/'],
+            ['r', 'wss://eden.nostr.land/'],
+            ['r', 'wss://nos.lol/'],
+            ['r', 'wss://nostr.oxtr.dev/'],
+            ['r', 'wss://relay.bitcoinpark.com/'],
+            ['r', 'wss://relay.damus.io/'],
+            ['r', 'wss://relay.snort.social/'],
         ]);
 
         $relayHints = $this->extractor->extractRelayHintsFromTags($tags);
 
-        $relayStrings = array_map(fn ($relay) => (string) $relay, $relayHints);
+        $relayStrings = array_map(static fn ($relay) => (string) $relay, $relayHints);
 
         $this->assertCount(7, $relayHints);
         $this->assertContains('wss://bitcoinmaximalists.online', $relayStrings);
@@ -95,7 +96,7 @@ final class RelayHintExtractorRealDataTest extends TestCase
             ->willReturn([
                 'decoded_type' => 'nevent',
                 'event_id' => 'd359d3ea6c89a51a3a346b03bc552953a72e456af352071d79c6be196ced9771',
-                'relays' => ['wss://relay.primal.net/', 'wss://nos.lol/']
+                'relays' => ['wss://relay.primal.net/', 'wss://nos.lol/'],
             ]);
 
         $relayHints = $this->extractor->extractRelayHintsFromContent($content);
@@ -125,14 +126,14 @@ final class RelayHintExtractorRealDataTest extends TestCase
     public function testExtractRelayHintsFromFullSecondTestEvent(): void
     {
         $event = new Event(
-            PublicKey::fromHex('7b3f7803750746f455413a221f80965eecb69ef308f2ead1da89cc2c8912e968') ?? throw new \RuntimeException('Invalid test pubkey'),
+            PublicKey::fromHex('7b3f7803750746f455413a221f80965eecb69ef308f2ead1da89cc2c8912e968') ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1756903083),
             EventKind::fromInt(1),
             TagCollection::fromArray([
-                ["e", "d359d3ea6c89a51a3a346b03bc552953a72e456af352071d79c6be196ced9771", "", "mention"],
-                ["r", "wss://nos.lol/"],
-                ["r", "wss://relay.primal.net/"],
-                ["r", "wss://nostr.mom/"]
+                ['e', 'd359d3ea6c89a51a3a346b03bc552953a72e456af352071d79c6be196ced9771', '', 'mention'],
+                ['r', 'wss://nos.lol/'],
+                ['r', 'wss://relay.primal.net/'],
+                ['r', 'wss://nostr.mom/'],
             ]),
             EventContent::fromString("Getting married and having kids will make you level up as a man faster and further than anything else.\n\nnostr:nevent1qvzqqqqqqypzqxh7p36w84mcf6af8f0rlf255mhtqxfg6ynnnt5t5jpj0p5q3cmdqqsdxkwnafkgnfg68g6xkqau25548fewg440x5s8r4uud0sednkewugdc6hft ")
         );
@@ -142,12 +143,12 @@ final class RelayHintExtractorRealDataTest extends TestCase
             ->method('decodeComplexEntity')
             ->willReturn([
                 'decoded_type' => 'nevent',
-                'relays' => ['wss://relay.damus.io/']
+                'relays' => ['wss://relay.damus.io/'],
             ]);
 
         $relayHints = $this->extractor->extractRelayHints($event);
 
-        $relayStrings = array_map(fn ($relay) => (string) $relay, $relayHints);
+        $relayStrings = array_map(static fn ($relay) => (string) $relay, $relayHints);
 
         $this->assertCount(4, $relayHints);
         $this->assertContains('wss://nos.lol', $relayStrings);

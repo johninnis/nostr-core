@@ -32,7 +32,6 @@ final class EventValidationServiceTest extends TestCase
 
         $this->service->validateEvent($event);
         $this->assertTrue($this->service->isEventValid($event));
-
     }
 
     public function testThrowsExceptionForUnreasonableTimestamp(): void
@@ -73,7 +72,7 @@ final class EventValidationServiceTest extends TestCase
     public function testThrowsExceptionForTooManyTags(): void
     {
         $tags = [];
-        for ($i = 0; $i < 5001; $i++) { // Exceeds MAX_TAGS_COUNT
+        for ($i = 0; $i < 5001; ++$i) { // Exceeds MAX_TAGS_COUNT
             $tags[] = Tag::hashtag("tag{$i}");
         }
 
@@ -103,7 +102,7 @@ final class EventValidationServiceTest extends TestCase
             'kind' => $event->getKind()->toInt(),
             'tags' => $event->getTags()->toArray(),
             'content' => 'Different content', // This will make signature invalid
-            'sig' => $event->getSignature()?->toHex() ?? ''
+            'sig' => $event->getSignature()?->toHex() ?? '',
         ]);
 
         $this->expectException(InvalidEventException::class);
@@ -138,7 +137,6 @@ final class EventValidationServiceTest extends TestCase
 
         $this->service->validateEvent($event);
         $this->assertTrue($this->service->isEventValid($event));
-
     }
 
     public function testValidationChecksContentLength(): void
@@ -154,13 +152,12 @@ final class EventValidationServiceTest extends TestCase
 
         $this->service->validateEvent($event);
         $this->assertTrue($this->service->isEventValid($event));
-
     }
 
     public function testValidationChecksTagCount(): void
     {
         $tags = [];
-        for ($i = 0; $i < 1000; $i++) { // Exactly at the limit
+        for ($i = 0; $i < 1000; ++$i) { // Exactly at the limit
             $tags[] = Tag::hashtag("tag{$i}");
         }
 
@@ -174,7 +171,6 @@ final class EventValidationServiceTest extends TestCase
 
         $this->service->validateEvent($event);
         $this->assertTrue($this->service->isEventValid($event));
-
     }
 
     private function createValidSignedEvent(): Event

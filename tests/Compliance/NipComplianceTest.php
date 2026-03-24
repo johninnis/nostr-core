@@ -41,14 +41,13 @@ final class NipComplianceTest extends TestCase
         // Verify the event passes validation
         $this->assertTrue($signedEvent->isSigned());
         $this->assertTrue($signedEvent->verify());
-
     }
 
     public function testNip02ContactListCompliance(): void
     {
         $tags = new TagCollection([
             Tag::pubkey('contact-pubkey-1'),
-            Tag::pubkey('contact-pubkey-2')
+            Tag::pubkey('contact-pubkey-2'),
         ]);
 
         $event = new Event(
@@ -65,13 +64,12 @@ final class NipComplianceTest extends TestCase
         // Verify it's a follow list event
         $this->assertSame(3, $signedEvent->getKind()->toInt());
         $this->assertTrue($signedEvent->getTags()->hasType(\Innis\Nostr\Core\Domain\ValueObject\Tag\TagType::pubkey()));
-
     }
 
     public function testNip04EncryptedDirectMessageCompliance(): void
     {
         $tags = new TagCollection([
-            Tag::pubkey('recipient-pubkey')
+            Tag::pubkey('recipient-pubkey'),
         ]);
 
         $event = new Event(
@@ -88,13 +86,12 @@ final class NipComplianceTest extends TestCase
         // Verify it's an encrypted DM with p tag
         $this->assertSame(4, $signedEvent->getKind()->toInt());
         $this->assertTrue($signedEvent->getTags()->hasType(\Innis\Nostr\Core\Domain\ValueObject\Tag\TagType::pubkey()));
-
     }
 
     public function testNip09EventDeletionCompliance(): void
     {
         $tags = new TagCollection([
-            Tag::event('event-to-delete-id')
+            Tag::event('event-to-delete-id'),
         ]);
 
         $event = new Event(
@@ -111,7 +108,6 @@ final class NipComplianceTest extends TestCase
         // Verify it's a deletion event with e tag
         $this->assertSame(5, $signedEvent->getKind()->toInt());
         $this->assertTrue($signedEvent->getTags()->hasType(\Innis\Nostr\Core\Domain\ValueObject\Tag\TagType::event()));
-
     }
 
     public function testEventIdCalculationMatchesNip01Specification(): void
@@ -128,13 +124,13 @@ final class NipComplianceTest extends TestCase
             'created_at' => $createdAt,
             'kind' => $kind,
             'tags' => $tags,
-            'content' => $content
+            'content' => $content,
         ]);
 
         $calculatedId = $event->calculateId();
 
         // The ID should be a valid SHA-256 hash
-        $this->assertSame(64, \strlen($calculatedId->toHex()));
+        $this->assertSame(64, strlen($calculatedId->toHex()));
         $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $calculatedId->toHex());
 
         // ID calculation should be deterministic
@@ -158,7 +154,7 @@ final class NipComplianceTest extends TestCase
         // Signature should be valid format
         $signature = $signedEvent->getSignature();
         $this->assertNotNull($signature);
-        $this->assertSame(128, \strlen($signature->toHex()));
+        $this->assertSame(128, strlen($signature->toHex()));
         $this->assertMatchesRegularExpression('/^[a-f0-9]{128}$/', $signature->toHex());
     }
 }

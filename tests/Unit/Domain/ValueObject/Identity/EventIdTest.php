@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Identity;
 
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class EventIdTest extends TestCase
 {
@@ -32,7 +33,7 @@ final class EventIdTest extends TestCase
     public function testEqualsWorksCorrectly(): void
     {
         $hex = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
-        $eventId1 = EventId::fromHex($hex) ?? throw new \RuntimeException('Invalid test event ID');
+        $eventId1 = EventId::fromHex($hex) ?? throw new RuntimeException('Invalid test event ID');
         $eventId2 = EventId::fromHex($hex);
         $this->assertNotNull($eventId2);
         $eventId3 = EventId::fromHex('fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210');
@@ -44,7 +45,7 @@ final class EventIdTest extends TestCase
 
     public function testCanConvertToBech32(): void
     {
-        $eventId = EventId::fromHex('0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef') ?? throw new \RuntimeException('Invalid test event ID');
+        $eventId = EventId::fromHex('0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef') ?? throw new RuntimeException('Invalid test event ID');
         $bech32 = $eventId->toBech32();
 
         $this->assertStringStartsWith('note1', $bech32);
@@ -52,7 +53,7 @@ final class EventIdTest extends TestCase
 
     public function testCanCreateFromBech32(): void
     {
-        $eventId = EventId::fromHex('0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef') ?? throw new \RuntimeException('Invalid test event ID');
+        $eventId = EventId::fromHex('0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef') ?? throw new RuntimeException('Invalid test event ID');
         $bech32 = $eventId->toBech32();
         $recreated = EventId::fromBech32($bech32);
 

@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\ClientMessage;
+use InvalidArgumentException;
 
 final readonly class EventMessage extends ClientMessage
 {
@@ -30,8 +31,8 @@ final readonly class EventMessage extends ClientMessage
 
     public static function fromArray(array $data): static
     {
-        if (\count($data) !== 2 || $data[0] !== 'EVENT') {
-            throw new \InvalidArgumentException('Invalid EVENT message format');
+        if (2 !== count($data) || 'EVENT' !== $data[0]) {
+            throw new InvalidArgumentException('Invalid EVENT message format');
         }
 
         return new self(Event::fromArray($data[1]));

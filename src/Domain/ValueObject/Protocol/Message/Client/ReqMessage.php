@@ -7,20 +7,21 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client;
 use Innis\Nostr\Core\Domain\Entity\Filter;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\ClientMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
+use InvalidArgumentException;
 
 final readonly class ReqMessage extends ClientMessage
 {
     public function __construct(
         private SubscriptionId $subscriptionId,
-        private array $filters
+        private array $filters,
     ) {
         if (empty($this->filters)) {
-            throw new \InvalidArgumentException('REQ message must have at least one filter');
+            throw new InvalidArgumentException('REQ message must have at least one filter');
         }
 
         foreach ($this->filters as $filter) {
             if (!$filter instanceof Filter) {
-                throw new \InvalidArgumentException('All filters must be Filter instances');
+                throw new InvalidArgumentException('All filters must be Filter instances');
             }
         }
     }
@@ -53,14 +54,14 @@ final readonly class ReqMessage extends ClientMessage
 
     public static function fromArray(array $data): static
     {
-        if (\count($data) < 3 || $data[0] !== 'REQ') {
-            throw new \InvalidArgumentException('Invalid REQ message format');
+        if (count($data) < 3 || 'REQ' !== $data[0]) {
+            throw new InvalidArgumentException('Invalid REQ message format');
         }
 
         $subscriptionId = SubscriptionId::fromString($data[1]);
         $filters = [];
 
-        for ($i = 2; $i < \count($data); $i++) {
+        for ($i = 2; $i < count($data); ++$i) {
             $filters[] = Filter::fromArray($data[$i]);
         }
 

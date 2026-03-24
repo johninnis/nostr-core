@@ -17,7 +17,7 @@ final class EventListService
 
         $filteredTags = array_filter(
             $existingTags,
-            fn (Tag $tag) => $tag->getValue(0) !== $newTag->getValue(0)
+            static fn (Tag $tag) => $tag->getValue(0) !== $newTag->getValue(0)
         );
 
         return new TagCollection([...$filteredTags, $newTag]);
@@ -29,7 +29,7 @@ final class EventListService
 
         $filteredTags = array_filter(
             $existingTags,
-            fn (Tag $tag) => $tag->getValue(0) !== $value
+            static fn (Tag $tag) => $tag->getValue(0) !== $value
         );
 
         return new TagCollection($filteredTags);

@@ -13,6 +13,9 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use InvalidArgumentException;
+use LogicException;
+use RuntimeException;
 
 final readonly class Event
 {
@@ -23,20 +26,20 @@ final readonly class Event
         private TagCollection $tags,
         private EventContent $content,
         private ?EventId $id = null,
-        private ?Signature $signature = null
+        private ?Signature $signature = null,
     ) {
     }
 
     public function sign(PrivateKey $privateKey): self
     {
         if (!$privateKey->getPublicKey()->equals($this->pubkey)) {
-            throw new \InvalidArgumentException('Private key does not match event public key');
+            throw new InvalidArgumentException('Private key does not match event public key');
         }
 
         $id = $this->calculateId();
         $idBytes = hex2bin($id->toHex());
-        if ($idBytes === false) {
-            throw new \RuntimeException('Failed to decode event ID hex');
+        if (false === $idBytes) {
+            throw new RuntimeException('Failed to decode event ID hex');
         }
         $signature = $privateKey->sign($idBytes);
 
@@ -45,7 +48,7 @@ final readonly class Event
 
     public function verify(): bool
     {
-        if ($this->signature === null || $this->id === null) {
+        if (null === $this->signature || null === $this->id) {
             return false;
         }
 
@@ -54,7 +57,7 @@ final readonly class Event
         }
 
         $idBytes = hex2bin($this->id->toHex());
-        if ($idBytes === false) {
+        if (false === $idBytes) {
             return false;
         }
 
@@ -72,13 +75,13 @@ final readonly class Event
             (string) $this->content,
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
-        if ($serialised === false) {
-            throw new \RuntimeException('Failed to serialise event for ID calculation');
+        if (false === $serialised) {
+            throw new RuntimeException('Failed to serialise event for ID calculation');
         }
 
         $hash = hash('sha256', $serialised);
 
-        return EventId::fromHex($hash) ?? throw new \LogicException('SHA-256 hash produced invalid hex');
+        return EventId::fromHex($hash) ?? throw new LogicException('SHA-256 hash produced invalid hex');
     }
 
     public function getId(): EventId
@@ -123,14 +126,14 @@ final readonly class Event
 
     public function isSigned(): bool
     {
-        return $this->signature !== null;
+        return null !== $this->signature;
     }
 
     public function isReply(): bool
     {
         // Kind 6 (repost) and kind 16 (generic repost) events have 'e' tags but are not replies
         $kindInt = $this->kind->toInt();
-        if ($kindInt === EventKind::REPOST || $kindInt === EventKind::GENERIC_REPOST) {
+        if (EventKind::REPOST === $kindInt || EventKind::GENERIC_REPOST === $kindInt) {
             return false;
         }
 
@@ -141,7 +144,7 @@ final readonly class Event
 
         // NIP-22: kind 1111 comments use e tags with format ["e", "id", "relay", "pubkey"]
         // where position 3 is a pubkey (not a NIP-10 marker), so any e tag means it's a reply
-        if ($kindInt === EventKind::COMMENT) {
+        if (EventKind::COMMENT === $kindInt) {
             return true;
         }
 
@@ -152,11 +155,11 @@ final readonly class Event
         foreach ($eTags as $tag) {
             $marker = $tag->getValue(2);
 
-            if ($marker === 'root' || $marker === 'reply') {
+            if ('root' === $marker || 'reply' === $marker) {
                 return true;
             }
 
-            if ($marker === null || $marker === '') {
+            if (null === $marker || '' === $marker) {
                 return true;
             }
         }
@@ -168,7 +171,7 @@ final readonly class Event
     {
         $kindInt = $this->kind->toInt();
 
-        return $kindInt === EventKind::REPOST || $kindInt === EventKind::GENERIC_REPOST;
+        return EventKind::REPOST === $kindInt || EventKind::GENERIC_REPOST === $kindInt;
     }
 
     public function getPublishedAt(): ?Timestamp
@@ -199,16 +202,16 @@ final readonly class Event
     {
         $requiredFields = ['pubkey', 'created_at', 'kind', 'tags', 'content'];
         foreach ($requiredFields as $field) {
-            if (!\array_key_exists($field, $data)) {
-                throw new \InvalidArgumentException("Missing required field: {$field}");
+            if (!array_key_exists($field, $data)) {
+                throw new InvalidArgumentException("Missing required field: {$field}");
             }
         }
 
         $content = $data['content'];
-        if (!\is_string($content)) {
+        if (!is_string($content)) {
             $encoded = json_encode($content, JSON_UNESCAPED_SLASHES);
-            if ($encoded === false) {
-                throw new \InvalidArgumentException('Failed to encode content as JSON');
+            if (false === $encoded) {
+                throw new InvalidArgumentException('Failed to encode content as JSON');
             }
             $content = $encoded;
         }
@@ -216,12 +219,12 @@ final readonly class Event
         $id = isset($data['id']) ? EventId::fromHex($data['id']) : null;
 
         $signature = null;
-        if (isset($data['sig']) && $data['sig'] !== '') {
+        if (isset($data['sig']) && '' !== $data['sig']) {
             $signature = Signature::fromHex($data['sig']);
         }
 
         return new self(
-            PublicKey::fromHex($data['pubkey']) ?? throw new \RuntimeException('Invalid pubkey in event data'),
+            PublicKey::fromHex($data['pubkey']) ?? throw new RuntimeException('Invalid pubkey in event data'),
             Timestamp::fromInt($data['created_at']),
             EventKind::fromInt($data['kind']),
             TagCollection::fromArray($data['tags']),
@@ -233,6 +236,6 @@ final readonly class Event
 
     public function __toString(): string
     {
-        return $this->id !== null ? (string) $this->id : '';
+        return null !== $this->id ? (string) $this->id : '';
     }
 }

@@ -10,7 +10,7 @@ final readonly class QuoteAnalysis
         private bool $hasQuoteTag,
         private bool $hasEventInContent,
         private bool $isRepost,
-        private bool $isQuote
+        private bool $isQuote,
     ) {
     }
 
@@ -40,7 +40,7 @@ final readonly class QuoteAnalysis
             'has_quote_tag' => $this->hasQuoteTag,
             'has_event_in_content' => $this->hasEventInContent,
             'is_repost' => $this->isRepost,
-            'is_quote' => $this->isQuote
+            'is_quote' => $this->isQuote,
         ];
     }
 

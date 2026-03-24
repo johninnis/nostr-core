@@ -4,20 +4,22 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol;
 
+use InvalidArgumentException;
+
 final readonly class SubscriptionId
 {
     public function __construct(private string $id)
     {
-        if ($this->id === '') {
-            throw new \InvalidArgumentException('Subscription ID cannot be empty');
+        if ('' === $this->id) {
+            throw new InvalidArgumentException('Subscription ID cannot be empty');
         }
 
-        if (\strlen($this->id) > 64) {
-            throw new \InvalidArgumentException('Subscription ID cannot exceed 64 characters');
+        if (strlen($this->id) > 64) {
+            throw new InvalidArgumentException('Subscription ID cannot exceed 64 characters');
         }
     }
 
-    public function equals(SubscriptionId $other): bool
+    public function equals(self $other): bool
     {
         return $this->id === $other->id;
     }

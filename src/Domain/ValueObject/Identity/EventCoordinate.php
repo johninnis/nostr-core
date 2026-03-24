@@ -13,7 +13,7 @@ final readonly class EventCoordinate
         private EventKind $kind,
         private PublicKey $pubkey,
         private string $identifier,
-        private ?RelayUrl $relayHint = null
+        private ?RelayUrl $relayHint = null,
     ) {
     }
 
@@ -25,7 +25,7 @@ final readonly class EventCoordinate
         }
 
         $pubkey = PublicKey::fromHex($pubkeyHex);
-        if ($pubkey === null || $identifier === '') {
+        if (null === $pubkey || '' === $identifier) {
             return null;
         }
 
@@ -33,7 +33,7 @@ final readonly class EventCoordinate
             $eventKind,
             $pubkey,
             $identifier,
-            $relayHint !== null ? RelayUrl::fromString($relayHint) : null
+            null !== $relayHint ? RelayUrl::fromString($relayHint) : null
         );
     }
 
@@ -41,24 +41,24 @@ final readonly class EventCoordinate
     {
         $parts = explode(':', $coordinate);
 
-        if (\count($parts) < 3) {
+        if (count($parts) < 3) {
             return null;
         }
 
         $kind = (int) $parts[0];
         $pubkey = $parts[1];
-        $identifier = implode(':', \array_slice($parts, 2));
+        $identifier = implode(':', array_slice($parts, 2));
 
         return self::fromParts($kind, $pubkey, $identifier, $relayHint);
     }
 
     public static function fromATag(array $tag): ?self
     {
-        if (!isset($tag[0]) || $tag[0] !== 'a' || !isset($tag[1])) {
+        if (!isset($tag[0]) || 'a' !== $tag[0] || !isset($tag[1])) {
             return null;
         }
 
-        $relayHint = isset($tag[2]) && \is_string($tag[2]) && $tag[2] !== '' ? $tag[2] : null;
+        $relayHint = isset($tag[2]) && is_string($tag[2]) && '' !== $tag[2] ? $tag[2] : null;
 
         return self::fromString($tag[1], $relayHint);
     }
@@ -90,7 +90,7 @@ final readonly class EventCoordinate
 
     public function toString(): string
     {
-        return $this->kind->toInt() . ':' . $this->pubkey->toHex() . ':' . $this->identifier;
+        return $this->kind->toInt().':'.$this->pubkey->toHex().':'.$this->identifier;
     }
 
     public function __toString(): string
@@ -102,7 +102,7 @@ final readonly class EventCoordinate
     {
         $tag = ['a', $this->toString()];
 
-        if ($this->relayHint !== null) {
+        if (null !== $this->relayHint) {
             $tag[] = (string) $this->relayHint;
         }
 
@@ -119,8 +119,8 @@ final readonly class EventCoordinate
             return $baseEquals;
         }
 
-        $thisHint = $this->relayHint !== null ? (string) $this->relayHint : null;
-        $otherHint = $other->relayHint !== null ? (string) $other->relayHint : null;
+        $thisHint = null !== $this->relayHint ? (string) $this->relayHint : null;
+        $otherHint = null !== $other->relayHint ? (string) $other->relayHint : null;
 
         return $baseEquals && $thisHint === $otherHint;
     }
@@ -133,7 +133,7 @@ final readonly class EventCoordinate
             'identifier' => $this->identifier,
         ];
 
-        if ($this->relayHint !== null) {
+        if (null !== $this->relayHint) {
             $data['relay_hint'] = (string) $this->relayHint;
         }
 

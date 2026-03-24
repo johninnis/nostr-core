@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Tag;
 
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 final class TagTypeTest extends TestCase
@@ -19,7 +20,7 @@ final class TagTypeTest extends TestCase
 
     public function testThrowsExceptionForEmptyString(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Tag type cannot be empty');
 
         TagType::fromString('');

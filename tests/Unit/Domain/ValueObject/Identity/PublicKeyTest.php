@@ -7,6 +7,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Identity;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class PublicKeyTest extends TestCase
 {
@@ -33,16 +34,16 @@ final class PublicKeyTest extends TestCase
 
     public function testCanConvertToBech32(): void
     {
-        $publicKey = PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new \RuntimeException('Invalid test pubkey');
+        $publicKey = PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
         $bech32 = $publicKey->toBech32();
 
         $this->assertStringStartsWith('npub1', $bech32);
-        $this->assertSame(63, \strlen($bech32));
+        $this->assertSame(63, strlen($bech32));
     }
 
     public function testCanCreateFromBech32(): void
     {
-        $publicKey = PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new \RuntimeException('Invalid test pubkey');
+        $publicKey = PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
         $bech32 = $publicKey->toBech32();
         $recreatedKey = PublicKey::fromBech32($bech32);
 
@@ -52,7 +53,7 @@ final class PublicKeyTest extends TestCase
 
     public function testEqualsWorksCorrectly(): void
     {
-        $publicKey1 = PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new \RuntimeException('Invalid test pubkey');
+        $publicKey1 = PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
         $publicKey2 = PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX);
         $this->assertNotNull($publicKey2);
         $publicKey3 = PublicKey::fromHex(str_repeat('a', 64));
@@ -64,8 +65,8 @@ final class PublicKeyTest extends TestCase
 
     public function testVerifySignatureMethodExists(): void
     {
-        $publicKey = PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new \RuntimeException('Invalid test pubkey');
-        $signature = Signature::fromHex(str_repeat('a', 128)) ?? throw new \RuntimeException('Invalid test sig');
+        $publicKey = PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
+        $signature = Signature::fromHex(str_repeat('a', 128)) ?? throw new RuntimeException('Invalid test sig');
 
         $result = $publicKey->verify('test message', $signature);
         $this->assertIsBool($result);

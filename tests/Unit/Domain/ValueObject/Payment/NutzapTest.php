@@ -12,6 +12,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Payment\Nutzap;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class NutzapTest extends TestCase
 {
@@ -88,7 +89,7 @@ final class NutzapTest extends TestCase
     public function testWrongKindReturnsNull(): void
     {
         $event = new Event(
-            PublicKey::fromHex(self::SENDER_PUBKEY) ?? throw new \RuntimeException('Invalid test pubkey'),
+            PublicKey::fromHex(self::SENDER_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1700000000),
             EventKind::textNote(),
             TagCollection::empty(),
@@ -146,7 +147,7 @@ final class NutzapTest extends TestCase
     private function buildNutzapEvent(array $rawTags, string $content = ''): Event
     {
         return new Event(
-            PublicKey::fromHex(self::SENDER_PUBKEY) ?? throw new \RuntimeException('Invalid test pubkey'),
+            PublicKey::fromHex(self::SENDER_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1700000000),
             EventKind::nutzap(),
             TagCollection::fromArray($rawTags),

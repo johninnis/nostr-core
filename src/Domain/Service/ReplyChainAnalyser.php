@@ -19,7 +19,7 @@ final class ReplyChainAnalyser
     {
         $tagArrays = $tags->toArray();
 
-        if ($kind !== null && $kind->toInt() === EventKind::COMMENT) {
+        if (null !== $kind && EventKind::COMMENT === $kind->toInt()) {
             return self::analyseCommentReplyChain($tagArrays);
         }
 
@@ -33,45 +33,45 @@ final class ReplyChainAnalyser
         $conversationParticipants = [];
 
         foreach ($tagArrays as $tagArray) {
-            if (empty($tagArray) || !\is_array($tagArray)) {
+            if (empty($tagArray) || !is_array($tagArray)) {
                 continue;
             }
 
-            if ($tagArray[0] === TagType::ROOT_EVENT && isset($tagArray[1])) {
+            if (TagType::ROOT_EVENT === $tagArray[0] && isset($tagArray[1])) {
                 $eventId = EventId::fromHex($tagArray[1]);
-                if ($eventId !== null) {
+                if (null !== $eventId) {
                     $author = $tagArray[3] ?? null;
                     $rootEvent = new EventReference(
                         $eventId,
                         RelayUrl::fromString($tagArray[2] ?? null),
                         null,
-                        ($author !== null && $author !== '') ? PublicKey::fromHex($author) : null
+                        (null !== $author && '' !== $author) ? PublicKey::fromHex($author) : null
                     );
                 }
-            } elseif ($tagArray[0] === TagType::EVENT && isset($tagArray[1])) {
+            } elseif (TagType::EVENT === $tagArray[0] && isset($tagArray[1])) {
                 $eventId = EventId::fromHex($tagArray[1]);
-                if ($eventId !== null) {
+                if (null !== $eventId) {
                     $author = $tagArray[3] ?? null;
                     $parentEvent = new EventReference(
                         $eventId,
                         RelayUrl::fromString($tagArray[2] ?? null),
                         null,
-                        ($author !== null && $author !== '') ? PublicKey::fromHex($author) : null
+                        (null !== $author && '' !== $author) ? PublicKey::fromHex($author) : null
                     );
                 }
-            } elseif ($tagArray[0] === TagType::PUBKEY && isset($tagArray[1])) {
+            } elseif (TagType::PUBKEY === $tagArray[0] && isset($tagArray[1])) {
                 $pubkey = PublicKey::fromHex($tagArray[1]);
-                if ($pubkey !== null) {
+                if (null !== $pubkey) {
                     $conversationParticipants[] = $pubkey;
                 }
             }
         }
 
-        $isReply = $parentEvent !== null;
+        $isReply = null !== $parentEvent;
 
         return new ReplyChain(
             $isReply,
-            !$isReply && $rootEvent === null,
+            !$isReply && null === $rootEvent,
             $rootEvent,
             $parentEvent,
             $conversationParticipants,
@@ -91,21 +91,21 @@ final class ReplyChainAnalyser
         $eTags = [];
 
         foreach ($tagArrays as $tagArray) {
-            if (empty($tagArray) || !\is_array($tagArray)) {
+            if (empty($tagArray) || !is_array($tagArray)) {
                 continue;
             }
 
-            if ($tagArray[0] === TagType::EVENT && isset($tagArray[1])) {
+            if (TagType::EVENT === $tagArray[0] && isset($tagArray[1])) {
                 $author = $tagArray[4] ?? null;
                 $eTags[] = [
                     'id' => $tagArray[1],
                     'relay' => $tagArray[2] ?? null,
                     'marker' => $tagArray[3] ?? null,
-                    'author' => ($author !== null && $author !== '') ? $author : null,
+                    'author' => (null !== $author && '' !== $author) ? $author : null,
                 ];
-            } elseif ($tagArray[0] === TagType::PUBKEY && isset($tagArray[1])) {
+            } elseif (TagType::PUBKEY === $tagArray[0] && isset($tagArray[1])) {
                 $pubkey = PublicKey::fromHex($tagArray[1]);
-                if ($pubkey !== null) {
+                if (null !== $pubkey) {
                     $conversationParticipants[] = $pubkey;
                 }
             }
@@ -117,7 +117,7 @@ final class ReplyChainAnalyser
 
             $hasMarkers = false;
             foreach ($eTags as $eTag) {
-                if (\in_array($eTag['marker'], ['root', 'reply', 'mention'], true)) {
+                if (in_array($eTag['marker'], ['root', 'reply', 'mention'], true)) {
                     $hasMarkers = true;
                     break;
                 }
@@ -126,28 +126,28 @@ final class ReplyChainAnalyser
             if ($hasMarkers) {
                 foreach ($eTags as $eTag) {
                     $eventRef = self::eventReferenceFromETag($eTag);
-                    if ($eventRef === null) {
+                    if (null === $eventRef) {
                         continue;
                     }
 
-                    if ($eTag['marker'] === 'root') {
+                    if ('root' === $eTag['marker']) {
                         $rootEvent = $eventRef;
-                    } elseif ($eTag['marker'] === 'reply') {
+                    } elseif ('reply' === $eTag['marker']) {
                         $parentEvent = $eventRef;
                     } else {
                         $mentionedEvents[] = $eventRef;
                     }
                 }
             } else {
-                if (\count($eTags) === 1) {
+                if (1 === count($eTags)) {
                     $parentEvent = self::eventReferenceFromETag($eTags[0]);
                 } else {
                     $rootEvent = self::eventReferenceFromETag($eTags[0]);
-                    $parentEvent = self::eventReferenceFromETag($eTags[\count($eTags) - 1]);
+                    $parentEvent = self::eventReferenceFromETag($eTags[count($eTags) - 1]);
 
-                    for ($i = 1; $i < \count($eTags) - 1; $i++) {
+                    for ($i = 1; $i < count($eTags) - 1; ++$i) {
                         $eventRef = self::eventReferenceFromETag($eTags[$i]);
-                        if ($eventRef !== null) {
+                        if (null !== $eventRef) {
                             $mentionedEvents[] = $eventRef;
                         }
                     }
@@ -168,7 +168,7 @@ final class ReplyChainAnalyser
     private static function eventReferenceFromETag(array $eTag): ?EventReference
     {
         $eventId = EventId::fromHex($eTag['id']);
-        if ($eventId === null) {
+        if (null === $eventId) {
             return null;
         }
 
@@ -176,7 +176,7 @@ final class ReplyChainAnalyser
             $eventId,
             RelayUrl::fromString($eTag['relay']),
             $eTag['marker'],
-            $eTag['author'] !== null ? PublicKey::fromHex($eTag['author']) : null
+            null !== $eTag['author'] ? PublicKey::fromHex($eTag['author']) : null
         );
     }
 }

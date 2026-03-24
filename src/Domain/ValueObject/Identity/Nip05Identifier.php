@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
+use InvalidArgumentException;
+
 final readonly class Nip05Identifier
 {
     public function __construct(
@@ -16,14 +18,14 @@ final readonly class Nip05Identifier
     {
         $parts = explode('@', $identifier, 2);
 
-        if (\count($parts) !== 2) {
-            throw new \InvalidArgumentException('Invalid NIP-05 identifier format. Expected: name@domain.com');
+        if (2 !== count($parts)) {
+            throw new InvalidArgumentException('Invalid NIP-05 identifier format. Expected: name@domain.com');
         }
 
         [$localPart, $domain] = $parts;
 
         if (empty($localPart) || empty($domain)) {
-            throw new \InvalidArgumentException('NIP-05 identifier cannot have empty local part or domain');
+            throw new InvalidArgumentException('NIP-05 identifier cannot have empty local part or domain');
         }
 
         return new self(trim($localPart), trim($domain));
@@ -41,12 +43,12 @@ final readonly class Nip05Identifier
 
     public function getWellKnownUrl(): string
     {
-        return \sprintf('https://%s/.well-known/nostr.json?name=%s', $this->domain, $this->localPart);
+        return sprintf('https://%s/.well-known/nostr.json?name=%s', $this->domain, $this->localPart);
     }
 
     public function toString(): string
     {
-        return $this->localPart . '@' . $this->domain;
+        return $this->localPart.'@'.$this->domain;
     }
 
     public function __toString(): string

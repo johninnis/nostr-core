@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Payment;
 
+use InvalidArgumentException;
+
 final readonly class ZapAmount
 {
     public const MILLISATS_PER_SAT = 1000;
@@ -13,7 +15,7 @@ final readonly class ZapAmount
     private function __construct(private int $millisats)
     {
         if ($this->millisats < 0) {
-            throw new \InvalidArgumentException('Amount cannot be negative');
+            throw new InvalidArgumentException('Amount cannot be negative');
         }
     }
 

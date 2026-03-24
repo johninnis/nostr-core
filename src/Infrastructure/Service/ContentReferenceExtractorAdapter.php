@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Infrastructure\Service;
 
+use Exception;
 use Innis\Nostr\Core\Domain\Entity\ContentReference;
+use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
 use Innis\Nostr\Core\Domain\Service\Bech32EncoderInterface;
 use Innis\Nostr\Core\Domain\Service\ContentReferenceExtractorInterface;
-use Innis\Nostr\Core\Domain\ValueObject\Content\ContentReferenceType;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
@@ -41,11 +42,11 @@ final class ContentReferenceExtractorAdapter implements ContentReferenceExtracto
             if (preg_match_all($pattern, $contentString, $matches, PREG_OFFSET_CAPTURE)) {
                 foreach ($matches[0] as $match) {
                     $position = $match[1];
-                    $length = \strlen($match[0]);
+                    $length = strlen($match[0]);
 
                     $overlaps = false;
                     foreach ($usedPositions as $usedRange) {
-                        if (($position < $usedRange['end'] && $position + $length > $usedRange['start'])) {
+                        if ($position < $usedRange['end'] && $position + $length > $usedRange['start']) {
                             $overlaps = true;
                             break;
                         }
@@ -77,7 +78,7 @@ final class ContentReferenceExtractorAdapter implements ContentReferenceExtracto
             }
         }
 
-        usort($references, fn ($a, $b) => $a->getPosition() <=> $b->getPosition());
+        usort($references, static fn ($a, $b) => $a->getPosition() <=> $b->getPosition());
 
         return $references;
     }
@@ -86,10 +87,10 @@ final class ContentReferenceExtractorAdapter implements ContentReferenceExtracto
     {
         try {
             return $this->bech32Encoder->decodeComplexEntity($bech32);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return [
                 'decoded_type' => 'invalid',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ];
         }
     }
@@ -97,7 +98,7 @@ final class ContentReferenceExtractorAdapter implements ContentReferenceExtracto
     private function parseRelayUrls(array $relayStrings): array
     {
         return array_values(array_filter(
-            array_map(fn (string $url) => RelayUrl::fromString($url), $relayStrings)
+            array_map(static fn (string $url) => RelayUrl::fromString($url), $relayStrings)
         ));
     }
 }

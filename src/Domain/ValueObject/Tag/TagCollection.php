@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Tag;
 
+use ArrayIterator;
+use Countable;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use InvalidArgumentException;
+use IteratorAggregate;
 
-final class TagCollection implements \IteratorAggregate, \Countable
+final class TagCollection implements IteratorAggregate, Countable
 {
     private array $tags = [];
     private ?array $tagIndex = null;
@@ -15,7 +19,7 @@ final class TagCollection implements \IteratorAggregate, \Countable
     {
         foreach ($tags as $tag) {
             if (!$tag instanceof Tag) {
-                throw new \InvalidArgumentException('All items must be Tag instances');
+                throw new InvalidArgumentException('All items must be Tag instances');
             }
             $this->tags[] = $tag;
         }
@@ -30,7 +34,7 @@ final class TagCollection implements \IteratorAggregate, \Countable
     {
         return new self(array_values(array_filter(
             $this->tags,
-            fn (Tag $tag) => !$tag->getType()->equals($type)
+            static fn (Tag $tag) => !$tag->getType()->equals($type)
         )));
     }
 
@@ -50,8 +54,8 @@ final class TagCollection implements \IteratorAggregate, \Countable
 
         return array_values(array_unique(
             array_filter(
-                array_map(fn (Tag $tag) => $tag->getValue($valueIndex), $tags),
-                fn ($value) => $value !== null
+                array_map(static fn (Tag $tag) => $tag->getValue($valueIndex), $tags),
+                static fn ($value) => null !== $value
             )
         ));
     }
@@ -69,9 +73,9 @@ final class TagCollection implements \IteratorAggregate, \Countable
     public function getFirstPubkeyByType(TagType $type): ?PublicKey
     {
         foreach ($this->getValuesByType($type) as $value) {
-            if (\strlen($value) === PublicKey::HEX_LENGTH) {
+            if (PublicKey::HEX_LENGTH === strlen($value)) {
                 $pubkey = PublicKey::fromHex($value);
-                if ($pubkey !== null) {
+                if (null !== $pubkey) {
                     return $pubkey;
                 }
             }
@@ -82,7 +86,7 @@ final class TagCollection implements \IteratorAggregate, \Countable
 
     private function getTagIndex(): array
     {
-        if ($this->tagIndex === null) {
+        if (null === $this->tagIndex) {
             $this->tagIndex = [];
             foreach ($this->tags as $tag) {
                 $this->tagIndex[(string) $tag->getType()][] = $tag;
@@ -94,7 +98,7 @@ final class TagCollection implements \IteratorAggregate, \Countable
 
     public function toArray(): array
     {
-        return array_map(fn (Tag $tag) => $tag->toArray(), $this->tags);
+        return array_map(static fn (Tag $tag) => $tag->toArray(), $this->tags);
     }
 
     public function isEmpty(): bool
@@ -104,15 +108,15 @@ final class TagCollection implements \IteratorAggregate, \Countable
 
     public function count(): int
     {
-        return \count($this->tags);
+        return count($this->tags);
     }
 
-    public function getIterator(): \ArrayIterator
+    public function getIterator(): ArrayIterator
     {
-        return new \ArrayIterator($this->tags);
+        return new ArrayIterator($this->tags);
     }
 
-    public function equals(TagCollection $other): bool
+    public function equals(self $other): bool
     {
         if ($this->count() !== $other->count()) {
             return false;
@@ -129,7 +133,7 @@ final class TagCollection implements \IteratorAggregate, \Countable
 
     public static function fromArray(array $data): self
     {
-        $tags = array_map(fn (array $tagData) => Tag::fromArray($tagData), $data);
+        $tags = array_map(static fn (array $tagData) => Tag::fromArray($tagData), $data);
 
         return new self($tags);
     }

@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject;
 
+use DateTimeImmutable;
+use DateTimeInterface;
+use InvalidArgumentException;
+
 final readonly class Timestamp
 {
     public function __construct(private int $timestamp)
     {
         if ($this->timestamp < 0) {
-            throw new \InvalidArgumentException('Timestamp cannot be negative');
+            throw new InvalidArgumentException('Timestamp cannot be negative');
         }
     }
 
@@ -18,9 +22,9 @@ final readonly class Timestamp
         return $this->timestamp;
     }
 
-    public function toDateTime(): \DateTimeImmutable
+    public function toDateTime(): DateTimeImmutable
     {
-        return new \DateTimeImmutable('@' . $this->timestamp);
+        return new DateTimeImmutable('@'.$this->timestamp);
     }
 
     public function isReasonable(): bool
@@ -32,22 +36,22 @@ final readonly class Timestamp
         return $this->timestamp >= $tenYearsAgo && $this->timestamp <= $oneHourInFuture;
     }
 
-    public function equals(Timestamp $other): bool
+    public function equals(self $other): bool
     {
         return $this->timestamp === $other->timestamp;
     }
 
-    public function isAfter(Timestamp $other): bool
+    public function isAfter(self $other): bool
     {
         return $this->timestamp > $other->timestamp;
     }
 
-    public function isBefore(Timestamp $other): bool
+    public function isBefore(self $other): bool
     {
         return $this->timestamp < $other->timestamp;
     }
 
-    public function compareTo(Timestamp $other): int
+    public function compareTo(self $other): int
     {
         return $this->timestamp <=> $other->timestamp;
     }
@@ -62,7 +66,7 @@ final readonly class Timestamp
         return new self($timestamp);
     }
 
-    public static function fromDateTime(\DateTimeInterface $dateTime): self
+    public static function fromDateTime(DateTimeInterface $dateTime): self
     {
         return new self($dateTime->getTimestamp());
     }

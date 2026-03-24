@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Reference;
 
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
+use RuntimeException;
 
 final readonly class RelayReference
 {
     public function __construct(
         private RelayUrl $relayUrl,
-        private ?string $mode = null
+        private ?string $mode = null,
     ) {
     }
 
@@ -28,14 +29,14 @@ final readonly class RelayReference
     {
         return [
             'url' => (string) $this->relayUrl,
-            'mode' => $this->mode
+            'mode' => $this->mode,
         ];
     }
 
     public static function fromArray(array $data): self
     {
         return new self(
-            RelayUrl::fromString($data['url']) ?? throw new \RuntimeException('Corrupt URL in serialised RelayReference'),
+            RelayUrl::fromString($data['url']) ?? throw new RuntimeException('Corrupt URL in serialised RelayReference'),
             $data['mode'] ?? null
         );
     }
