@@ -539,7 +539,7 @@ final class TagCollectionTest extends TestCase
 
         $replyChain = ReplyChainAnalyser::analyse($tags, EventKind::comment());
 
-        $this->assertFalse($replyChain->isReply());
+        $this->assertTrue($replyChain->isReply());
         $this->assertFalse($replyChain->isRootPost());
         $this->assertNotNull($replyChain->getRootEvent());
         $this->assertNull($replyChain->getParentEvent());
@@ -617,5 +617,43 @@ final class TagCollectionTest extends TestCase
         $this->assertSame('root', $replyChain->getRootEvent()->getMarker());
         $this->assertNotNull($replyChain->getParentEvent());
         $this->assertSame('reply', $replyChain->getParentEvent()->getMarker());
+    }
+
+    public function testAnalyseReplyChainCommentWithOnlyRootTagIsReply(): void
+    {
+        $rootId = '1111111111111111111111111111111111111111111111111111111111111111';
+        $rootAuthor = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+
+        $tags = TagCollection::fromArray([
+            ['E', $rootId, 'wss://relay.com', $rootAuthor],
+            ['p', $rootAuthor],
+            ['K', '1'],
+            ['k', '1111'],
+        ]);
+
+        $replyChain = ReplyChainAnalyser::analyse($tags, EventKind::comment());
+
+        $this->assertTrue($replyChain->isReply());
+        $this->assertFalse($replyChain->isRootPost());
+        $this->assertNotNull($replyChain->getRootEvent());
+        $this->assertSame($rootId, $replyChain->getRootEvent()->getEventId()->toHex());
+        $this->assertNull($replyChain->getParentEvent());
+        $this->assertCount(1, $replyChain->getConversationParticipants());
+    }
+
+    public function testAnalyseReplyChainCommentWithNoEventTagsIsRootPost(): void
+    {
+        $tags = TagCollection::fromArray([
+            ['I', 'https://example.com'],
+            ['K', 'web'],
+            ['k', '1111'],
+        ]);
+
+        $replyChain = ReplyChainAnalyser::analyse($tags, EventKind::comment());
+
+        $this->assertFalse($replyChain->isReply());
+        $this->assertTrue($replyChain->isRootPost());
+        $this->assertNull($replyChain->getRootEvent());
+        $this->assertNull($replyChain->getParentEvent());
     }
 }

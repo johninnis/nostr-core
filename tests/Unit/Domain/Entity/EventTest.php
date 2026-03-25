@@ -469,6 +469,40 @@ final class EventTest extends TestCase
         $this->assertTrue($event->isReply());
     }
 
+    public function testIsReplyReturnsTrueForCommentKindWithOnlyRootEventTag(): void
+    {
+        $event = $this->createEventWithKindAndContent(EventKind::COMMENT, 'A direct comment on root', [
+            ['E', '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef', 'wss://relay.com', str_repeat('a', 64)],
+            ['K', '1'],
+            ['k', '1111'],
+        ]);
+
+        $this->assertTrue($event->isReply());
+    }
+
+    public function testIsReplyReturnsTrueForCommentKindWithNoEventTags(): void
+    {
+        $event = $this->createEventWithKindAndContent(EventKind::COMMENT, 'A comment on external content', [
+            ['I', 'https://example.com'],
+            ['K', 'web'],
+            ['k', '1111'],
+        ]);
+
+        $this->assertTrue($event->isReply());
+    }
+
+    public function testIsReplyReturnsTrueForCommentKindWithRootAndParentTags(): void
+    {
+        $event = $this->createEventWithKindAndContent(EventKind::COMMENT, 'A nested comment', [
+            ['E', str_repeat('1', 64), 'wss://relay.com', str_repeat('a', 64)],
+            ['e', str_repeat('2', 64), 'wss://relay.com', str_repeat('b', 64)],
+            ['K', '1'],
+            ['k', '1111'],
+        ]);
+
+        $this->assertTrue($event->isReply());
+    }
+
     public function testGetPublishedAtReturnsTimestampWhenTagExists(): void
     {
         $event = $this->createEventWithKindAndContent(1, 'Test', [

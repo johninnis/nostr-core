@@ -67,11 +67,11 @@ final class ReplyChainAnalyser
             }
         }
 
-        $isReply = null !== $parentEvent;
+        $isReply = null !== $parentEvent || null !== $rootEvent;
 
         return new ReplyChain(
             $isReply,
-            !$isReply && null === $rootEvent,
+            !$isReply,
             $rootEvent,
             $parentEvent,
             $conversationParticipants,

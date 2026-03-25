@@ -131,21 +131,19 @@ final readonly class Event
 
     public function isReply(): bool
     {
-        // Kind 6 (repost) and kind 16 (generic repost) events have 'e' tags but are not replies
         $kindInt = $this->kind->toInt();
+
         if (EventKind::REPOST === $kindInt || EventKind::GENERIC_REPOST === $kindInt) {
             return false;
+        }
+
+        if (EventKind::COMMENT === $kindInt) {
+            return true;
         }
 
         $eTags = $this->tags->findByType(TagType::event());
         if (empty($eTags)) {
             return false;
-        }
-
-        // NIP-22: kind 1111 comments use e tags with format ["e", "id", "relay", "pubkey"]
-        // where position 3 is a pubkey (not a NIP-10 marker), so any e tag means it's a reply
-        if (EventKind::COMMENT === $kindInt) {
-            return true;
         }
 
         // Per NIP-10: check markers on e tags
