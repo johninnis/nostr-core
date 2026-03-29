@@ -37,7 +37,17 @@ final readonly class EventKind
     public const NOSTR_CONNECT = 24133;
     public const REPLACEABLE_EVENT_MIN = 10000;
     public const MUTE_LIST = 10000;
+    public const PIN_LIST = 10001;
     public const RELAY_LIST = 10002;
+    public const BOOKMARK_LIST = 10003;
+    public const COMMUNITIES_LIST = 10004;
+    public const PUBLIC_CHATS_LIST = 10005;
+    public const BLOCKED_RELAYS_LIST = 10006;
+    public const SEARCH_RELAYS_LIST = 10007;
+    public const USER_GROUPS_LIST = 10009;
+    public const INTERESTS_LIST = 10015;
+    public const CUSTOM_EMOJI_LIST = 10030;
+    public const DM_RELAY_LIST = 10050;
     public const KEY_PACKAGE_RELAYS = 10051;
     public const REPLACEABLE_EVENT_MAX = 19999;
     public const EPHEMERAL_EVENT_MIN = 20000;
@@ -107,6 +117,11 @@ final readonly class EventKind
     public static function muteList(): self
     {
         return new self(self::MUTE_LIST);
+    }
+
+    public static function dmRelayList(): self
+    {
+        return new self(self::DM_RELAY_LIST);
     }
 
     public static function encryptedDirectMessage(): self

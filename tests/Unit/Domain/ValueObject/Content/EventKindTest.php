@@ -116,6 +116,50 @@ final class EventKindTest extends TestCase
         $this->assertSame(24133, EventKind::nostrConnect()->toInt());
         $this->assertSame(9735, EventKind::zapReceipt()->toInt());
         $this->assertSame(9321, EventKind::nutzap()->toInt());
+        $this->assertSame(10050, EventKind::dmRelayList()->toInt());
+    }
+
+    public function testReplaceableListKindConstants(): void
+    {
+        $this->assertSame(10000, EventKind::MUTE_LIST);
+        $this->assertSame(10001, EventKind::PIN_LIST);
+        $this->assertSame(10002, EventKind::RELAY_LIST);
+        $this->assertSame(10003, EventKind::BOOKMARK_LIST);
+        $this->assertSame(10004, EventKind::COMMUNITIES_LIST);
+        $this->assertSame(10005, EventKind::PUBLIC_CHATS_LIST);
+        $this->assertSame(10006, EventKind::BLOCKED_RELAYS_LIST);
+        $this->assertSame(10007, EventKind::SEARCH_RELAYS_LIST);
+        $this->assertSame(10009, EventKind::USER_GROUPS_LIST);
+        $this->assertSame(10015, EventKind::INTERESTS_LIST);
+        $this->assertSame(10030, EventKind::CUSTOM_EMOJI_LIST);
+        $this->assertSame(10050, EventKind::DM_RELAY_LIST);
+        $this->assertSame(10051, EventKind::KEY_PACKAGE_RELAYS);
+    }
+
+    public function testAllReplaceableListKindsAreReplaceable(): void
+    {
+        $listKinds = [
+            EventKind::MUTE_LIST,
+            EventKind::PIN_LIST,
+            EventKind::RELAY_LIST,
+            EventKind::BOOKMARK_LIST,
+            EventKind::COMMUNITIES_LIST,
+            EventKind::PUBLIC_CHATS_LIST,
+            EventKind::BLOCKED_RELAYS_LIST,
+            EventKind::SEARCH_RELAYS_LIST,
+            EventKind::USER_GROUPS_LIST,
+            EventKind::INTERESTS_LIST,
+            EventKind::CUSTOM_EMOJI_LIST,
+            EventKind::DM_RELAY_LIST,
+            EventKind::KEY_PACKAGE_RELAYS,
+        ];
+
+        foreach ($listKinds as $kind) {
+            $this->assertTrue(
+                EventKind::fromInt($kind)->isReplaceable(),
+                "Kind {$kind} should be replaceable"
+            );
+        }
     }
 
     public function testToStringReturnsKindAsString(): void
