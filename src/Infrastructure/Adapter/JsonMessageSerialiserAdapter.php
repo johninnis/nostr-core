@@ -13,6 +13,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client\ReqMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\ClientMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\AuthMessage as RelayAuthMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\ClosedMessage;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\CountMessage as RelayCountMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\EoseMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\EventMessage as RelayEventMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\NoticeMessage;
@@ -59,6 +60,7 @@ final class JsonMessageSerialiserAdapter implements MessageSerialiserInterface
             'CLOSED' => ClosedMessage::fromArray($data),
             'NOTICE' => NoticeMessage::fromArray($data),
             'AUTH' => RelayAuthMessage::fromArray($data),
+            'COUNT' => RelayCountMessage::fromArray($data),
             default => throw new InvalidArgumentException("Unknown relay message type: {$type}"),
         };
     }

@@ -59,6 +59,16 @@ final class TagTypeTest extends TestCase
         $this->assertFalse($tagType1->equals($tagType3));
     }
 
+    public function testExpirationFactoryMethod(): void
+    {
+        $this->assertSame('expiration', (string) TagType::expiration());
+    }
+
+    public function testProtectedFactoryMethod(): void
+    {
+        $this->assertSame('-', (string) TagType::protected());
+    }
+
     public function testCanCreateCustomTagTypes(): void
     {
         $customType = TagType::fromString('custom');

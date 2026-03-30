@@ -584,6 +584,57 @@ final class EventTest extends TestCase
         $this->assertNull($event->getSignature());
     }
 
+    public function testIsDeletionReturnsTrueForKind5(): void
+    {
+        $event = $this->createEventWithKindAndContent(EventKind::EVENT_DELETION, '', [
+            ['e', str_repeat('a', 64)],
+        ]);
+
+        $this->assertTrue($event->isDeletion());
+    }
+
+    public function testIsDeletionReturnsFalseForTextNote(): void
+    {
+        $this->assertFalse($this->event->isDeletion());
+    }
+
+    public function testIsExpiredReturnsFalseWithNoExpirationTag(): void
+    {
+        $this->assertFalse($this->event->isExpired());
+    }
+
+    public function testIsExpiredReturnsTrueWhenExpired(): void
+    {
+        $event = $this->createEventWithKindAndContent(1, 'test', [
+            ['expiration', (string) (time() - 3600)],
+        ]);
+
+        $this->assertTrue($event->isExpired());
+    }
+
+    public function testIsExpiredReturnsFalseWhenNotYetExpired(): void
+    {
+        $event = $this->createEventWithKindAndContent(1, 'test', [
+            ['expiration', (string) (time() + 3600)],
+        ]);
+
+        $this->assertFalse($event->isExpired());
+    }
+
+    public function testIsProtectedReturnsTrueWithProtectedTag(): void
+    {
+        $event = $this->createEventWithKindAndContent(1, 'test', [
+            ['-'],
+        ]);
+
+        $this->assertTrue($event->isProtected());
+    }
+
+    public function testIsProtectedReturnsFalseWithoutProtectedTag(): void
+    {
+        $this->assertFalse($this->event->isProtected());
+    }
+
     private function createEventWithKindAndContent(int $kind, string $content, array $tagArrays): Event
     {
         $tags = [];

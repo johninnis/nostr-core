@@ -31,6 +31,8 @@ final readonly class TagType
     public const MINT = 'u';
     public const PROOF = 'proof';
     public const UNIT = 'unit';
+    public const EXPIRATION = 'expiration';
+    public const PROTECTED = '-';
 
     public function __construct(private string $type)
     {
@@ -122,6 +124,16 @@ final readonly class TagType
     public static function unit(): self
     {
         return new self(self::UNIT);
+    }
+
+    public static function expiration(): self
+    {
+        return new self(self::EXPIRATION);
+    }
+
+    public static function protected(): self
+    {
+        return new self(self::PROTECTED);
     }
 
     public static function fromString(string $type): self

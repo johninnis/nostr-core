@@ -15,6 +15,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client\EventMessage as 
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client\ReqMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\AuthMessage as RelayAuthMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\ClosedMessage;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\CountMessage as RelayCountMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\EoseMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\EventMessage as RelayEventMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\NoticeMessage;
@@ -110,6 +111,17 @@ final class JsonMessageSerialiserAdapterTest extends TestCase
 
         $this->assertInstanceOf(RelayAuthMessage::class, $message);
         $this->assertSame('challenge-string-123', $message->getChallenge());
+    }
+
+    public function testDeserialiseRelayCountMessage(): void
+    {
+        $json = json_encode(['COUNT', 'sub-1', ['count' => 42]], JSON_THROW_ON_ERROR);
+
+        $message = $this->serialiser->deserialiseRelayMessage($json);
+
+        $this->assertInstanceOf(RelayCountMessage::class, $message);
+        $this->assertSame('sub-1', (string) $message->getSubscriptionId());
+        $this->assertSame(42, $message->getCount());
     }
 
     public function testDeserialiseRelayMessageThrowsOnInvalidJson(): void

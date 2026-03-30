@@ -172,6 +172,29 @@ final readonly class Event
         return EventKind::REPOST === $kindInt || EventKind::GENERIC_REPOST === $kindInt;
     }
 
+    public function isDeletion(): bool
+    {
+        return EventKind::EVENT_DELETION === $this->kind->toInt();
+    }
+
+    public function isExpired(): bool
+    {
+        $values = $this->tags->getValuesByType(TagType::expiration());
+
+        if (empty($values)) {
+            return false;
+        }
+
+        $expiration = (int) reset($values);
+
+        return time() >= $expiration;
+    }
+
+    public function isProtected(): bool
+    {
+        return $this->tags->hasType(TagType::protected());
+    }
+
     public function getPublishedAt(): ?Timestamp
     {
         $values = $this->tags->getValuesByType(TagType::fromString('published_at'));

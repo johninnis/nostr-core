@@ -54,6 +54,7 @@ final readonly class EventKind
     public const EPHEMERAL_EVENT_MAX = 29999;
     public const PARAMETERISED_REPLACEABLE_MIN = 30000;
     public const LONGFORM_CONTENT = 30023;
+    public const APPLICATION_SPECIFIC_DATA = 30078;
     public const LIVE_EVENT = 30311;
     public const PARAMETERISED_REPLACEABLE_MAX = 39999;
 
