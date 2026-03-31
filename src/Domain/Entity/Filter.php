@@ -19,6 +19,7 @@ final readonly class Filter
         private ?Timestamp $since = null,
         private ?Timestamp $until = null,
         private ?int $limit = null,
+        private ?string $search = null,
     ) {
         if (null !== $this->limit && ($this->limit < 1 || $this->limit > 5000)) {
             throw new InvalidArgumentException('Limit must be between 1 and 5000');
@@ -52,6 +53,10 @@ final readonly class Filter
         }
 
         if (null !== $this->until && $event->getCreatedAt()->isAfter($this->until)) {
+            return false;
+        }
+
+        if (null !== $this->search && !$this->matchesSearch($event)) {
             return false;
         }
 
@@ -113,6 +118,16 @@ final readonly class Filter
         return null !== $this->limit;
     }
 
+    public function getSearch(): ?string
+    {
+        return $this->search;
+    }
+
+    public function hasSearch(): bool
+    {
+        return null !== $this->search;
+    }
+
     public function withAuthors(array $authors): self
     {
         return new self(
@@ -122,7 +137,8 @@ final readonly class Filter
             $this->tags,
             $this->since,
             $this->until,
-            $this->limit
+            $this->limit,
+            $this->search
         );
     }
 
@@ -163,6 +179,10 @@ final readonly class Filter
             $filter['limit'] = $this->limit;
         }
 
+        if (null !== $this->search) {
+            $filter['search'] = $this->search;
+        }
+
         return $filter;
     }
 
@@ -183,7 +203,8 @@ final readonly class Filter
             empty($tags) ? null : $tags,
             isset($data['since']) ? Timestamp::fromInt($data['since']) : null,
             isset($data['until']) ? Timestamp::fromInt($data['until']) : null,
-            $data['limit'] ?? null
+            $data['limit'] ?? null,
+            $data['search'] ?? null
         );
     }
 
@@ -210,6 +231,25 @@ final readonly class Filter
 
         foreach ($this->tags as $tagName => $values) {
             if (!$this->eventMatchesTagFilter($event, $tagName, $values)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function matchesSearch(Event $event): bool
+    {
+        $terms = preg_split('/\s+/', mb_strtolower(trim($this->search ?? '')), -1, PREG_SPLIT_NO_EMPTY);
+
+        if (empty($terms)) {
+            return true;
+        }
+
+        $content = mb_strtolower((string) $event->getContent());
+
+        foreach ($terms as $term) {
+            if (!str_contains($content, $term)) {
                 return false;
             }
         }

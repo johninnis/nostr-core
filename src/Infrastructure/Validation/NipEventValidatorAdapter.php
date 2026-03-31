@@ -48,8 +48,10 @@ final class NipEventValidatorAdapter
         }
 
         $eTags = $event->getTags()->findByType(TagType::event());
-        if (empty($eTags)) {
-            throw new InvalidEventException('NIP-09 events must have at least one e tag');
+        $aTags = $event->getTags()->findByType(TagType::addressable());
+
+        if (empty($eTags) && empty($aTags)) {
+            throw new InvalidEventException('NIP-09 events must have at least one e or a tag');
         }
 
         $this->validateNip01Compliance($event);

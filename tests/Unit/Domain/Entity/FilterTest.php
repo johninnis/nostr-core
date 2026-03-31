@@ -493,4 +493,133 @@ final class FilterTest extends TestCase
 
         $this->assertSame($data, $output);
     }
+
+    public function testMatchesSearchTermInContent(): void
+    {
+        $keyPair = KeyPair::generate();
+        $event = new Event(
+            $keyPair->getPublicKey(),
+            Timestamp::now(),
+            EventKind::textNote(),
+            TagCollection::empty(),
+            EventContent::fromString('Hello Nostr world')
+        );
+
+        $filter = new Filter(search: 'nostr');
+
+        $this->assertTrue($filter->matches($event));
+    }
+
+    public function testSearchIsCaseInsensitive(): void
+    {
+        $keyPair = KeyPair::generate();
+        $event = new Event(
+            $keyPair->getPublicKey(),
+            Timestamp::now(),
+            EventKind::textNote(),
+            TagCollection::empty(),
+            EventContent::fromString('Hello NOSTR World')
+        );
+
+        $filter = new Filter(search: 'nostr world');
+
+        $this->assertTrue($filter->matches($event));
+    }
+
+    public function testSearchRequiresAllTerms(): void
+    {
+        $keyPair = KeyPair::generate();
+        $event = new Event(
+            $keyPair->getPublicKey(),
+            Timestamp::now(),
+            EventKind::textNote(),
+            TagCollection::empty(),
+            EventContent::fromString('Hello Nostr')
+        );
+
+        $filter = new Filter(search: 'nostr bitcoin');
+
+        $this->assertFalse($filter->matches($event));
+    }
+
+    public function testSearchDoesNotMatchWhenTermAbsent(): void
+    {
+        $keyPair = KeyPair::generate();
+        $event = new Event(
+            $keyPair->getPublicKey(),
+            Timestamp::now(),
+            EventKind::textNote(),
+            TagCollection::empty(),
+            EventContent::fromString('Hello world')
+        );
+
+        $filter = new Filter(search: 'nostr');
+
+        $this->assertFalse($filter->matches($event));
+    }
+
+    public function testSearchCombinesWithOtherFilters(): void
+    {
+        $keyPair = KeyPair::generate();
+        $event = new Event(
+            $keyPair->getPublicKey(),
+            Timestamp::now(),
+            EventKind::textNote(),
+            TagCollection::empty(),
+            EventContent::fromString('Hello Nostr')
+        );
+
+        $matchingFilter = new Filter(kinds: [1], search: 'nostr');
+        $nonMatchingFilter = new Filter(kinds: [2], search: 'nostr');
+
+        $this->assertTrue($matchingFilter->matches($event));
+        $this->assertFalse($nonMatchingFilter->matches($event));
+    }
+
+    public function testHasSearchReturnsTrueWhenSet(): void
+    {
+        $filter = new Filter(search: 'nostr');
+
+        $this->assertTrue($filter->hasSearch());
+        $this->assertSame('nostr', $filter->getSearch());
+    }
+
+    public function testHasSearchReturnsFalseWhenNull(): void
+    {
+        $filter = new Filter();
+
+        $this->assertFalse($filter->hasSearch());
+        $this->assertNull($filter->getSearch());
+    }
+
+    public function testSearchRoundTripFromArrayToArray(): void
+    {
+        $data = [
+            'kinds' => [1],
+            'search' => 'nostr protocol',
+        ];
+
+        $filter = Filter::fromArray($data);
+        $output = $filter->toArray();
+
+        $this->assertSame($data, $output);
+    }
+
+    public function testToArrayOmitsSearchWhenNull(): void
+    {
+        $filter = new Filter(kinds: [1]);
+
+        $array = $filter->toArray();
+
+        $this->assertArrayNotHasKey('search', $array);
+    }
+
+    public function testWithAuthorsPreservesSearch(): void
+    {
+        $filter = new Filter(search: 'nostr');
+
+        $newFilter = $filter->withAuthors(['new-author']);
+
+        $this->assertSame('nostr', $newFilter->getSearch());
+    }
 }

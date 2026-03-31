@@ -37,6 +37,11 @@ final readonly class OkMessage extends RelayMessage
         return $this->message;
     }
 
+    public function isAuthRequired(): bool
+    {
+        return !$this->accepted && str_starts_with($this->message, 'auth-required:');
+    }
+
     public function toArray(): array
     {
         return ['OK', $this->eventId->toHex(), $this->accepted, $this->message];

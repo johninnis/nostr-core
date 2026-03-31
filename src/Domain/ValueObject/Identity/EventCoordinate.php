@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
+use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 
 final readonly class EventCoordinate
 {
@@ -107,6 +109,21 @@ final readonly class EventCoordinate
         }
 
         return $tag;
+    }
+
+    public function matchesEvent(Event $event): bool
+    {
+        if ($event->getKind()->toInt() !== $this->kind->toInt()) {
+            return false;
+        }
+
+        if (!$event->getPubkey()->equals($this->pubkey)) {
+            return false;
+        }
+
+        $dTags = $event->getTags()->getValuesByType(TagType::identifier());
+
+        return in_array($this->identifier, $dTags, true);
     }
 
     public function equals(self $other, bool $includeRelayHint = false): bool

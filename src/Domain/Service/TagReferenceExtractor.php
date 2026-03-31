@@ -79,7 +79,7 @@ final class TagReferenceExtractor
                     }
                     break;
 
-                case 'a':
+                case TagType::ADDRESSABLE:
                     if (isset($tagArray[1])) {
                         $coordinate = EventCoordinate::fromATag($tagArray);
                         if (null !== $coordinate) {

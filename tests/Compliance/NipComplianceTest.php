@@ -110,6 +110,43 @@ final class NipComplianceTest extends TestCase
         $this->assertTrue($signedEvent->getTags()->hasType(\Innis\Nostr\Core\Domain\ValueObject\Tag\TagType::event()));
     }
 
+    public function testNip09EventDeletionWithATagCompliance(): void
+    {
+        $tags = new TagCollection([
+            Tag::fromArray(['a', '30023:'.str_repeat('a', 64).':my-article']),
+        ]);
+
+        $event = new Event(
+            $this->keyPair->getPublicKey(),
+            Timestamp::now(),
+            EventKind::eventDeletion(),
+            $tags,
+            EventContent::fromString('removing article')
+        );
+        $signedEvent = $event->sign($this->keyPair->getPrivateKey());
+
+        $this->validator->validateNip09Compliance($signedEvent);
+
+        $this->assertSame(5, $signedEvent->getKind()->toInt());
+    }
+
+    public function testNip09EventDeletionRequiresEOrATag(): void
+    {
+        $event = new Event(
+            $this->keyPair->getPublicKey(),
+            Timestamp::now(),
+            EventKind::eventDeletion(),
+            TagCollection::empty(),
+            EventContent::fromString('no targets')
+        );
+        $signedEvent = $event->sign($this->keyPair->getPrivateKey());
+
+        $this->expectException(\Innis\Nostr\Core\Domain\Exception\InvalidEventException::class);
+        $this->expectExceptionMessage('at least one e or a tag');
+
+        $this->validator->validateNip09Compliance($signedEvent);
+    }
+
     public function testEventIdCalculationMatchesNip01Specification(): void
     {
         // Test with known values to ensure ID calculation is correct

@@ -16,6 +16,7 @@ final readonly class TagType
     public const TITLE = 'title';
     public const HASHTAG = 't';
     public const GEOHASH = 'g';
+    public const ADDRESSABLE = 'a';
     public const IDENTIFIER = 'd';
     public const RELAY = 'relay';
     public const DELEGATION = 'delegation';
@@ -59,6 +60,11 @@ final readonly class TagType
     public static function hashtag(): self
     {
         return new self(self::HASHTAG);
+    }
+
+    public static function addressable(): self
+    {
+        return new self(self::ADDRESSABLE);
     }
 
     public static function identifier(): self
