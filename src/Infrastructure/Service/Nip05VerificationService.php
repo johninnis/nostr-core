@@ -24,7 +24,7 @@ final class Nip05VerificationService implements Nip05VerificationServiceInterfac
         $wellKnownUrl = $identifier->getWellKnownUrl();
 
         $this->logger->debug('Verifying NIP-05 identifier', [
-            'identifier' => $identifier->toString(),
+            'identifier' => (string) $identifier,
             'url' => $wellKnownUrl,
             'expected_pubkey' => $expectedPubkey->toHex(),
         ]);
@@ -71,7 +71,7 @@ final class Nip05VerificationService implements Nip05VerificationServiceInterfac
         }
 
         $this->logger->info('NIP-05 verification successful', [
-            'identifier' => $identifier->toString(),
+            'identifier' => (string) $identifier,
             'pubkey' => $expectedHex,
         ]);
 

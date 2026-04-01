@@ -46,13 +46,8 @@ final readonly class Nip05Identifier
         return sprintf('https://%s/.well-known/nostr.json?name=%s', $this->domain, $this->localPart);
     }
 
-    public function toString(): string
-    {
-        return $this->localPart.'@'.$this->domain;
-    }
-
     public function __toString(): string
     {
-        return $this->toString();
+        return $this->localPart.'@'.$this->domain;
     }
 }

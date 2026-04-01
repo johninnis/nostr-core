@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
 use Exception;
-use Innis\Nostr\Core\Infrastructure\Service\Bech32Codec;
+use Innis\Nostr\Core\Domain\Service\Bech32Codec;
 
 final readonly class EventId
 {

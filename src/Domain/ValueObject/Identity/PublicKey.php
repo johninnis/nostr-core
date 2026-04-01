@@ -6,7 +6,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
 use Exception;
 use Mdanter\Ecc\EccFactory;
-use Innis\Nostr\Core\Infrastructure\Service\Bech32Codec;
+use Innis\Nostr\Core\Domain\Service\Bech32Codec;
 
 final readonly class PublicKey
 {

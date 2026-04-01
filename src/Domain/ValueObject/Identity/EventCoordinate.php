@@ -90,19 +90,14 @@ final readonly class EventCoordinate
         return new self($this->kind, $this->pubkey, $this->identifier, $relayHint);
     }
 
-    public function toString(): string
+    public function __toString(): string
     {
         return $this->kind->toInt().':'.$this->pubkey->toHex().':'.$this->identifier;
     }
 
-    public function __toString(): string
-    {
-        return $this->toString();
-    }
-
     public function toATag(): array
     {
-        $tag = ['a', $this->toString()];
+        $tag = ['a', (string) $this];
 
         if (null !== $this->relayHint) {
             $tag[] = (string) $this->relayHint;

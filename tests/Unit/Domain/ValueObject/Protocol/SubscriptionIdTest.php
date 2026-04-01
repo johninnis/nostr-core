@@ -14,7 +14,7 @@ final class SubscriptionIdTest extends TestCase
     {
         $id = SubscriptionId::fromString('my-sub-id');
 
-        $this->assertSame('my-sub-id', $id->toString());
+        $this->assertSame('my-sub-id', (string) $id);
         $this->assertSame('my-sub-id', (string) $id);
     }
 
@@ -38,23 +38,23 @@ final class SubscriptionIdTest extends TestCase
     {
         $id = new SubscriptionId(str_repeat('a', 64));
 
-        $this->assertSame(64, strlen($id->toString()));
+        $this->assertSame(64, strlen((string) $id));
     }
 
     public function testGenerateCreatesValidId(): void
     {
         $id = SubscriptionId::generate();
 
-        $this->assertSame(32, strlen($id->toString()));
-        $this->assertMatchesRegularExpression('/^[a-f0-9]{32}$/', $id->toString());
+        $this->assertSame(32, strlen((string) $id));
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{32}$/', (string) $id);
     }
 
     public function testShortCreatesValidId(): void
     {
         $id = SubscriptionId::short();
 
-        $this->assertSame(8, strlen($id->toString()));
-        $this->assertMatchesRegularExpression('/^[a-f0-9]{8}$/', $id->toString());
+        $this->assertSame(8, strlen((string) $id));
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{8}$/', (string) $id);
     }
 
     public function testEqualsReturnsTrueForSameId(): void

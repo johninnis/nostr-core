@@ -43,9 +43,4 @@ final readonly class SubscriptionId
     {
         return $this->id;
     }
-
-    public function toString(): string
-    {
-        return $this->id;
-    }
 }

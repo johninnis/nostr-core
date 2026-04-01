@@ -138,7 +138,6 @@ final class EventCoordinateTest extends TestCase
         $coordinate = $this->createCoordinate();
 
         $expected = self::VALID_KIND.':'.self::VALID_PUBKEY.':'.self::VALID_IDENTIFIER;
-        $this->assertSame($expected, $coordinate->toString());
         $this->assertSame($expected, (string) $coordinate);
     }
 

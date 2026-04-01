@@ -9,7 +9,7 @@ use Innis\Nostr\Core\Domain\Exception\InvalidSignatureException;
 use LogicException;
 use Mdanter\Ecc\EccFactory;
 use Mdanter\Ecc\Random\RandomGeneratorFactory;
-use Innis\Nostr\Core\Infrastructure\Service\Bech32Codec;
+use Innis\Nostr\Core\Domain\Service\Bech32Codec;
 use RuntimeException;
 
 final readonly class PrivateKey

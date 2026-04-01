@@ -64,7 +64,6 @@ final class Nip05IdentifierTest extends TestCase
     {
         $identifier = Nip05Identifier::fromString('alice@example.com');
 
-        $this->assertSame('alice@example.com', $identifier->toString());
         $this->assertSame('alice@example.com', (string) $identifier);
     }
 
