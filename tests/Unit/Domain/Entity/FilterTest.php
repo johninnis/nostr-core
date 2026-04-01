@@ -324,6 +324,22 @@ final class FilterTest extends TestCase
         $this->assertSame(10, $newFilter->getLimit());
     }
 
+    public function testWithKindsReturnsNewFilterWithReplacedKinds(): void
+    {
+        $filter = new Filter(
+            authors: ['author-1'],
+            kinds: [1, 2],
+            limit: 10
+        );
+
+        $newFilter = $filter->withKinds([0, 7, 30023]);
+
+        $this->assertSame([1, 2], $filter->getKinds());
+        $this->assertSame([0, 7, 30023], $newFilter->getKinds());
+        $this->assertSame(['author-1'], $newFilter->getAuthors());
+        $this->assertSame(10, $newFilter->getLimit());
+    }
+
     public function testMatchesEventBySinceTimestamp(): void
     {
         $keyPair = KeyPair::generate();

@@ -142,6 +142,20 @@ final readonly class Filter
         );
     }
 
+    public function withKinds(array $kinds): self
+    {
+        return new self(
+            $this->ids,
+            $this->authors,
+            $kinds,
+            $this->tags,
+            $this->since,
+            $this->until,
+            $this->limit,
+            $this->search
+        );
+    }
+
     public function toArray(): array
     {
         $filter = [];
