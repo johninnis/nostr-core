@@ -20,7 +20,7 @@ final readonly class EventId
 
     public function toBech32(): string
     {
-        return Bech32Codec::encodeNote($this->id);
+        return Bech32Codec::encode('note', Bech32Codec::hexToBytes($this->id));
     }
 
     public function equals(self $other): bool
@@ -44,7 +44,9 @@ final readonly class EventId
         }
 
         try {
-            return self::fromHex(Bech32Codec::decodeToHex($bech32));
+            $decoded = Bech32Codec::decode($bech32);
+
+            return self::fromHex(Bech32Codec::bytesToHex($decoded['data']));
         } catch (Exception) {
             return null;
         }

@@ -20,15 +20,7 @@ final class Nip44EncryptionAdapter implements Nip44EncryptionInterface
 
     public function encrypt(string $plaintext, ConversationKey $conversationKey): string
     {
-        $plaintextLength = strlen($plaintext);
-
-        if ($plaintextLength < self::MIN_PLAINTEXT_LENGTH || $plaintextLength > self::MAX_PLAINTEXT_LENGTH) {
-            throw new EncryptionException('Plaintext length must be between 1 and 65535 bytes');
-        }
-
-        $nonce = random_bytes(self::NONCE_LENGTH);
-
-        return $this->encryptWithNonce($plaintext, $conversationKey, $nonce);
+        return $this->encryptWithNonce($plaintext, $conversationKey, random_bytes(self::NONCE_LENGTH));
     }
 
     public function decrypt(string $payload, ConversationKey $conversationKey): string

@@ -114,7 +114,7 @@ final readonly class PrivateKey
 
     public function toBech32(): string
     {
-        return Bech32Codec::encodeNsec($this->key);
+        return Bech32Codec::encode('nsec', Bech32Codec::hexToBytes($this->key));
     }
 
     public static function generate(): self
@@ -144,7 +144,9 @@ final readonly class PrivateKey
         }
 
         try {
-            return self::fromHex(Bech32Codec::decodeToHex($bech32));
+            $decoded = Bech32Codec::decode($bech32);
+
+            return self::fromHex(Bech32Codec::bytesToHex($decoded['data']));
         } catch (Exception) {
             return null;
         }

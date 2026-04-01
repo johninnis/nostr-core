@@ -23,7 +23,7 @@ final readonly class PublicKey
 
     public function toBech32(): string
     {
-        return Bech32Codec::encodeNpub($this->key);
+        return Bech32Codec::encode('npub', Bech32Codec::hexToBytes($this->key));
     }
 
     public function verify(string $messageBytes, Signature $signature): bool
@@ -120,7 +120,9 @@ final readonly class PublicKey
         }
 
         try {
-            return new self(Bech32Codec::decodeToHex($bech32));
+            $decoded = Bech32Codec::decode($bech32);
+
+            return new self(Bech32Codec::bytesToHex($decoded['data']));
         } catch (Exception) {
             return null;
         }
