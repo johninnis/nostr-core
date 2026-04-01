@@ -45,17 +45,37 @@ final readonly class EventKind
     public const BLOCKED_RELAYS_LIST = 10006;
     public const SEARCH_RELAYS_LIST = 10007;
     public const USER_GROUPS_LIST = 10009;
+    public const RELAY_FEEDS_LIST = 10012;
     public const INTERESTS_LIST = 10015;
+    public const GIT_AUTHORS_LIST = 10017;
+    public const GIT_REPOSITORIES_LIST = 10018;
+    public const MEDIA_FOLLOWS_LIST = 10020;
     public const CUSTOM_EMOJI_LIST = 10030;
     public const DM_RELAY_LIST = 10050;
     public const KEY_PACKAGE_RELAYS = 10051;
+    public const GOOD_WIKI_AUTHORS_LIST = 10101;
+    public const GOOD_WIKI_RELAYS_LIST = 10102;
     public const REPLACEABLE_EVENT_MAX = 19999;
     public const EPHEMERAL_EVENT_MIN = 20000;
     public const EPHEMERAL_EVENT_MAX = 29999;
     public const PARAMETERISED_REPLACEABLE_MIN = 30000;
+    public const FOLLOW_SET = 30000;
+    public const RELAY_SET = 30002;
+    public const BOOKMARK_SET = 30003;
+    public const CURATION_SET_ARTICLES = 30004;
+    public const CURATION_SET_VIDEO = 30005;
+    public const CURATION_SET_PICTURES = 30006;
+    public const KIND_MUTE_SET = 30007;
+    public const INTEREST_SET = 30015;
     public const LONGFORM_CONTENT = 30023;
+    public const EMOJI_SET = 30030;
+    public const RELEASE_ARTIFACT_SET = 30063;
     public const APPLICATION_SPECIFIC_DATA = 30078;
+    public const APP_CURATION_SET = 30267;
     public const LIVE_EVENT = 30311;
+    public const CALENDAR = 31924;
+    public const STARTER_PACK = 39089;
+    public const MEDIA_STARTER_PACK = 39092;
     public const PARAMETERISED_REPLACEABLE_MAX = 39999;
 
     public function __construct(private int $kind)

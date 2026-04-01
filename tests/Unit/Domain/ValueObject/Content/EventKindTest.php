@@ -130,10 +130,16 @@ final class EventKindTest extends TestCase
         $this->assertSame(10006, EventKind::BLOCKED_RELAYS_LIST);
         $this->assertSame(10007, EventKind::SEARCH_RELAYS_LIST);
         $this->assertSame(10009, EventKind::USER_GROUPS_LIST);
+        $this->assertSame(10012, EventKind::RELAY_FEEDS_LIST);
         $this->assertSame(10015, EventKind::INTERESTS_LIST);
+        $this->assertSame(10017, EventKind::GIT_AUTHORS_LIST);
+        $this->assertSame(10018, EventKind::GIT_REPOSITORIES_LIST);
+        $this->assertSame(10020, EventKind::MEDIA_FOLLOWS_LIST);
         $this->assertSame(10030, EventKind::CUSTOM_EMOJI_LIST);
         $this->assertSame(10050, EventKind::DM_RELAY_LIST);
         $this->assertSame(10051, EventKind::KEY_PACKAGE_RELAYS);
+        $this->assertSame(10101, EventKind::GOOD_WIKI_AUTHORS_LIST);
+        $this->assertSame(10102, EventKind::GOOD_WIKI_RELAYS_LIST);
     }
 
     public function testAllReplaceableListKindsAreReplaceable(): void
@@ -148,16 +154,67 @@ final class EventKindTest extends TestCase
             EventKind::BLOCKED_RELAYS_LIST,
             EventKind::SEARCH_RELAYS_LIST,
             EventKind::USER_GROUPS_LIST,
+            EventKind::RELAY_FEEDS_LIST,
             EventKind::INTERESTS_LIST,
+            EventKind::GIT_AUTHORS_LIST,
+            EventKind::GIT_REPOSITORIES_LIST,
+            EventKind::MEDIA_FOLLOWS_LIST,
             EventKind::CUSTOM_EMOJI_LIST,
             EventKind::DM_RELAY_LIST,
             EventKind::KEY_PACKAGE_RELAYS,
+            EventKind::GOOD_WIKI_AUTHORS_LIST,
+            EventKind::GOOD_WIKI_RELAYS_LIST,
         ];
 
         foreach ($listKinds as $kind) {
             $this->assertTrue(
                 EventKind::fromInt($kind)->isReplaceable(),
                 "Kind {$kind} should be replaceable"
+            );
+        }
+    }
+
+    public function testParameterisedReplaceableSetKindConstants(): void
+    {
+        $this->assertSame(30000, EventKind::FOLLOW_SET);
+        $this->assertSame(30002, EventKind::RELAY_SET);
+        $this->assertSame(30003, EventKind::BOOKMARK_SET);
+        $this->assertSame(30004, EventKind::CURATION_SET_ARTICLES);
+        $this->assertSame(30005, EventKind::CURATION_SET_VIDEO);
+        $this->assertSame(30006, EventKind::CURATION_SET_PICTURES);
+        $this->assertSame(30007, EventKind::KIND_MUTE_SET);
+        $this->assertSame(30015, EventKind::INTEREST_SET);
+        $this->assertSame(30030, EventKind::EMOJI_SET);
+        $this->assertSame(30063, EventKind::RELEASE_ARTIFACT_SET);
+        $this->assertSame(30267, EventKind::APP_CURATION_SET);
+        $this->assertSame(31924, EventKind::CALENDAR);
+        $this->assertSame(39089, EventKind::STARTER_PACK);
+        $this->assertSame(39092, EventKind::MEDIA_STARTER_PACK);
+    }
+
+    public function testAllSetKindsAreParameterisedReplaceable(): void
+    {
+        $setKinds = [
+            EventKind::FOLLOW_SET,
+            EventKind::RELAY_SET,
+            EventKind::BOOKMARK_SET,
+            EventKind::CURATION_SET_ARTICLES,
+            EventKind::CURATION_SET_VIDEO,
+            EventKind::CURATION_SET_PICTURES,
+            EventKind::KIND_MUTE_SET,
+            EventKind::INTEREST_SET,
+            EventKind::EMOJI_SET,
+            EventKind::RELEASE_ARTIFACT_SET,
+            EventKind::APP_CURATION_SET,
+            EventKind::CALENDAR,
+            EventKind::STARTER_PACK,
+            EventKind::MEDIA_STARTER_PACK,
+        ];
+
+        foreach ($setKinds as $kind) {
+            $this->assertTrue(
+                EventKind::fromInt($kind)->isParameterisedReplaceable(),
+                "Kind {$kind} should be parameterised replaceable"
             );
         }
     }
