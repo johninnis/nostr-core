@@ -225,6 +225,43 @@ final class EventFactoryTest extends TestCase
         $this->assertTrue($event->getTags()->equals($muteTags));
     }
 
+    public function testCanCreateRumour(): void
+    {
+        $recipientPubkey = str_repeat('b', 64);
+        $tags = new TagCollection([Tag::pubkey($recipientPubkey)]);
+
+        $event = EventFactory::createRumour(
+            $this->keyPair->getPublicKey(),
+            'Hello via NIP-17',
+            $tags
+        );
+
+        $this->assertTrue($event->getKind()->equals(EventKind::privateMessage()));
+        $this->assertSame('Hello via NIP-17', (string) $event->getContent());
+        $this->assertFalse($event->isSigned());
+
+        $pTags = $event->getTags()->findByType(TagType::pubkey());
+        $this->assertCount(1, $pTags);
+        $this->assertSame($recipientPubkey, $pTags[0]->getValue());
+    }
+
+    public function testCanCreateDmRelayList(): void
+    {
+        $relayTags = new TagCollection([
+            Tag::fromArray(['relay', 'wss://dm.relay.example.com']),
+            Tag::fromArray(['relay', 'wss://dm.relay2.example.com']),
+        ]);
+
+        $event = EventFactory::createDmRelayList(
+            $this->keyPair->getPublicKey(),
+            $relayTags
+        );
+
+        $this->assertTrue($event->getKind()->equals(EventKind::dmRelayList()));
+        $this->assertSame('', (string) $event->getContent());
+        $this->assertTrue($event->getTags()->equals($relayTags));
+    }
+
     public function testCanCreateLongformContentWithMinimalFields(): void
     {
         $content = EventContent::fromString('# My Article\n\nSome content here.');

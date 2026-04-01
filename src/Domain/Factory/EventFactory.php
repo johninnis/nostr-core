@@ -172,6 +172,33 @@ final class EventFactory
         );
     }
 
+    public static function createRumour(
+        PublicKey $pubkey,
+        string $content,
+        TagCollection $recipientTags,
+    ): Event {
+        return new Event(
+            $pubkey,
+            Timestamp::now(),
+            EventKind::privateMessage(),
+            $recipientTags,
+            EventContent::fromString($content)
+        );
+    }
+
+    public static function createDmRelayList(
+        PublicKey $pubkey,
+        TagCollection $relayTags,
+    ): Event {
+        return new Event(
+            $pubkey,
+            Timestamp::now(),
+            EventKind::dmRelayList(),
+            $relayTags,
+            EventContent::fromString('')
+        );
+    }
+
     public static function createLongformContent(
         PublicKey $pubkey,
         EventContent $content,

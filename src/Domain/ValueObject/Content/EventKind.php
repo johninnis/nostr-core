@@ -16,6 +16,8 @@ final readonly class EventKind
     public const EVENT_DELETION = 5;
     public const REPOST = 6;
     public const REACTION = 7;
+    public const SEAL = 13;
+    public const PRIVATE_MESSAGE = 14;
     public const GENERIC_REPOST = 16;
     public const VIDEO = 21;
     public const SHORT_FORM_VIDEO = 22;
@@ -193,6 +195,21 @@ final readonly class EventKind
     public static function clientAuth(): self
     {
         return new self(self::CLIENT_AUTH);
+    }
+
+    public static function seal(): self
+    {
+        return new self(self::SEAL);
+    }
+
+    public static function privateMessage(): self
+    {
+        return new self(self::PRIVATE_MESSAGE);
+    }
+
+    public static function giftWrap(): self
+    {
+        return new self(self::GIFT_WRAP);
     }
 
     public static function nostrConnect(): self

@@ -125,4 +125,24 @@ final class TimestampTest extends TestCase
 
         $this->assertSame(0, $timestamp->toInt());
     }
+
+    public function testRandomisedReturnsTimestampWithinRange(): void
+    {
+        $before = time();
+        $timestamp = Timestamp::randomised(3600);
+        $after = time();
+
+        $this->assertGreaterThanOrEqual($before - 3600, $timestamp->toInt());
+        $this->assertLessThanOrEqual($after, $timestamp->toInt());
+    }
+
+    public function testRandomisedWithDefaultRangeReturnsTimestampWithinTwoDays(): void
+    {
+        $before = time();
+        $timestamp = Timestamp::randomised();
+        $after = time();
+
+        $this->assertGreaterThanOrEqual($before - 172800, $timestamp->toInt());
+        $this->assertLessThanOrEqual($after, $timestamp->toInt());
+    }
 }

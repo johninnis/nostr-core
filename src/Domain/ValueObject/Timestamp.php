@@ -61,6 +61,11 @@ final readonly class Timestamp
         return new self(time());
     }
 
+    public static function randomised(int $maxSecondsAgo = 172800): self
+    {
+        return new self(time() - random_int(0, $maxSecondsAgo));
+    }
+
     public static function fromInt(int $timestamp): self
     {
         return new self($timestamp);

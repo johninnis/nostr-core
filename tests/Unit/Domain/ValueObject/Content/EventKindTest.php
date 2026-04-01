@@ -101,6 +101,19 @@ final class EventKindTest extends TestCase
         $this->assertFalse($kind1->equals($kind3));
     }
 
+    public function testNip17StaticFactoryMethods(): void
+    {
+        $this->assertSame(13, EventKind::seal()->toInt());
+        $this->assertSame(14, EventKind::privateMessage()->toInt());
+        $this->assertSame(1059, EventKind::giftWrap()->toInt());
+    }
+
+    public function testNip17KindConstants(): void
+    {
+        $this->assertSame(13, EventKind::SEAL);
+        $this->assertSame(14, EventKind::PRIVATE_MESSAGE);
+    }
+
     public function testAdditionalStaticFactoryMethods(): void
     {
         $this->assertSame(6, EventKind::repost()->toInt());
