@@ -9,7 +9,7 @@ use Innis\Nostr\Core\Domain\Exception\InvalidSignatureException;
 use LogicException;
 use Mdanter\Ecc\EccFactory;
 use Mdanter\Ecc\Random\RandomGeneratorFactory;
-use nostriphant\NIP19\Bech32;
+use Innis\Nostr\Core\Infrastructure\Service\Bech32Codec;
 use RuntimeException;
 
 final readonly class PrivateKey
@@ -114,7 +114,7 @@ final readonly class PrivateKey
 
     public function toBech32(): string
     {
-        return (string) Bech32::nsec($this->key);
+        return Bech32Codec::encodeNsec($this->key);
     }
 
     public static function generate(): self
@@ -144,10 +144,7 @@ final readonly class PrivateKey
         }
 
         try {
-            $decoded = new Bech32($bech32);
-            $hex = $decoded();
-
-            return is_string($hex) ? self::fromHex($hex) : null;
+            return self::fromHex(Bech32Codec::decodeToHex($bech32));
         } catch (Exception) {
             return null;
         }

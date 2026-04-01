@@ -9,7 +9,7 @@ Existing PHP Nostr libraries (nostriphant, swentel/nostr-php) are organised arou
 This library takes a different approach:
 
 - **Domain-first, not NIP-first.** Code is organised around domain concepts (events, identities, tags, messages) rather than NIP numbers. A single `Event` entity handles creation, signing, and verification regardless of which NIP defines the event kind.
-- **Clean Architecture with strict layer separation.** Domain entities and value objects have no framework dependencies. The only external libraries in the domain layer are cryptographic (secp256k1 elliptic curve math) and bech32 encoding, which are intrinsic to Nostr identity. Infrastructure concerns (JSON serialisation, HTTP calls) live behind interfaces that consumers implement or use the provided adapters.
+- **Clean Architecture with strict layer separation.** Domain entities and value objects have no framework dependencies. The only external library in the domain layer is cryptographic (secp256k1 elliptic curve math), which is intrinsic to Nostr identity. Bech32 encoding, JSON serialisation, and other infrastructure concerns live behind interfaces or in infrastructure adapters.
 - **Immutable value objects and pure functions.** Events, tags, timestamps, and identities are all immutable. Factory methods are static. Services are stateless. No hidden side effects.
 - **Designed for composition.** This is a core library, not an application. It provides the building blocks for relays, clients, and web applications without imposing architectural decisions on consumers.
 
@@ -91,7 +91,7 @@ $deserialised = $serialiser->deserialiseClientMessage($json);
 | [NIP-02](https://github.com/nostr-protocol/nips/blob/master/02.md) | Follow list | Kind 3 with contact list tags |
 | [NIP-04](https://github.com/nostr-protocol/nips/blob/master/04.md) | Encrypted direct messages | Kind 4 with recipient validation |
 | [NIP-05](https://github.com/nostr-protocol/nips/blob/master/05.md) | DNS-based identity | Identifier parsing and HTTP verification |
-| [NIP-09](https://github.com/nostr-protocol/nips/blob/master/09.md) | Event deletion | Kind 5 with deletion tag validation |
+| [NIP-09](https://github.com/nostr-protocol/nips/blob/master/09.md) | Event deletion | Kind 5 with deletion tag validation and detection |
 | [NIP-10](https://github.com/nostr-protocol/nips/blob/master/10.md) | Reply conventions | Reply chain analysis with root/reply/mention markers |
 | [NIP-11](https://github.com/nostr-protocol/nips/blob/master/11.md) | Relay information | Relay metadata fetching and parsing |
 | [NIP-18](https://github.com/nostr-protocol/nips/blob/master/18.md) | Reposts | Kind 6/16 with embedded event extraction and quote detection |
@@ -100,7 +100,10 @@ $deserialised = $serialiser->deserialiseClientMessage($json);
 | [NIP-23](https://github.com/nostr-protocol/nips/blob/master/23.md) | Long-form content | Kind 30023 as parameterised replaceable events |
 | [NIP-25](https://github.com/nostr-protocol/nips/blob/master/25.md) | Reactions | Kind 7 event support |
 | [NIP-28](https://github.com/nostr-protocol/nips/blob/master/28.md) | Public chat | Kind 40-44 channel event types |
-| [NIP-51](https://github.com/nostr-protocol/nips/blob/master/51.md) | Lists | Kind 10000 (mute) and 10002 (relay) lists |
+| [NIP-42](https://github.com/nostr-protocol/nips/blob/master/42.md) | Authentication | AUTH message handling and challenge detection |
+| [NIP-44](https://github.com/nostr-protocol/nips/blob/master/44.md) | Encrypted payloads | NIP-44 v2 encrypt/decrypt with ECDH, ChaCha20, HMAC-SHA256 |
+| [NIP-50](https://github.com/nostr-protocol/nips/blob/master/50.md) | Search | Search filter support |
+| [NIP-51](https://github.com/nostr-protocol/nips/blob/master/51.md) | Lists | All standard list kinds (10000-10102) and set kinds (30000-39092) |
 | [NIP-57](https://github.com/nostr-protocol/nips/blob/master/57.md) | Lightning zaps | Zap request/receipt parsing, BOLT-11 amount extraction |
 | [NIP-61](https://github.com/nostr-protocol/nips/blob/master/61.md) | Nutzaps | Kind 9321 cashu proof parsing and amount extraction |
 
@@ -126,7 +129,7 @@ No code changes are required. The library detects and uses the native implementa
 
 This package follows Clean Architecture principles with strict layer separation:
 
-- **Domain Layer**: Pure business logic, immutable entities and value objects (cryptographic and bech32 libraries are the sole external dependencies, used directly by identity value objects)
+- **Domain Layer**: Pure business logic, immutable entities and value objects (cryptographic library is the sole external dependency, used directly by identity value objects)
 - **Application Layer**: Port interfaces for external service integration
 - **Infrastructure Layer**: External adapters and implementations
 
@@ -135,7 +138,6 @@ This package follows Clean Architecture principles with strict layer separation:
 | Package | Purpose |
 |---------|---------|
 | `paragonie/ecc` | Pure-PHP secp256k1 elliptic curve operations (fallback when FFI unavailable) |
-| `nostriphant/nip-19` | Bech32 encoding/decoding for NIP-19 entity references |
 | `psr/log` | PSR-3 logger interface for infrastructure services |
 
 ## Testing

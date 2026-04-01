@@ -12,9 +12,7 @@ parameters:
         # PHP cannot express generic class types natively (e.g. Collection<Event>)
         -
             identifier: missingType.generics
-        # nostriphant/nip-19 uses __callStatic which PHPStan cannot resolve
-        - '#Call to an undefined static method nostriphant\\NIP19\\Bech32::#'
-        # paragonie/ecc uses dynamic method dispatch that PHPStan cannot resolve
+# paragonie/ecc uses dynamic method dispatch that PHPStan cannot resolve
         - '#Call to an undefined method Mdanter\\Ecc\\[a-zA-Z\\\\]+::[a-zA-Z]+\(\)#'
         # PHPStan infers port range from parse_url but the explicit bounds check is intentional defensive code
         -

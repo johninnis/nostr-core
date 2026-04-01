@@ -9,72 +9,48 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use InvalidArgumentException;
-use nostriphant\NIP19\Bech32;
 
 final class Bech32EncoderAdapter implements Bech32EncoderInterface
 {
     public function decodeComplexEntity(string $bech32): array
     {
-        $decoded = new Bech32($bech32);
-        $prefix = substr($bech32, 0, strpos($bech32, '1') ?: 0);
+        $decoded = Bech32Codec::decodeToTlv($bech32);
 
-        switch ($prefix) {
-            case 'npub':
-                return [
-                    'type' => 'pubkey',
-                    'pubkey' => $decoded(),
-                ];
-
-            case 'note':
-                return [
-                    'type' => 'event',
-                    'event_id' => $decoded(),
-                ];
-
-            case 'nprofile':
-                $data = $decoded->data;
-
-                return [
-                    'type' => 'profile',
-                    'pubkey' => $data->pubkey ?? '',
-                    'relays' => $data->relays ?? [],
-                ];
-
-            case 'nevent':
-                $data = $decoded->data;
-
-                return [
-                    'type' => 'event',
-                    'event_id' => $data->id ?? '',
-                    'relays' => $data->relays ?? [],
-                    'author' => $data->author ?? null,
-                    'kind' => $data->kind ?? null,
-                ];
-
-            case 'naddr':
-                $data = $decoded->data;
-
-                return [
-                    'type' => 'address',
-                    'identifier' => $data->identifier ?? '',
-                    'pubkey' => $data->pubkey ?? '',
-                    'kind' => $data->kind ?? null,
-                    'relays' => $data->relays ?? [],
-                ];
-
-            default:
-                throw new InvalidArgumentException("Unknown bech32 prefix: {$prefix}");
-        }
+        return match ($decoded['type']) {
+            'npub', 'nsec' => [
+                'type' => 'pubkey',
+                'pubkey' => $decoded['data'],
+            ],
+            'note' => [
+                'type' => 'event',
+                'event_id' => $decoded['data'],
+            ],
+            'profile' => [
+                'type' => 'profile',
+                'pubkey' => $decoded['pubkey'] ?? '',
+                'relays' => $decoded['relays'] ?? [],
+            ],
+            'event' => [
+                'type' => 'event',
+                'event_id' => $decoded['event_id'] ?? '',
+                'relays' => $decoded['relays'] ?? [],
+                'author' => $decoded['author'] ?? null,
+                'kind' => $decoded['kind'] ?? null,
+            ],
+            'address' => [
+                'type' => 'address',
+                'identifier' => $decoded['identifier'] ?? '',
+                'pubkey' => $decoded['pubkey'] ?? '',
+                'kind' => $decoded['kind'] ?? null,
+                'relays' => $decoded['relays'] ?? [],
+            ],
+            default => throw new InvalidArgumentException("Unknown bech32 type: {$decoded['type']}"),
+        };
     }
 
     public function encodeAddressableEvent(string $identifier, PublicKey $pubkey, int $kind, array $relays = []): string
     {
-        return (string) Bech32::naddr(
-            identifier: $identifier,
-            pubkey: $pubkey->toHex(),
-            kind: $kind,
-            relays: $relays
-        );
+        return Bech32Codec::encodeNaddr($identifier, $pubkey->toHex(), $kind, $relays);
     }
 
     public function parseEventReference(string $input): EventId|EventCoordinate|null

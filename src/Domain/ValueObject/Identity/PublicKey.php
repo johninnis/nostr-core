@@ -6,7 +6,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
 use Exception;
 use Mdanter\Ecc\EccFactory;
-use nostriphant\NIP19\Bech32;
+use Innis\Nostr\Core\Infrastructure\Service\Bech32Codec;
 
 final readonly class PublicKey
 {
@@ -23,7 +23,7 @@ final readonly class PublicKey
 
     public function toBech32(): string
     {
-        return (string) Bech32::npub($this->key);
+        return Bech32Codec::encodeNpub($this->key);
     }
 
     public function verify(string $messageBytes, Signature $signature): bool
@@ -120,10 +120,7 @@ final readonly class PublicKey
         }
 
         try {
-            $decoded = new Bech32($bech32);
-            $hex = $decoded();
-
-            return is_string($hex) ? new self($hex) : null;
+            return new self(Bech32Codec::decodeToHex($bech32));
         } catch (Exception) {
             return null;
         }
