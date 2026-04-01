@@ -6,11 +6,11 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
 final readonly class Nip05VerificationResult
 {
-    public function __construct(
-        public Nip05Identifier $identifier,
-        public PublicKey $pubkey,
-        public bool $isValid,
-        public ?string $errorReason = null,
+    private function __construct(
+        private Nip05Identifier $identifier,
+        private PublicKey $pubkey,
+        private bool $isValid,
+        private ?string $errorReason = null,
     ) {
     }
 
@@ -25,5 +25,25 @@ final readonly class Nip05VerificationResult
         string $reason,
     ): self {
         return new self($identifier, $pubkey, false, $reason);
+    }
+
+    public function getIdentifier(): Nip05Identifier
+    {
+        return $this->identifier;
+    }
+
+    public function getPubkey(): PublicKey
+    {
+        return $this->pubkey;
+    }
+
+    public function isValid(): bool
+    {
+        return $this->isValid;
+    }
+
+    public function getErrorReason(): ?string
+    {
+        return $this->errorReason;
     }
 }

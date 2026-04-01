@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Service;
 
-use InvalidArgumentException;
+use Innis\Nostr\Core\Domain\Exception\InvalidBech32Exception;
 
 final class Bech32Codec
 {
@@ -41,12 +41,12 @@ final class Bech32Codec
         $length = strlen($bech32);
 
         if ($length < 8 || $length > self::MAX_LENGTH) {
-            throw new InvalidArgumentException("Invalid bech32 string length: {$length}");
+            throw new InvalidBech32Exception("Invalid bech32 string length: {$length}");
         }
 
         $unpacked = unpack('C*', $bech32);
         if (false === $unpacked) {
-            throw new InvalidArgumentException('Failed to unpack bech32 string');
+            throw new InvalidBech32Exception('Failed to unpack bech32 string');
         }
         $chars = array_values($unpacked);
 
@@ -57,7 +57,7 @@ final class Bech32Codec
         for ($i = 0; $i < $length; ++$i) {
             $char = $chars[$i];
             if ($char < 33 || $char > 126) {
-                throw new InvalidArgumentException('Invalid character in bech32 string');
+                throw new InvalidBech32Exception('Invalid character in bech32 string');
             }
             if ($char >= 0x61 && $char <= 0x7a) {
                 $hasLower = true;
@@ -72,13 +72,13 @@ final class Bech32Codec
         }
 
         if ($hasUpper && $hasLower) {
-            throw new InvalidArgumentException('Mixed case in bech32 string');
+            throw new InvalidBech32Exception('Mixed case in bech32 string');
         }
         if (-1 === $separatorPosition || $separatorPosition < 1) {
-            throw new InvalidArgumentException('Missing separator in bech32 string');
+            throw new InvalidBech32Exception('Missing separator in bech32 string');
         }
         if ($separatorPosition + 7 > $length) {
-            throw new InvalidArgumentException('Checksum too short');
+            throw new InvalidBech32Exception('Checksum too short');
         }
 
         $hrp = pack('C*', ...array_slice($chars, 0, $separatorPosition));
@@ -88,7 +88,7 @@ final class Bech32Codec
         );
 
         if (1 !== self::polymod(array_merge(self::hrpExpand($hrp), $data))) {
-            throw new InvalidArgumentException('Invalid bech32 checksum');
+            throw new InvalidBech32Exception('Invalid bech32 checksum');
         }
 
         $stripped = array_slice($data, 0, -self::CHECKSUM_LENGTH);
@@ -124,7 +124,7 @@ final class Bech32Codec
 
         foreach ($data as $value) {
             if ($value < 0 || $value >> $fromBits) {
-                throw new InvalidArgumentException('Invalid value for bit conversion');
+                throw new InvalidBech32Exception('Invalid value for bit conversion');
             }
             $acc = (($acc << $fromBits) | $value) & $maxAcc;
             $bits += $fromBits;
@@ -139,7 +139,7 @@ final class Bech32Codec
                 $result[] = ($acc << ($toBits - $bits)) & $maxValue;
             }
         } elseif ($bits >= $fromBits || (($acc << ($toBits - $bits)) & $maxValue)) {
-            throw new InvalidArgumentException('Invalid padding in bit conversion');
+            throw new InvalidBech32Exception('Invalid padding in bit conversion');
         }
 
         return $result;

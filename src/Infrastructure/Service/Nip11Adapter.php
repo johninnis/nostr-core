@@ -10,7 +10,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\Nip11Info;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Psr\Log\LoggerInterface;
 
-final class Nip11Service implements Nip11ServiceInterface
+final class Nip11Adapter implements Nip11ServiceInterface
 {
     public function __construct(
         private readonly HttpServiceInterface $httpService,

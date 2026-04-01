@@ -8,7 +8,6 @@ use Innis\Nostr\Core\Domain\Entity\ContentReference;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
-use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 
 final class ContentReferenceTagBuilder
 {
@@ -26,9 +25,6 @@ final class ContentReferenceTagBuilder
             return $tags;
         }
 
-        $seenPubkeys = array_fill_keys($tags->getValuesByType(TagType::pubkey()), true);
-        $seenEventIds = array_fill_keys($tags->getValuesByType(TagType::event()), true);
-
         foreach ($references as $ref) {
             if (!$ref instanceof ContentReference || $ref->hasError()) {
                 continue;
@@ -36,22 +32,14 @@ final class ContentReferenceTagBuilder
 
             $pubkey = $ref->getPublicKey();
             if (null !== $pubkey) {
-                $pubkeyHex = $pubkey->toHex();
-                if (!isset($seenPubkeys[$pubkeyHex])) {
-                    $seenPubkeys[$pubkeyHex] = true;
-                    $tags = $tags->add(Tag::pubkey($pubkeyHex));
-                }
+                $tags = $tags->add(Tag::pubkey($pubkey->toHex()));
             }
 
             $eventId = $ref->getEventId();
             if (null !== $eventId) {
-                $eventIdHex = $eventId->toHex();
-                if (!isset($seenEventIds[$eventIdHex])) {
-                    $seenEventIds[$eventIdHex] = true;
-                    $authorHex = $pubkey?->toHex() ?? '';
-                    $tags = $tags->add(Tag::fromArray(['q', $eventIdHex, '', $authorHex]));
-                    $tags = $tags->add(Tag::event($eventIdHex, null, 'mention'));
-                }
+                $authorHex = $pubkey?->toHex() ?? '';
+                $tags = $tags->add(Tag::fromArray(['q', $eventId->toHex(), '', $authorHex]));
+                $tags = $tags->add(Tag::event($eventId->toHex(), null, 'mention'));
             }
 
             if ($ref->isAddressableReference()) {

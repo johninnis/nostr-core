@@ -10,5 +10,7 @@ interface Nip44EncryptionInterface
 {
     public function encrypt(string $plaintext, ConversationKey $conversationKey): string;
 
+    public function encryptWithNonce(string $plaintext, ConversationKey $conversationKey, string $nonce): string;
+
     public function decrypt(string $payload, ConversationKey $conversationKey): string;
 }

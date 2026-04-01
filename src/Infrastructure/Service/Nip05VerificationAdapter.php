@@ -11,7 +11,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\Nip05VerificationResult;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Psr\Log\LoggerInterface;
 
-final class Nip05VerificationService implements Nip05VerificationServiceInterface
+final class Nip05VerificationAdapter implements Nip05VerificationServiceInterface
 {
     public function __construct(
         private readonly HttpServiceInterface $httpService,

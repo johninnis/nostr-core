@@ -21,10 +21,10 @@ final class Nip05VerificationResultTest extends TestCase
 
         $result = Nip05VerificationResult::success($identifier, $pubkey);
 
-        $this->assertTrue($result->isValid);
-        $this->assertNull($result->errorReason);
-        $this->assertSame($identifier, $result->identifier);
-        $this->assertSame($pubkey, $result->pubkey);
+        $this->assertTrue($result->isValid());
+        $this->assertNull($result->getErrorReason());
+        $this->assertSame($identifier, $result->getIdentifier());
+        $this->assertSame($pubkey, $result->getPubkey());
     }
 
     public function testFailureCreatesInvalidResult(): void
@@ -34,20 +34,9 @@ final class Nip05VerificationResultTest extends TestCase
 
         $result = Nip05VerificationResult::failure($identifier, $pubkey, 'Public key mismatch');
 
-        $this->assertFalse($result->isValid);
-        $this->assertSame('Public key mismatch', $result->errorReason);
-        $this->assertSame($identifier, $result->identifier);
-        $this->assertSame($pubkey, $result->pubkey);
-    }
-
-    public function testConstructorSetsAllProperties(): void
-    {
-        $identifier = Nip05Identifier::fromString('carol@example.com');
-        $pubkey = PublicKey::fromHex(self::VALID_PUBKEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
-
-        $result = new Nip05VerificationResult($identifier, $pubkey, false, 'Some reason');
-
-        $this->assertFalse($result->isValid);
-        $this->assertSame('Some reason', $result->errorReason);
+        $this->assertFalse($result->isValid());
+        $this->assertSame('Public key mismatch', $result->getErrorReason());
+        $this->assertSame($identifier, $result->getIdentifier());
+        $this->assertSame($pubkey, $result->getPubkey());
     }
 }

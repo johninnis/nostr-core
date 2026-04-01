@@ -63,7 +63,7 @@ final class TagCollectionTest extends TestCase
         $pubkeyTag = Tag::pubkey('pubkey-hex');
         $collection = new TagCollection([$eventTag, $pubkeyTag]);
 
-        $newCollection = $collection->remove(TagType::event());
+        $newCollection = $collection->removeAll(TagType::event());
 
         $this->assertSame(2, $collection->count());
         $this->assertSame(1, $newCollection->count());

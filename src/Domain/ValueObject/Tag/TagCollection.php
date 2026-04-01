@@ -25,12 +25,29 @@ final class TagCollection implements IteratorAggregate, Countable
         }
     }
 
-    public function add(Tag $tag): self
+    public function add(Tag $newTag): self
     {
-        return new self([...$this->tags, $tag]);
+        $type = $newTag->getType();
+        $filtered = array_filter(
+            $this->tags,
+            static fn (Tag $tag) => !$tag->getType()->equals($type) || $tag->getValue() !== $newTag->getValue()
+        );
+
+        return new self([...array_values($filtered), $newTag]);
     }
 
-    public function remove(TagType $type): self
+    public function remove(Tag $tagToRemove): self
+    {
+        $type = $tagToRemove->getType();
+        $value = $tagToRemove->getValue();
+
+        return new self(array_values(array_filter(
+            $this->tags,
+            static fn (Tag $tag) => !$tag->getType()->equals($type) || $tag->getValue() !== $value
+        )));
+    }
+
+    public function removeAll(TagType $type): self
     {
         return new self(array_values(array_filter(
             $this->tags,
