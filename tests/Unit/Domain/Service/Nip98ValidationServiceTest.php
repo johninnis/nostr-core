@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Exception\Nip98ValidationException;
+use Innis\Nostr\Core\Domain\Factory\EventFactory;
 use Innis\Nostr\Core\Domain\Service\Nip98ValidationService;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
@@ -52,7 +53,11 @@ final class Nip98ValidationServiceTest extends TestCase
 
     public function testRejectsUnsignedEvent(): void
     {
-        $event = $this->createUnsignedEvent();
+        $event = EventFactory::createHttpAuth(
+            $this->keyPair->getPublicKey(),
+            'https://relay.example.com/',
+            'POST'
+        );
 
         $this->expectException(Nip98ValidationException::class);
         $this->expectExceptionMessage('Event must be signed');
@@ -198,6 +203,41 @@ final class Nip98ValidationServiceTest extends TestCase
         $this->assertTrue($pubkey->equals($this->keyPair->getPublicKey()));
     }
 
+    public function testUrlNormalisationPreservesQueryString(): void
+    {
+        $tags = new TagCollection([
+            Tag::fromArray(['u', 'https://relay.example.com/api?token=abc&page=1']),
+            Tag::fromArray(['method', 'GET']),
+        ]);
+        $event = $this->createSignedEventWithTags($tags);
+
+        $pubkey = $this->service->validate(
+            $event,
+            'https://relay.example.com/api?token=abc&page=1',
+            'GET'
+        );
+
+        $this->assertTrue($pubkey->equals($this->keyPair->getPublicKey()));
+    }
+
+    public function testUrlNormalisationRejectsDifferentQueryStrings(): void
+    {
+        $tags = new TagCollection([
+            Tag::fromArray(['u', 'https://relay.example.com/api?token=abc']),
+            Tag::fromArray(['method', 'GET']),
+        ]);
+        $event = $this->createSignedEventWithTags($tags);
+
+        $this->expectException(Nip98ValidationException::class);
+        $this->expectExceptionMessage('URL in u tag does not match request URL');
+
+        $this->service->validate(
+            $event,
+            'https://relay.example.com/api?token=xyz',
+            'GET'
+        );
+    }
+
     public function testMethodComparisonIsCaseInsensitive(): void
     {
         $tags = new TagCollection([
@@ -253,22 +293,6 @@ final class Nip98ValidationServiceTest extends TestCase
         );
 
         return $event->sign($this->keyPair->getPrivateKey());
-    }
-
-    private function createUnsignedEvent(): Event
-    {
-        $tags = new TagCollection([
-            Tag::fromArray(['u', 'https://relay.example.com/']),
-            Tag::fromArray(['method', 'POST']),
-        ]);
-
-        return new Event(
-            $this->keyPair->getPublicKey(),
-            Timestamp::now(),
-            EventKind::httpAuth(),
-            $tags,
-            EventContent::empty()
-        );
     }
 
     private function createSignedEventWithTimestamp(Timestamp $timestamp): Event

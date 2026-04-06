@@ -36,7 +36,7 @@ final readonly class Nip98ValidationService
 
     private function validateKind(Event $event): void
     {
-        if (EventKind::HTTP_AUTH !== $event->getKind()->toInt()) {
+        if (!$event->getKind()->equals(EventKind::httpAuth())) {
             throw new Nip98ValidationException('Event must be kind 27235');
         }
     }
@@ -100,7 +100,7 @@ final readonly class Nip98ValidationService
             throw new Nip98ValidationException('Event missing payload tag');
         }
 
-        if (strtolower($payloadValues[0]) !== strtolower($requestBodyHash)) {
+        if (!hash_equals(strtolower($requestBodyHash), strtolower($payloadValues[0]))) {
             throw new Nip98ValidationException('Payload hash does not match request body');
         }
     }
@@ -117,6 +117,7 @@ final readonly class Nip98ValidationService
         $host = strtolower($parsed['host'] ?? '');
         $port = $parsed['port'] ?? null;
         $path = $parsed['path'] ?? '/';
+        $query = $parsed['query'] ?? null;
 
         if (('https' === $scheme && 443 === $port) || ('http' === $scheme && 80 === $port)) {
             $port = null;
@@ -128,6 +129,12 @@ final readonly class Nip98ValidationService
             $normalised .= ':'.$port;
         }
 
-        return $normalised.$path;
+        $normalised .= $path;
+
+        if (null !== $query) {
+            $normalised .= '?'.$query;
+        }
+
+        return $normalised;
     }
 }

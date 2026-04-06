@@ -172,6 +172,30 @@ final class EventFactory
         );
     }
 
+    public static function createHttpAuth(
+        PublicKey $pubkey,
+        string $url,
+        string $method,
+        ?string $payloadHash = null,
+    ): Event {
+        $tags = [
+            Tag::fromArray(['u', $url]),
+            Tag::fromArray(['method', $method]),
+        ];
+
+        if (null !== $payloadHash) {
+            $tags[] = Tag::fromArray(['payload', $payloadHash]);
+        }
+
+        return new Event(
+            $pubkey,
+            Timestamp::now(),
+            EventKind::httpAuth(),
+            new TagCollection($tags),
+            EventContent::fromString('')
+        );
+    }
+
     public static function createRumour(
         PublicKey $pubkey,
         string $content,

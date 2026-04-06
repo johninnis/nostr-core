@@ -131,6 +131,46 @@ final class EventFactoryTest extends TestCase
         $this->assertSame('test-challenge-string', $challengeTags[0]->getValue());
     }
 
+    public function testCanCreateHttpAuth(): void
+    {
+        $url = 'https://api.example.com/upload';
+        $method = 'POST';
+        $payloadHash = hash('sha256', '{"data":"test"}');
+
+        $event = EventFactory::createHttpAuth(
+            $this->keyPair->getPublicKey(),
+            $url,
+            $method,
+            $payloadHash
+        );
+
+        $this->assertTrue($event->getKind()->equals(EventKind::httpAuth()));
+        $this->assertSame('', (string) $event->getContent());
+
+        $urlTags = $event->getTags()->findByType(TagType::fromString('u'));
+        $methodTags = $event->getTags()->findByType(TagType::method());
+        $payloadTags = $event->getTags()->findByType(TagType::payload());
+
+        $this->assertCount(1, $urlTags);
+        $this->assertSame($url, $urlTags[0]->getValue());
+        $this->assertCount(1, $methodTags);
+        $this->assertSame($method, $methodTags[0]->getValue());
+        $this->assertCount(1, $payloadTags);
+        $this->assertSame($payloadHash, $payloadTags[0]->getValue());
+    }
+
+    public function testCanCreateHttpAuthWithoutPayload(): void
+    {
+        $event = EventFactory::createHttpAuth(
+            $this->keyPair->getPublicKey(),
+            'https://api.example.com/',
+            'GET'
+        );
+
+        $this->assertTrue($event->getKind()->equals(EventKind::httpAuth()));
+        $this->assertFalse($event->getTags()->hasType(TagType::payload()));
+    }
+
     public function testFactoryMethodsCreateEventsWithReasonableTimestamps(): void
     {
         $event = EventFactory::createTextNote(
