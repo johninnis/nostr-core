@@ -36,6 +36,7 @@ final readonly class EventKind
     public const NUTZAP = 9321;
     public const HIGHLIGHT = 9802;
     public const CLIENT_AUTH = 22242;
+    public const HTTP_AUTH = 27235;
     public const NOSTR_CONNECT = 24133;
     public const REPLACEABLE_EVENT_MIN = 10000;
     public const MUTE_LIST = 10000;
@@ -210,6 +211,11 @@ final readonly class EventKind
     public static function giftWrap(): self
     {
         return new self(self::GIFT_WRAP);
+    }
+
+    public static function httpAuth(): self
+    {
+        return new self(self::HTTP_AUTH);
     }
 
     public static function nostrConnect(): self

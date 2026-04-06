@@ -32,6 +32,8 @@ final readonly class TagType
     public const MINT = 'u';
     public const PROOF = 'proof';
     public const UNIT = 'unit';
+    public const METHOD = 'method';
+    public const PAYLOAD = 'payload';
     public const EXPIRATION = 'expiration';
     public const PROTECTED = '-';
 
@@ -130,6 +132,16 @@ final readonly class TagType
     public static function unit(): self
     {
         return new self(self::UNIT);
+    }
+
+    public static function method(): self
+    {
+        return new self(self::METHOD);
+    }
+
+    public static function payload(): self
+    {
+        return new self(self::PAYLOAD);
     }
 
     public static function expiration(): self
