@@ -95,12 +95,16 @@ final readonly class EventKind
 
     public function isRegular(): bool
     {
-        return $this->kind < 10000;
+        return $this->kind < self::REPLACEABLE_EVENT_MIN
+            && self::METADATA !== $this->kind
+            && self::FOLLOW_LIST !== $this->kind;
     }
 
     public function isReplaceable(): bool
     {
-        return $this->kind >= self::REPLACEABLE_EVENT_MIN && $this->kind <= self::REPLACEABLE_EVENT_MAX;
+        return self::METADATA === $this->kind
+            || self::FOLLOW_LIST === $this->kind
+            || ($this->kind >= self::REPLACEABLE_EVENT_MIN && $this->kind <= self::REPLACEABLE_EVENT_MAX);
     }
 
     public function isEphemeral(): bool

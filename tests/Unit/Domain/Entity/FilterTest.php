@@ -31,7 +31,7 @@ final class FilterTest extends TestCase
 
         $this->assertSame(['event-id'], $filter->getIds());
         $this->assertSame(['author-pubkey'], $filter->getAuthors());
-        $this->assertSame([1, 2], $filter->getKinds());
+        $this->assertKinds([1, 2], $filter->getKinds());
         $this->assertSame(['t' => ['nostr']], $filter->getTags());
         $since = $filter->getSince();
         $until = $filter->getUntil();
@@ -239,7 +239,7 @@ final class FilterTest extends TestCase
 
         $this->assertSame(['event-id'], $filter->getIds());
         $this->assertSame(['author-pubkey'], $filter->getAuthors());
-        $this->assertSame([1], $filter->getKinds());
+        $this->assertKinds([1], $filter->getKinds());
         $this->assertSame(['t' => ['nostr']], $filter->getTags());
         $since = $filter->getSince();
         $until = $filter->getUntil();
@@ -320,7 +320,7 @@ final class FilterTest extends TestCase
         $this->assertSame(['original-author'], $filter->getAuthors());
         $this->assertSame(['new-author-1', 'new-author-2'], $newFilter->getAuthors());
         $this->assertSame(['event-id'], $newFilter->getIds());
-        $this->assertSame([1], $newFilter->getKinds());
+        $this->assertKinds([1], $newFilter->getKinds());
         $this->assertSame(10, $newFilter->getLimit());
     }
 
@@ -334,8 +334,8 @@ final class FilterTest extends TestCase
 
         $newFilter = $filter->withKinds([0, 7, 30023]);
 
-        $this->assertSame([1, 2], $filter->getKinds());
-        $this->assertSame([0, 7, 30023], $newFilter->getKinds());
+        $this->assertKinds([1, 2], $filter->getKinds());
+        $this->assertKinds([0, 7, 30023], $newFilter->getKinds());
         $this->assertSame(['author-1'], $newFilter->getAuthors());
         $this->assertSame(10, $newFilter->getLimit());
     }
@@ -637,5 +637,14 @@ final class FilterTest extends TestCase
         $newFilter = $filter->withAuthors(['new-author']);
 
         $this->assertSame('nostr', $newFilter->getSearch());
+    }
+
+    private function assertKinds(array $expectedInts, ?array $actualKinds): void
+    {
+        $this->assertNotNull($actualKinds);
+        $this->assertSame(
+            $expectedInts,
+            array_map(static fn (EventKind $k) => $k->toInt(), $actualKinds)
+        );
     }
 }

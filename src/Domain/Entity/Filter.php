@@ -11,16 +11,20 @@ use InvalidArgumentException;
 
 final readonly class Filter
 {
+    private ?array $kinds;
+
     public function __construct(
         private ?array $ids = null,
         private ?array $authors = null,
-        private ?array $kinds = null,
+        ?array $kinds = null,
         private ?array $tags = null,
         private ?Timestamp $since = null,
         private ?Timestamp $until = null,
         private ?int $limit = null,
         private ?string $search = null,
     ) {
+        $this->kinds = null !== $kinds ? self::normaliseKinds($kinds) : null;
+
         if (null !== $this->limit && ($this->limit < 1 || $this->limit > 5000)) {
             throw new InvalidArgumentException('Limit must be between 1 and 5000');
         }
@@ -156,6 +160,14 @@ final readonly class Filter
         );
     }
 
+    private static function normaliseKinds(array $kinds): array
+    {
+        return array_map(
+            static fn (int|EventKind $kind) => $kind instanceof EventKind ? $kind : EventKind::fromInt($kind),
+            $kinds
+        );
+    }
+
     public function toArray(): array
     {
         $filter = [];
@@ -170,7 +182,7 @@ final readonly class Filter
 
         if (null !== $this->kinds) {
             $filter['kinds'] = array_map(
-                static fn ($kind) => $kind instanceof EventKind ? $kind->toInt() : $kind,
+                static fn (EventKind $kind) => $kind->toInt(),
                 $this->kinds
             );
         }
@@ -234,7 +246,17 @@ final readonly class Filter
 
     private function matchesKinds(Event $event): bool
     {
-        return null === $this->kinds || in_array($event->getKind()->toInt(), $this->kinds, true);
+        if (null === $this->kinds) {
+            return true;
+        }
+
+        foreach ($this->kinds as $kind) {
+            if ($kind->equals($event->getKind())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function matchesTags(Event $event): bool

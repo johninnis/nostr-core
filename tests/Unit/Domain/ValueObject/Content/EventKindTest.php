@@ -45,24 +45,21 @@ final class EventKindTest extends TestCase
 
     public function testIsRegular(): void
     {
-        $regularKind = EventKind::fromInt(1);
-        $replaceableKind = EventKind::fromInt(10000);
-
-        $this->assertTrue($regularKind->isRegular());
-        $this->assertFalse($replaceableKind->isRegular());
+        $this->assertTrue(EventKind::fromInt(1)->isRegular());
+        $this->assertTrue(EventKind::fromInt(9999)->isRegular());
+        $this->assertFalse(EventKind::metadata()->isRegular());
+        $this->assertFalse(EventKind::followList()->isRegular());
+        $this->assertFalse(EventKind::fromInt(10000)->isRegular());
     }
 
     public function testIsReplaceable(): void
     {
-        $regularKind = EventKind::fromInt(1);
-        $replaceableKind = EventKind::fromInt(10000);
-        $upperBoundKind = EventKind::fromInt(19999);
-        $beyondBoundKind = EventKind::fromInt(20000);
-
-        $this->assertFalse($regularKind->isReplaceable());
-        $this->assertTrue($replaceableKind->isReplaceable());
-        $this->assertTrue($upperBoundKind->isReplaceable());
-        $this->assertFalse($beyondBoundKind->isReplaceable());
+        $this->assertTrue(EventKind::metadata()->isReplaceable());
+        $this->assertTrue(EventKind::followList()->isReplaceable());
+        $this->assertTrue(EventKind::fromInt(10000)->isReplaceable());
+        $this->assertTrue(EventKind::fromInt(19999)->isReplaceable());
+        $this->assertFalse(EventKind::textNote()->isReplaceable());
+        $this->assertFalse(EventKind::fromInt(20000)->isReplaceable());
     }
 
     public function testIsEphemeral(): void
@@ -158,6 +155,8 @@ final class EventKindTest extends TestCase
     public function testAllReplaceableListKindsAreReplaceable(): void
     {
         $listKinds = [
+            EventKind::METADATA,
+            EventKind::FOLLOW_LIST,
             EventKind::MUTE_LIST,
             EventKind::PIN_LIST,
             EventKind::RELAY_LIST,
