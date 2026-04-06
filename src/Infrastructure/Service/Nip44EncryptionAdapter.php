@@ -111,7 +111,7 @@ final class Nip44EncryptionAdapter implements Nip44EncryptionInterface
         $previous = '';
 
         for ($i = 1; $i <= $iterations; ++$i) {
-            $previous = hash_hmac('sha256', $previous.$info.chr($i), $prk, true);
+            $previous = hash_hmac('sha256', $previous.$info.chr($i & 0xFF), $prk, true);
             $output .= $previous;
         }
 

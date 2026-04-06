@@ -8,8 +8,10 @@ use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Service\ReplyChainAnalyser;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
@@ -49,8 +51,8 @@ final class EventTest extends TestCase
         $signedEvent = $this->event->sign($this->keyPair->getPrivateKey());
 
         $this->assertTrue($signedEvent->isSigned());
-        $this->assertNotNull($signedEvent->getSignature());
-        $this->assertNotNull($signedEvent->getId());
+        $this->assertInstanceOf(Signature::class, $signedEvent->getSignature());
+        $this->assertInstanceOf(EventId::class, $signedEvent->getId());
         $this->assertNotSame($this->event, $signedEvent);
     }
 
@@ -107,7 +109,6 @@ final class EventTest extends TestCase
         $signedEvent = $this->event->sign($this->keyPair->getPrivateKey());
         $array = $signedEvent->toArray();
 
-        $this->assertIsArray($array);
         $this->assertArrayHasKey('id', $array);
         $this->assertArrayHasKey('pubkey', $array);
         $this->assertArrayHasKey('created_at', $array);

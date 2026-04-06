@@ -36,32 +36,37 @@ final class TagReferenceExtractor
 
             switch ($tagType) {
                 case TagType::EVENT:
-                    $eventId = isset($tagArray[1]) ? EventId::fromHex($tagArray[1]) : null;
+                    $eventId = (isset($tagArray[1]) && is_string($tagArray[1])) ? EventId::fromHex($tagArray[1]) : null;
                     if (null !== $eventId) {
+                        $relay = isset($tagArray[2]) && is_string($tagArray[2]) ? $tagArray[2] : null;
+                        $marker = isset($tagArray[3]) && is_string($tagArray[3]) ? $tagArray[3] : null;
                         $events[] = new EventReference(
                             $eventId,
-                            RelayUrl::fromString($tagArray[2] ?? null),
-                            $tagArray[3] ?? null,
-                            isset($tagArray[4]) ? PublicKey::fromHex($tagArray[4]) : null
+                            RelayUrl::fromString($relay),
+                            $marker,
+                            (isset($tagArray[4]) && is_string($tagArray[4])) ? PublicKey::fromHex($tagArray[4]) : null
                         );
                     }
                     break;
 
                 case TagType::PUBKEY:
-                    $pubkey = isset($tagArray[1]) ? PublicKey::fromHex($tagArray[1]) : null;
+                    $pubkey = (isset($tagArray[1]) && is_string($tagArray[1])) ? PublicKey::fromHex($tagArray[1]) : null;
                     if (null !== $pubkey) {
+                        $relay = isset($tagArray[2]) && is_string($tagArray[2]) ? $tagArray[2] : null;
+                        $petname = isset($tagArray[3]) && is_string($tagArray[3]) ? $tagArray[3] : null;
                         $pubkeys[] = new PubkeyReference(
                             $pubkey,
-                            RelayUrl::fromString($tagArray[2] ?? null),
-                            $tagArray[3] ?? null
+                            RelayUrl::fromString($relay),
+                            $petname
                         );
                     }
                     break;
 
                 case 'q':
-                    if (isset($tagArray[1])) {
+                    if (isset($tagArray[1]) && is_string($tagArray[1])) {
+                        $relayHint = isset($tagArray[2]) && is_string($tagArray[2]) ? $tagArray[2] : null;
                         if (str_contains($tagArray[1], ':')) {
-                            $coordinate = EventCoordinate::fromString($tagArray[1], $tagArray[2] ?? null);
+                            $coordinate = EventCoordinate::fromString($tagArray[1], $relayHint);
                             if (null !== $coordinate) {
                                 $addressable[] = $coordinate;
                             }
@@ -70,9 +75,9 @@ final class TagReferenceExtractor
                             if (null !== $eventId) {
                                 $quotes[] = new EventReference(
                                     $eventId,
-                                    RelayUrl::fromString($tagArray[2] ?? null),
+                                    RelayUrl::fromString($relayHint),
                                     null,
-                                    isset($tagArray[3]) ? PublicKey::fromHex($tagArray[3]) : null
+                                    (isset($tagArray[3]) && is_string($tagArray[3])) ? PublicKey::fromHex($tagArray[3]) : null
                                 );
                             }
                         }
@@ -92,7 +97,8 @@ final class TagReferenceExtractor
                     if (isset($tagArray[1]) && is_string($tagArray[1])) {
                         $relayUrl = RelayUrl::fromString($tagArray[1]);
                         if (null !== $relayUrl) {
-                            $relays[] = new RelayReference($relayUrl, $tagArray[2] ?? null);
+                            $mode = isset($tagArray[2]) && is_string($tagArray[2]) ? $tagArray[2] : null;
+                            $relays[] = new RelayReference($relayUrl, $mode);
                         }
                     }
                     break;

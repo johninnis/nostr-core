@@ -41,7 +41,7 @@ final class RelayHintExtractorAdapter implements RelayHintExtractionServiceInter
                 continue;
             }
 
-            if ('r' === $tagArray[0] && $this->isValidUrl($tagArray[1])) {
+            if ('r' === $tagArray[0] && is_string($tagArray[1]) && $this->isValidUrl($tagArray[1])) {
                 $relayUrl = RelayUrl::fromString($tagArray[1]);
                 if (null !== $relayUrl) {
                     $relays[] = $relayUrl;
@@ -49,7 +49,7 @@ final class RelayHintExtractorAdapter implements RelayHintExtractionServiceInter
             }
 
             if (in_array($tagArray[0], [TagType::EVENT, TagType::PUBKEY], true) && count($tagArray) >= 3) {
-                if ($this->isValidUrl($tagArray[2])) {
+                if (is_string($tagArray[2]) && $this->isValidUrl($tagArray[2])) {
                     $relayUrl = RelayUrl::fromString($tagArray[2]);
                     if (null !== $relayUrl) {
                         $relays[] = $relayUrl;

@@ -103,17 +103,17 @@ final readonly class ReplyChain
         $participants = [];
         if (isset($data['conversation_participants']) && is_array($data['conversation_participants'])) {
             $participants = array_values(array_filter(array_map(
-                static fn (string $hex) => PublicKey::fromHex($hex),
+                static fn (mixed $hex) => is_string($hex) ? PublicKey::fromHex($hex) : null,
                 $data['conversation_participants']
             )));
         }
 
         $mentionedEvents = [];
         if (isset($data['mentioned_events']) && is_array($data['mentioned_events'])) {
-            $mentionedEvents = array_map(
-                static fn (array $eventData) => EventReference::fromArray($eventData),
+            $mentionedEvents = array_values(array_filter(array_map(
+                static fn (mixed $eventData) => is_array($eventData) ? EventReference::fromArray($eventData) : null,
                 $data['mentioned_events']
-            );
+            )));
         }
 
         return new self(

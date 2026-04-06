@@ -126,7 +126,7 @@ final readonly class ContentReference
     {
         $relays = [];
         if (isset($data['relays']) && is_array($data['relays'])) {
-            $relays = array_values(array_filter(array_map(static fn (string $url) => RelayUrl::fromString($url), $data['relays'])));
+            $relays = array_values(array_filter(array_map(static fn (mixed $url) => is_string($url) ? RelayUrl::fromString($url) : null, $data['relays'])));
         }
 
         return new self(

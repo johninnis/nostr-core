@@ -116,7 +116,7 @@ final readonly class ZapReceipt implements PaymentReceipt
     private static function extractAmountFromTags(array $tags): ?ZapAmount
     {
         foreach ($tags as $tag) {
-            if (is_array($tag) && ($tag[0] ?? null) === 'amount' && isset($tag[1])) {
+            if (is_array($tag) && ($tag[0] ?? null) === 'amount' && isset($tag[1]) && is_numeric($tag[1])) {
                 $intValue = (int) $tag[1];
                 if ($intValue > 0) {
                     return ZapAmount::fromMillisats($intValue);

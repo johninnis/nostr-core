@@ -71,7 +71,7 @@ final readonly class Nutzap implements PaymentReceipt
                 continue;
             }
 
-            if (isset($decoded['amount'])) {
+            if (isset($decoded['amount']) && is_numeric($decoded['amount'])) {
                 $totalAmount += (int) $decoded['amount'];
                 $hasValidProof = true;
             }

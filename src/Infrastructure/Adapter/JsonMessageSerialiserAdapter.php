@@ -31,7 +31,7 @@ final class JsonMessageSerialiserAdapter implements MessageSerialiserInterface
             throw new InvalidArgumentException('Invalid JSON for client message');
         }
 
-        $type = $data[0] ?? '';
+        $type = is_string($data[0] ?? null) ? $data[0] : '';
 
         return match ($type) {
             'EVENT' => ClientEventMessage::fromArray($data),
@@ -51,7 +51,7 @@ final class JsonMessageSerialiserAdapter implements MessageSerialiserInterface
             throw new InvalidArgumentException('Invalid JSON for relay message');
         }
 
-        $type = $data[0] ?? '';
+        $type = is_string($data[0] ?? null) ? $data[0] : '';
 
         return match ($type) {
             'EVENT' => RelayEventMessage::fromArray($data),

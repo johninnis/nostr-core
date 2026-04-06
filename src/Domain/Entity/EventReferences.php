@@ -121,16 +121,16 @@ final readonly class EventReferences
     {
         $contentReferences = [];
         if (isset($data['content_references']) && is_array($data['content_references'])) {
-            $contentReferences = array_map(
-                static fn (array $refData) => ContentReference::fromArray($refData),
+            $contentReferences = array_values(array_filter(array_map(
+                static fn (mixed $refData) => is_array($refData) ? ContentReference::fromArray($refData) : null,
                 $data['content_references']
-            );
+            )));
         }
 
         $eventIds = [];
         if (isset($data['all_event_ids']) && is_array($data['all_event_ids'])) {
             $eventIds = array_values(array_filter(array_map(
-                static fn (string $hex) => EventId::fromHex($hex),
+                static fn (mixed $hex) => is_string($hex) ? EventId::fromHex($hex) : null,
                 $data['all_event_ids']
             )));
         }
@@ -138,7 +138,7 @@ final readonly class EventReferences
         $publicKeys = [];
         if (isset($data['all_public_keys']) && is_array($data['all_public_keys'])) {
             $publicKeys = array_values(array_filter(array_map(
-                static fn (string $hex) => PublicKey::fromHex($hex),
+                static fn (mixed $hex) => is_string($hex) ? PublicKey::fromHex($hex) : null,
                 $data['all_public_keys']
             )));
         }

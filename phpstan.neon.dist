@@ -27,3 +27,7 @@ parameters:
         -
             message: '#Cannot call method .+ on FFI\|null#'
             path: src/Domain/ValueObject/Identity/Secp256k1.php
+        # Test assertions that verify runtime behaviour are legitimately trivially true from static analysis
+        -
+            identifier: method.alreadyNarrowedType
+            path: tests/

@@ -115,7 +115,7 @@ final class Nip44EncryptionAdapterTest extends TestCase
 
         $decoded = base64_decode($encrypted, true);
         self::assertNotFalse($decoded);
-        $tampered = substr($decoded, 0, -1).chr(ord(substr($decoded, -1)) ^ 0xFF);
+        $tampered = substr($decoded, 0, -1).chr((ord(substr($decoded, -1)) ^ 0xFF) & 0xFF);
 
         $this->expectException(EncryptionException::class);
         $this->expectExceptionMessage('Invalid MAC');

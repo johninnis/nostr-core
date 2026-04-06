@@ -101,7 +101,7 @@ final readonly class PrivateKey
         $result = '';
         $len = min(strlen($a), strlen($b));
         for ($i = 0; $i < $len; ++$i) {
-            $result .= chr(ord($a[$i]) ^ ord($b[$i]));
+            $result .= chr((ord($a[$i]) ^ ord($b[$i])) & 0xFF);
         }
 
         return $result;

@@ -37,29 +37,31 @@ final class ReplyChainAnalyser
                 continue;
             }
 
-            if (TagType::ROOT_EVENT === $tagArray[0] && isset($tagArray[1])) {
+            if (TagType::ROOT_EVENT === $tagArray[0] && isset($tagArray[1]) && is_string($tagArray[1])) {
                 $eventId = EventId::fromHex($tagArray[1]);
                 if (null !== $eventId) {
-                    $author = $tagArray[3] ?? null;
+                    $relay = isset($tagArray[2]) && is_string($tagArray[2]) ? $tagArray[2] : null;
+                    $author = isset($tagArray[3]) && is_string($tagArray[3]) ? $tagArray[3] : null;
                     $rootEvent = new EventReference(
                         $eventId,
-                        RelayUrl::fromString($tagArray[2] ?? null),
+                        RelayUrl::fromString($relay),
                         null,
                         (null !== $author && '' !== $author) ? PublicKey::fromHex($author) : null
                     );
                 }
-            } elseif (TagType::EVENT === $tagArray[0] && isset($tagArray[1])) {
+            } elseif (TagType::EVENT === $tagArray[0] && isset($tagArray[1]) && is_string($tagArray[1])) {
                 $eventId = EventId::fromHex($tagArray[1]);
                 if (null !== $eventId) {
-                    $author = $tagArray[3] ?? null;
+                    $relay = isset($tagArray[2]) && is_string($tagArray[2]) ? $tagArray[2] : null;
+                    $author = isset($tagArray[3]) && is_string($tagArray[3]) ? $tagArray[3] : null;
                     $parentEvent = new EventReference(
                         $eventId,
-                        RelayUrl::fromString($tagArray[2] ?? null),
+                        RelayUrl::fromString($relay),
                         null,
                         (null !== $author && '' !== $author) ? PublicKey::fromHex($author) : null
                     );
                 }
-            } elseif (TagType::PUBKEY === $tagArray[0] && isset($tagArray[1])) {
+            } elseif (TagType::PUBKEY === $tagArray[0] && isset($tagArray[1]) && is_string($tagArray[1])) {
                 $pubkey = PublicKey::fromHex($tagArray[1]);
                 if (null !== $pubkey) {
                     $conversationParticipants[] = $pubkey;
@@ -95,15 +97,15 @@ final class ReplyChainAnalyser
                 continue;
             }
 
-            if (TagType::EVENT === $tagArray[0] && isset($tagArray[1])) {
-                $author = $tagArray[4] ?? null;
+            if (TagType::EVENT === $tagArray[0] && isset($tagArray[1]) && is_string($tagArray[1])) {
+                $author = isset($tagArray[4]) && is_string($tagArray[4]) ? $tagArray[4] : null;
                 $eTags[] = [
                     'id' => $tagArray[1],
-                    'relay' => $tagArray[2] ?? null,
-                    'marker' => $tagArray[3] ?? null,
+                    'relay' => isset($tagArray[2]) && is_string($tagArray[2]) ? $tagArray[2] : null,
+                    'marker' => isset($tagArray[3]) && is_string($tagArray[3]) ? $tagArray[3] : null,
                     'author' => (null !== $author && '' !== $author) ? $author : null,
                 ];
-            } elseif (TagType::PUBKEY === $tagArray[0] && isset($tagArray[1])) {
+            } elseif (TagType::PUBKEY === $tagArray[0] && isset($tagArray[1]) && is_string($tagArray[1])) {
                 $pubkey = PublicKey::fromHex($tagArray[1]);
                 if (null !== $pubkey) {
                     $conversationParticipants[] = $pubkey;

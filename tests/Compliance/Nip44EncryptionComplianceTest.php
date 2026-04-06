@@ -145,6 +145,7 @@ final class Nip44EncryptionComplianceTest extends TestCase
 
         $decoded = json_decode($content, true);
         assert(is_array($decoded));
+        assert(is_array($decoded['v2']));
 
         return $decoded['v2'];
     }

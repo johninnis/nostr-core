@@ -69,7 +69,7 @@ final class PublicKeyTest extends TestCase
         $signature = Signature::fromHex(str_repeat('a', 128)) ?? throw new RuntimeException('Invalid test sig');
 
         $result = $publicKey->verify('test message', $signature);
-        $this->assertIsBool($result);
+        $this->assertFalse($result);
     }
 
     public function testFromBech32ReturnsNullForInvalidPrefix(): void
