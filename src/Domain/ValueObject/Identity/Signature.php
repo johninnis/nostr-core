@@ -22,11 +22,13 @@ final readonly class Signature
 
     public static function fromHex(string $hex): ?self
     {
-        if (!preg_match('/^[a-f0-9]{128}$/', $hex)) {
+        $length = \strlen($hex);
+
+        if ($length < 126 || $length > 128 || !preg_match('/^[a-f0-9]+$/', $hex)) {
             return null;
         }
 
-        return new self($hex);
+        return new self(str_pad($hex, 128, '0', STR_PAD_LEFT));
     }
 
     public function __toString(): string
