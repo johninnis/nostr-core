@@ -66,6 +66,11 @@ final readonly class Event
 
     public function calculateId(): EventId
     {
+        // JSON_UNESCAPED_LINE_TERMINATORS is required for NIP-01 compliance:
+        // U+2028 and U+2029 must be emitted verbatim, but PHP escapes them as
+        // \u2028 / \u2029 by default even with JSON_UNESCAPED_UNICODE. Without
+        // this flag, ids cannot be reproduced for any event whose content
+        // contains a line or paragraph separator.
         $serialised = json_encode([
             0,
             $this->pubkey->toHex(),
@@ -73,7 +78,7 @@ final readonly class Event
             $this->kind->toInt(),
             $this->tags->toArray(),
             (string) $this->content,
-        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_LINE_TERMINATORS);
 
         if (false === $serialised) {
             throw new RuntimeException('Failed to serialise event for ID calculation');
