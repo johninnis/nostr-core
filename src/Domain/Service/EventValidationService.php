@@ -6,11 +6,19 @@ namespace Innis\Nostr\Core\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
+use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 
 final class EventValidationService
 {
     private const MAX_CONTENT_LENGTH = 65536;
     private const MAX_TAGS_COUNT = 5000;
+
+    private readonly NipComplianceValidator $nipValidator;
+
+    public function __construct()
+    {
+        $this->nipValidator = new NipComplianceValidator();
+    }
 
     public function validateEvent(Event $event): void
     {
@@ -18,6 +26,10 @@ final class EventValidationService
         $this->validateContent($event);
         $this->validateTags($event);
         $this->validateSignature($event);
+
+        if ($event->isDeletion()) {
+            $this->nipValidator->validateNip09Compliance($event);
+        }
     }
 
     public function isEventValid(Event $event): bool

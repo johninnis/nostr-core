@@ -11,17 +11,17 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
-use Innis\Nostr\Core\Infrastructure\Validation\NipEventValidatorAdapter;
+use Innis\Nostr\Core\Domain\Service\NipComplianceValidator;
 use PHPUnit\Framework\TestCase;
 
 final class NipComplianceTest extends TestCase
 {
-    private NipEventValidatorAdapter $validator;
+    private NipComplianceValidator $validator;
     private KeyPair $keyPair;
 
     protected function setUp(): void
     {
-        $this->validator = new NipEventValidatorAdapter();
+        $this->validator = new NipComplianceValidator();
         $this->keyPair = KeyPair::generate();
     }
 
@@ -92,6 +92,7 @@ final class NipComplianceTest extends TestCase
     {
         $tags = new TagCollection([
             Tag::event('event-to-delete-id'),
+            Tag::fromArray(['k', '1']),
         ]);
 
         $event = new Event(
@@ -105,7 +106,6 @@ final class NipComplianceTest extends TestCase
 
         $this->validator->validateNip09Compliance($signedEvent);
 
-        // Verify it's a deletion event with e tag
         $this->assertSame(5, $signedEvent->getKind()->toInt());
         $this->assertTrue($signedEvent->getTags()->hasType(\Innis\Nostr\Core\Domain\ValueObject\Tag\TagType::event()));
     }
@@ -114,6 +114,7 @@ final class NipComplianceTest extends TestCase
     {
         $tags = new TagCollection([
             Tag::fromArray(['a', '30023:'.str_repeat('a', 64).':my-article']),
+            Tag::fromArray(['k', '30023']),
         ]);
 
         $event = new Event(
@@ -132,17 +133,64 @@ final class NipComplianceTest extends TestCase
 
     public function testNip09EventDeletionRequiresEOrATag(): void
     {
+        $tags = new TagCollection([
+            Tag::fromArray(['k', '1']),
+        ]);
+
         $event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::eventDeletion(),
-            TagCollection::empty(),
+            $tags,
             EventContent::fromString('no targets')
         );
         $signedEvent = $event->sign($this->keyPair->getPrivateKey());
 
         $this->expectException(\Innis\Nostr\Core\Domain\Exception\InvalidEventException::class);
         $this->expectExceptionMessage('at least one e or a tag');
+
+        $this->validator->validateNip09Compliance($signedEvent);
+    }
+
+    public function testNip09EventDeletionRequiresKTag(): void
+    {
+        $tags = new TagCollection([
+            Tag::event('event-to-delete-id'),
+        ]);
+
+        $event = new Event(
+            $this->keyPair->getPublicKey(),
+            Timestamp::now(),
+            EventKind::eventDeletion(),
+            $tags,
+            EventContent::fromString('missing k tag')
+        );
+        $signedEvent = $event->sign($this->keyPair->getPrivateKey());
+
+        $this->expectException(\Innis\Nostr\Core\Domain\Exception\InvalidEventException::class);
+        $this->expectExceptionMessage('at least one k tag');
+
+        $this->validator->validateNip09Compliance($signedEvent);
+    }
+
+    public function testNip09EventDeletionRejectsKind5InKTag(): void
+    {
+        $tags = new TagCollection([
+            Tag::event('event-to-delete-id'),
+            Tag::fromArray(['k', '5']),
+        ]);
+
+        $event = new Event(
+            $this->keyPair->getPublicKey(),
+            Timestamp::now(),
+            EventKind::eventDeletion(),
+            $tags,
+            EventContent::fromString('trying to delete a deletion')
+        );
+        $signedEvent = $event->sign($this->keyPair->getPrivateKey());
+
+        $this->expectException(\Innis\Nostr\Core\Domain\Exception\InvalidEventException::class);
+        $this->expectExceptionMessage('cannot target kind 5');
 
         $this->validator->validateNip09Compliance($signedEvent);
     }
