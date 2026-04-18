@@ -47,15 +47,22 @@ final class GiftWrapAdapter implements GiftWrapServiceInterface
         );
 
         $ephemeral = $ephemeralKeyPair ?? KeyPair::generate();
+        $ownsEphemeral = null === $ephemeralKeyPair;
 
-        return $this->encryptAndWrap(
-            $seal,
-            $ephemeral->getPrivateKey(),
-            $recipientPublicKey,
-            EventKind::giftWrap(),
-            new TagCollection([Tag::pubkey($recipientPublicKey->toHex())]),
-            $wrapTimestamp
-        );
+        try {
+            return $this->encryptAndWrap(
+                $seal,
+                $ephemeral->getPrivateKey(),
+                $recipientPublicKey,
+                EventKind::giftWrap(),
+                new TagCollection([Tag::pubkey($recipientPublicKey->toHex())]),
+                $wrapTimestamp
+            );
+        } finally {
+            if ($ownsEphemeral) {
+                $ephemeral->getPrivateKey()->zero();
+            }
+        }
     }
 
     public function unwrap(
@@ -82,17 +89,22 @@ final class GiftWrapAdapter implements GiftWrapServiceInterface
         ?Timestamp $timestamp,
     ): Event {
         $conversationKey = ConversationKey::derive($signingKey, $recipientPublicKey);
-        $encrypted = $this->encryption->encrypt($this->serialiseEvent($innerEvent), $conversationKey);
 
-        $event = new Event(
-            $signingKey->getPublicKey(),
-            $timestamp ?? Timestamp::randomised(),
-            $kind,
-            $tags,
-            EventContent::fromString($encrypted)
-        );
+        try {
+            $encrypted = $this->encryption->encrypt($this->serialiseEvent($innerEvent), $conversationKey);
 
-        return $event->sign($signingKey);
+            $event = new Event(
+                $signingKey->getPublicKey(),
+                $timestamp ?? Timestamp::randomised(),
+                $kind,
+                $tags,
+                EventContent::fromString($encrypted)
+            );
+
+            return $event->sign($signingKey);
+        } finally {
+            $conversationKey->zero();
+        }
     }
 
     private function decryptLayer(Event $envelope, PrivateKey $recipientPrivateKey, string $layerName): Event
@@ -100,12 +112,20 @@ final class GiftWrapAdapter implements GiftWrapServiceInterface
         $conversationKey = ConversationKey::derive($recipientPrivateKey, $envelope->getPubkey());
 
         try {
-            $json = $this->encryption->decrypt((string) $envelope->getContent(), $conversationKey);
-        } catch (Throwable $e) {
-            throw new GiftWrapException('Failed to decrypt '.$layerName.': '.$e->getMessage(), 0, $e);
-        }
+            try {
+                $json = $this->encryption->decrypt((string) $envelope->getContent(), $conversationKey);
+            } catch (Throwable $e) {
+                throw new GiftWrapException('Failed to decrypt '.$layerName, 0, $e);
+            }
 
-        return $this->deserialiseEvent($json);
+            try {
+                return $this->deserialiseEvent($json);
+            } catch (Throwable $e) {
+                throw new GiftWrapException('Failed to parse decrypted '.$layerName, 0, $e);
+            }
+        } finally {
+            $conversationKey->zero();
+        }
     }
 
     private function validateRumour(Event $rumour, PrivateKey $senderPrivateKey): void
@@ -129,8 +149,8 @@ final class GiftWrapAdapter implements GiftWrapServiceInterface
             throw new GiftWrapException('Event must be kind 1059 (gift wrap)');
         }
 
-        if (!$giftWrap->isSigned()) {
-            throw new GiftWrapException('Gift wrap must be signed');
+        if (!$giftWrap->isSigned() || !$giftWrap->verify()) {
+            throw new GiftWrapException('Gift wrap signature is invalid');
         }
     }
 

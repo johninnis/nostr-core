@@ -210,9 +210,29 @@ final class GiftWrapAdapterTest extends TestCase
         );
 
         $this->expectException(GiftWrapException::class);
-        $this->expectExceptionMessage('Gift wrap must be signed');
+        $this->expectExceptionMessage('Gift wrap signature is invalid');
 
         $this->adapter->unwrap($giftWrap, $this->recipientKeyPair->getPrivateKey());
+    }
+
+    public function testUnwrapRejectsTamperedGiftWrap(): void
+    {
+        $legitimate = $this->wrapRumour('Original');
+
+        $tampered = new Event(
+            $legitimate->getPubkey(),
+            $legitimate->getCreatedAt(),
+            $legitimate->getKind(),
+            $legitimate->getTags(),
+            EventContent::fromString('tampered ciphertext'),
+            $legitimate->getId(),
+            $legitimate->getSignature(),
+        );
+
+        $this->expectException(GiftWrapException::class);
+        $this->expectExceptionMessage('Gift wrap signature is invalid');
+
+        $this->adapter->unwrap($tampered, $this->recipientKeyPair->getPrivateKey());
     }
 
     public function testDeterministicWrapWithExplicitParameters(): void
