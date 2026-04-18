@@ -144,4 +144,17 @@ final class CountMessageTest extends TestCase
         );
         $this->assertCount(count($original->getFilters()), $restored->getFilters());
     }
+
+    public function testFromArrayRejectsMoreThanMaxFilters(): void
+    {
+        $payload = ['COUNT', 'sub-1'];
+        for ($i = 0; $i < CountMessage::MAX_FILTERS + 1; ++$i) {
+            $payload[] = ['kinds' => [1]];
+        }
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('may contain at most');
+
+        CountMessage::fromArray($payload);
+    }
 }

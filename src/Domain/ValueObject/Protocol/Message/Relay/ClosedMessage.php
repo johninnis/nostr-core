@@ -42,9 +42,18 @@ final readonly class ClosedMessage extends RelayMessage
             throw new InvalidArgumentException('Invalid CLOSED message format');
         }
 
+        if (!is_string($data[1])) {
+            throw new InvalidArgumentException('CLOSED subscription ID must be a string');
+        }
+
+        $message = $data[2] ?? '';
+        if (!is_string($message)) {
+            throw new InvalidArgumentException('CLOSED message reason must be a string');
+        }
+
         return new self(
             SubscriptionId::fromString($data[1]),
-            $data[2] ?? ''
+            $message,
         );
     }
 }

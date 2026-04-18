@@ -118,4 +118,20 @@ final class ClosedMessageTest extends TestCase
         );
         $this->assertSame($original->getMessage(), $restored->getMessage());
     }
+
+    public function testFromArrayRejectsNonStringSubscriptionId(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('subscription ID must be a string');
+
+        ClosedMessage::fromArray(['CLOSED', 42, 'reason']);
+    }
+
+    public function testFromArrayRejectsNonStringReason(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('reason must be a string');
+
+        ClosedMessage::fromArray(['CLOSED', 'sub-1', ['structured']]);
+    }
 }

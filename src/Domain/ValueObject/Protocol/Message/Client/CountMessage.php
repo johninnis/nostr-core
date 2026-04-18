@@ -11,12 +11,18 @@ use InvalidArgumentException;
 
 final readonly class CountMessage extends ClientMessage
 {
+    public const MAX_FILTERS = 20;
+
     public function __construct(
         private SubscriptionId $subscriptionId,
         private array $filters,
     ) {
         if (empty($this->filters)) {
             throw new InvalidArgumentException('COUNT message must have at least one filter');
+        }
+
+        if (count($this->filters) > self::MAX_FILTERS) {
+            throw new InvalidArgumentException(sprintf('COUNT message may contain at most %d filters', self::MAX_FILTERS));
         }
 
         foreach ($this->filters as $filter) {
@@ -56,6 +62,10 @@ final readonly class CountMessage extends ClientMessage
     {
         if (count($data) < 3 || 'COUNT' !== $data[0]) {
             throw new InvalidArgumentException('Invalid COUNT message format');
+        }
+
+        if (count($data) - 2 > self::MAX_FILTERS) {
+            throw new InvalidArgumentException(sprintf('COUNT message may contain at most %d filters', self::MAX_FILTERS));
         }
 
         $subscriptionId = SubscriptionId::fromString($data[1]);

@@ -144,4 +144,27 @@ final class ReqMessageTest extends TestCase
         );
         $this->assertCount(count($original->getFilters()), $restored->getFilters());
     }
+
+    public function testConstructorRejectsMoreThanMaxFilters(): void
+    {
+        $filters = array_fill(0, ReqMessage::MAX_FILTERS + 1, new Filter(kinds: [1]));
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('may contain at most');
+
+        new ReqMessage(SubscriptionId::fromString('sub-1'), $filters);
+    }
+
+    public function testFromArrayRejectsMoreThanMaxFilters(): void
+    {
+        $payload = ['REQ', 'sub-1'];
+        for ($i = 0; $i < ReqMessage::MAX_FILTERS + 1; ++$i) {
+            $payload[] = ['kinds' => [1]];
+        }
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('may contain at most');
+
+        ReqMessage::fromArray($payload);
+    }
 }

@@ -11,12 +11,18 @@ use InvalidArgumentException;
 
 final readonly class ReqMessage extends ClientMessage
 {
+    public const MAX_FILTERS = 20;
+
     public function __construct(
         private SubscriptionId $subscriptionId,
         private array $filters,
     ) {
         if (empty($this->filters)) {
             throw new InvalidArgumentException('REQ message must have at least one filter');
+        }
+
+        if (count($this->filters) > self::MAX_FILTERS) {
+            throw new InvalidArgumentException(sprintf('REQ message may contain at most %d filters', self::MAX_FILTERS));
         }
 
         foreach ($this->filters as $filter) {
@@ -56,6 +62,10 @@ final readonly class ReqMessage extends ClientMessage
     {
         if (count($data) < 3 || 'REQ' !== $data[0]) {
             throw new InvalidArgumentException('Invalid REQ message format');
+        }
+
+        if (count($data) - 2 > self::MAX_FILTERS) {
+            throw new InvalidArgumentException(sprintf('REQ message may contain at most %d filters', self::MAX_FILTERS));
         }
 
         $subscriptionId = SubscriptionId::fromString($data[1]);

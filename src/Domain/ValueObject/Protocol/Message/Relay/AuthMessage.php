@@ -37,6 +37,10 @@ final readonly class AuthMessage extends RelayMessage
             throw new InvalidArgumentException('Invalid AUTH message format');
         }
 
+        if (!is_string($data[1])) {
+            throw new InvalidArgumentException('AUTH challenge must be a string');
+        }
+
         return new self($data[1]);
     }
 }

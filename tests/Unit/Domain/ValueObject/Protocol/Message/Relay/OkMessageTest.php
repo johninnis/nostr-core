@@ -154,4 +154,36 @@ final class OkMessageTest extends TestCase
     {
         return EventId::fromHex(self::VALID_EVENT_ID_HEX) ?? throw new RuntimeException('Invalid test event ID');
     }
+
+    public function testFromArrayRejectsStringAcceptedFlag(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('accepted flag must be a boolean');
+
+        OkMessage::fromArray(['OK', self::VALID_EVENT_ID_HEX, 'true', '']);
+    }
+
+    public function testFromArrayRejectsIntegerAcceptedFlag(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('accepted flag must be a boolean');
+
+        OkMessage::fromArray(['OK', self::VALID_EVENT_ID_HEX, 1, '']);
+    }
+
+    public function testFromArrayRejectsNonStringEventId(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('event ID must be a string');
+
+        OkMessage::fromArray(['OK', 42, true, '']);
+    }
+
+    public function testFromArrayRejectsNonStringReason(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('reason must be a string');
+
+        OkMessage::fromArray(['OK', self::VALID_EVENT_ID_HEX, true, ['array']]);
+    }
 }

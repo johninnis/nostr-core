@@ -76,4 +76,12 @@ final class NoticeMessageTest extends TestCase
 
         $this->assertSame($original->getMessage(), $restored->getMessage());
     }
+
+    public function testFromArrayRejectsNonStringPayload(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('payload must be a string');
+
+        NoticeMessage::fromArray(['NOTICE', ['structured' => 'object']]);
+    }
 }

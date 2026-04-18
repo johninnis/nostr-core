@@ -37,6 +37,10 @@ final readonly class NoticeMessage extends RelayMessage
             throw new InvalidArgumentException('Invalid NOTICE message format');
         }
 
+        if (!is_string($data[1])) {
+            throw new InvalidArgumentException('NOTICE message payload must be a string');
+        }
+
         return new self($data[1]);
     }
 }

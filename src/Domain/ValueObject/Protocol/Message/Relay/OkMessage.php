@@ -53,10 +53,23 @@ final readonly class OkMessage extends RelayMessage
             throw new InvalidArgumentException('Invalid OK message format');
         }
 
+        if (!is_string($data[1])) {
+            throw new InvalidArgumentException('OK message event ID must be a string');
+        }
+
+        if (!is_bool($data[2])) {
+            throw new InvalidArgumentException('OK message accepted flag must be a boolean');
+        }
+
+        $message = $data[3] ?? '';
+        if (!is_string($message)) {
+            throw new InvalidArgumentException('OK message reason must be a string');
+        }
+
         return new self(
             EventId::fromHex($data[1]) ?? throw new InvalidArgumentException('Invalid event ID in OK message'),
-            (bool) $data[2],
-            $data[3] ?? ''
+            $data[2],
+            $message,
         );
     }
 }

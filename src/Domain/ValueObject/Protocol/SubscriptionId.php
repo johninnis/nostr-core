@@ -8,14 +8,21 @@ use InvalidArgumentException;
 
 final readonly class SubscriptionId
 {
+    private const MAX_LENGTH = 64;
+    private const ALLOWED_PATTERN = '/^[\x21-\x7E]+$/';
+
     public function __construct(private string $id)
     {
         if ('' === $this->id) {
             throw new InvalidArgumentException('Subscription ID cannot be empty');
         }
 
-        if (strlen($this->id) > 64) {
-            throw new InvalidArgumentException('Subscription ID cannot exceed 64 characters');
+        if (strlen($this->id) > self::MAX_LENGTH) {
+            throw new InvalidArgumentException(sprintf('Subscription ID cannot exceed %d characters', self::MAX_LENGTH));
+        }
+
+        if (!preg_match(self::ALLOWED_PATTERN, $this->id)) {
+            throw new InvalidArgumentException('Subscription ID must contain only printable ASCII characters');
         }
     }
 

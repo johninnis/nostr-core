@@ -76,4 +76,12 @@ final class AuthMessageTest extends TestCase
 
         $this->assertSame($original->getChallenge(), $restored->getChallenge());
     }
+
+    public function testFromArrayRejectsNonStringChallenge(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('challenge must be a string');
+
+        AuthMessage::fromArray(['AUTH', 42]);
+    }
 }

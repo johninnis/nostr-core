@@ -80,4 +80,51 @@ final class SubscriptionIdTest extends TestCase
 
         $this->assertFalse($id1->equals($id2));
     }
+
+    public function testConstructorRejectsNullByte(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('must contain only printable ASCII characters');
+
+        new SubscriptionId("sub\x00id");
+    }
+
+    public function testConstructorRejectsNewline(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('must contain only printable ASCII characters');
+
+        new SubscriptionId("sub\nid");
+    }
+
+    public function testConstructorRejectsControlCharacter(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('must contain only printable ASCII characters');
+
+        new SubscriptionId("sub\x01id");
+    }
+
+    public function testConstructorRejectsSpace(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('must contain only printable ASCII characters');
+
+        new SubscriptionId('sub id');
+    }
+
+    public function testConstructorRejectsDelCharacter(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('must contain only printable ASCII characters');
+
+        new SubscriptionId("sub\x7Fid");
+    }
+
+    public function testConstructorAcceptsPrintableAsciiRange(): void
+    {
+        $id = new SubscriptionId('sub-1.0_alpha:abc/def');
+
+        $this->assertSame('sub-1.0_alpha:abc/def', (string) $id);
+    }
 }

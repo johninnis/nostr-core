@@ -11,6 +11,8 @@ use InvalidArgumentException;
 
 final readonly class Filter
 {
+    public const MAX_VALUES_PER_FIELD = 1000;
+
     private ?array $kinds;
 
     public function __construct(
@@ -31,6 +33,27 @@ final readonly class Filter
 
         if (null !== $this->since && null !== $this->until && $this->since->isAfter($this->until)) {
             throw new InvalidArgumentException('Since timestamp cannot be after until timestamp');
+        }
+
+        self::assertFieldWithinCap('ids', $this->ids);
+        self::assertFieldWithinCap('authors', $this->authors);
+        self::assertFieldWithinCap('kinds', $this->kinds);
+
+        if (null !== $this->tags) {
+            foreach ($this->tags as $tagName => $values) {
+                self::assertFieldWithinCap("#{$tagName}", $values);
+            }
+        }
+    }
+
+    private static function assertFieldWithinCap(string $fieldName, ?array $values): void
+    {
+        if (null === $values) {
+            return;
+        }
+
+        if (count($values) > self::MAX_VALUES_PER_FIELD) {
+            throw new InvalidArgumentException(sprintf('Filter field "%s" may contain at most %d values', $fieldName, self::MAX_VALUES_PER_FIELD));
         }
     }
 
@@ -216,10 +239,22 @@ final readonly class Filter
     {
         $tags = [];
         foreach ($data as $key => $value) {
-            if (str_starts_with($key, '#') && is_array($value)) {
-                $tags[substr($key, 1)] = $value;
-                unset($data[$key]);
+            if (!is_string($key) || !str_starts_with($key, '#')) {
+                continue;
             }
+
+            $tagName = substr($key, 1);
+
+            if ('' === $tagName) {
+                throw new InvalidArgumentException('Filter tag key "#" has no tag name');
+            }
+
+            if (!is_array($value)) {
+                throw new InvalidArgumentException(sprintf('Filter tag values for "%s" must be an array', $key));
+            }
+
+            $tags[$tagName] = $value;
+            unset($data[$key]);
         }
 
         return new self(
