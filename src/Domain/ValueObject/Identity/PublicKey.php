@@ -7,6 +7,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 use Exception;
 use Innis\Nostr\Core\Domain\Service\Bech32Codec;
 use Mdanter\Ecc\EccFactory;
+use Throwable;
 
 final readonly class PublicKey
 {
@@ -44,7 +45,7 @@ final readonly class PublicKey
             }
 
             return $this->verifySchnorr($messageBytes, $signature->toHex(), $this->key);
-        } catch (Exception) {
+        } catch (Throwable) {
             return false;
         }
     }

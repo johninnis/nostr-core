@@ -157,6 +157,10 @@ final class Secp256k1
     private static function toBuffer(string $data): FFI\CData
     {
         $len = strlen($data);
+        if (0 === $len) {
+            return self::$ffi->new('unsigned char[1]');
+        }
+
         $buf = self::$ffi->new("unsigned char[{$len}]");
         FFI::memcpy($buf, $data, $len);
 
