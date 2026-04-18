@@ -266,6 +266,16 @@ final class Nip98ValidationServiceTest extends TestCase
         $service->validate($event, 'https://relay.example.com/', 'POST');
     }
 
+    public function testRejectsEventWithPayloadTagWhenBodyHashNotProvided(): void
+    {
+        $event = $this->createValidSignedEvent();
+
+        $this->expectException(Nip98ValidationException::class);
+        $this->expectExceptionMessage('Event contains payload tag but no request body hash was supplied');
+
+        $this->service->validate($event, 'https://relay.example.com/', 'POST');
+    }
+
     private function createValidSignedEvent(): Event
     {
         $tags = new TagCollection([

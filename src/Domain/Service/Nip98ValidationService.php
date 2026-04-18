@@ -26,6 +26,7 @@ final readonly class Nip98ValidationService
         $this->validateTimestamp($event);
         $this->validateUrl($event, $requestUrl);
         $this->validateMethod($event, $requestMethod);
+        $this->validatePayloadTagConsistency($event, $requestBodyHash);
 
         if (null !== $requestBodyHash) {
             $this->validatePayload($event, $requestBodyHash);
@@ -89,6 +90,15 @@ final readonly class Nip98ValidationService
 
         if (strtoupper($methodValues[0]) !== strtoupper($requestMethod)) {
             throw new Nip98ValidationException('Method in method tag does not match request method');
+        }
+    }
+
+    private function validatePayloadTagConsistency(Event $event, ?string $requestBodyHash): void
+    {
+        $hasPayloadTag = [] !== $event->getTags()->getValuesByType(TagType::payload());
+
+        if (null === $requestBodyHash && $hasPayloadTag) {
+            throw new Nip98ValidationException('Event contains payload tag but no request body hash was supplied for verification');
         }
     }
 
