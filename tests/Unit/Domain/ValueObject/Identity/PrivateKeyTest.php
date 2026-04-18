@@ -6,7 +6,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Identity;
 
 use Innis\Nostr\Core\Domain\Exception\SecretKeyMaterialZeroedException;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
-use Innis\Nostr\Core\Domain\ValueObject\SecretKeyMaterial;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -175,20 +175,27 @@ final class PrivateKeyTest extends TestCase
         $this->assertTrue($privateKey->isZeroed());
     }
 
-    public function testFromMaterialConstructsEquivalentKey(): void
+    public function testFromBytesConstructsEquivalentKey(): void
     {
         $bytes = hex2bin(self::VALID_PRIVATE_KEY_HEX);
         assert(false !== $bytes);
 
         $viaHex = PrivateKey::fromHex(self::VALID_PRIVATE_KEY_HEX) ?? throw new RuntimeException('Invalid test key');
-        $viaMaterial = PrivateKey::fromMaterial(SecretKeyMaterial::fromBytes($bytes));
+        $viaBytes = PrivateKey::fromBytes($bytes);
 
         $message = random_bytes(32);
         $publicKeyFromHex = $viaHex->getPublicKey();
-        $publicKeyFromMaterial = $viaMaterial->getPublicKey();
+        $publicKeyFromBytes = $viaBytes->getPublicKey();
 
-        $this->assertTrue($publicKeyFromHex->equals($publicKeyFromMaterial));
+        $this->assertTrue($publicKeyFromHex->equals($publicKeyFromBytes));
         $this->assertTrue($publicKeyFromHex->verify($message, $viaHex->sign($message)));
-        $this->assertTrue($publicKeyFromMaterial->verify($message, $viaMaterial->sign($message)));
+        $this->assertTrue($publicKeyFromBytes->verify($message, $viaBytes->sign($message)));
+    }
+
+    public function testFromBytesRejectsWrongLength(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        PrivateKey::fromBytes('too-short');
     }
 }

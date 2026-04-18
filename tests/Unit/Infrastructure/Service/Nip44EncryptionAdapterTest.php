@@ -8,6 +8,7 @@ use Innis\Nostr\Core\Domain\Exception\EncryptionException;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Infrastructure\Service\Nip44EncryptionAdapter;
+use Innis\Nostr\Core\Tests\Fixtures\QueuedRandomBytesGenerator;
 use PHPUnit\Framework\TestCase;
 
 final class Nip44EncryptionAdapterTest extends TestCase
@@ -184,13 +185,16 @@ final class Nip44EncryptionAdapterTest extends TestCase
         self::assertSame($plaintext, $decrypted);
     }
 
-    public function testEncryptWithNonceDeterministic(): void
+    public function testEncryptIsDeterministicUnderFixedNonce(): void
     {
         $conversationKey = $this->createTestKey();
         $nonce = str_repeat("\x01", 32);
 
-        $encrypted1 = $this->adapter->encryptWithNonce('test', $conversationKey, $nonce);
-        $encrypted2 = $this->adapter->encryptWithNonce('test', $conversationKey, $nonce);
+        $firstAdapter = new Nip44EncryptionAdapter(QueuedRandomBytesGenerator::withBytes($nonce));
+        $secondAdapter = new Nip44EncryptionAdapter(QueuedRandomBytesGenerator::withBytes($nonce));
+
+        $encrypted1 = $firstAdapter->encrypt('test', $conversationKey);
+        $encrypted2 = $secondAdapter->encrypt('test', $conversationKey);
 
         self::assertSame($encrypted1, $encrypted2);
     }

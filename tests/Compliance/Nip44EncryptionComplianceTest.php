@@ -9,6 +9,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Infrastructure\Service\Nip44EncryptionAdapter;
+use Innis\Nostr\Core\Tests\Fixtures\QueuedRandomBytesGenerator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
@@ -37,14 +38,14 @@ final class Nip44EncryptionComplianceTest extends TestCase
         string $plaintext,
         string $expectedPayload,
     ): void {
-        $adapter = new Nip44EncryptionAdapter();
-        $conversationKey = ConversationKey::fromHex($conversationKeyHex);
-        self::assertNotNull($conversationKey);
-
         $nonce = hex2bin($nonceHex);
         self::assertNotFalse($nonce);
 
-        $encrypted = $adapter->encryptWithNonce($plaintext, $conversationKey, $nonce);
+        $adapter = new Nip44EncryptionAdapter(QueuedRandomBytesGenerator::withBytes($nonce));
+        $conversationKey = ConversationKey::fromHex($conversationKeyHex);
+        self::assertNotNull($conversationKey);
+
+        $encrypted = $adapter->encrypt($plaintext, $conversationKey);
 
         self::assertSame($expectedPayload, $encrypted);
     }

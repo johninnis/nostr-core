@@ -10,6 +10,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\Secp256k1;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
+use Throwable;
 
 final class Bip340ComplianceTest extends TestCase
 {
@@ -73,7 +74,7 @@ final class Bip340ComplianceTest extends TestCase
                 foreach ([['FFI', $ffiSig], ['pure-PHP', $phpSig]] as [$signLabel, $sig]) {
                     try {
                         $ok = $privateKey->getPublicKey()->verify($vector['message'], $sig);
-                    } catch (\Throwable $e) {
+                    } catch (Throwable $e) {
                         $problems[] = sprintf(
                             'Vector %d (msg len %d): verify(%s-signed) under %s verifier THREW %s — %s',
                             $vector['index'],
@@ -152,7 +153,7 @@ final class Bip340ComplianceTest extends TestCase
 
         try {
             $actual = $publicKey->verify($vector['message'], $signature);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             return sprintf(
                 'Vector %d (%s): verify THREW %s — %s (CSV: %s). Comment: %s',
                 $vector['index'],

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Infrastructure\Service;
 
+use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
 use Innis\Nostr\Core\Domain\Enum\KeySecurityByte;
 use Innis\Nostr\Core\Domain\Exception\Nip49DecryptionFailedException;
 use Innis\Nostr\Core\Domain\Service\Nip49EncryptionInterface;
@@ -18,8 +19,10 @@ final class Nip49EncryptionAdapter implements Nip49EncryptionInterface
     private const LOG_N_MIN = 1;
     private const LOG_N_MAX = 63;
 
-    public function __construct(private readonly Nip49Scrypt $scrypt = new Nip49Scrypt())
-    {
+    public function __construct(
+        private readonly Nip49Scrypt $scrypt = new Nip49Scrypt(),
+        private readonly RandomBytesGeneratorInterface $randomBytes = new NativeRandomBytesGeneratorAdapter(),
+    ) {
     }
 
     public function encrypt(
@@ -28,8 +31,8 @@ final class Nip49EncryptionAdapter implements Nip49EncryptionInterface
         int $logN = 16,
         KeySecurityByte $keySecurity = KeySecurityByte::Unknown,
     ): Ncryptsec {
-        $salt = random_bytes(Ncryptsec::SALT_LENGTH);
-        $nonce = random_bytes(Ncryptsec::NONCE_LENGTH);
+        $salt = $this->randomBytes->bytes(Ncryptsec::SALT_LENGTH);
+        $nonce = $this->randomBytes->bytes(Ncryptsec::NONCE_LENGTH);
 
         return $this->encryptWithSaltAndNonce($privateKey, $password, $logN, $keySecurity, $salt, $nonce);
     }
@@ -68,13 +71,13 @@ final class Nip49EncryptionAdapter implements Nip49EncryptionInterface
             throw new Nip49DecryptionFailedException();
         }
 
-        $material = SecretKeyMaterial::fromBytes($plaintext);
+        $privateKey = PrivateKey::fromBytes($plaintext);
         sodium_memzero($plaintext);
 
-        return PrivateKey::fromMaterial($material);
+        return $privateKey;
     }
 
-    public function encryptWithSaltAndNonce(
+    private function encryptWithSaltAndNonce(
         PrivateKey $privateKey,
         string $password,
         int $logN,

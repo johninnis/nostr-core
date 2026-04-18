@@ -47,9 +47,9 @@ final readonly class PrivateKey
         }
     }
 
-    public static function fromMaterial(SecretKeyMaterial $material): self
+    public static function fromBytes(string $bytes): self
     {
-        return new self($material);
+        return new self(SecretKeyMaterial::fromBytes($bytes));
     }
 
     public static function generate(): self

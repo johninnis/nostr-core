@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Infrastructure\Service;
 
+use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
 use Innis\Nostr\Core\Domain\Exception\EncryptionException;
 use Innis\Nostr\Core\Domain\Service\Nip44EncryptionInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
@@ -18,9 +19,14 @@ final class Nip44EncryptionAdapter implements Nip44EncryptionInterface
     private const MAX_PLAINTEXT_LENGTH = 65535;
     private const MIN_PADDED_LENGTH = 32;
 
+    public function __construct(
+        private readonly RandomBytesGeneratorInterface $randomBytes = new NativeRandomBytesGeneratorAdapter(),
+    ) {
+    }
+
     public function encrypt(string $plaintext, ConversationKey $conversationKey): string
     {
-        return $this->encryptWithNonce($plaintext, $conversationKey, random_bytes(self::NONCE_LENGTH));
+        return $this->encryptWithNonce($plaintext, $conversationKey, $this->randomBytes->bytes(self::NONCE_LENGTH));
     }
 
     public function decrypt(string $payload, ConversationKey $conversationKey): string
@@ -70,7 +76,7 @@ final class Nip44EncryptionAdapter implements Nip44EncryptionInterface
         return $plaintext;
     }
 
-    public function encryptWithNonce(string $plaintext, ConversationKey $conversationKey, string $nonce): string
+    private function encryptWithNonce(string $plaintext, ConversationKey $conversationKey, string $nonce): string
     {
         $plaintextLength = strlen($plaintext);
 

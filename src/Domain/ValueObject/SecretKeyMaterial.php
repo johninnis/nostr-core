@@ -39,12 +39,12 @@ final class SecretKeyMaterial
             throw new SecretKeyMaterialZeroedException();
         }
 
-        $unaliasedCopy = $this->bytes.'';
+        $exposed = $this->bytes;
 
         try {
-            return $fn($unaliasedCopy);
+            return $fn($exposed);
         } finally {
-            sodium_memzero($unaliasedCopy);
+            sodium_memzero($exposed);
         }
     }
 
