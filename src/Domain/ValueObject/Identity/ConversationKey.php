@@ -68,18 +68,39 @@ final readonly class ConversationKey
         $adapter = EccFactory::getAdapter();
         $curve = EccFactory::getSecgCurves($adapter)->curve256k1();
 
-        $privateKeyInt = gmp_init($privateKey->toHex(), 16);
         $publicKeyX = gmp_init($publicKey->toHex(), 16);
-        $publicKeyY = $curve->recoverYfromX(false, $publicKeyX);
-
-        $publicKeyPoint = $curve->getPoint($publicKeyX, $publicKeyY);
-        $sharedPoint = $publicKeyPoint->mul($privateKeyInt);
-
-        $sharedXBytes = hex2bin(str_pad(gmp_strval($sharedPoint->getX(), 16), 64, '0', STR_PAD_LEFT));
-        if (false === $sharedXBytes) {
-            throw new LogicException('ECDH produced invalid shared secret');
+        if (gmp_cmp($publicKeyX, 0) <= 0 || gmp_cmp($publicKeyX, $curve->getPrime()) >= 0) {
+            throw new LogicException('ECDH public key x-coordinate out of field range');
         }
 
-        return $sharedXBytes;
+        $publicKeyY = $curve->recoverYfromX(false, $publicKeyX);
+        $publicKeyPoint = $curve->getPoint($publicKeyX, $publicKeyY);
+
+        $sharedX = $privateKey->expose(static function (string $privkeyBytes) use ($publicKeyPoint): string {
+            $privateKeyHex = bin2hex($privkeyBytes);
+            try {
+                $privateKeyInt = gmp_init($privateKeyHex, 16);
+            } finally {
+                sodium_memzero($privateKeyHex);
+            }
+
+            $sharedPoint = $publicKeyPoint->mul($privateKeyInt);
+            if ($sharedPoint->isInfinity()) {
+                throw new LogicException('ECDH shared point is the identity');
+            }
+
+            $sharedXHex = str_pad(gmp_strval($sharedPoint->getX(), 16), 64, '0', STR_PAD_LEFT);
+            $sharedXBytes = hex2bin($sharedXHex);
+            sodium_memzero($sharedXHex);
+
+            if (false === $sharedXBytes) {
+                throw new LogicException('ECDH produced invalid shared secret');
+            }
+
+            return $sharedXBytes;
+        });
+        assert(is_string($sharedX));
+
+        return $sharedX;
     }
 }

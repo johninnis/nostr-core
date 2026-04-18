@@ -21,8 +21,10 @@ final class SchnorrMathHelper
     public static function gmpToBytes(GMP $value, int $length): string
     {
         $hex = str_pad(gmp_strval($value, 16), $length * 2, '0', STR_PAD_LEFT);
+        $bytes = hex2bin($hex) ?: '';
+        sodium_memzero($hex);
 
-        return hex2bin($hex) ?: '';
+        return $bytes;
     }
 
     public static function liftX(GMP $x, CurveFpInterface $curve, GMP $p): ?PointInterface

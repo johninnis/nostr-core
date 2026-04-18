@@ -67,7 +67,14 @@ final readonly class PrivateKey
 
             $adapter = EccFactory::getAdapter();
             $generator = EccFactory::getSecgCurves($adapter)->generator256k1();
-            $privateKeyInt = gmp_init(bin2hex($privkeyBytes), 16);
+
+            $privateKeyHex = bin2hex($privkeyBytes);
+            try {
+                $privateKeyInt = gmp_init($privateKeyHex, 16);
+            } finally {
+                sodium_memzero($privateKeyHex);
+            }
+
             $publicKeyPoint = $generator->mul($privateKeyInt);
 
             if (0 !== gmp_cmp(gmp_mod($publicKeyPoint->getY(), 2), 0)) {
@@ -95,19 +102,36 @@ final readonly class PrivateKey
 
             $adapter = EccFactory::getAdapter();
             $generator = EccFactory::getSecgCurves($adapter)->generator256k1();
-            $privateKeyInt = gmp_init(bin2hex($privkeyBytes), 16);
             $n = $generator->getOrder();
+
+            $privateKeyHex = bin2hex($privkeyBytes);
+            try {
+                $privateKeyInt = gmp_init($privateKeyHex, 16);
+            } finally {
+                sodium_memzero($privateKeyHex);
+            }
 
             $P = $generator->mul($privateKeyInt);
             $d = 0 === gmp_cmp(gmp_mod($P->getY(), 2), 0) ? $privateKeyInt : gmp_sub($n, $privateKeyInt);
 
             $aux = random_bytes(32);
-            $t = $this->xorBytes(SchnorrMathHelper::gmpToBytes($d, 32), SchnorrMathHelper::taggedHash('BIP0340/aux', $aux));
+            $dBytes = SchnorrMathHelper::gmpToBytes($d, 32);
+            $t = $this->xorBytes($dBytes, SchnorrMathHelper::taggedHash('BIP0340/aux', $aux));
+            sodium_memzero($dBytes);
 
             $randInput = $t.SchnorrMathHelper::gmpToBytes($P->getX(), 32).$messageBytes;
             $rand = SchnorrMathHelper::taggedHash('BIP0340/nonce', $randInput);
+            sodium_memzero($t);
+            sodium_memzero($randInput);
 
-            $kPrime = gmp_mod(gmp_init(bin2hex($rand), 16), $n);
+            $randHex = bin2hex($rand);
+            sodium_memzero($rand);
+            try {
+                $kPrime = gmp_mod(gmp_init($randHex, 16), $n);
+            } finally {
+                sodium_memzero($randHex);
+            }
+
             if (0 === gmp_cmp($kPrime, 0)) {
                 throw new InvalidSignatureException('BIP-340 nonce generation produced zero value');
             }
