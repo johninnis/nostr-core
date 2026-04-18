@@ -29,13 +29,15 @@ This library takes a different approach:
 
 - PHP 8.3 or higher
 - BCMath extension (for ECC operations)
+- Sodium extension (for NIP-44 and NIP-49 encryption)
+- Intl extension (for NFKC password normalisation in NIP-49)
+- FFI extension and `libsodium` system library (required for NIP-49 key derivation; generally already present wherever the Sodium extension is installed)
 
 ### Optional (recommended)
 
-- PHP FFI extension
 - libsecp256k1 system library
 
-When both are available, Schnorr signature operations (signing, verification, public key derivation) use the native C library for significantly faster performance. Without them, the library falls back to a pure-PHP implementation automatically.
+When available, Schnorr signature operations (signing, verification, public key derivation) use the native C library for significantly faster performance. Without it, the library falls back to a pure-PHP implementation automatically.
 
 ## Installation
 
@@ -83,6 +85,43 @@ $json = $eventMessage->toJson();
 $deserialised = $serialiser->deserialiseClientMessage($json);
 ```
 
+### Password-Encrypted Private Keys (NIP-49)
+
+```php
+use Innis\Nostr\Core\Domain\Enum\KeySecurityByte;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\Ncryptsec;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
+use Innis\Nostr\Core\Infrastructure\Service\Nip49EncryptionAdapter;
+
+$adapter = new Nip49EncryptionAdapter();
+$privateKey = PrivateKey::generate();
+
+$ncryptsec = $adapter->encrypt(
+    $privateKey,
+    'user password',
+    logN: 16,
+    keySecurity: KeySecurityByte::ClientSideOnly,
+);
+
+$stored = (string) $ncryptsec; // ncryptsec1...
+
+$decoded = Ncryptsec::fromString($stored);
+$recovered = $adapter->decrypt($decoded, 'user password');
+```
+
+### Secret Key Lifecycle
+
+`PrivateKey` and `ConversationKey` hold their raw bytes inside a `SecretKeyMaterial` value object. Callers that need to clear secret material from memory can call `zero()`; any subsequent operation on that key throws `SecretKeyMaterialZeroedException`. Infrastructure code that genuinely needs raw bytes uses the bounded `expose` callback:
+
+```php
+$signature = $privateKey->expose(static function (string $bytes): string {
+    return derive_something($bytes);
+});
+
+$privateKey->zero();
+$privateKey->sign($message); // throws SecretKeyMaterialZeroedException
+```
+
 ## Supported NIPs
 
 | NIP | Description | Support |
@@ -105,6 +144,7 @@ $deserialised = $serialiser->deserialiseClientMessage($json);
 | [NIP-42](https://github.com/nostr-protocol/nips/blob/master/42.md) | Authentication | AUTH message handling and challenge detection |
 | [NIP-44](https://github.com/nostr-protocol/nips/blob/master/44.md) | Encrypted payloads | NIP-44 v2 encrypt/decrypt with ECDH, ChaCha20, HMAC-SHA256 |
 | [NIP-45](https://github.com/nostr-protocol/nips/blob/master/45.md) | Counting | COUNT relay message support |
+| [NIP-49](https://github.com/nostr-protocol/nips/blob/master/49.md) | Private key encryption | Password-encrypted `ncryptsec` with scrypt + XChaCha20-Poly1305 |
 | [NIP-50](https://github.com/nostr-protocol/nips/blob/master/50.md) | Search | Search filter support |
 | [NIP-51](https://github.com/nostr-protocol/nips/blob/master/51.md) | Lists | All standard list kinds (10000-10102) and set kinds (30000-39092) |
 | [NIP-57](https://github.com/nostr-protocol/nips/blob/master/57.md) | Lightning zaps | Zap request/receipt parsing, BOLT-11 amount extraction |
@@ -143,6 +183,7 @@ This package follows Clean Architecture principles with strict layer separation:
 | Package | Purpose |
 |---------|---------|
 | `paragonie/ecc` | Pure-PHP secp256k1 elliptic curve operations (fallback when FFI unavailable) |
+| `paragonie/sodium_compat` | ChaCha20 primitives used by NIP-44 |
 | `psr/log` | PSR-3 logger interface for infrastructure services |
 
 ## Testing

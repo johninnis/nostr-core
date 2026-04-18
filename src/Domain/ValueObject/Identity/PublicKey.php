@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
 use Exception;
-use Mdanter\Ecc\EccFactory;
 use Innis\Nostr\Core\Domain\Service\Bech32Codec;
+use Mdanter\Ecc\EccFactory;
 
 final readonly class PublicKey
 {

@@ -25,8 +25,9 @@ final class Nip44EncryptionComplianceTest extends TestCase
         self::assertNotNull($publicKey);
 
         $conversationKey = ConversationKey::derive($privateKey, $publicKey);
+        $derivedHex = $conversationKey->expose(static fn (string $bytes): string => bin2hex($bytes));
 
-        self::assertSame($expectedKey, $conversationKey->toHex());
+        self::assertSame($expectedKey, $derivedHex);
     }
 
     #[DataProvider('encryptDecryptVectorsProvider')]

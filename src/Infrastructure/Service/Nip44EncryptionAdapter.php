@@ -48,21 +48,26 @@ final class Nip44EncryptionAdapter implements Nip44EncryptionInterface
         $mac = substr($decoded, -self::MAC_LENGTH);
         $ciphertext = substr($decoded, 1 + self::NONCE_LENGTH, $decodedLength - 1 - self::NONCE_LENGTH - self::MAC_LENGTH);
 
-        $messageKeys = $this->deriveMessageKeys($conversationKey, $nonce);
+        $plaintext = $conversationKey->expose(function (string $prk) use ($nonce, $ciphertext, $mac): string {
+            $messageKeys = $this->deriveMessageKeys($prk, $nonce);
 
-        $expectedMac = hash_hmac('sha256', $nonce.$ciphertext, $messageKeys['hmacKey'], true);
+            $expectedMac = hash_hmac('sha256', $nonce.$ciphertext, $messageKeys['hmacKey'], true);
 
-        if (!hash_equals($expectedMac, $mac)) {
-            throw new EncryptionException('Invalid MAC');
-        }
+            if (!hash_equals($expectedMac, $mac)) {
+                throw new EncryptionException('Invalid MAC');
+            }
 
-        $padded = ParagonIE_Sodium_Core_ChaCha20::ietfStreamXorIc(
-            $ciphertext,
-            $messageKeys['chachaNonce'],
-            $messageKeys['chachaKey']
-        );
+            $padded = ParagonIE_Sodium_Core_ChaCha20::ietfStreamXorIc(
+                $ciphertext,
+                $messageKeys['chachaNonce'],
+                $messageKeys['chachaKey']
+            );
 
-        return $this->unpad($padded);
+            return $this->unpad($padded);
+        });
+        assert(is_string($plaintext));
+
+        return $plaintext;
     }
 
     public function encryptWithNonce(string $plaintext, ConversationKey $conversationKey, string $nonce): string
@@ -77,23 +82,27 @@ final class Nip44EncryptionAdapter implements Nip44EncryptionInterface
             throw new EncryptionException('Nonce must be 32 bytes');
         }
 
-        $messageKeys = $this->deriveMessageKeys($conversationKey, $nonce);
-        $padded = $this->pad($plaintext);
+        $payload = $conversationKey->expose(function (string $prk) use ($plaintext, $nonce): string {
+            $messageKeys = $this->deriveMessageKeys($prk, $nonce);
+            $padded = $this->pad($plaintext);
 
-        $ciphertext = ParagonIE_Sodium_Core_ChaCha20::ietfStreamXorIc(
-            $padded,
-            $messageKeys['chachaNonce'],
-            $messageKeys['chachaKey']
-        );
+            $ciphertext = ParagonIE_Sodium_Core_ChaCha20::ietfStreamXorIc(
+                $padded,
+                $messageKeys['chachaNonce'],
+                $messageKeys['chachaKey']
+            );
 
-        $mac = hash_hmac('sha256', $nonce.$ciphertext, $messageKeys['hmacKey'], true);
+            $mac = hash_hmac('sha256', $nonce.$ciphertext, $messageKeys['hmacKey'], true);
 
-        return base64_encode(chr(self::VERSION).$nonce.$ciphertext.$mac);
+            return base64_encode(chr(self::VERSION).$nonce.$ciphertext.$mac);
+        });
+        assert(is_string($payload));
+
+        return $payload;
     }
 
-    private function deriveMessageKeys(ConversationKey $conversationKey, string $nonce): array
+    private function deriveMessageKeys(string $prk, string $nonce): array
     {
-        $prk = $conversationKey->toBytes();
         $expanded = $this->hkdfExpand($prk, $nonce, 76);
 
         return [

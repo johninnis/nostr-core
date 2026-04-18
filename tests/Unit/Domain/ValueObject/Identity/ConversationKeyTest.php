@@ -4,78 +4,65 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Identity;
 
+use Innis\Nostr\Core\Domain\Exception\SecretKeyMaterialZeroedException;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use PHPUnit\Framework\TestCase;
 
 final class ConversationKeyTest extends TestCase
 {
-    public function testCanCreateFromValidHex(): void
+    public function testFromHexAcceptsValidHex(): void
     {
-        $hex = str_repeat('ab', 32);
-        $key = ConversationKey::fromHex($hex);
+        $key = ConversationKey::fromHex(str_repeat('ab', 32));
 
         $this->assertNotNull($key);
-        $this->assertSame($hex, $key->toHex());
     }
 
-    public function testReturnsNullForInvalidHex(): void
+    public function testFromHexReturnsNullForInvalidCharacters(): void
     {
         $this->assertNull(ConversationKey::fromHex('invalid'));
     }
 
-    public function testReturnsNullForWrongLength(): void
+    public function testFromHexReturnsNullForWrongLength(): void
     {
         $this->assertNull(ConversationKey::fromHex(str_repeat('ab', 16)));
     }
 
-    public function testCanCreateFromBytes(): void
+    public function testFromBytesAcceptsCorrectLength(): void
     {
-        $bytes = random_bytes(32);
-        $key = ConversationKey::fromBytes($bytes);
+        $key = ConversationKey::fromBytes(random_bytes(32));
 
         $this->assertNotNull($key);
-        $this->assertSame($bytes, $key->toBytes());
     }
 
-    public function testReturnsNullForWrongByteLength(): void
+    public function testFromBytesReturnsNullForWrongLength(): void
     {
         $this->assertNull(ConversationKey::fromBytes(random_bytes(16)));
     }
 
-    public function testEqualsComparesValues(): void
+    public function testExposePassesBytesToClosure(): void
     {
-        $hex = str_repeat('cd', 32);
-        $key1 = ConversationKey::fromHex($hex);
-        $key2 = ConversationKey::fromHex($hex);
-        $key3 = ConversationKey::fromHex(str_repeat('ef', 32));
-
-        $this->assertNotNull($key1);
-        $this->assertNotNull($key2);
-        $this->assertNotNull($key3);
-
-        $this->assertTrue($key1->equals($key2));
-        $this->assertFalse($key1->equals($key3));
-    }
-
-    public function testToStringReturnsHex(): void
-    {
-        $hex = str_repeat('ab', 32);
-        $key = ConversationKey::fromHex($hex);
+        $bytes = random_bytes(32);
+        $key = ConversationKey::fromBytes($bytes);
         $this->assertNotNull($key);
 
-        $this->assertSame($hex, (string) $key);
+        $received = $key->expose(static fn (string $b): string => $b);
+
+        $this->assertSame($bytes, $received);
     }
 
-    public function testDeriveProducesConsistentKey(): void
+    public function testDeriveIsDeterministic(): void
     {
         $privateKey = PrivateKey::generate();
         $otherPrivateKey = PrivateKey::generate();
 
-        $key1 = ConversationKey::derive($privateKey, $otherPrivateKey->getPublicKey());
-        $key2 = ConversationKey::derive($privateKey, $otherPrivateKey->getPublicKey());
+        $keyA = ConversationKey::derive($privateKey, $otherPrivateKey->getPublicKey());
+        $keyB = ConversationKey::derive($privateKey, $otherPrivateKey->getPublicKey());
 
-        $this->assertTrue($key1->equals($key2));
+        $bytesA = $keyA->expose(static fn (string $b): string => $b);
+        $bytesB = $keyB->expose(static fn (string $b): string => $b);
+
+        $this->assertSame($bytesA, $bytesB);
     }
 
     public function testDeriveIsSymmetric(): void
@@ -86,7 +73,10 @@ final class ConversationKeyTest extends TestCase
         $keyAB = ConversationKey::derive($privateKeyA, $privateKeyB->getPublicKey());
         $keyBA = ConversationKey::derive($privateKeyB, $privateKeyA->getPublicKey());
 
-        $this->assertTrue($keyAB->equals($keyBA));
+        $bytesAB = $keyAB->expose(static fn (string $b): string => $b);
+        $bytesBA = $keyBA->expose(static fn (string $b): string => $b);
+
+        $this->assertSame($bytesAB, $bytesBA);
     }
 
     public function testDeriveProduces32ByteKey(): void
@@ -96,7 +86,40 @@ final class ConversationKeyTest extends TestCase
 
         $key = ConversationKey::derive($privateKey, $otherPrivateKey->getPublicKey());
 
-        $this->assertSame(64, strlen($key->toHex()));
-        $this->assertSame(32, strlen($key->toBytes()));
+        $length = $key->expose(static fn (string $b): int => strlen($b));
+
+        $this->assertSame(32, $length);
+    }
+
+    public function testZeroMakesExposeThrow(): void
+    {
+        $key = ConversationKey::fromBytes(random_bytes(32));
+        $this->assertNotNull($key);
+
+        $key->zero();
+
+        $this->expectException(SecretKeyMaterialZeroedException::class);
+        $key->expose(static fn (string $b): string => $b);
+    }
+
+    public function testZeroIsIdempotent(): void
+    {
+        $key = ConversationKey::fromBytes(random_bytes(32));
+        $this->assertNotNull($key);
+
+        $key->zero();
+        $key->zero();
+
+        $this->assertTrue($key->isZeroed());
+    }
+
+    public function testIsZeroedReflectsState(): void
+    {
+        $key = ConversationKey::fromBytes(random_bytes(32));
+        $this->assertNotNull($key);
+
+        $this->assertFalse($key->isZeroed());
+        $key->zero();
+        $this->assertTrue($key->isZeroed());
     }
 }

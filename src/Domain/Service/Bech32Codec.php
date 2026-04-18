@@ -19,7 +19,7 @@ final class Bech32Codec
         -1, 29, -1, 24, 13, 25, 9, 8, 23, -1, 18, 22, 31, 27, 19, -1,
         1, 0, 3, 16, 11, 28, 12, 14, 6, 4, 2, -1, -1, -1, -1, -1,
     ];
-    private const GENERATOR = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
+    private const GENERATOR = [0x3B6A57B2, 0x26508E6D, 0x1EA119FA, 0x3D4233DD, 0x2A1462B3];
     private const MAX_LENGTH = 5000;
     private const CHECKSUM_LENGTH = 6;
 
@@ -59,10 +59,10 @@ final class Bech32Codec
             if ($char < 33 || $char > 126) {
                 throw new InvalidBech32Exception('Invalid character in bech32 string');
             }
-            if ($char >= 0x61 && $char <= 0x7a) {
+            if ($char >= 0x61 && $char <= 0x7A) {
                 $hasLower = true;
             }
-            if ($char >= 0x41 && $char <= 0x5a) {
+            if ($char >= 0x41 && $char <= 0x5A) {
                 $hasUpper = true;
                 $chars[$i] = $char + 0x20;
             }
@@ -83,7 +83,7 @@ final class Bech32Codec
 
         $hrp = pack('C*', ...array_slice($chars, 0, $separatorPosition));
         $data = array_map(
-            fn (int $char): int => ($char & 0x80) ? -1 : self::CHARKEY[$char],
+            static fn (int $char): int => ($char & 0x80) ? -1 : self::CHARKEY[$char],
             array_slice($chars, $separatorPosition + 1)
         );
 
@@ -150,7 +150,7 @@ final class Bech32Codec
         $chk = 1;
         foreach ($values as $value) {
             $top = $chk >> 25;
-            $chk = (($chk & 0x1ffffff) << 5) ^ $value;
+            $chk = (($chk & 0x1FFFFFF) << 5) ^ $value;
             for ($j = 0; $j < 5; ++$j) {
                 $chk ^= (($top >> $j) & 1) ? self::GENERATOR[$j] : 0;
             }

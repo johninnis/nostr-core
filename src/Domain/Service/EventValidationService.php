@@ -6,7 +6,6 @@ namespace Innis\Nostr\Core\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
-use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 
 final class EventValidationService
 {

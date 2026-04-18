@@ -22,7 +22,7 @@ final readonly class Signature
 
     public static function fromHex(string $hex): ?self
     {
-        $length = \strlen($hex);
+        $length = strlen($hex);
 
         if ($length < 126 || $length > 128 || !preg_match('/^[a-f0-9]+$/', $hex)) {
             return null;

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Identity;
 
+use Innis\Nostr\Core\Domain\Exception\SecretKeyMaterialZeroedException;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
+use Innis\Nostr\Core\Domain\ValueObject\SecretKeyMaterial;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -116,5 +118,77 @@ final class PrivateKeyTest extends TestCase
         $pubkey2 = $privateKey->getPublicKey();
 
         $this->assertTrue($pubkey1->equals($pubkey2));
+    }
+
+    public function testZeroMakesSignThrow(): void
+    {
+        $privateKey = PrivateKey::generate();
+        $privateKey->zero();
+
+        $this->expectException(SecretKeyMaterialZeroedException::class);
+        $privateKey->sign(random_bytes(32));
+    }
+
+    public function testZeroMakesGetPublicKeyThrow(): void
+    {
+        $privateKey = PrivateKey::generate();
+        $privateKey->zero();
+
+        $this->expectException(SecretKeyMaterialZeroedException::class);
+        $privateKey->getPublicKey();
+    }
+
+    public function testZeroMakesToHexThrow(): void
+    {
+        $privateKey = PrivateKey::generate();
+        $privateKey->zero();
+
+        $this->expectException(SecretKeyMaterialZeroedException::class);
+        $privateKey->toHex();
+    }
+
+    public function testZeroMakesToBech32Throw(): void
+    {
+        $privateKey = PrivateKey::generate();
+        $privateKey->zero();
+
+        $this->expectException(SecretKeyMaterialZeroedException::class);
+        $privateKey->toBech32();
+    }
+
+    public function testZeroIsIdempotent(): void
+    {
+        $privateKey = PrivateKey::generate();
+
+        $privateKey->zero();
+        $privateKey->zero();
+
+        $this->assertTrue($privateKey->isZeroed());
+    }
+
+    public function testIsZeroedReflectsState(): void
+    {
+        $privateKey = PrivateKey::generate();
+        $this->assertFalse($privateKey->isZeroed());
+
+        $privateKey->zero();
+        $this->assertTrue($privateKey->isZeroed());
+    }
+
+    public function testFromMaterialConstructsEquivalentKey(): void
+    {
+        $bytes = hex2bin(self::VALID_PRIVATE_KEY_HEX);
+        assert(false !== $bytes);
+
+        $viaHex = PrivateKey::fromHex(self::VALID_PRIVATE_KEY_HEX) ?? throw new RuntimeException('Invalid test key');
+        $viaMaterial = PrivateKey::fromMaterial(SecretKeyMaterial::fromBytes($bytes));
+
+        $message = random_bytes(32);
+        $publicKeyFromHex = $viaHex->getPublicKey();
+        $publicKeyFromMaterial = $viaMaterial->getPublicKey();
+
+        $this->assertTrue($publicKeyFromHex->equals($publicKeyFromMaterial));
+        $this->assertTrue($publicKeyFromHex->verify($message, $viaHex->sign($message)));
+        $this->assertTrue($publicKeyFromMaterial->verify($message, $viaMaterial->sign($message)));
     }
 }

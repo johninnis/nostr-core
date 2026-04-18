@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
+use Closure;
+use Innis\Nostr\Core\Domain\ValueObject\SecretKeyMaterial;
 use LogicException;
 use Mdanter\Ecc\EccFactory;
 
 final readonly class ConversationKey
 {
-    public const HEX_LENGTH = 64;
+    private const HEX_LENGTH = 64;
 
-    private function __construct(private string $key)
+    private function __construct(private SecretKeyMaterial $material)
     {
     }
 
@@ -20,7 +22,9 @@ final readonly class ConversationKey
         $sharedX = self::computeSharedX($privateKey, $publicKey);
         $conversationKey = hash_hmac('sha256', $sharedX, 'nip44-v2', true);
 
-        return new self(bin2hex($conversationKey));
+        sodium_memzero($sharedX);
+
+        return new self(SecretKeyMaterial::fromBytes($conversationKey));
     }
 
     public static function fromHex(string $hex): ?self
@@ -29,41 +33,34 @@ final readonly class ConversationKey
             return null;
         }
 
-        return new self($hex);
+        $bytes = hex2bin($hex);
+        assert(false !== $bytes);
+
+        return new self(SecretKeyMaterial::fromBytes($bytes));
     }
 
     public static function fromBytes(string $bytes): ?self
     {
-        if (32 !== strlen($bytes)) {
+        if (SecretKeyMaterial::BYTE_LENGTH !== strlen($bytes)) {
             return null;
         }
 
-        return new self(bin2hex($bytes));
+        return new self(SecretKeyMaterial::fromBytes($bytes));
     }
 
-    public function toHex(): string
+    public function expose(Closure $fn): mixed
     {
-        return $this->key;
+        return $this->material->expose($fn);
     }
 
-    public function toBytes(): string
+    public function zero(): void
     {
-        $bytes = hex2bin($this->key);
-        if (false === $bytes) {
-            throw new LogicException('Invalid hex in conversation key');
-        }
-
-        return $bytes;
+        $this->material->zero();
     }
 
-    public function equals(self $other): bool
+    public function isZeroed(): bool
     {
-        return $this->key === $other->key;
-    }
-
-    public function __toString(): string
-    {
-        return $this->key;
+        return $this->material->isZeroed();
     }
 
     private static function computeSharedX(PrivateKey $privateKey, PublicKey $publicKey): string

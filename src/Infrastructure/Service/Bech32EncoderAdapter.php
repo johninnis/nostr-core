@@ -177,10 +177,10 @@ final class Bech32EncoderAdapter implements Bech32EncoderInterface
     private static function integerToBytes(int $integer): array
     {
         return [
-            ($integer >> 24) & 0xff,
-            ($integer >> 16) & 0xff,
-            ($integer >> 8) & 0xff,
-            $integer & 0xff,
+            ($integer >> 24) & 0xFF,
+            ($integer >> 16) & 0xFF,
+            ($integer >> 8) & 0xFF,
+            $integer & 0xFF,
         ];
     }
 }
