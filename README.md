@@ -87,6 +87,8 @@ $deserialised = $serialiser->deserialiseClientMessage($json);
 
 ### Password-Encrypted Private Keys (NIP-49)
 
+The NIP-49 adapter takes the password as a `Closure(): string` rather than a raw string. The adapter invokes the closure exactly once, `sodium_memzero`s the revealed password before the method returns, and the caller never has to maintain a password binding in its own scope:
+
 ```php
 use Innis\Nostr\Core\Domain\Enum\KeySecurityByte;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Ncryptsec;
@@ -98,7 +100,7 @@ $privateKey = PrivateKey::generate();
 
 $ncryptsec = $adapter->encrypt(
     $privateKey,
-    'user password',
+    static fn (): string => readPasswordFromUser(),
     logN: 16,
     keySecurity: KeySecurityByte::ClientSideOnly,
 );
@@ -106,12 +108,12 @@ $ncryptsec = $adapter->encrypt(
 $stored = (string) $ncryptsec; // ncryptsec1...
 
 $decoded = Ncryptsec::fromString($stored);
-$recovered = $adapter->decrypt($decoded, 'user password');
+$recovered = $adapter->decrypt($decoded, static fn (): string => readPasswordFromUser());
 ```
 
 ### Secret Key Lifecycle
 
-`PrivateKey` and `ConversationKey` hold their raw bytes inside a `SecretKeyMaterial` value object. Callers that need to clear secret material from memory can call `zero()`; any subsequent operation on that key throws `SecretKeyMaterialZeroedException`. Infrastructure code that genuinely needs raw bytes uses the bounded `expose` callback:
+`PrivateKey` and `ConversationKey` hold their raw bytes inside a `SecretKeyMaterial` value object. Callers that need to clear secret material from memory can call `zero()`; any subsequent operation on that key throws `SecretKeyMaterialZeroedException`. Infrastructure code that genuinely needs raw bytes uses the bounded `expose` callback, which passes a CoW-separated copy of the bytes to the closure and `sodium_memzero`s that copy before the method returns:
 
 ```php
 $signature = $privateKey->expose(static function (string $bytes): string {
@@ -121,6 +123,8 @@ $signature = $privateKey->expose(static function (string $bytes): string {
 $privateKey->zero();
 $privateKey->sign($message); // throws SecretKeyMaterialZeroedException
 ```
+
+**`zero()` is a contract, not a guarantee via destruction.** `SecretKeyMaterial`'s destructor does call `zero()` as defence-in-depth, but PHP's garbage collector runs on refcount-zero, which may never happen for keys captured in long-lived closures, static state, exception trace frames, or cyclic references. Applications that require bounded key-material lifetimes — session-scoped bunker signers, for example — must call `$privateKey->zero()` explicitly at the end of the session. Treat the destructor as cleanup-of-last-resort, not as the primary wipe mechanism.
 
 ## Supported NIPs
 

@@ -24,7 +24,7 @@ final readonly class ConversationKey
 
         sodium_memzero($sharedX);
 
-        return new self(SecretKeyMaterial::fromBytes($conversationKey));
+        return new self(new SecretKeyMaterial($conversationKey));
     }
 
     public static function fromHex(string $hex): ?self
@@ -36,7 +36,7 @@ final readonly class ConversationKey
         $bytes = hex2bin($hex);
         assert(false !== $bytes);
 
-        return new self(SecretKeyMaterial::fromBytes($bytes));
+        return new self(new SecretKeyMaterial($bytes));
     }
 
     public static function fromBytes(string $bytes): ?self
@@ -45,7 +45,7 @@ final readonly class ConversationKey
             return null;
         }
 
-        return new self(SecretKeyMaterial::fromBytes($bytes));
+        return new self(new SecretKeyMaterial($bytes));
     }
 
     public function expose(Closure $fn): mixed

@@ -14,18 +14,13 @@ final class SecretKeyMaterial
 
     private ?string $bytes;
 
-    private function __construct(string $bytes)
-    {
-        $this->bytes = $bytes;
-    }
-
-    public static function fromBytes(string $bytes): self
+    public function __construct(string $bytes)
     {
         if (self::BYTE_LENGTH !== strlen($bytes)) {
             throw new InvalidArgumentException(sprintf('Secret key material must be %d bytes', self::BYTE_LENGTH));
         }
 
-        return new self($bytes);
+        $this->bytes = $bytes;
     }
 
     public static function random(): self

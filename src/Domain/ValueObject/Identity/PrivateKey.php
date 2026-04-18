@@ -29,7 +29,7 @@ final readonly class PrivateKey
         $bytes = hex2bin($hex);
         assert(false !== $bytes);
 
-        return new self(SecretKeyMaterial::fromBytes($bytes));
+        return new self(new SecretKeyMaterial($bytes));
     }
 
     public static function fromBech32(string $bech32): ?self
@@ -49,7 +49,7 @@ final readonly class PrivateKey
 
     public static function fromBytes(string $bytes): self
     {
-        return new self(SecretKeyMaterial::fromBytes($bytes));
+        return new self(new SecretKeyMaterial($bytes));
     }
 
     public static function generate(): self

@@ -31,7 +31,7 @@ final class Nip49EncryptionAdapterTest extends TestCase
     public function testRoundTripDecryptsToSameKey(): void
     {
         $privateKey = PrivateKey::generate();
-        $password = 'correct horse battery staple';
+        $password = static fn (): string => 'correct horse battery staple';
 
         $ncryptsec = $this->adapter->encrypt($privateKey, $password, self::FAST_LOG_N);
         $decrypted = $this->adapter->decrypt($ncryptsec, $password);
@@ -42,10 +42,10 @@ final class Nip49EncryptionAdapterTest extends TestCase
     public function testWrongPasswordThrows(): void
     {
         $privateKey = PrivateKey::generate();
-        $ncryptsec = $this->adapter->encrypt($privateKey, 'correct', self::FAST_LOG_N);
+        $ncryptsec = $this->adapter->encrypt($privateKey, static fn (): string => 'correct', self::FAST_LOG_N);
 
         $this->expectException(Nip49DecryptionFailedException::class);
-        $this->adapter->decrypt($ncryptsec, 'wrong');
+        $this->adapter->decrypt($ncryptsec, static fn (): string => 'wrong');
     }
 
     public function testKnownSpecVectorDecrypts(): void
@@ -53,7 +53,7 @@ final class Nip49EncryptionAdapterTest extends TestCase
         $ncryptsec = Ncryptsec::fromString(self::SPEC_VECTOR_NCRYPTSEC)
             ?? throw new RuntimeException('Spec vector failed HRP/checksum validation');
 
-        $decrypted = $this->adapter->decrypt($ncryptsec, self::SPEC_VECTOR_PASSWORD);
+        $decrypted = $this->adapter->decrypt($ncryptsec, static fn (): string => self::SPEC_VECTOR_PASSWORD);
 
         $this->assertSame(self::SPEC_VECTOR_NSEC_HEX, $decrypted->toHex());
     }
@@ -61,7 +61,7 @@ final class Nip49EncryptionAdapterTest extends TestCase
     public function testDifferentSaltsEachEncryption(): void
     {
         $privateKey = PrivateKey::generate();
-        $password = 'password';
+        $password = static fn (): string => 'password';
 
         $first = $this->adapter->encrypt($privateKey, $password, self::FAST_LOG_N);
         $second = $this->adapter->encrypt($privateKey, $password, self::FAST_LOG_N);
@@ -75,8 +75,8 @@ final class Nip49EncryptionAdapterTest extends TestCase
         $nfcPassword = "passw\u{00F6}rd";
         $nfdPassword = "passwo\u{0308}rd";
 
-        $ncryptsec = $this->adapter->encrypt($privateKey, $nfcPassword, self::FAST_LOG_N);
-        $decrypted = $this->adapter->decrypt($ncryptsec, $nfdPassword);
+        $ncryptsec = $this->adapter->encrypt($privateKey, static fn (): string => $nfcPassword, self::FAST_LOG_N);
+        $decrypted = $this->adapter->decrypt($ncryptsec, static fn (): string => $nfdPassword);
 
         $this->assertSame($privateKey->toHex(), $decrypted->toHex());
     }
@@ -111,7 +111,7 @@ final class Nip49EncryptionAdapterTest extends TestCase
         $privateKey = PrivateKey::generate();
 
         $this->expectException(InvalidArgumentException::class);
-        $this->adapter->encrypt($privateKey, 'p', 0);
+        $this->adapter->encrypt($privateKey, static fn (): string => 'p', 0);
     }
 
     public function testEncryptRejectsLogNAboveMaximum(): void
@@ -119,7 +119,17 @@ final class Nip49EncryptionAdapterTest extends TestCase
         $privateKey = PrivateKey::generate();
 
         $this->expectException(InvalidArgumentException::class);
-        $this->adapter->encrypt($privateKey, 'p', 64);
+        $this->adapter->encrypt($privateKey, static fn (): string => 'p', 64);
+    }
+
+    public function testEncryptRejectsNonStringFromPasswordProvider(): void
+    {
+        $privateKey = PrivateKey::generate();
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Password provider must return a string');
+        /* @phpstan-ignore argument.type */
+        $this->adapter->encrypt($privateKey, static fn (): int => 123, self::FAST_LOG_N);
     }
 
     public function testDecryptRejectsTamperedCiphertext(): void
@@ -127,7 +137,7 @@ final class Nip49EncryptionAdapterTest extends TestCase
         $tampered = $this->tamperPayloadByte($this->encryptFreshVector(), Ncryptsec::PAYLOAD_LENGTH - 1, 0xFF);
 
         $this->expectException(Nip49DecryptionFailedException::class);
-        $this->adapter->decrypt($tampered, 'pw');
+        $this->adapter->decrypt($tampered, static fn (): string => 'pw');
     }
 
     public function testDecryptRejectsUnknownKeySecurityByte(): void
@@ -135,7 +145,7 @@ final class Nip49EncryptionAdapterTest extends TestCase
         $tampered = $this->tamperPayloadByte($this->encryptFreshVector(), 42, 0xFF);
 
         $this->expectException(Nip49DecryptionFailedException::class);
-        $this->adapter->decrypt($tampered, 'pw');
+        $this->adapter->decrypt($tampered, static fn (): string => 'pw');
     }
 
     public function testDecryptRejectsLogNAboveMaximum(): void
@@ -143,7 +153,7 @@ final class Nip49EncryptionAdapterTest extends TestCase
         $tampered = $this->tamperPayloadByte($this->encryptFreshVector(), 1, 0xFF);
 
         $this->expectException(Nip49DecryptionFailedException::class);
-        $this->adapter->decrypt($tampered, 'pw');
+        $this->adapter->decrypt($tampered, static fn (): string => 'pw');
     }
 
     public function testDecryptRejectsLogNOfZero(): void
@@ -151,13 +161,13 @@ final class Nip49EncryptionAdapterTest extends TestCase
         $tampered = $this->tamperPayloadByte($this->encryptFreshVector(), 1, 0x00);
 
         $this->expectException(Nip49DecryptionFailedException::class);
-        $this->adapter->decrypt($tampered, 'pw');
+        $this->adapter->decrypt($tampered, static fn (): string => 'pw');
     }
 
     private function assertKeySecurityRoundTrips(KeySecurityByte $keySecurity): void
     {
         $privateKey = PrivateKey::generate();
-        $password = 'pw';
+        $password = static fn (): string => 'pw';
 
         $ncryptsec = $this->adapter->encrypt($privateKey, $password, self::FAST_LOG_N, $keySecurity);
         $decrypted = $this->adapter->decrypt($ncryptsec, $password);
@@ -168,7 +178,7 @@ final class Nip49EncryptionAdapterTest extends TestCase
     private function assertLogNRoundTrips(int $logN): void
     {
         $privateKey = PrivateKey::generate();
-        $password = 'pw';
+        $password = static fn (): string => 'pw';
 
         $ncryptsec = $this->adapter->encrypt($privateKey, $password, $logN);
         $decrypted = $this->adapter->decrypt($ncryptsec, $password);
@@ -178,7 +188,7 @@ final class Nip49EncryptionAdapterTest extends TestCase
 
     private function encryptFreshVector(): Ncryptsec
     {
-        return $this->adapter->encrypt(PrivateKey::generate(), 'pw', self::FAST_LOG_N);
+        return $this->adapter->encrypt(PrivateKey::generate(), static fn (): string => 'pw', self::FAST_LOG_N);
     }
 
     private function tamperPayloadByte(Ncryptsec $source, int $offset, int $value): Ncryptsec
