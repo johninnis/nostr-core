@@ -9,6 +9,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Infrastructure\Service\Nip44EncryptionAdapter;
 use Innis\Nostr\Core\Tests\Fixtures\QueuedRandomBytesGenerator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class Nip44EncryptionAdapterTest extends TestCase
@@ -197,6 +198,46 @@ final class Nip44EncryptionAdapterTest extends TestCase
         $encrypted2 = $secondAdapter->encrypt('test', $conversationKey);
 
         self::assertSame($encrypted1, $encrypted2);
+    }
+
+    #[DataProvider('paddingBoundaryLengthsProvider')]
+    public function testEncryptDecryptRoundTripAtPaddingBoundary(int $length): void
+    {
+        $conversationKey = $this->createTestKey();
+        $plaintext = str_repeat('x', $length);
+
+        $decrypted = $this->adapter->decrypt(
+            $this->adapter->encrypt($plaintext, $conversationKey),
+            $conversationKey,
+        );
+
+        self::assertSame($plaintext, $decrypted);
+        self::assertSame($length, strlen($decrypted));
+    }
+
+    public function testEncryptRejectsPlaintextOneByteOverMaximum(): void
+    {
+        $conversationKey = $this->createTestKey();
+
+        $this->expectException(EncryptionException::class);
+        $this->expectExceptionMessage('Plaintext length must be between 1 and 65535 bytes');
+
+        $this->adapter->encrypt(str_repeat('x', 65536), $conversationKey);
+    }
+
+    public static function paddingBoundaryLengthsProvider(): iterable
+    {
+        yield 'minimum_padded_minus_one' => [31];
+        yield 'minimum_padded_exact' => [32];
+        yield 'minimum_padded_plus_one' => [33];
+        yield 'chunk_threshold_minus_one' => [255];
+        yield 'chunk_threshold_exact' => [256];
+        yield 'chunk_threshold_plus_one' => [257];
+        yield 'power_of_two_minus_one' => [511];
+        yield 'power_of_two_exact' => [512];
+        yield 'power_of_two_plus_one' => [513];
+        yield 'maximum_minus_one' => [65534];
+        yield 'maximum_exact' => [65535];
     }
 
     private function createTestKey(): ConversationKey
