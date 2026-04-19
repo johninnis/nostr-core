@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 use Innis\Nostr\Core\Domain\Exception\Nip98ValidationException;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
-use InvalidArgumentException;
 use JsonException;
 
 final readonly class Nip98ValidationService implements Nip98ValidationServiceInterface
@@ -71,7 +71,7 @@ final readonly class Nip98ValidationService implements Nip98ValidationServiceInt
 
         try {
             return Event::fromArray($data);
-        } catch (InvalidArgumentException $e) {
+        } catch (InvalidEventException $e) {
             throw new Nip98ValidationException('Invalid event in Authorization header: '.$e->getMessage());
         }
     }

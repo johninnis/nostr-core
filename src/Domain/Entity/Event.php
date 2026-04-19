@@ -221,7 +221,7 @@ final readonly class Event
         $requiredFields = ['pubkey', 'created_at', 'kind', 'tags', 'content'];
         foreach ($requiredFields as $field) {
             if (!array_key_exists($field, $data)) {
-                throw new InvalidArgumentException("Missing required field: {$field}");
+                throw new InvalidEventException("Missing required field: {$field}");
             }
         }
 
@@ -229,7 +229,7 @@ final readonly class Event
         if (!is_string($content)) {
             $encoded = json_encode($content, JSON_UNESCAPED_SLASHES);
             if (false === $encoded) {
-                throw new InvalidArgumentException('Failed to encode content as JSON');
+                throw new InvalidEventException('Failed to encode content as JSON');
             }
             $content = $encoded;
         }

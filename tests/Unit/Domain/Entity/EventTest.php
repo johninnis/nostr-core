@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Entity;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 use Innis\Nostr\Core\Domain\Service\ReplyChainAnalyser;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
@@ -166,7 +167,7 @@ final class EventTest extends TestCase
             // Missing 'kind', 'tags', 'content'
         ];
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidEventException::class);
         $this->expectExceptionMessage('Missing required field: kind');
 
         Event::fromArray($incompleteArray);
