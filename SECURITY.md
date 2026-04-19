@@ -110,7 +110,7 @@ Construction of `SecretKeyMaterial` goes through its constructor, which validate
 
 `Nip11Info::fromArray` and each lazy accessor type-guard the data they read. A relay returning `"supported_nips": "not-an-array"` causes `getSupportedNips()` to return `null` rather than propagating a `TypeError` to the caller. Relays are untrusted peers; graceful degradation on malformed responses is preferable to exception-based denial of service.
 
-### `PublicKey::verify` catches `Throwable`
+### `Secp256k1SignatureAdapter::verify` catches `Throwable`
 
 Any exception from the underlying FFI or pure-PHP verify implementation is caught and returned as `false`. Verification has two legitimate outcomes, valid or invalid, and any path that reaches an exception is a failure of verification, not an error worth propagating. The cost is that programmer errors in the caller surface as "invalid signature" rather than as exceptions; this is accepted as a correct trade for a method whose semantic output is a boolean.
 
