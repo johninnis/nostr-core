@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Infrastructure\Adapter;
 
 use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
+use Innis\Nostr\Core\Domain\Exception\EcdhException;
 use Innis\Nostr\Core\Domain\Service\EcdhServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Math;
-use LogicException;
 use Mdanter\Ecc\EccFactory;
 
 final class Secp256k1EcdhAdapter implements EcdhServiceInterface
@@ -37,7 +37,7 @@ final class Secp256k1EcdhAdapter implements EcdhServiceInterface
         $pubkeyHex = $publicKey->toHex();
 
         if (self::ZERO_X_HEX === $pubkeyHex || strcmp($pubkeyHex, self::SECP256K1_PRIME_HEX) >= 0) {
-            throw new LogicException('ECDH public key x-coordinate out of field range');
+            throw new EcdhException('ECDH public key x-coordinate out of field range');
         }
 
         if (null !== $this->ffi) {
@@ -80,7 +80,7 @@ final class Secp256k1EcdhAdapter implements EcdhServiceInterface
 
             $sharedPoint = $publicKeyPoint->mul($privateKeyInt);
             if ($sharedPoint->isInfinity()) {
-                throw new LogicException('ECDH shared point is the identity');
+                throw new EcdhException('ECDH shared point is the identity');
             }
 
             return Secp256k1Math::gmpToBytes($sharedPoint->getX(), self::SHARED_X_BYTE_LENGTH);

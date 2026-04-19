@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Infrastructure\Adapter;
 
 use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
-use Innis\Nostr\Core\Domain\Exception\InvalidSignatureException;
 use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
@@ -153,7 +152,7 @@ final class Secp256k1SignatureAdapter implements SignatureServiceInterface
         }
 
         if (0 === gmp_cmp($kPrime, 0)) {
-            throw new InvalidSignatureException('BIP-340 nonce generation produced zero value');
+            throw new LogicException('BIP-340 nonce generation produced zero value');
         }
 
         $R = $generator->mul($kPrime);
