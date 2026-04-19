@@ -12,9 +12,9 @@ use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 
 final class ReplyTagBuilder
 {
-    public function build(Event $replyTo, ?Event $root = null): TagCollection
+    public static function build(Event $replyTo, ?Event $root = null): TagCollection
     {
-        return $this->buildFromValues(
+        return self::buildFromValues(
             $replyTo->getId(),
             $replyTo->getPubkey(),
             $root?->getId(),
@@ -22,7 +22,7 @@ final class ReplyTagBuilder
         );
     }
 
-    public function buildFromValues(
+    public static function buildFromValues(
         EventId $replyToId,
         PublicKey $replyToAuthor,
         ?EventId $rootId = null,

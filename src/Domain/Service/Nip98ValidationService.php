@@ -10,7 +10,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 
-final readonly class Nip98ValidationService
+final readonly class Nip98ValidationService implements Nip98ValidationServiceInterface
 {
     private const DEFAULT_TIMESTAMP_TOLERANCE = 60;
 

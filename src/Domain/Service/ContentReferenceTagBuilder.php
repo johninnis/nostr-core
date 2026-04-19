@@ -9,7 +9,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 
-final class ContentReferenceTagBuilder
+final class ContentReferenceTagBuilder implements ContentReferenceTagBuilderInterface
 {
     public function __construct(
         private readonly ContentReferenceExtractorInterface $extractor,

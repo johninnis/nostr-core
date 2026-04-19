@@ -20,13 +20,11 @@ final class ReplyTagBuilderTest extends TestCase
 {
     use WithCryptoServices;
 
-    private ReplyTagBuilder $builder;
     private KeyPair $keyPair1;
     private KeyPair $keyPair2;
 
     protected function setUp(): void
     {
-        $this->builder = new ReplyTagBuilder();
         $this->keyPair1 = KeyPair::generate($this->signatureService());
         $this->keyPair2 = KeyPair::generate($this->signatureService());
     }
@@ -36,7 +34,7 @@ final class ReplyTagBuilderTest extends TestCase
         $rootEvent = $this->createEvent($this->keyPair1);
         $signedRoot = $rootEvent->sign($this->keyPair1->getPrivateKey(), $this->signatureService());
 
-        $tags = $this->builder->build($signedRoot);
+        $tags = ReplyTagBuilder::build($signedRoot);
 
         $tagArray = $tags->toArray();
         $this->assertCount(2, $tagArray);
@@ -56,7 +54,7 @@ final class ReplyTagBuilderTest extends TestCase
         $replyEvent = $this->createEvent($this->keyPair2);
         $signedReply = $replyEvent->sign($this->keyPair2->getPrivateKey(), $this->signatureService());
 
-        $tags = $this->builder->build($signedReply, $signedRoot);
+        $tags = ReplyTagBuilder::build($signedReply, $signedRoot);
 
         $tagArray = $tags->toArray();
         $this->assertCount(4, $tagArray);
@@ -83,7 +81,7 @@ final class ReplyTagBuilderTest extends TestCase
         $rootId = EventId::fromHex(str_repeat('b', 64)) ?? throw new RuntimeException('Invalid test event ID');
         $rootAuthor = $this->keyPair2->getPublicKey();
 
-        $tags = $this->builder->buildFromValues($replyToId, $replyToAuthor, $rootId, $rootAuthor);
+        $tags = ReplyTagBuilder::buildFromValues($replyToId, $replyToAuthor, $rootId, $rootAuthor);
 
         $tagArray = $tags->toArray();
         $this->assertCount(4, $tagArray);
@@ -99,7 +97,7 @@ final class ReplyTagBuilderTest extends TestCase
         $rootId = EventId::fromHex(str_repeat('b', 64)) ?? throw new RuntimeException('Invalid test event ID');
         $author = $this->keyPair1->getPublicKey();
 
-        $tags = $this->builder->buildFromValues($replyToId, $author, $rootId, $author);
+        $tags = ReplyTagBuilder::buildFromValues($replyToId, $author, $rootId, $author);
 
         $tagArray = $tags->toArray();
         $this->assertCount(3, $tagArray);

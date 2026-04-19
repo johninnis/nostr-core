@@ -9,7 +9,7 @@ use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 
-final class NipComplianceValidator
+final class NipComplianceValidator implements NipComplianceValidatorInterface
 {
     public function __construct(
         private readonly SignatureServiceInterface $signatureService,

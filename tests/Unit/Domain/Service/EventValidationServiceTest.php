@@ -7,6 +7,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 use Innis\Nostr\Core\Domain\Service\EventValidationService;
+use Innis\Nostr\Core\Domain\Service\NipComplianceValidator;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
@@ -25,7 +26,10 @@ final class EventValidationServiceTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->service = new EventValidationService($this->signatureService());
+        $this->service = new EventValidationService(
+            $this->signatureService(),
+            new NipComplianceValidator($this->signatureService()),
+        );
         $this->keyPair = KeyPair::generate($this->signatureService());
     }
 

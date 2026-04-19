@@ -7,17 +7,15 @@ namespace Innis\Nostr\Core\Domain\Service;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 
-final class EventValidationService
+final class EventValidationService implements EventValidationServiceInterface
 {
     private const MAX_CONTENT_LENGTH = 65536;
     private const MAX_TAGS_COUNT = 5000;
 
-    private readonly NipComplianceValidator $nipValidator;
-
     public function __construct(
         private readonly SignatureServiceInterface $signatureService,
+        private readonly NipComplianceValidatorInterface $nipValidator,
     ) {
-        $this->nipValidator = new NipComplianceValidator($signatureService);
     }
 
     public function validateEvent(Event $event): void
