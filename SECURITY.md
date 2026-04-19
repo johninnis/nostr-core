@@ -26,11 +26,11 @@ Only the latest tagged release is supported. Older releases do not receive backp
 
 ### What this library provides
 
-- **BIP-340 Schnorr signing and verification** via `Secp256k1SignatureService`. The FFI path uses the system `libsecp256k1` C library when available; the pure-PHP path uses `paragonie/ecc` as a fallback. Both paths produce byte-identical signatures under identical `aux_rand`, validated against every BIP-340 specification vector and a 100-iteration cross-engine property sweep.
+- **BIP-340 Schnorr signing and verification** via `Secp256k1SignatureAdapter`. The FFI path uses the system `libsecp256k1` C library when available; the pure-PHP path uses `paragonie/ecc` as a fallback. Both paths produce byte-identical signatures under identical `aux_rand`, validated against every BIP-340 specification vector and a 100-iteration cross-engine property sweep.
 
 - **NIP-44 v2 authenticated encryption.** `Nip44EncryptionAdapter` implements the official NIP-44 v2 spec: ChaCha20 with HMAC-SHA256 MAC; MAC verification happens before unpadding (no padding oracle); nonces come from an injected `RandomBytesGeneratorInterface`. Covered by the official NIP-44 test vectors and a 200-iteration property fuzz that includes ciphertext-tamper and MAC-tamper rejection.
 
-- **NIP-44 ECDH with libsecp256k1 acceleration.** `Secp256k1EcdhService` mirrors the signature service: FFI when available, pure-PHP fallback otherwise. FFI and pure-PHP paths produce byte-identical shared-X values, validated by a 100-iteration parity sweep.
+- **NIP-44 ECDH with libsecp256k1 acceleration.** `Secp256k1EcdhAdapter` mirrors the signature service: FFI when available, pure-PHP fallback otherwise. FFI and pure-PHP paths produce byte-identical shared-X values, validated by a 100-iteration parity sweep.
 
 - **NIP-49 password-encrypted private keys.** `Nip49EncryptionAdapter` uses scrypt + XChaCha20-Poly1305, NFKC password normalisation per spec, and treats the password as a `Closure(): string` so the plaintext does not persist in caller scope. Spec vectors verified.
 
@@ -72,9 +72,9 @@ These are load-bearing consumer responsibilities. The library deliberately does 
 
 ### `::create()` factories over auto-probing constructors
 
-`Secp256k1SignatureService` and `Secp256k1EcdhService` expose a static `create()` factory that probes for `libsecp256k1` and dispatches FFI or pure-PHP. The bare constructor stays on the pure-PHP path unless an FFI handle is passed explicitly. Constructors deliberately do not probe the system library, because a constructor that silently `dlopen`s a C library at construction time is a hidden dependency and a hidden failure mode. Keeping the probe in a named constructor makes the side effect opt-in and easy to reason about for tests and DI containers.
+`Secp256k1SignatureAdapter` and `Secp256k1EcdhAdapter` expose a static `create()` factory that probes for `libsecp256k1` and dispatches FFI or pure-PHP. The bare constructor stays on the pure-PHP path unless an FFI handle is passed explicitly. Constructors deliberately do not probe the system library, because a constructor that silently `dlopen`s a C library at construction time is a hidden dependency and a hidden failure mode. Keeping the probe in a named constructor makes the side effect opt-in and easy to reason about for tests and DI containers.
 
-Consumer code should use `Secp256k1SignatureService::create()` and `Secp256k1EcdhService::create()`. The bare constructor is for dependency injection and for tests that need to force the pure-PHP path.
+Consumer code should use `Secp256k1SignatureAdapter::create()` and `Secp256k1EcdhAdapter::create()`. The bare constructor is for dependency injection and for tests that need to force the pure-PHP path.
 
 ### `zero()` is a contract, not a destructor guarantee
 

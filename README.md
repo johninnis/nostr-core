@@ -37,7 +37,7 @@ Used by the library but not declared as hard requirements, because several code 
 
 - `ext-gmp` is needed by the pure-PHP signing and ECDH fallback (the documented path when `libsecp256k1` is unavailable). If you know you always have `libsecp256k1` installed and never invoke the pure-PHP path, this extension is not touched.
 - `ext-mbstring` is needed by the search-filter matcher, `EventContent::getLength`, and the bech32 TLV decoder. Most consumers will hit one of these.
-- `ext-ffi` is needed by NIP-49 (unconditionally) and by the `Secp256k1SignatureService::create()` / `Secp256k1EcdhService::create()` factories (for the `libsecp256k1` probe). Consumers who do not use NIP-49 and who construct the services directly with `new Secp256k1SignatureService(null, ...)` / `new Secp256k1EcdhService()` can run without `ext-ffi` at all and stay on the pure-PHP path.
+- `ext-ffi` is needed by NIP-49 (unconditionally) and by the `Secp256k1SignatureAdapter::create()` / `Secp256k1EcdhAdapter::create()` factories (for the `libsecp256k1` probe). Consumers who do not use NIP-49 and who construct the adapters directly with `new Secp256k1SignatureAdapter(null, ...)` / `new Secp256k1EcdhAdapter()` can run without `ext-ffi` at all and stay on the pure-PHP path.
 - `libsodium` system library, reachable via FFI, is required for NIP-49 scrypt. Typically already installed wherever `ext-sodium` is installed.
 
 ### Optional (recommended)
@@ -54,15 +54,15 @@ composer require innis/nostr-core
 
 ## Quick Start
 
-Cryptographic operations (signing, verification, public-key derivation, ECDH) are exposed as Domain service interfaces with Infrastructure adapters. The `Secp256k1SignatureService` and `Secp256k1EcdhService` adapters pick an FFI-accelerated path when `libsecp256k1` is available and fall back to pure PHP otherwise — callers do not need to care.
+Cryptographic operations (signing, verification, public-key derivation, ECDH) are exposed as Domain service interfaces with Infrastructure adapters. The `Secp256k1SignatureAdapter` and `Secp256k1EcdhAdapter` pick an FFI-accelerated path when `libsecp256k1` is available and fall back to pure PHP otherwise — callers do not need to care.
 
 ### Key Generation
 
 ```php
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
-use Innis\Nostr\Core\Infrastructure\Service\Secp256k1SignatureService;
+use Innis\Nostr\Core\Infrastructure\Adapter\Secp256k1SignatureAdapter;
 
-$signatureService = Secp256k1SignatureService::create();
+$signatureService = Secp256k1SignatureAdapter::create();
 $keyPair = KeyPair::generate($signatureService);
 
 echo $keyPair->getPrivateKey()->toBech32(); // nsec1...
@@ -86,14 +86,14 @@ $signedEvent->verify($signatureService); // bool
 
 ### NIP-44 Encryption
 
-Deriving a conversation key needs an ECDH service. `Secp256k1EcdhService::create()` follows the same FFI-or-fallback pattern as the signature service:
+Deriving a conversation key needs an ECDH service. `Secp256k1EcdhAdapter::create()` follows the same FFI-or-fallback pattern as the signature adapter:
 
 ```php
 use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
-use Innis\Nostr\Core\Infrastructure\Service\Nip44EncryptionAdapter;
-use Innis\Nostr\Core\Infrastructure\Service\Secp256k1EcdhService;
+use Innis\Nostr\Core\Infrastructure\Adapter\Nip44EncryptionAdapter;
+use Innis\Nostr\Core\Infrastructure\Adapter\Secp256k1EcdhAdapter;
 
-$ecdhService = Secp256k1EcdhService::create();
+$ecdhService = Secp256k1EcdhAdapter::create();
 $conversationKey = ConversationKey::derive(
     $senderPrivateKey,
     $recipientPublicKey,
@@ -105,7 +105,7 @@ $ciphertext = $encryption->encrypt('Hello in private', $conversationKey);
 $plaintext = $encryption->decrypt($ciphertext, $conversationKey);
 ```
 
-Always construct the services through their `::create()` factories. Direct instantiation via `new Secp256k1SignatureService(null, ...)` or `new Secp256k1EcdhService()` exists for dependency injection and testing but stays on the pure-PHP path regardless of whether `libsecp256k1` is installed.
+Always construct the adapters through their `::create()` factories. Direct instantiation via `new Secp256k1SignatureAdapter(null, ...)` or `new Secp256k1EcdhAdapter()` exists for dependency injection and testing but stays on the pure-PHP path regardless of whether `libsecp256k1` is installed.
 
 ### Message Handling
 
@@ -129,7 +129,7 @@ The NIP-49 adapter takes the password as a `Closure(): string` rather than a raw
 use Innis\Nostr\Core\Domain\Enum\KeySecurityByte;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Ncryptsec;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
-use Innis\Nostr\Core\Infrastructure\Service\Nip49EncryptionAdapter;
+use Innis\Nostr\Core\Infrastructure\Adapter\Nip49EncryptionAdapter;
 
 $adapter = new Nip49EncryptionAdapter();
 $privateKey = PrivateKey::generate();
@@ -229,10 +229,13 @@ This package follows Clean Architecture principles with strict layer separation:
 ## Testing
 
 ```bash
-# Run tests
+# Full suite: Unit + Integration + Compliance + PHPStan (ship gate)
 composer test
 
-# Run PHPStan analysis (level 9)
+# Unit suite only (fast inner loop; skips compliance property fuzz)
+composer test-unit
+
+# PHPStan analysis (level 9)
 composer analyse
 
 # Fix code style

@@ -2,21 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Tests\Unit\Infrastructure\Service;
+namespace Innis\Nostr\Core\Tests\Unit\Infrastructure\Adapter;
 
 use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
-use Innis\Nostr\Core\Infrastructure\Service\NativeRandomBytesGeneratorAdapter;
-use Innis\Nostr\Core\Infrastructure\Service\Secp256k1EcdhService;
-use Innis\Nostr\Core\Infrastructure\Service\Secp256k1SignatureService;
+use Innis\Nostr\Core\Infrastructure\Adapter\NativeRandomBytesGeneratorAdapter;
+use Innis\Nostr\Core\Infrastructure\Adapter\Secp256k1EcdhAdapter;
+use Innis\Nostr\Core\Infrastructure\Adapter\Secp256k1SignatureAdapter;
 use PHPUnit\Framework\TestCase;
 
-final class Secp256k1EcdhServiceTest extends TestCase
+final class Secp256k1EcdhAdapterTest extends TestCase
 {
     public function testComputeSharedXIsSymmetric(): void
     {
-        $ecdh = new Secp256k1EcdhService();
-        $signer = new Secp256k1SignatureService(null, new NativeRandomBytesGeneratorAdapter());
+        $ecdh = new Secp256k1EcdhAdapter();
+        $signer = new Secp256k1SignatureAdapter(null, new NativeRandomBytesGeneratorAdapter());
 
         $privateKeyA = PrivateKey::generate();
         $privateKeyB = PrivateKey::generate();
@@ -31,8 +31,8 @@ final class Secp256k1EcdhServiceTest extends TestCase
 
     public function testComputeSharedXIsDeterministic(): void
     {
-        $ecdh = new Secp256k1EcdhService();
-        $signer = new Secp256k1SignatureService(null, new NativeRandomBytesGeneratorAdapter());
+        $ecdh = new Secp256k1EcdhAdapter();
+        $signer = new Secp256k1SignatureAdapter(null, new NativeRandomBytesGeneratorAdapter());
 
         $privateKey = PrivateKey::generate();
         $otherPublicKey = $signer->derivePublicKey(PrivateKey::generate());
@@ -45,8 +45,8 @@ final class Secp256k1EcdhServiceTest extends TestCase
 
     public function testComputeSharedXMatchesLegacyConversationKeyDerivation(): void
     {
-        $ecdh = new Secp256k1EcdhService();
-        $signer = new Secp256k1SignatureService(null, new NativeRandomBytesGeneratorAdapter());
+        $ecdh = new Secp256k1EcdhAdapter();
+        $signer = new Secp256k1SignatureAdapter(null, new NativeRandomBytesGeneratorAdapter());
 
         $privateKey = PrivateKey::generate();
         $otherPublicKey = $signer->derivePublicKey(PrivateKey::generate());
@@ -62,8 +62,8 @@ final class Secp256k1EcdhServiceTest extends TestCase
 
     public function testComputeSharedXProducesThirtyTwoBytes(): void
     {
-        $ecdh = new Secp256k1EcdhService();
-        $signer = new Secp256k1SignatureService(null, new NativeRandomBytesGeneratorAdapter());
+        $ecdh = new Secp256k1EcdhAdapter();
+        $signer = new Secp256k1SignatureAdapter(null, new NativeRandomBytesGeneratorAdapter());
 
         $privateKey = PrivateKey::generate();
         $otherPublicKey = $signer->derivePublicKey(PrivateKey::generate());

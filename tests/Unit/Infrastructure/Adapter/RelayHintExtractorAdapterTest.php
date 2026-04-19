@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Tests\Unit\Infrastructure\Service;
+namespace Innis\Nostr\Core\Tests\Unit\Infrastructure\Adapter;
 
 use Exception;
 use Innis\Nostr\Core\Domain\Entity\Event;
@@ -13,7 +13,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
-use Innis\Nostr\Core\Infrastructure\Service\RelayHintExtractorAdapter;
+use Innis\Nostr\Core\Infrastructure\Adapter\RelayHintExtractorAdapter;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;

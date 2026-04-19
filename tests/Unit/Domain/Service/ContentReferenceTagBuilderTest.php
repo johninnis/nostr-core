@@ -6,8 +6,8 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Service\ContentReferenceTagBuilder;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
-use Innis\Nostr\Core\Infrastructure\Service\Bech32EncoderAdapter;
-use Innis\Nostr\Core\Infrastructure\Service\ContentReferenceExtractorAdapter;
+use Innis\Nostr\Core\Infrastructure\Adapter\Bech32EncoderAdapter;
+use Innis\Nostr\Core\Infrastructure\Adapter\ContentReferenceExtractorAdapter;
 use PHPUnit\Framework\TestCase;
 
 final class ContentReferenceTagBuilderTest extends TestCase

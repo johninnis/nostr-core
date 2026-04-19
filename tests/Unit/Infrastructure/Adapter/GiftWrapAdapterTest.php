@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Tests\Unit\Infrastructure\Service;
+namespace Innis\Nostr\Core\Tests\Unit\Infrastructure\Adapter;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Exception\GiftWrapException;
@@ -14,8 +14,8 @@ use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
-use Innis\Nostr\Core\Infrastructure\Service\GiftWrapAdapter;
-use Innis\Nostr\Core\Infrastructure\Service\Nip44EncryptionAdapter;
+use Innis\Nostr\Core\Infrastructure\Adapter\GiftWrapAdapter;
+use Innis\Nostr\Core\Infrastructure\Adapter\Nip44EncryptionAdapter;
 use Innis\Nostr\Core\Tests\Support\WithCryptoServices;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;

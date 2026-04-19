@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Infrastructure\Service;
+namespace Innis\Nostr\Core\Infrastructure\Adapter;
 
 use Innis\Nostr\Core\Application\Port\HttpServiceInterface;
-use Innis\Nostr\Core\Domain\Service\Nip11ServiceInterface;
+use Innis\Nostr\Core\Application\Port\Nip11ServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Nip11Info;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Psr\Log\LoggerInterface;

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Infrastructure\Service;
+namespace Innis\Nostr\Core\Infrastructure\Adapter;
 
 use Closure;
 use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
@@ -12,6 +12,7 @@ use Innis\Nostr\Core\Domain\Service\Nip49EncryptionInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Ncryptsec;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\SecretKeyMaterial;
+use Innis\Nostr\Core\Infrastructure\Crypto\Nip49Scrypt;
 use InvalidArgumentException;
 use Normalizer;
 

@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Tests\Unit\Infrastructure\Service;
+namespace Innis\Nostr\Core\Tests\Unit\Infrastructure\Adapter;
 
 use Innis\Nostr\Core\Domain\Exception\EncryptionException;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
-use Innis\Nostr\Core\Infrastructure\Service\Nip44EncryptionAdapter;
+use Innis\Nostr\Core\Infrastructure\Adapter\Nip44EncryptionAdapter;
 use Innis\Nostr\Core\Tests\Fixtures\QueuedRandomBytesGenerator;
 use Innis\Nostr\Core\Tests\Support\WithCryptoServices;
 use PHPUnit\Framework\Attributes\DataProvider;

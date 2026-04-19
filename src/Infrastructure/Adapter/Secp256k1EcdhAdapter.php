@@ -2,16 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Infrastructure\Service;
+namespace Innis\Nostr\Core\Infrastructure\Adapter;
 
 use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
 use Innis\Nostr\Core\Domain\Service\EcdhServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
 use LogicException;
 use Mdanter\Ecc\EccFactory;
 
-final class Secp256k1EcdhService implements EcdhServiceInterface
+final class Secp256k1EcdhAdapter implements EcdhServiceInterface
 {
     private const SHARED_X_HEX_LENGTH = 64;
     private const SECP256K1_PRIME_HEX = 'fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f';

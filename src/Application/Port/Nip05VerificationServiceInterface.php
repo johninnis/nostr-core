@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Domain\Service;
+namespace Innis\Nostr\Core\Application\Port;
 
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Nip05Identifier;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Nip05VerificationResult;

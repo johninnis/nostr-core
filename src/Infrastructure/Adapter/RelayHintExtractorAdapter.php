@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Infrastructure\Service;
+namespace Innis\Nostr\Core\Infrastructure\Adapter;
 
 use Exception;
 use Innis\Nostr\Core\Domain\Entity\Event;

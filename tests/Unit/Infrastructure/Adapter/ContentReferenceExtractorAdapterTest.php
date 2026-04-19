@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Tests\Unit\Infrastructure\Service;
+namespace Innis\Nostr\Core\Tests\Unit\Infrastructure\Adapter;
 
 use Exception;
 use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
 use Innis\Nostr\Core\Domain\Service\Bech32EncoderInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
-use Innis\Nostr\Core\Infrastructure\Service\ContentReferenceExtractorAdapter;
+use Innis\Nostr\Core\Infrastructure\Adapter\ContentReferenceExtractorAdapter;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 

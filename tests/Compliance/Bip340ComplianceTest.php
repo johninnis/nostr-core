@@ -8,9 +8,9 @@ use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
-use Innis\Nostr\Core\Infrastructure\Service\LibSecp256k1Ffi;
-use Innis\Nostr\Core\Infrastructure\Service\NativeRandomBytesGeneratorAdapter;
-use Innis\Nostr\Core\Infrastructure\Service\Secp256k1SignatureService;
+use Innis\Nostr\Core\Infrastructure\Adapter\NativeRandomBytesGeneratorAdapter;
+use Innis\Nostr\Core\Infrastructure\Adapter\Secp256k1SignatureAdapter;
+use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
 use Innis\Nostr\Core\Tests\Fixtures\QueuedRandomBytesGenerator;
 use PHPUnit\Framework\TestCase;
 use Throwable;
@@ -239,30 +239,30 @@ final class Bip340ComplianceTest extends TestCase
         }
     }
 
-    private function ffiService(): Secp256k1SignatureService
+    private function ffiService(): Secp256k1SignatureAdapter
     {
         $randomBytes = new NativeRandomBytesGeneratorAdapter();
         $ffi = LibSecp256k1Ffi::tryLoad($randomBytes->bytes(32))
             ?? self::markTestSkipped('libsecp256k1 FFI unavailable');
 
-        return new Secp256k1SignatureService($ffi, $randomBytes);
+        return new Secp256k1SignatureAdapter($ffi, $randomBytes);
     }
 
-    private function purePhpService(): Secp256k1SignatureService
+    private function purePhpService(): Secp256k1SignatureAdapter
     {
-        return new Secp256k1SignatureService(null, new NativeRandomBytesGeneratorAdapter());
+        return new Secp256k1SignatureAdapter(null, new NativeRandomBytesGeneratorAdapter());
     }
 
-    private function ffiServiceWithFixedAux(string $aux): Secp256k1SignatureService
+    private function ffiServiceWithFixedAux(string $aux): Secp256k1SignatureAdapter
     {
         $ffi = LibSecp256k1Ffi::tryLoad((new NativeRandomBytesGeneratorAdapter())->bytes(32))
             ?? self::markTestSkipped('libsecp256k1 FFI unavailable');
 
-        return new Secp256k1SignatureService($ffi, QueuedRandomBytesGenerator::withBytes($aux));
+        return new Secp256k1SignatureAdapter($ffi, QueuedRandomBytesGenerator::withBytes($aux));
     }
 
-    private function purePhpServiceWithFixedAux(string $aux): Secp256k1SignatureService
+    private function purePhpServiceWithFixedAux(string $aux): Secp256k1SignatureAdapter
     {
-        return new Secp256k1SignatureService(null, QueuedRandomBytesGenerator::withBytes($aux));
+        return new Secp256k1SignatureAdapter(null, QueuedRandomBytesGenerator::withBytes($aux));
     }
 }

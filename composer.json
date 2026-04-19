@@ -36,10 +36,9 @@
     },
     "scripts": {
         "test": [
-            "@test-unit",
+            "phpunit",
             "@analyse"
         ],
-        "test-all": "phpunit",
         "test-unit": "phpunit --testsuite=Unit",
         "test-coverage": "XDEBUG_MODE=coverage phpunit --coverage-html var/tests/coverage/html --coverage-text --coverage-clover var/tests/coverage/clover.xml",
         "analyse": "phpstan analyse",

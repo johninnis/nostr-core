@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Infrastructure\Service;
+namespace Innis\Nostr\Core\Infrastructure\Adapter;
 
 use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
 use Innis\Nostr\Core\Domain\Exception\InvalidSignatureException;
@@ -10,11 +10,13 @@ use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
+use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
+use Innis\Nostr\Core\Infrastructure\Crypto\SchnorrMathHelper;
 use LogicException;
 use Mdanter\Ecc\EccFactory;
 use Throwable;
 
-final class Secp256k1SignatureService implements SignatureServiceInterface
+final class Secp256k1SignatureAdapter implements SignatureServiceInterface
 {
     private const SIGNATURE_HEX_LENGTH = 128;
     private const SCHNORR_MESSAGE_LENGTH = 32;

@@ -6,10 +6,10 @@ namespace Innis\Nostr\Core\Tests\Support;
 
 use Innis\Nostr\Core\Domain\Service\EcdhServiceInterface;
 use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
-use Innis\Nostr\Core\Infrastructure\Service\LibSecp256k1Ffi;
-use Innis\Nostr\Core\Infrastructure\Service\NativeRandomBytesGeneratorAdapter;
-use Innis\Nostr\Core\Infrastructure\Service\Secp256k1EcdhService;
-use Innis\Nostr\Core\Infrastructure\Service\Secp256k1SignatureService;
+use Innis\Nostr\Core\Infrastructure\Adapter\NativeRandomBytesGeneratorAdapter;
+use Innis\Nostr\Core\Infrastructure\Adapter\Secp256k1EcdhAdapter;
+use Innis\Nostr\Core\Infrastructure\Adapter\Secp256k1SignatureAdapter;
+use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
 
 trait WithCryptoServices
 {
@@ -20,7 +20,7 @@ trait WithCryptoServices
     {
         if (null === $this->signatureService) {
             $randomBytes = new NativeRandomBytesGeneratorAdapter();
-            $this->signatureService = new Secp256k1SignatureService(
+            $this->signatureService = new Secp256k1SignatureAdapter(
                 LibSecp256k1Ffi::tryLoad($randomBytes->bytes(32)),
                 $randomBytes,
             );
@@ -32,7 +32,7 @@ trait WithCryptoServices
     protected function ecdhService(): EcdhServiceInterface
     {
         if (null === $this->ecdhService) {
-            $this->ecdhService = Secp256k1EcdhService::create();
+            $this->ecdhService = Secp256k1EcdhAdapter::create();
         }
 
         return $this->ecdhService;

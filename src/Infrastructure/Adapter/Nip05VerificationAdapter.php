@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Infrastructure\Service;
+namespace Innis\Nostr\Core\Infrastructure\Adapter;
 
 use Innis\Nostr\Core\Application\Port\HttpServiceInterface;
-use Innis\Nostr\Core\Domain\Service\Nip05VerificationServiceInterface;
+use Innis\Nostr\Core\Application\Port\Nip05VerificationServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Nip05Identifier;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Nip05VerificationResult;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;

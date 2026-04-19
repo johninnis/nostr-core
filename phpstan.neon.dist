@@ -4,7 +4,6 @@ parameters:
         - src
         - tests
     tmpDir: var/phpstan
-    reportUnmatchedIgnoredErrors: false
     ignoreErrors:
         # PHP cannot express generic array types natively (e.g. array<string,mixed>)
         -
@@ -12,8 +11,6 @@ parameters:
         # PHP cannot express generic class types natively (e.g. Collection<Event>)
         -
             identifier: missingType.generics
-# paragonie/ecc uses dynamic method dispatch that PHPStan cannot resolve
-        - '#Call to an undefined method Mdanter\\Ecc\\[a-zA-Z\\\\]+::[a-zA-Z]+\(\)#'
         # PHPStan infers port range from parse_url but the explicit bounds check is intentional defensive code
         -
             message: '#Comparison operation .* between int<1, 65535> and 65535 is always false#'
@@ -22,23 +19,15 @@ parameters:
         # FFI dynamically defines methods from C headers at runtime
         -
             message: '#Call to an undefined method FFI::#'
-            path: src/Domain/ValueObject/Identity/Secp256k1.php
-        # FFI instance is guaranteed non-null when these methods are called (guarded by isAvailable)
-        -
-            message: '#Cannot call method .+ on FFI\|null#'
-            path: src/Domain/ValueObject/Identity/Secp256k1.php
+            path: src/Infrastructure/Crypto/Nip49Scrypt.php
         # FFI dynamically defines methods from C headers at runtime
         -
             message: '#Call to an undefined method FFI::#'
-            path: src/Infrastructure/Service/Nip49Scrypt.php
-        # FFI dynamically defines methods from C headers at runtime
-        -
-            message: '#Call to an undefined method FFI::#'
-            path: src/Infrastructure/Service/LibSecp256k1Ffi.php
+            path: src/Infrastructure/Crypto/LibSecp256k1Ffi.php
         # FFI\CData->cdata is the dynamic accessor for scalar FFI types; PHPStan cannot see it
         -
             message: '#Access to an undefined property FFI\\CData::\$cdata#'
-            path: src/Infrastructure/Service/LibSecp256k1Ffi.php
+            path: src/Infrastructure/Crypto/LibSecp256k1Ffi.php
         # Test assertions that verify runtime behaviour are legitimately trivially true from static analysis
         -
             identifier: method.alreadyNarrowedType

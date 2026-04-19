@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Tests\Unit\Infrastructure\Service;
+namespace Innis\Nostr\Core\Tests\Unit\Infrastructure\Adapter;
 
 use Innis\Nostr\Core\Domain\Enum\KeySecurityByte;
 use Innis\Nostr\Core\Domain\Exception\Nip49DecryptionFailedException;
 use Innis\Nostr\Core\Domain\Service\Bech32Codec;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Ncryptsec;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
-use Innis\Nostr\Core\Infrastructure\Service\Nip49EncryptionAdapter;
+use Innis\Nostr\Core\Infrastructure\Adapter\Nip49EncryptionAdapter;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -128,7 +128,6 @@ final class Nip49EncryptionAdapterTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Password provider must return a string');
-        /* @phpstan-ignore argument.type */
         $this->adapter->encrypt($privateKey, static fn (): int => 123, self::FAST_LOG_N);
     }
 
