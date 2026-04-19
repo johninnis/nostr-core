@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Entity;
 
+use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
@@ -15,8 +16,6 @@ use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use InvalidArgumentException;
-use LogicException;
-use RuntimeException;
 
 final readonly class Event
 {
@@ -38,11 +37,7 @@ final readonly class Event
         }
 
         $id = $this->calculateId();
-        $idBytes = hex2bin($id->toHex());
-        if (false === $idBytes) {
-            throw new RuntimeException('Failed to decode event ID hex');
-        }
-        $signature = $signatureService->sign($keyPair->getPrivateKey(), $idBytes);
+        $signature = $signatureService->sign($keyPair->getPrivateKey(), $id->toBytes());
 
         return new self($this->pubkey, $this->createdAt, $this->kind, $this->tags, $this->content, $id, $signature);
     }
@@ -57,12 +52,7 @@ final readonly class Event
             return false;
         }
 
-        $idBytes = hex2bin($this->id->toHex());
-        if (false === $idBytes) {
-            return false;
-        }
-
-        return $signatureService->verify($this->pubkey, $idBytes, $this->signature);
+        return $signatureService->verify($this->pubkey, $this->id->toBytes(), $this->signature);
     }
 
     public function calculateId(): EventId
@@ -82,12 +72,13 @@ final readonly class Event
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_LINE_TERMINATORS);
 
         if (false === $serialised) {
-            throw new RuntimeException('Failed to serialise event for ID calculation');
+            throw new InvalidEventException('Failed to serialise event for ID calculation');
         }
 
-        $hash = hash('sha256', $serialised);
+        $id = EventId::fromBytes(hash('sha256', $serialised, true));
+        assert(null !== $id);
 
-        return EventId::fromHex($hash) ?? throw new LogicException('SHA-256 hash produced invalid hex');
+        return $id;
     }
 
     public function getId(): EventId
@@ -251,7 +242,7 @@ final readonly class Event
         }
 
         return new self(
-            PublicKey::fromHex($data['pubkey']) ?? throw new RuntimeException('Invalid pubkey in event data'),
+            PublicKey::fromHex($data['pubkey']) ?? throw new InvalidEventException('Invalid pubkey in event data'),
             Timestamp::fromInt($data['created_at']),
             EventKind::fromInt($data['kind']),
             TagCollection::fromArray($data['tags']),

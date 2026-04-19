@@ -18,6 +18,14 @@ final readonly class EventId
         return $this->id;
     }
 
+    public function toBytes(): string
+    {
+        $bytes = hex2bin($this->id);
+        assert(false !== $bytes);
+
+        return $bytes;
+    }
+
     public function toBech32(): string
     {
         return Bech32Codec::encode('note', Bech32Codec::hexToBytes($this->id));
@@ -35,6 +43,15 @@ final readonly class EventId
         }
 
         return new self($hex);
+    }
+
+    public static function fromBytes(string $bytes): ?self
+    {
+        if (32 !== strlen($bytes)) {
+            return null;
+        }
+
+        return new self(bin2hex($bytes));
     }
 
     public static function fromBech32(string $bech32): ?self

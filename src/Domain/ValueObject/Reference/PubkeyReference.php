@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Reference;
 
+use Innis\Nostr\Core\Domain\Exception\InvalidReferenceException;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
-use RuntimeException;
 
 final readonly class PubkeyReference
 {
@@ -44,7 +44,7 @@ final readonly class PubkeyReference
     public static function fromArray(array $data): self
     {
         return new self(
-            PublicKey::fromHex($data['pubkey']) ?? throw new RuntimeException('Corrupt pubkey in serialised PubkeyReference'),
+            PublicKey::fromHex($data['pubkey']) ?? throw new InvalidReferenceException('Corrupt pubkey in serialised PubkeyReference'),
             isset($data['relay_url']) ? RelayUrl::fromString($data['relay_url']) : null,
             $data['petname'] ?? null
         );

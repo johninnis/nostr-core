@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Reference;
 
+use Innis\Nostr\Core\Domain\Exception\InvalidReferenceException;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\PubkeyReference;
@@ -88,7 +89,7 @@ final class PubkeyReferenceTest extends TestCase
 
     public function testFromArrayThrowsForInvalidPubkey(): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(InvalidReferenceException::class);
 
         PubkeyReference::fromArray(['pubkey' => 'invalid']);
     }

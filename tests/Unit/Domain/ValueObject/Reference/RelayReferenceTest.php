@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Reference;
 
+use Innis\Nostr\Core\Domain\Exception\InvalidReferenceException;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\RelayReference;
 use PHPUnit\Framework\TestCase;
@@ -76,7 +77,7 @@ final class RelayReferenceTest extends TestCase
 
     public function testFromArrayThrowsForInvalidUrl(): void
     {
-        $this->expectException(RuntimeException::class);
+        $this->expectException(InvalidReferenceException::class);
 
         RelayReference::fromArray(['url' => 'not-a-valid-url']);
     }
