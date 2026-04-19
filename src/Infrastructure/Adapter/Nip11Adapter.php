@@ -7,6 +7,7 @@ namespace Innis\Nostr\Core\Infrastructure\Adapter;
 use Innis\Nostr\Core\Application\Port\HttpServiceInterface;
 use Innis\Nostr\Core\Application\Port\Nip11ServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Nip11Info;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayHttpUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Psr\Log\LoggerInterface;
 
@@ -20,14 +21,14 @@ final class Nip11Adapter implements Nip11ServiceInterface
 
     public function fetchNip11Info(RelayUrl $relayUrl): ?Nip11Info
     {
-        $httpUrl = $this->convertWebSocketToHttp((string) $relayUrl);
+        $httpUrl = new RelayHttpUrl($relayUrl);
 
         $this->logger->debug('Fetching NIP-11 info for relay', [
             'relay_url' => (string) $relayUrl,
-            'http_url' => $httpUrl,
+            'http_url' => (string) $httpUrl,
         ]);
 
-        $data = $this->httpService->getJson($httpUrl, [
+        $data = $this->httpService->getJson((string) $httpUrl, [
             'Accept' => 'application/nostr+json',
             'User-Agent' => 'Nostr-PHP/1.0',
         ]);
@@ -45,14 +46,5 @@ final class Nip11Adapter implements Nip11ServiceInterface
         ]);
 
         return Nip11Info::fromArray($relayUrl, $data);
-    }
-
-    private function convertWebSocketToHttp(string $wsUrl): string
-    {
-        if (str_starts_with($wsUrl, 'wss://')) {
-            return 'https://'.substr($wsUrl, 6);
-        }
-
-        return 'http://'.substr($wsUrl, 5);
     }
 }

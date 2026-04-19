@@ -9,9 +9,12 @@ use Innis\Nostr\Core\Domain\Exception\Nip98ValidationException;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
+use InvalidArgumentException;
+use JsonException;
 
 final readonly class Nip98ValidationService implements Nip98ValidationServiceInterface
 {
+    private const AUTH_HEADER_PREFIX = 'Nostr ';
     private const DEFAULT_TIMESTAMP_TOLERANCE = 60;
 
     public function __construct(
@@ -34,6 +37,43 @@ final readonly class Nip98ValidationService implements Nip98ValidationServiceInt
         }
 
         return $event->getPubkey();
+    }
+
+    public function validateAuthHeader(string $authHeader, string $requestUrl, string $requestMethod, string $requestBody): PublicKey
+    {
+        $event = $this->parseAuthHeader($authHeader);
+        $bodyHash = '' === $requestBody ? null : hash('sha256', $requestBody);
+
+        return $this->validate($event, $requestUrl, $requestMethod, $bodyHash);
+    }
+
+    private function parseAuthHeader(string $authHeader): Event
+    {
+        if (!str_starts_with($authHeader, self::AUTH_HEADER_PREFIX)) {
+            throw new Nip98ValidationException('Invalid Authorization header format');
+        }
+
+        $json = base64_decode(substr($authHeader, strlen(self::AUTH_HEADER_PREFIX)), true);
+
+        if (false === $json) {
+            throw new Nip98ValidationException('Invalid base64 in Authorization header');
+        }
+
+        try {
+            $data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            throw new Nip98ValidationException('Invalid JSON in Authorization header');
+        }
+
+        if (!is_array($data)) {
+            throw new Nip98ValidationException('Invalid JSON in Authorization header');
+        }
+
+        try {
+            return Event::fromArray($data);
+        } catch (InvalidArgumentException $e) {
+            throw new Nip98ValidationException('Invalid event in Authorization header: '.$e->getMessage());
+        }
     }
 
     private function validateKind(Event $event): void

@@ -279,6 +279,87 @@ final class Nip98ValidationServiceTest extends TestCase
         $this->service->validate($event, 'https://relay.example.com/', 'POST');
     }
 
+    public function testValidateAuthHeaderReturnsPublicKey(): void
+    {
+        $body = '{"method":"test"}';
+        $event = $this->createValidSignedEvent();
+        $authHeader = 'Nostr '.base64_encode((string) json_encode($event->toArray(), JSON_THROW_ON_ERROR));
+
+        $pubkey = $this->service->validateAuthHeader($authHeader, 'https://relay.example.com/', 'POST', $body);
+
+        $this->assertTrue($pubkey->equals($this->keyPair->getPublicKey()));
+    }
+
+    public function testValidateAuthHeaderAllowsEmptyBodyWithoutPayloadTag(): void
+    {
+        $tags = new TagCollection([
+            Tag::fromArray(['u', 'https://relay.example.com/']),
+            Tag::fromArray(['method', 'GET']),
+        ]);
+        $event = $this->createSignedEventWithTags($tags);
+        $authHeader = 'Nostr '.base64_encode((string) json_encode($event->toArray(), JSON_THROW_ON_ERROR));
+
+        $pubkey = $this->service->validateAuthHeader($authHeader, 'https://relay.example.com/', 'GET', '');
+
+        $this->assertTrue($pubkey->equals($this->keyPair->getPublicKey()));
+    }
+
+    public function testValidateAuthHeaderRejectsMissingPrefix(): void
+    {
+        $this->expectException(Nip98ValidationException::class);
+        $this->expectExceptionMessage('Invalid Authorization header format');
+
+        $this->service->validateAuthHeader('Bearer token', 'https://relay.example.com/', 'POST', '');
+    }
+
+    public function testValidateAuthHeaderRejectsInvalidBase64(): void
+    {
+        $this->expectException(Nip98ValidationException::class);
+        $this->expectExceptionMessage('Invalid base64 in Authorization header');
+
+        $this->service->validateAuthHeader('Nostr !!!not-base64!!!', 'https://relay.example.com/', 'POST', '');
+    }
+
+    public function testValidateAuthHeaderRejectsInvalidJson(): void
+    {
+        $this->expectException(Nip98ValidationException::class);
+        $this->expectExceptionMessage('Invalid JSON in Authorization header');
+
+        $this->service->validateAuthHeader('Nostr '.base64_encode('not-json'), 'https://relay.example.com/', 'POST', '');
+    }
+
+    public function testValidateAuthHeaderRejectsNonObjectJson(): void
+    {
+        $this->expectException(Nip98ValidationException::class);
+        $this->expectExceptionMessage('Invalid JSON in Authorization header');
+
+        $this->service->validateAuthHeader('Nostr '.base64_encode('"a string"'), 'https://relay.example.com/', 'POST', '');
+    }
+
+    public function testValidateAuthHeaderRejectsMalformedEvent(): void
+    {
+        $this->expectException(Nip98ValidationException::class);
+        $this->expectExceptionMessage('Invalid event in Authorization header');
+
+        $this->service->validateAuthHeader(
+            'Nostr '.base64_encode((string) json_encode(['kind' => 27235])),
+            'https://relay.example.com/',
+            'POST',
+            '',
+        );
+    }
+
+    public function testValidateAuthHeaderRejectsPayloadHashMismatch(): void
+    {
+        $event = $this->createValidSignedEvent();
+        $authHeader = 'Nostr '.base64_encode((string) json_encode($event->toArray(), JSON_THROW_ON_ERROR));
+
+        $this->expectException(Nip98ValidationException::class);
+        $this->expectExceptionMessage('Payload hash does not match request body');
+
+        $this->service->validateAuthHeader($authHeader, 'https://relay.example.com/', 'POST', '{"different":"body"}');
+    }
+
     private function createValidSignedEvent(): Event
     {
         $tags = new TagCollection([
