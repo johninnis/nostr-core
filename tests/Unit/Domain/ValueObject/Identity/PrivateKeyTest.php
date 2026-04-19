@@ -40,24 +40,6 @@ final class PrivateKeyTest extends TestCase
         $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $privateKey->toHex());
     }
 
-    public function testCanGetPublicKey(): void
-    {
-        $privateKey = PrivateKey::generate();
-        $publicKey = $privateKey->getPublicKey();
-
-        $this->assertSame(64, strlen($publicKey->toHex()));
-        $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $publicKey->toHex());
-    }
-
-    public function testCanSignMessage(): void
-    {
-        $privateKey = PrivateKey::generate();
-        $signature = $privateKey->sign('test message');
-
-        $this->assertSame(128, strlen($signature->toHex()));
-        $this->assertMatchesRegularExpression('/^[a-f0-9]{128}$/', $signature->toHex());
-    }
-
     public function testCanConvertToBech32(): void
     {
         $privateKey = PrivateKey::fromHex(self::VALID_PRIVATE_KEY_HEX) ?? throw new RuntimeException('Invalid test key');
@@ -97,45 +79,6 @@ final class PrivateKeyTest extends TestCase
     public function testFromHexReturnsNullForUppercaseHex(): void
     {
         $this->assertNull(PrivateKey::fromHex(strtoupper(self::VALID_PRIVATE_KEY_HEX)));
-    }
-
-    public function testSignAndVerifyRoundTrip(): void
-    {
-        $privateKey = PrivateKey::generate();
-        $publicKey = $privateKey->getPublicKey();
-        $message = random_bytes(32);
-
-        $signature = $privateKey->sign($message);
-
-        $this->assertTrue($publicKey->verify($message, $signature));
-    }
-
-    public function testGetPublicKeyIsIdempotent(): void
-    {
-        $privateKey = PrivateKey::generate();
-
-        $pubkey1 = $privateKey->getPublicKey();
-        $pubkey2 = $privateKey->getPublicKey();
-
-        $this->assertTrue($pubkey1->equals($pubkey2));
-    }
-
-    public function testZeroMakesSignThrow(): void
-    {
-        $privateKey = PrivateKey::generate();
-        $privateKey->zero();
-
-        $this->expectException(SecretKeyMaterialZeroedException::class);
-        $privateKey->sign(random_bytes(32));
-    }
-
-    public function testZeroMakesGetPublicKeyThrow(): void
-    {
-        $privateKey = PrivateKey::generate();
-        $privateKey->zero();
-
-        $this->expectException(SecretKeyMaterialZeroedException::class);
-        $privateKey->getPublicKey();
     }
 
     public function testZeroMakesToHexThrow(): void
@@ -183,13 +126,7 @@ final class PrivateKeyTest extends TestCase
         $viaHex = PrivateKey::fromHex(self::VALID_PRIVATE_KEY_HEX) ?? throw new RuntimeException('Invalid test key');
         $viaBytes = PrivateKey::fromBytes($bytes);
 
-        $message = random_bytes(32);
-        $publicKeyFromHex = $viaHex->getPublicKey();
-        $publicKeyFromBytes = $viaBytes->getPublicKey();
-
-        $this->assertTrue($publicKeyFromHex->equals($publicKeyFromBytes));
-        $this->assertTrue($publicKeyFromHex->verify($message, $viaHex->sign($message)));
-        $this->assertTrue($publicKeyFromBytes->verify($message, $viaBytes->sign($message)));
+        $this->assertSame($viaHex->toHex(), $viaBytes->toHex());
     }
 
     public function testFromBytesRejectsWrongLength(): void

@@ -15,6 +15,7 @@ final readonly class Nip98ValidationService
     private const DEFAULT_TIMESTAMP_TOLERANCE = 60;
 
     public function __construct(
+        private SignatureServiceInterface $signatureService,
         private int $timestampTolerance = self::DEFAULT_TIMESTAMP_TOLERANCE,
     ) {
     }
@@ -48,7 +49,7 @@ final readonly class Nip98ValidationService
             throw new Nip98ValidationException('Event must be signed');
         }
 
-        if (!$event->verify()) {
+        if (!$event->verify($this->signatureService)) {
             throw new Nip98ValidationException('Event signature is invalid');
         }
     }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
+namespace Innis\Nostr\Core\Infrastructure\Service;
 
 use Exception;
 use GMP;

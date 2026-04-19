@@ -113,7 +113,11 @@ final class Nip44PropertyComplianceTest extends TestCase
         $decoded = base64_decode($base64Payload, true);
         $this->assertNotFalse($decoded);
 
-        $offset = random_int(1, strlen($decoded) - 1);
+        $length = strlen($decoded);
+        $this->assertGreaterThan(1, $length);
+        assert($length > 1);
+
+        $offset = random_int(1, $length - 1);
         $byte = ord($decoded[$offset]);
         $bitMask = 1 << random_int(0, 7);
 

@@ -16,11 +16,14 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\OkMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Infrastructure\Adapter\JsonMessageSerialiserAdapter;
+use Innis\Nostr\Core\Tests\Support\WithCryptoServices;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 final class JsonMessageSerialiserAdapterTest extends TestCase
 {
+    use WithCryptoServices;
+
     private JsonMessageSerialiserAdapter $serialiser;
     private KeyPair $keyPair;
     private Event $event;
@@ -28,7 +31,7 @@ final class JsonMessageSerialiserAdapterTest extends TestCase
     protected function setUp(): void
     {
         $this->serialiser = new JsonMessageSerialiserAdapter();
-        $this->keyPair = KeyPair::generate();
+        $this->keyPair = KeyPair::generate($this->signatureService());
 
         $this->event = new Event(
             $this->keyPair->getPublicKey(),
@@ -37,7 +40,7 @@ final class JsonMessageSerialiserAdapterTest extends TestCase
             TagCollection::empty(),
             EventContent::fromString('Hello Nostr!')
         );
-        $this->event = $this->event->sign($this->keyPair->getPrivateKey());
+        $this->event = $this->event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
     }
 
     public function testCanDeserialiseClientEventMessage(): void

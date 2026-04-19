@@ -15,18 +15,21 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use Innis\Nostr\Core\Tests\Support\WithCryptoServices;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
 final class EventTest extends TestCase
 {
+    use WithCryptoServices;
+
     private KeyPair $keyPair;
     private Event $event;
 
     protected function setUp(): void
     {
-        $this->keyPair = KeyPair::generate();
+        $this->keyPair = KeyPair::generate($this->signatureService());
 
         $this->event = new Event(
             $this->keyPair->getPublicKey(),
@@ -48,7 +51,7 @@ final class EventTest extends TestCase
 
     public function testCanSignEvent(): void
     {
-        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey());
+        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
 
         $this->assertTrue($signedEvent->isSigned());
         $this->assertInstanceOf(Signature::class, $signedEvent->getSignature());
@@ -58,24 +61,24 @@ final class EventTest extends TestCase
 
     public function testThrowsExceptionWhenSigningWithWrongPrivateKey(): void
     {
-        $wrongKeyPair = KeyPair::generate();
+        $wrongKeyPair = KeyPair::generate($this->signatureService());
 
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Private key does not match event public key');
 
-        $this->event->sign($wrongKeyPair->getPrivateKey());
+        $this->event->sign($wrongKeyPair->getPrivateKey(), $this->signatureService());
     }
 
     public function testCanVerifyValidSignature(): void
     {
-        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey());
+        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
 
-        $this->assertTrue($signedEvent->verify());
+        $this->assertTrue($signedEvent->verify($this->signatureService()));
     }
 
     public function testUnsignedEventFailsVerification(): void
     {
-        $this->assertFalse($this->event->verify());
+        $this->assertFalse($this->event->verify($this->signatureService()));
     }
 
     public function testCanCalculateEventId(): void
@@ -97,7 +100,7 @@ final class EventTest extends TestCase
 
     public function testGetIdReturnsStoredIdForSignedEvent(): void
     {
-        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey());
+        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
         $storedId = $signedEvent->getId();
         $calculatedId = $signedEvent->calculateId();
 
@@ -106,7 +109,7 @@ final class EventTest extends TestCase
 
     public function testCanConvertToArray(): void
     {
-        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey());
+        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
         $array = $signedEvent->toArray();
 
         $this->assertArrayHasKey('id', $array);
@@ -137,7 +140,7 @@ final class EventTest extends TestCase
 
     public function testCanCreateFromArray(): void
     {
-        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey());
+        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
         $array = $signedEvent->toArray();
 
         $recreatedEvent = Event::fromArray($array);
@@ -187,7 +190,7 @@ final class EventTest extends TestCase
 
     public function testFromArrayCanCreateSignedEvent(): void
     {
-        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey());
+        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
         $array = $signedEvent->toArray();
 
         $recreatedEvent = Event::fromArray($array);
@@ -240,7 +243,7 @@ final class EventTest extends TestCase
 
     public function testRoundTripSerialisation(): void
     {
-        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey());
+        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
         $array = $signedEvent->toArray();
         $recreatedEvent = Event::fromArray($array);
         $recreatedArray = $recreatedEvent->toArray();
@@ -543,7 +546,7 @@ final class EventTest extends TestCase
 
     public function testToStringReturnsEventIdForSignedEvent(): void
     {
-        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey());
+        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
 
         $this->assertSame($signedEvent->getId()->toHex(), (string) $signedEvent);
     }
@@ -656,7 +659,7 @@ final class EventTest extends TestCase
             $event->calculateId()->toHex(),
             'calculateId() must emit U+2029 verbatim per NIP-01'
         );
-        $this->assertTrue($event->verify(), 'verify() must succeed for an event whose content contains U+2029');
+        $this->assertTrue($event->verify($this->signatureService()), 'verify() must succeed for an event whose content contains U+2029');
     }
 
     private function createEventWithKindAndContent(int $kind, string $content, array $tagArrays): Event

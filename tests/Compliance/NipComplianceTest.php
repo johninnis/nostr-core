@@ -12,17 +12,20 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use Innis\Nostr\Core\Tests\Support\WithCryptoServices;
 use PHPUnit\Framework\TestCase;
 
 final class NipComplianceTest extends TestCase
 {
+    use WithCryptoServices;
+
     private NipComplianceValidator $validator;
     private KeyPair $keyPair;
 
     protected function setUp(): void
     {
-        $this->validator = new NipComplianceValidator();
-        $this->keyPair = KeyPair::generate();
+        $this->validator = new NipComplianceValidator($this->signatureService());
+        $this->keyPair = KeyPair::generate($this->signatureService());
     }
 
     public function testNip01BasicEventCompliance(): void
@@ -34,13 +37,13 @@ final class NipComplianceTest extends TestCase
             TagCollection::empty(),
             EventContent::fromString('Hello Nostr!')
         );
-        $signedEvent = $event->sign($this->keyPair->getPrivateKey());
+        $signedEvent = $event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
 
         $this->validator->validateNip01Compliance($signedEvent);
 
         // Verify the event passes validation
         $this->assertTrue($signedEvent->isSigned());
-        $this->assertTrue($signedEvent->verify());
+        $this->assertTrue($signedEvent->verify($this->signatureService()));
     }
 
     public function testNip02ContactListCompliance(): void
@@ -57,7 +60,7 @@ final class NipComplianceTest extends TestCase
             $tags,
             EventContent::fromString('contact list')
         );
-        $signedEvent = $event->sign($this->keyPair->getPrivateKey());
+        $signedEvent = $event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
 
         $this->validator->validateNip02Compliance($signedEvent);
 
@@ -79,7 +82,7 @@ final class NipComplianceTest extends TestCase
             $tags,
             EventContent::fromString('encrypted-content')
         );
-        $signedEvent = $event->sign($this->keyPair->getPrivateKey());
+        $signedEvent = $event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
 
         $this->validator->validateNip04Compliance($signedEvent);
 
@@ -102,7 +105,7 @@ final class NipComplianceTest extends TestCase
             $tags,
             EventContent::fromString('spam')
         );
-        $signedEvent = $event->sign($this->keyPair->getPrivateKey());
+        $signedEvent = $event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
 
         $this->validator->validateNip09Compliance($signedEvent);
 
@@ -124,7 +127,7 @@ final class NipComplianceTest extends TestCase
             $tags,
             EventContent::fromString('removing article')
         );
-        $signedEvent = $event->sign($this->keyPair->getPrivateKey());
+        $signedEvent = $event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
 
         $this->validator->validateNip09Compliance($signedEvent);
 
@@ -144,7 +147,7 @@ final class NipComplianceTest extends TestCase
             $tags,
             EventContent::fromString('no targets')
         );
-        $signedEvent = $event->sign($this->keyPair->getPrivateKey());
+        $signedEvent = $event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
 
         $this->expectException(\Innis\Nostr\Core\Domain\Exception\InvalidEventException::class);
         $this->expectExceptionMessage('at least one e or a tag');
@@ -165,7 +168,7 @@ final class NipComplianceTest extends TestCase
             $tags,
             EventContent::fromString('missing k tag')
         );
-        $signedEvent = $event->sign($this->keyPair->getPrivateKey());
+        $signedEvent = $event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
 
         $this->expectException(\Innis\Nostr\Core\Domain\Exception\InvalidEventException::class);
         $this->expectExceptionMessage('at least one k tag');
@@ -187,7 +190,7 @@ final class NipComplianceTest extends TestCase
             $tags,
             EventContent::fromString('trying to delete a deletion')
         );
-        $signedEvent = $event->sign($this->keyPair->getPrivateKey());
+        $signedEvent = $event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
 
         $this->expectException(\Innis\Nostr\Core\Domain\Exception\InvalidEventException::class);
         $this->expectExceptionMessage('cannot target kind 5');
@@ -231,10 +234,10 @@ final class NipComplianceTest extends TestCase
             TagCollection::empty(),
             EventContent::fromString('test signature')
         );
-        $signedEvent = $event->sign($this->keyPair->getPrivateKey());
+        $signedEvent = $event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
 
         // Signature should verify correctly
-        $this->assertTrue($signedEvent->verify());
+        $this->assertTrue($signedEvent->verify($this->signatureService()));
 
         // Signature should be valid format
         $signature = $signedEvent->getSignature();

@@ -6,8 +6,10 @@ namespace Innis\Nostr\Core\Infrastructure\Service;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Exception\GiftWrapException;
+use Innis\Nostr\Core\Domain\Service\EcdhServiceInterface;
 use Innis\Nostr\Core\Domain\Service\GiftWrapServiceInterface;
 use Innis\Nostr\Core\Domain\Service\Nip44EncryptionInterface;
+use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
@@ -24,6 +26,8 @@ final class GiftWrapAdapter implements GiftWrapServiceInterface
 {
     public function __construct(
         private readonly Nip44EncryptionInterface $encryption,
+        private readonly SignatureServiceInterface $signatureService,
+        private readonly EcdhServiceInterface $ecdhService,
     ) {
     }
 
@@ -46,7 +50,7 @@ final class GiftWrapAdapter implements GiftWrapServiceInterface
             $sealTimestamp
         );
 
-        $ephemeral = $ephemeralKeyPair ?? KeyPair::generate();
+        $ephemeral = $ephemeralKeyPair ?? KeyPair::generate($this->signatureService);
         $ownsEphemeral = null === $ephemeralKeyPair;
 
         try {
@@ -88,20 +92,20 @@ final class GiftWrapAdapter implements GiftWrapServiceInterface
         TagCollection $tags,
         ?Timestamp $timestamp,
     ): Event {
-        $conversationKey = ConversationKey::derive($signingKey, $recipientPublicKey);
+        $conversationKey = ConversationKey::derive($signingKey, $recipientPublicKey, $this->ecdhService);
 
         try {
             $encrypted = $this->encryption->encrypt($this->serialiseEvent($innerEvent), $conversationKey);
 
             $event = new Event(
-                $signingKey->getPublicKey(),
+                $this->signatureService->derivePublicKey($signingKey),
                 $timestamp ?? Timestamp::randomised(),
                 $kind,
                 $tags,
                 EventContent::fromString($encrypted)
             );
 
-            return $event->sign($signingKey);
+            return $event->sign($signingKey, $this->signatureService);
         } finally {
             $conversationKey->zero();
         }
@@ -109,7 +113,7 @@ final class GiftWrapAdapter implements GiftWrapServiceInterface
 
     private function decryptLayer(Event $envelope, PrivateKey $recipientPrivateKey, string $layerName): Event
     {
-        $conversationKey = ConversationKey::derive($recipientPrivateKey, $envelope->getPubkey());
+        $conversationKey = ConversationKey::derive($recipientPrivateKey, $envelope->getPubkey(), $this->ecdhService);
 
         try {
             try {
@@ -138,7 +142,7 @@ final class GiftWrapAdapter implements GiftWrapServiceInterface
             throw new GiftWrapException('Rumour must not be signed');
         }
 
-        if (!$senderPrivateKey->getPublicKey()->equals($rumour->getPubkey())) {
+        if (!$this->signatureService->derivePublicKey($senderPrivateKey)->equals($rumour->getPubkey())) {
             throw new InvalidArgumentException('Sender private key does not match rumour public key');
         }
     }
@@ -149,7 +153,7 @@ final class GiftWrapAdapter implements GiftWrapServiceInterface
             throw new GiftWrapException('Event must be kind 1059 (gift wrap)');
         }
 
-        if (!$giftWrap->isSigned() || !$giftWrap->verify()) {
+        if (!$giftWrap->isSigned() || !$giftWrap->verify($this->signatureService)) {
             throw new GiftWrapException('Gift wrap signature is invalid');
         }
     }
@@ -160,7 +164,7 @@ final class GiftWrapAdapter implements GiftWrapServiceInterface
             throw new GiftWrapException('Decrypted event is not a seal (kind 13)');
         }
 
-        if (!$seal->isSigned() || !$seal->verify()) {
+        if (!$seal->isSigned() || !$seal->verify($this->signatureService)) {
             throw new GiftWrapException('Seal signature is invalid');
         }
     }

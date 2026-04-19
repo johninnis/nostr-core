@@ -6,7 +6,6 @@ namespace Innis\Nostr\Core\Infrastructure\Service;
 
 use FFI;
 use RuntimeException;
-use Throwable;
 
 final class Nip49Scrypt
 {
@@ -32,16 +31,16 @@ final class Nip49Scrypt
     private const SCRYPT_PARALLELISM = 1;
 
     private bool $initialised = false;
-    private bool $available = false;
     private ?FFI $ffi = null;
 
     public function isAvailable(): bool
     {
         if (!$this->initialised) {
-            $this->initialise();
+            $this->ffi = FfiLibraryLoader::tryLoad(self::CDEF, self::LIBRARY_NAMES);
+            $this->initialised = true;
         }
 
-        return $this->available;
+        return null !== $this->ffi;
     }
 
     public function derive(string $password, string $salt, int $logN): string
@@ -53,8 +52,8 @@ final class Nip49Scrypt
         $ffi = $this->ffi;
         assert(null !== $ffi);
 
-        $passwordBuffer = $this->toBuffer($ffi, $password);
-        $saltBuffer = $this->toBuffer($ffi, $salt);
+        $passwordBuffer = FfiLibraryLoader::toBuffer($ffi, $password);
+        $saltBuffer = FfiLibraryLoader::toBuffer($ffi, $salt);
         $output = $ffi->new('unsigned char['.self::OUTPUT_LENGTH.']');
 
         $returnCode = $ffi->crypto_pwhash_scryptsalsa208sha256_ll(
@@ -85,45 +84,6 @@ final class Nip49Scrypt
     public function reset(): void
     {
         $this->initialised = false;
-        $this->available = false;
         $this->ffi = null;
-    }
-
-    private function initialise(): void
-    {
-        $this->initialised = true;
-
-        try {
-            $ffi = $this->loadLibrary();
-            if (null === $ffi) {
-                return;
-            }
-            $this->ffi = $ffi;
-            $this->available = true;
-        } catch (Throwable) {
-            $this->ffi = null;
-        }
-    }
-
-    private function loadLibrary(): ?FFI
-    {
-        foreach (self::LIBRARY_NAMES as $name) {
-            try {
-                return FFI::cdef(self::CDEF, $name);
-            } catch (FFI\Exception) {
-                continue;
-            }
-        }
-
-        return null;
-    }
-
-    private function toBuffer(FFI $ffi, string $data): FFI\CData
-    {
-        $length = strlen($data);
-        $buffer = $ffi->new("unsigned char[{$length}]");
-        FFI::memcpy($buffer, $data, $length);
-
-        return $buffer;
     }
 }

@@ -10,12 +10,15 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Infrastructure\Service\Nip44EncryptionAdapter;
 use Innis\Nostr\Core\Tests\Fixtures\QueuedRandomBytesGenerator;
+use Innis\Nostr\Core\Tests\Support\WithCryptoServices;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 
 final class Nip44EncryptionComplianceTest extends TestCase
 {
+    use WithCryptoServices;
+
     #[DataProvider('conversationKeyVectorsProvider')]
     public function testConversationKeyDerivation(string $sec1, string $pub2, string $expectedKey): void
     {
@@ -25,7 +28,7 @@ final class Nip44EncryptionComplianceTest extends TestCase
         self::assertNotNull($privateKey);
         self::assertNotNull($publicKey);
 
-        $conversationKey = ConversationKey::derive($privateKey, $publicKey);
+        $conversationKey = ConversationKey::derive($privateKey, $publicKey, $this->ecdhService());
         $derivedHex = $conversationKey->expose(static fn (string $bytes): string => bin2hex($bytes));
 
         self::assertSame($expectedKey, $derivedHex);

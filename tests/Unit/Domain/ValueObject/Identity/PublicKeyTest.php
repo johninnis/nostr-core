@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Identity;
 
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -63,15 +62,6 @@ final class PublicKeyTest extends TestCase
         $this->assertFalse($publicKey1->equals($publicKey3));
     }
 
-    public function testVerifySignatureMethodExists(): void
-    {
-        $publicKey = PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
-        $signature = Signature::fromHex(str_repeat('a', 128)) ?? throw new RuntimeException('Invalid test sig');
-
-        $result = $publicKey->verify('test message', $signature);
-        $this->assertFalse($result);
-    }
-
     public function testFromBech32ReturnsNullForInvalidPrefix(): void
     {
         $this->assertNull(PublicKey::fromBech32('nsec1abc'));
@@ -85,13 +75,5 @@ final class PublicKeyTest extends TestCase
     public function testFromHexReturnsNullForUppercaseHex(): void
     {
         $this->assertNull(PublicKey::fromHex(strtoupper(self::VALID_PUBLIC_KEY_HEX)));
-    }
-
-    public function testVerifyReturnsFalseForWrongLengthSignature(): void
-    {
-        $publicKey = PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
-        $shortSig = Signature::fromHex(str_repeat('a', 128)) ?? throw new RuntimeException('Invalid test sig');
-
-        $this->assertFalse($publicKey->verify('test', $shortSig));
     }
 }

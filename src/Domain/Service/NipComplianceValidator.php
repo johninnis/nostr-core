@@ -11,6 +11,11 @@ use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 
 final class NipComplianceValidator
 {
+    public function __construct(
+        private readonly SignatureServiceInterface $signatureService,
+    ) {
+    }
+
     public function validateNip01Compliance(Event $event): void
     {
         $this->validateBasicStructure($event);
@@ -87,7 +92,7 @@ final class NipComplianceValidator
             throw new InvalidEventException('Event must be signed for NIP compliance');
         }
 
-        if (!$event->verify()) {
+        if (!$event->verify($this->signatureService)) {
             throw new InvalidEventException('Event signature is invalid');
         }
     }

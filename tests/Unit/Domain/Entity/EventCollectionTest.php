@@ -11,16 +11,19 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use Innis\Nostr\Core\Tests\Support\WithCryptoServices;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 final class EventCollectionTest extends TestCase
 {
+    use WithCryptoServices;
+
     private KeyPair $keyPair;
 
     protected function setUp(): void
     {
-        $this->keyPair = KeyPair::generate();
+        $this->keyPair = KeyPair::generate($this->signatureService());
     }
 
     public function testCanCreateEmptyCollection(): void
@@ -62,7 +65,7 @@ final class EventCollectionTest extends TestCase
     public function testRemoveReturnsNewCollectionWithoutEvent(): void
     {
         $event = $this->createEvent('Hello');
-        $signedEvent = $event->sign($this->keyPair->getPrivateKey());
+        $signedEvent = $event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
         $collection = new EventCollection([$signedEvent]);
 
         $newCollection = $collection->remove($signedEvent->getId());
@@ -73,8 +76,8 @@ final class EventCollectionTest extends TestCase
 
     public function testRemoveDoesNotAffectOtherEvents(): void
     {
-        $event1 = $this->createEvent('First')->sign($this->keyPair->getPrivateKey());
-        $event2 = $this->createEventAtTime('Second', 1234567891)->sign($this->keyPair->getPrivateKey());
+        $event1 = $this->createEvent('First')->sign($this->keyPair->getPrivateKey(), $this->signatureService());
+        $event2 = $this->createEventAtTime('Second', 1234567891)->sign($this->keyPair->getPrivateKey(), $this->signatureService());
         $collection = new EventCollection([$event1, $event2]);
 
         $newCollection = $collection->remove($event1->getId());
@@ -85,7 +88,7 @@ final class EventCollectionTest extends TestCase
 
     public function testContainsReturnsTrueWhenEventExists(): void
     {
-        $event = $this->createEvent('Hello')->sign($this->keyPair->getPrivateKey());
+        $event = $this->createEvent('Hello')->sign($this->keyPair->getPrivateKey(), $this->signatureService());
         $collection = new EventCollection([$event]);
 
         $this->assertTrue($collection->contains($event->getId()));
@@ -93,8 +96,8 @@ final class EventCollectionTest extends TestCase
 
     public function testContainsReturnsFalseWhenEventDoesNotExist(): void
     {
-        $event1 = $this->createEvent('Hello')->sign($this->keyPair->getPrivateKey());
-        $event2 = $this->createEventAtTime('World', 1234567891)->sign($this->keyPair->getPrivateKey());
+        $event1 = $this->createEvent('Hello')->sign($this->keyPair->getPrivateKey(), $this->signatureService());
+        $event2 = $this->createEventAtTime('World', 1234567891)->sign($this->keyPair->getPrivateKey(), $this->signatureService());
         $collection = new EventCollection([$event1]);
 
         $this->assertFalse($collection->contains($event2->getId()));
@@ -126,7 +129,7 @@ final class EventCollectionTest extends TestCase
 
     public function testFilterByAuthorReturnsMatchingEvents(): void
     {
-        $otherKeyPair = KeyPair::generate();
+        $otherKeyPair = KeyPair::generate($this->signatureService());
         $event1 = $this->createEvent('By original author');
         $event2 = new Event(
             $otherKeyPair->getPublicKey(),
@@ -329,7 +332,7 @@ final class EventCollectionTest extends TestCase
 
     public function testUniqueRemovesDuplicateEvents(): void
     {
-        $event = $this->createEvent('Hello')->sign($this->keyPair->getPrivateKey());
+        $event = $this->createEvent('Hello')->sign($this->keyPair->getPrivateKey(), $this->signatureService());
         $collection = new EventCollection([$event, $event]);
 
         $unique = $collection->unique();
@@ -339,8 +342,8 @@ final class EventCollectionTest extends TestCase
 
     public function testUniquePreservesDistinctEvents(): void
     {
-        $event1 = $this->createEvent('First')->sign($this->keyPair->getPrivateKey());
-        $event2 = $this->createEventAtTime('Second', 1234567891)->sign($this->keyPair->getPrivateKey());
+        $event1 = $this->createEvent('First')->sign($this->keyPair->getPrivateKey(), $this->signatureService());
+        $event2 = $this->createEventAtTime('Second', 1234567891)->sign($this->keyPair->getPrivateKey(), $this->signatureService());
         $collection = new EventCollection([$event1, $event2]);
 
         $unique = $collection->unique();
@@ -361,7 +364,7 @@ final class EventCollectionTest extends TestCase
 
     public function testToJsonArrayReturnsSerialisedEvents(): void
     {
-        $event = $this->createEvent('Hello')->sign($this->keyPair->getPrivateKey());
+        $event = $this->createEvent('Hello')->sign($this->keyPair->getPrivateKey(), $this->signatureService());
         $collection = new EventCollection([$event]);
 
         $jsonArray = $collection->toJsonArray();
@@ -418,7 +421,7 @@ final class EventCollectionTest extends TestCase
 
     public function testJsonSerializeReturnsSerialisedEvents(): void
     {
-        $event = $this->createEvent('Hello')->sign($this->keyPair->getPrivateKey());
+        $event = $this->createEvent('Hello')->sign($this->keyPair->getPrivateKey(), $this->signatureService());
         $collection = new EventCollection([$event]);
 
         $serialised = $collection->jsonSerialize();
@@ -428,7 +431,7 @@ final class EventCollectionTest extends TestCase
 
     public function testJsonEncodeProducesValidJson(): void
     {
-        $event = $this->createEvent('Hello')->sign($this->keyPair->getPrivateKey());
+        $event = $this->createEvent('Hello')->sign($this->keyPair->getPrivateKey(), $this->signatureService());
         $collection = new EventCollection([$event]);
 
         $json = json_encode($collection);

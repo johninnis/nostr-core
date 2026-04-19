@@ -14,9 +14,10 @@ final class EventValidationService
 
     private readonly NipComplianceValidator $nipValidator;
 
-    public function __construct()
-    {
-        $this->nipValidator = new NipComplianceValidator();
+    public function __construct(
+        private readonly SignatureServiceInterface $signatureService,
+    ) {
+        $this->nipValidator = new NipComplianceValidator($signatureService);
     }
 
     public function validateEvent(Event $event): void
@@ -65,7 +66,7 @@ final class EventValidationService
 
     private function validateSignature(Event $event): void
     {
-        if ($event->isSigned() && !$event->verify()) {
+        if ($event->isSigned() && !$event->verify($this->signatureService)) {
             throw new InvalidEventException('Event signature is invalid');
         }
     }

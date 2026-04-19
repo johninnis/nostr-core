@@ -12,11 +12,14 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use Innis\Nostr\Core\Tests\Support\WithCryptoServices;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 final class FilterTest extends TestCase
 {
+    use WithCryptoServices;
+
     public function testCanCreateFilter(): void
     {
         $filter = new Filter(
@@ -63,7 +66,7 @@ final class FilterTest extends TestCase
 
     public function testMatchesEventById(): void
     {
-        $keyPair = KeyPair::generate();
+        $keyPair = KeyPair::generate($this->signatureService());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -71,7 +74,7 @@ final class FilterTest extends TestCase
             TagCollection::empty(),
             EventContent::fromString('test')
         );
-        $signedEvent = $event->sign($keyPair->getPrivateKey());
+        $signedEvent = $event->sign($keyPair->getPrivateKey(), $this->signatureService());
 
         $filter = new Filter(ids: [$signedEvent->getId()->toHex()]);
 
@@ -80,7 +83,7 @@ final class FilterTest extends TestCase
 
     public function testMatchesEventByAuthor(): void
     {
-        $keyPair = KeyPair::generate();
+        $keyPair = KeyPair::generate($this->signatureService());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -96,7 +99,7 @@ final class FilterTest extends TestCase
 
     public function testMatchesEventByKind(): void
     {
-        $keyPair = KeyPair::generate();
+        $keyPair = KeyPair::generate($this->signatureService());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -112,7 +115,7 @@ final class FilterTest extends TestCase
 
     public function testMatchesEventByTag(): void
     {
-        $keyPair = KeyPair::generate();
+        $keyPair = KeyPair::generate($this->signatureService());
         $tags = new TagCollection([Tag::hashtag('nostr')]);
         $event = new Event(
             $keyPair->getPublicKey(),
@@ -129,7 +132,7 @@ final class FilterTest extends TestCase
 
     public function testMatchesEventWithMultipleTagTypesRequiresAll(): void
     {
-        $keyPair = KeyPair::generate();
+        $keyPair = KeyPair::generate($this->signatureService());
         $pubkeyHex = str_repeat('a', 64);
         $tags = new TagCollection([
             Tag::hashtag('nostr'),
@@ -155,7 +158,7 @@ final class FilterTest extends TestCase
 
     public function testMatchesEventWithMultipleValuesInSameTagType(): void
     {
-        $keyPair = KeyPair::generate();
+        $keyPair = KeyPair::generate($this->signatureService());
         $tags = new TagCollection([Tag::hashtag('nostr')]);
         $event = new Event(
             $keyPair->getPublicKey(),
@@ -171,7 +174,7 @@ final class FilterTest extends TestCase
 
     public function testDoesNotMatchWhenNoTagsMatchFilter(): void
     {
-        $keyPair = KeyPair::generate();
+        $keyPair = KeyPair::generate($this->signatureService());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -186,7 +189,7 @@ final class FilterTest extends TestCase
 
     public function testDoesNotMatchWhenCriteriaNotMet(): void
     {
-        $keyPair = KeyPair::generate();
+        $keyPair = KeyPair::generate($this->signatureService());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -342,7 +345,7 @@ final class FilterTest extends TestCase
 
     public function testMatchesEventBySinceTimestamp(): void
     {
-        $keyPair = KeyPair::generate();
+        $keyPair = KeyPair::generate($this->signatureService());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::fromInt(1234567895),
@@ -360,7 +363,7 @@ final class FilterTest extends TestCase
 
     public function testMatchesEventByUntilTimestamp(): void
     {
-        $keyPair = KeyPair::generate();
+        $keyPair = KeyPair::generate($this->signatureService());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::fromInt(1234567895),
@@ -378,7 +381,7 @@ final class FilterTest extends TestCase
 
     public function testMatchesEmptyFilterMatchesAnyEvent(): void
     {
-        $keyPair = KeyPair::generate();
+        $keyPair = KeyPair::generate($this->signatureService());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -394,7 +397,7 @@ final class FilterTest extends TestCase
 
     public function testDoesNotMatchEventWithWrongId(): void
     {
-        $keyPair = KeyPair::generate();
+        $keyPair = KeyPair::generate($this->signatureService());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -402,7 +405,7 @@ final class FilterTest extends TestCase
             TagCollection::empty(),
             EventContent::fromString('test')
         );
-        $signedEvent = $event->sign($keyPair->getPrivateKey());
+        $signedEvent = $event->sign($keyPair->getPrivateKey(), $this->signatureService());
 
         $filter = new Filter(ids: ['0000000000000000000000000000000000000000000000000000000000000000']);
 
@@ -411,7 +414,7 @@ final class FilterTest extends TestCase
 
     public function testDoesNotMatchEventWithWrongAuthor(): void
     {
-        $keyPair = KeyPair::generate();
+        $keyPair = KeyPair::generate($this->signatureService());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -512,7 +515,7 @@ final class FilterTest extends TestCase
 
     public function testMatchesSearchTermInContent(): void
     {
-        $keyPair = KeyPair::generate();
+        $keyPair = KeyPair::generate($this->signatureService());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -528,7 +531,7 @@ final class FilterTest extends TestCase
 
     public function testSearchIsCaseInsensitive(): void
     {
-        $keyPair = KeyPair::generate();
+        $keyPair = KeyPair::generate($this->signatureService());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -544,7 +547,7 @@ final class FilterTest extends TestCase
 
     public function testSearchRequiresAllTerms(): void
     {
-        $keyPair = KeyPair::generate();
+        $keyPair = KeyPair::generate($this->signatureService());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -560,7 +563,7 @@ final class FilterTest extends TestCase
 
     public function testSearchDoesNotMatchWhenTermAbsent(): void
     {
-        $keyPair = KeyPair::generate();
+        $keyPair = KeyPair::generate($this->signatureService());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -576,7 +579,7 @@ final class FilterTest extends TestCase
 
     public function testSearchCombinesWithOtherFilters(): void
     {
-        $keyPair = KeyPair::generate();
+        $keyPair = KeyPair::generate($this->signatureService());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -646,5 +649,61 @@ final class FilterTest extends TestCase
             $expectedInts,
             array_map(static fn (EventKind $k) => $k->toInt(), $actualKinds)
         );
+    }
+
+    public function testConstructorRejectsIdsExceedingMaxValues(): void
+    {
+        $ids = array_fill(0, Filter::MAX_VALUES_PER_FIELD + 1, str_repeat('0', 64));
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('may contain at most');
+
+        new Filter(ids: $ids);
+    }
+
+    public function testConstructorRejectsAuthorsExceedingMaxValues(): void
+    {
+        $authors = array_fill(0, Filter::MAX_VALUES_PER_FIELD + 1, str_repeat('0', 64));
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('may contain at most');
+
+        new Filter(authors: $authors);
+    }
+
+    public function testConstructorRejectsKindsExceedingMaxValues(): void
+    {
+        $kinds = array_fill(0, Filter::MAX_VALUES_PER_FIELD + 1, 1);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('may contain at most');
+
+        new Filter(kinds: $kinds);
+    }
+
+    public function testConstructorRejectsTagValuesExceedingMaxValues(): void
+    {
+        $values = array_fill(0, Filter::MAX_VALUES_PER_FIELD + 1, 'abc');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('may contain at most');
+
+        new Filter(tags: ['e' => $values]);
+    }
+
+    public function testFromArrayRejectsEmptyTagName(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('has no tag name');
+
+        Filter::fromArray(['#' => ['value']]);
+    }
+
+    public function testFromArrayRejectsNonArrayTagValues(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('must be an array');
+
+        Filter::fromArray(['#e' => 'not-an-array']);
     }
 }

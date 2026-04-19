@@ -13,17 +13,20 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use Innis\Nostr\Core\Tests\Support\WithCryptoServices;
 use PHPUnit\Framework\TestCase;
 
 final class EventValidationServiceTest extends TestCase
 {
+    use WithCryptoServices;
+
     private EventValidationService $service;
     private KeyPair $keyPair;
 
     protected function setUp(): void
     {
-        $this->service = new EventValidationService();
-        $this->keyPair = KeyPair::generate();
+        $this->service = new EventValidationService($this->signatureService());
+        $this->keyPair = KeyPair::generate($this->signatureService());
     }
 
     public function testValidEventPassesValidation(): void
@@ -44,7 +47,7 @@ final class EventValidationServiceTest extends TestCase
             TagCollection::empty(),
             EventContent::fromString('Hello')
         );
-        $signedEvent = $event->sign($this->keyPair->getPrivateKey());
+        $signedEvent = $event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
 
         $this->expectException(InvalidEventException::class);
         $this->expectExceptionMessage('Event timestamp is not reasonable');
@@ -183,6 +186,6 @@ final class EventValidationServiceTest extends TestCase
             EventContent::fromString('Hello Nostr!')
         );
 
-        return $event->sign($this->keyPair->getPrivateKey());
+        return $event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
     }
 }

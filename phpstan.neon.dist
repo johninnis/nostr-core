@@ -31,6 +31,10 @@ parameters:
         -
             message: '#Call to an undefined method FFI::#'
             path: src/Infrastructure/Service/Nip49Scrypt.php
+        # FFI dynamically defines methods from C headers at runtime
+        -
+            message: '#Call to an undefined method FFI::#'
+            path: src/Infrastructure/Service/LibSecp256k1Ffi.php
         # Test assertions that verify runtime behaviour are legitimately trivially true from static analysis
         -
             identifier: method.alreadyNarrowedType

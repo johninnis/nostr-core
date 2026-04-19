@@ -47,12 +47,16 @@ composer require innis/nostr-core
 
 ## Quick Start
 
+Cryptographic operations (signing, verification, public-key derivation, ECDH) are exposed as Domain service interfaces with Infrastructure adapters. The `Secp256k1SignatureService` and `Secp256k1EcdhService` adapters pick an FFI-accelerated path when `libsecp256k1` is available and fall back to pure PHP otherwise — callers do not need to care.
+
 ### Key Generation
 
 ```php
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
+use Innis\Nostr\Core\Infrastructure\Service\Secp256k1SignatureService;
 
-$keyPair = KeyPair::generate();
+$signatureService = Secp256k1SignatureService::create();
+$keyPair = KeyPair::generate($signatureService);
 
 echo $keyPair->getPrivateKey()->toBech32(); // nsec1...
 echo $keyPair->getPublicKey()->toBech32();  // npub1...
@@ -68,7 +72,9 @@ $event = EventFactory::createTextNote(
     'Hello Nostr!'
 );
 
-$signedEvent = $event->sign($keyPair->getPrivateKey());
+$signedEvent = $event->sign($keyPair->getPrivateKey(), $signatureService);
+
+$signedEvent->verify($signatureService); // bool
 ```
 
 ### Message Handling
@@ -116,12 +122,12 @@ $recovered = $adapter->decrypt($decoded, static fn (): string => readPasswordFro
 `PrivateKey` and `ConversationKey` hold their raw bytes inside a `SecretKeyMaterial` value object. Callers that need to clear secret material from memory can call `zero()`; any subsequent operation on that key throws `SecretKeyMaterialZeroedException`. Infrastructure code that genuinely needs raw bytes uses the bounded `expose` callback, which passes a CoW-separated copy of the bytes to the closure and `sodium_memzero`s that copy before the method returns:
 
 ```php
-$signature = $privateKey->expose(static function (string $bytes): string {
+$derived = $privateKey->expose(static function (string $bytes): string {
     return derive_something($bytes);
 });
 
 $privateKey->zero();
-$privateKey->sign($message); // throws SecretKeyMaterialZeroedException
+$signatureService->sign($privateKey, $message); // throws SecretKeyMaterialZeroedException
 ```
 
 **`zero()` is a contract, not a guarantee via destruction.** `SecretKeyMaterial`'s destructor does call `zero()` as defence-in-depth, but PHP's garbage collector runs on refcount-zero, which may never happen for keys captured in long-lived closures, static state, exception trace frames, or cyclic references. Applications that require bounded key-material lifetimes — session-scoped bunker signers, for example — must call `$privateKey->zero()` explicitly at the end of the session. Treat the destructor as cleanup-of-last-resort, not as the primary wipe mechanism.

@@ -14,17 +14,20 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use Innis\Nostr\Core\Tests\Support\WithCryptoServices;
 use PHPUnit\Framework\TestCase;
 
 final class Nip98ValidationServiceTest extends TestCase
 {
+    use WithCryptoServices;
+
     private Nip98ValidationService $service;
     private KeyPair $keyPair;
 
     protected function setUp(): void
     {
-        $this->service = new Nip98ValidationService();
-        $this->keyPair = KeyPair::generate();
+        $this->service = new Nip98ValidationService($this->signatureService());
+        $this->keyPair = KeyPair::generate($this->signatureService());
     }
 
     public function testValidEventReturnsPublicKey(): void
@@ -257,7 +260,7 @@ final class Nip98ValidationServiceTest extends TestCase
 
     public function testCustomTimestampTolerance(): void
     {
-        $service = new Nip98ValidationService(timestampTolerance: 10);
+        $service = new Nip98ValidationService($this->signatureService(), timestampTolerance: 10);
         $event = $this->createSignedEventWithTimestamp(Timestamp::fromInt(time() - 30));
 
         $this->expectException(Nip98ValidationException::class);
@@ -302,7 +305,7 @@ final class Nip98ValidationServiceTest extends TestCase
             EventContent::empty()
         );
 
-        return $event->sign($this->keyPair->getPrivateKey());
+        return $event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
     }
 
     private function createSignedEventWithTimestamp(Timestamp $timestamp): Event
@@ -321,7 +324,7 @@ final class Nip98ValidationServiceTest extends TestCase
             EventContent::empty()
         );
 
-        return $event->sign($this->keyPair->getPrivateKey());
+        return $event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
     }
 
     private function createSignedEventWithTags(TagCollection $tags): Event
@@ -334,6 +337,6 @@ final class Nip98ValidationServiceTest extends TestCase
             EventContent::empty()
         );
 
-        return $event->sign($this->keyPair->getPrivateKey());
+        return $event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
     }
 }

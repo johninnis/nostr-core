@@ -9,11 +9,14 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Infrastructure\Service\Nip44EncryptionAdapter;
 use Innis\Nostr\Core\Tests\Fixtures\QueuedRandomBytesGenerator;
+use Innis\Nostr\Core\Tests\Support\WithCryptoServices;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class Nip44EncryptionAdapterTest extends TestCase
 {
+    use WithCryptoServices;
+
     private Nip44EncryptionAdapter $adapter;
 
     protected function setUp(): void
@@ -25,7 +28,8 @@ final class Nip44EncryptionAdapterTest extends TestCase
     {
         $privateKeyA = PrivateKey::generate();
         $privateKeyB = PrivateKey::generate();
-        $conversationKey = ConversationKey::derive($privateKeyA, $privateKeyB->getPublicKey());
+        $publicKeyB = $this->signatureService()->derivePublicKey($privateKeyB);
+        $conversationKey = ConversationKey::derive($privateKeyA, $publicKeyB, $this->ecdhService());
 
         $plaintext = 'Hello, NIP-44!';
         $encrypted = $this->adapter->encrypt($plaintext, $conversationKey);
@@ -38,9 +42,11 @@ final class Nip44EncryptionAdapterTest extends TestCase
     {
         $privateKeyA = PrivateKey::generate();
         $privateKeyB = PrivateKey::generate();
+        $publicKeyA = $this->signatureService()->derivePublicKey($privateKeyA);
+        $publicKeyB = $this->signatureService()->derivePublicKey($privateKeyB);
 
-        $keyAB = ConversationKey::derive($privateKeyA, $privateKeyB->getPublicKey());
-        $keyBA = ConversationKey::derive($privateKeyB, $privateKeyA->getPublicKey());
+        $keyAB = ConversationKey::derive($privateKeyA, $publicKeyB, $this->ecdhService());
+        $keyBA = ConversationKey::derive($privateKeyB, $publicKeyA, $this->ecdhService());
 
         $plaintext = 'Symmetric key test';
         $encrypted = $this->adapter->encrypt($plaintext, $keyAB);

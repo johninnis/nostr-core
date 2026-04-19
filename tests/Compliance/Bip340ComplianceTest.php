@@ -4,31 +4,28 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Compliance;
 
+use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\Secp256k1;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
+use Innis\Nostr\Core\Infrastructure\Service\LibSecp256k1Ffi;
+use Innis\Nostr\Core\Infrastructure\Service\NativeRandomBytesGeneratorAdapter;
+use Innis\Nostr\Core\Infrastructure\Service\Secp256k1SignatureService;
+use Innis\Nostr\Core\Tests\Fixtures\QueuedRandomBytesGenerator;
 use PHPUnit\Framework\TestCase;
-use ReflectionClass;
 use Throwable;
 
 final class Bip340ComplianceTest extends TestCase
 {
     private const VECTORS_PATH = __DIR__.'/../Fixtures/bip340-vectors.csv';
 
-    protected function tearDown(): void
-    {
-        $this->setFfiAvailability(null);
-    }
-
     public function testVerifyFfiMatchesExpectedAcrossAllVectors(): void
     {
-        $this->setFfiAvailability(true);
-        $this->assertTrue(Secp256k1::isAvailable(), 'FFI libsecp256k1 must be available for this test');
+        $service = $this->ffiService();
 
         $problems = [];
         foreach ($this->vectors() as $vector) {
-            $problem = $this->collectVerifyMismatch($vector, 'FFI');
+            $problem = $this->collectVerifyMismatch($service, $vector, 'FFI');
             if (null !== $problem) {
                 $problems[] = $problem;
             }
@@ -39,12 +36,11 @@ final class Bip340ComplianceTest extends TestCase
 
     public function testVerifyPurePhpMatchesExpectedAcrossAllVectors(): void
     {
-        $this->setFfiAvailability(false);
-        $this->assertFalse(Secp256k1::isAvailable(), 'FFI must be forced off for this test');
+        $service = $this->purePhpService();
 
         $problems = [];
         foreach ($this->vectors() as $vector) {
-            $problem = $this->collectVerifyMismatch($vector, 'pure-PHP');
+            $problem = $this->collectVerifyMismatch($service, $vector, 'pure-PHP');
             if (null !== $problem) {
                 $problems[] = $problem;
             }
@@ -55,25 +51,23 @@ final class Bip340ComplianceTest extends TestCase
 
     public function testSignThenVerifyRoundTripsOnBothPathsForSigningVectors(): void
     {
+        $ffiService = $this->ffiService();
+        $purePhpService = $this->purePhpService();
+
         $problems = [];
 
         foreach ($this->signingVectors() as $vector) {
             $privateKey = PrivateKey::fromHex(strtolower($vector['secret']));
             $this->assertNotNull($privateKey);
 
-            $this->setFfiAvailability(true);
-            $ffiSig = $privateKey->sign($vector['message']);
+            $ffiSig = $ffiService->sign($privateKey, $vector['message']);
+            $phpSig = $purePhpService->sign($privateKey, $vector['message']);
+            $publicKey = $ffiService->derivePublicKey($privateKey);
 
-            $this->setFfiAvailability(false);
-            $phpSig = $privateKey->sign($vector['message']);
-
-            foreach ([true, false] as $verifyFfi) {
-                $this->setFfiAvailability($verifyFfi);
-                $verifyLabel = $verifyFfi ? 'FFI' : 'pure-PHP';
-
+            foreach ([['FFI', $ffiService], ['pure-PHP', $purePhpService]] as [$verifyLabel, $verifier]) {
                 foreach ([['FFI', $ffiSig], ['pure-PHP', $phpSig]] as [$signLabel, $sig]) {
                     try {
-                        $ok = $privateKey->getPublicKey()->verify($vector['message'], $sig);
+                        $ok = $verifier->verify($publicKey, $vector['message'], $sig);
                     } catch (Throwable $e) {
                         $problems[] = sprintf(
                             'Vector %d (msg len %d): verify(%s-signed) under %s verifier THREW %s — %s',
@@ -104,17 +98,48 @@ final class Bip340ComplianceTest extends TestCase
         $this->assertSame([], $problems, "Sign/verify parity issues:\n".implode("\n", $problems));
     }
 
+    public function testSignProducesByteIdenticalSignaturesForSpecVectors(): void
+    {
+        $problems = [];
+
+        foreach ($this->signingVectors() as $vector) {
+            $auxBytes = hex2bin($vector['aux']);
+            $this->assertNotFalse($auxBytes, sprintf('Vector %d: aux_rand hex decode failed', $vector['index']));
+
+            $privateKey = PrivateKey::fromHex(strtolower($vector['secret']));
+            $this->assertNotNull($privateKey);
+
+            foreach ([['FFI', $this->ffiServiceWithFixedAux($auxBytes)], ['pure-PHP', $this->purePhpServiceWithFixedAux($auxBytes)]] as [$label, $service]) {
+                $actualSigHex = $service->sign($privateKey, $vector['message'])->toHex();
+                $expectedSigHex = strtolower($vector['signature']);
+
+                if ($actualSigHex !== $expectedSigHex) {
+                    $problems[] = sprintf(
+                        'Vector %d (%s, msg len %d): got %s, expected %s',
+                        $vector['index'],
+                        $label,
+                        strlen($vector['message']),
+                        $actualSigHex,
+                        $expectedSigHex,
+                    );
+                }
+            }
+        }
+
+        $this->assertSame([], $problems, "Byte-identical sign divergences:\n".implode("\n", $problems));
+    }
+
     public function testPublicKeyDerivationMatchesAcrossBothPaths(): void
     {
+        $ffiService = $this->ffiService();
+        $purePhpService = $this->purePhpService();
+
         foreach ($this->signingVectors() as $vector) {
             $privateKey = PrivateKey::fromHex(strtolower($vector['secret']));
             $this->assertNotNull($privateKey);
 
-            $this->setFfiAvailability(true);
-            $ffiPub = $privateKey->getPublicKey()->toHex();
-
-            $this->setFfiAvailability(false);
-            $phpPub = $privateKey->getPublicKey()->toHex();
+            $ffiPub = $ffiService->derivePublicKey($privateKey)->toHex();
+            $phpPub = $purePhpService->derivePublicKey($privateKey)->toHex();
 
             $this->assertSame(
                 strtolower($vector['public']),
@@ -129,7 +154,7 @@ final class Bip340ComplianceTest extends TestCase
         }
     }
 
-    private function collectVerifyMismatch(array $vector, string $pathLabel): ?string
+    private function collectVerifyMismatch(SignatureServiceInterface $service, array $vector, string $pathLabel): ?string
     {
         $publicKey = PublicKey::fromHex(strtolower($vector['public']));
 
@@ -152,7 +177,7 @@ final class Bip340ComplianceTest extends TestCase
         }
 
         try {
-            $actual = $publicKey->verify($vector['message'], $signature);
+            $actual = $service->verify($publicKey, $vector['message'], $signature);
         } catch (Throwable $e) {
             return sprintf(
                 'Vector %d (%s): verify THREW %s — %s (CSV: %s). Comment: %s',
@@ -214,25 +239,30 @@ final class Bip340ComplianceTest extends TestCase
         }
     }
 
-    private function setFfiAvailability(?bool $available): void
+    private function ffiService(): Secp256k1SignatureService
     {
-        Secp256k1::reset();
+        $randomBytes = new NativeRandomBytesGeneratorAdapter();
+        $ffi = LibSecp256k1Ffi::tryLoad($randomBytes->bytes(32))
+            ?? self::markTestSkipped('libsecp256k1 FFI unavailable');
 
-        if (null === $available) {
-            return;
-        }
+        return new Secp256k1SignatureService($ffi, $randomBytes);
+    }
 
-        $reflection = new ReflectionClass(Secp256k1::class);
-        $initialised = $reflection->getProperty('initialised');
-        $availableProp = $reflection->getProperty('available');
+    private function purePhpService(): Secp256k1SignatureService
+    {
+        return new Secp256k1SignatureService(null, new NativeRandomBytesGeneratorAdapter());
+    }
 
-        if ($available) {
-            Secp256k1::isAvailable();
+    private function ffiServiceWithFixedAux(string $aux): Secp256k1SignatureService
+    {
+        $ffi = LibSecp256k1Ffi::tryLoad((new NativeRandomBytesGeneratorAdapter())->bytes(32))
+            ?? self::markTestSkipped('libsecp256k1 FFI unavailable');
 
-            return;
-        }
+        return new Secp256k1SignatureService($ffi, QueuedRandomBytesGenerator::withBytes($aux));
+    }
 
-        $initialised->setValue(null, true);
-        $availableProp->setValue(null, false);
+    private function purePhpServiceWithFixedAux(string $aux): Secp256k1SignatureService
+    {
+        return new Secp256k1SignatureService(null, QueuedRandomBytesGenerator::withBytes($aux));
     }
 }

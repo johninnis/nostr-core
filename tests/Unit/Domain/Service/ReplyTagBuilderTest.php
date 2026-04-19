@@ -12,11 +12,14 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use Innis\Nostr\Core\Tests\Support\WithCryptoServices;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
 final class ReplyTagBuilderTest extends TestCase
 {
+    use WithCryptoServices;
+
     private ReplyTagBuilder $builder;
     private KeyPair $keyPair1;
     private KeyPair $keyPair2;
@@ -24,14 +27,14 @@ final class ReplyTagBuilderTest extends TestCase
     protected function setUp(): void
     {
         $this->builder = new ReplyTagBuilder();
-        $this->keyPair1 = KeyPair::generate();
-        $this->keyPair2 = KeyPair::generate();
+        $this->keyPair1 = KeyPair::generate($this->signatureService());
+        $this->keyPair2 = KeyPair::generate($this->signatureService());
     }
 
     public function testBuildReplyToRootPost(): void
     {
         $rootEvent = $this->createEvent($this->keyPair1);
-        $signedRoot = $rootEvent->sign($this->keyPair1->getPrivateKey());
+        $signedRoot = $rootEvent->sign($this->keyPair1->getPrivateKey(), $this->signatureService());
 
         $tags = $this->builder->build($signedRoot);
 
@@ -48,10 +51,10 @@ final class ReplyTagBuilderTest extends TestCase
     public function testBuildReplyToReply(): void
     {
         $rootEvent = $this->createEvent($this->keyPair1);
-        $signedRoot = $rootEvent->sign($this->keyPair1->getPrivateKey());
+        $signedRoot = $rootEvent->sign($this->keyPair1->getPrivateKey(), $this->signatureService());
 
         $replyEvent = $this->createEvent($this->keyPair2);
-        $signedReply = $replyEvent->sign($this->keyPair2->getPrivateKey());
+        $signedReply = $replyEvent->sign($this->keyPair2->getPrivateKey(), $this->signatureService());
 
         $tags = $this->builder->build($signedReply, $signedRoot);
 

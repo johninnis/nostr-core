@@ -16,20 +16,23 @@ use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Infrastructure\Service\GiftWrapAdapter;
 use Innis\Nostr\Core\Infrastructure\Service\Nip44EncryptionAdapter;
+use Innis\Nostr\Core\Tests\Support\WithCryptoServices;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 final class GiftWrapAdapterTest extends TestCase
 {
+    use WithCryptoServices;
+
     private GiftWrapAdapter $adapter;
     private KeyPair $senderKeyPair;
     private KeyPair $recipientKeyPair;
 
     protected function setUp(): void
     {
-        $this->adapter = new GiftWrapAdapter(new Nip44EncryptionAdapter());
-        $this->senderKeyPair = KeyPair::generate();
-        $this->recipientKeyPair = KeyPair::generate();
+        $this->adapter = new GiftWrapAdapter(new Nip44EncryptionAdapter(), $this->signatureService(), $this->ecdhService());
+        $this->senderKeyPair = KeyPair::generate($this->signatureService());
+        $this->recipientKeyPair = KeyPair::generate($this->signatureService());
     }
 
     public function testCanWrapAndUnwrapRumour(): void
@@ -60,7 +63,7 @@ final class GiftWrapAdapterTest extends TestCase
         $giftWrap = $this->wrapRumour('Test');
 
         $this->assertTrue($giftWrap->isSigned());
-        $this->assertTrue($giftWrap->verify());
+        $this->assertTrue($giftWrap->verify($this->signatureService()));
     }
 
     public function testGiftWrapHasRecipientPTag(): void
@@ -139,7 +142,7 @@ final class GiftWrapAdapterTest extends TestCase
 
     public function testWrapRejectsSignedRumour(): void
     {
-        $rumour = $this->createRumour('Test')->sign($this->senderKeyPair->getPrivateKey());
+        $rumour = $this->createRumour('Test')->sign($this->senderKeyPair->getPrivateKey(), $this->signatureService());
 
         $this->expectException(GiftWrapException::class);
         $this->expectExceptionMessage('Rumour must not be signed');
@@ -174,7 +177,7 @@ final class GiftWrapAdapterTest extends TestCase
     public function testWrapRejectsMismatchedSenderKey(): void
     {
         $rumour = $this->createRumour('Test');
-        $wrongKeyPair = KeyPair::generate();
+        $wrongKeyPair = KeyPair::generate($this->signatureService());
 
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Sender private key does not match rumour public key');
@@ -191,7 +194,7 @@ final class GiftWrapAdapterTest extends TestCase
         $textNote = EventFactory::createTextNote(
             $this->senderKeyPair->getPublicKey(),
             'Not a gift wrap'
-        )->sign($this->senderKeyPair->getPrivateKey());
+        )->sign($this->senderKeyPair->getPrivateKey(), $this->signatureService());
 
         $this->expectException(GiftWrapException::class);
         $this->expectExceptionMessage('Event must be kind 1059');
@@ -237,7 +240,7 @@ final class GiftWrapAdapterTest extends TestCase
 
     public function testDeterministicWrapWithExplicitParameters(): void
     {
-        $ephemeralKeyPair = KeyPair::generate();
+        $ephemeralKeyPair = KeyPair::generate($this->signatureService());
         $sealTimestamp = Timestamp::fromInt(1700000000);
         $wrapTimestamp = Timestamp::fromInt(1700000100);
 
