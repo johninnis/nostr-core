@@ -53,14 +53,6 @@ final class Nip11Adapter implements Nip11ServiceInterface
             return 'https://'.substr($wsUrl, 6);
         }
 
-        if (str_starts_with($wsUrl, 'ws://')) {
-            return 'http://'.substr($wsUrl, 5);
-        }
-
-        if (str_starts_with($wsUrl, 'http://') || str_starts_with($wsUrl, 'https://')) {
-            return $wsUrl;
-        }
-
-        return 'https://'.$wsUrl;
+        return 'http://'.substr($wsUrl, 5);
     }
 }
