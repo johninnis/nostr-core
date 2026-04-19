@@ -105,6 +105,8 @@ $ciphertext = $encryption->encrypt('Hello in private', $conversationKey);
 $plaintext = $encryption->decrypt($ciphertext, $conversationKey);
 ```
 
+Nonce generation is injected. `Nip44EncryptionAdapter` accepts an optional `RandomBytesGeneratorInterface` and defaults to `NativeRandomBytesGeneratorAdapter` (PHP's `random_bytes`) when none is supplied — that is the production path. Test suites inject a deterministic generator to reproduce the official NIP-44 vectors byte-for-byte. The adapter deliberately has no public `encryptWithNonce` method, because a caller-supplied nonce is a reuse footgun that catastrophically breaks ChaCha20 confidentiality; keeping nonce generation behind a port makes tests deterministic without giving production code a way to misuse it.
+
 Always construct the adapters through their `::create()` factories. Direct instantiation via `new Secp256k1SignatureAdapter(null, ...)` or `new Secp256k1EcdhAdapter()` exists for dependency injection and testing but stays on the pure-PHP path regardless of whether `libsecp256k1` is installed.
 
 ### Message Handling
