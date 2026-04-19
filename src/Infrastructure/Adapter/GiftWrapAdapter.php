@@ -41,9 +41,11 @@ final class GiftWrapAdapter implements GiftWrapServiceInterface
     ): Event {
         $this->validateRumour($rumour, $senderPrivateKey);
 
+        $senderKeyPair = KeyPair::fromPrivateKey($senderPrivateKey, $this->signatureService);
+
         $seal = $this->encryptAndWrap(
             $rumour,
-            $senderPrivateKey,
+            $senderKeyPair,
             $recipientPublicKey,
             EventKind::seal(),
             TagCollection::empty(),
@@ -56,7 +58,7 @@ final class GiftWrapAdapter implements GiftWrapServiceInterface
         try {
             return $this->encryptAndWrap(
                 $seal,
-                $ephemeral->getPrivateKey(),
+                $ephemeral,
                 $recipientPublicKey,
                 EventKind::giftWrap(),
                 new TagCollection([Tag::pubkey($recipientPublicKey->toHex())]),
@@ -86,26 +88,26 @@ final class GiftWrapAdapter implements GiftWrapServiceInterface
 
     private function encryptAndWrap(
         Event $innerEvent,
-        PrivateKey $signingKey,
+        KeyPair $signingKeyPair,
         PublicKey $recipientPublicKey,
         EventKind $kind,
         TagCollection $tags,
         ?Timestamp $timestamp,
     ): Event {
-        $conversationKey = ConversationKey::derive($signingKey, $recipientPublicKey, $this->ecdhService);
+        $conversationKey = ConversationKey::derive($signingKeyPair->getPrivateKey(), $recipientPublicKey, $this->ecdhService);
 
         try {
             $encrypted = $this->encryption->encrypt($this->serialiseEvent($innerEvent), $conversationKey);
 
             $event = new Event(
-                $this->signatureService->derivePublicKey($signingKey),
+                $signingKeyPair->getPublicKey(),
                 $timestamp ?? Timestamp::randomised(),
                 $kind,
                 $tags,
                 EventContent::fromString($encrypted)
             );
 
-            return $event->sign($signingKey, $this->signatureService);
+            return $event->sign($signingKeyPair, $this->signatureService);
         } finally {
             $conversationKey->zero();
         }

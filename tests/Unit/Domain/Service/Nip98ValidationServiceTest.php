@@ -305,7 +305,7 @@ final class Nip98ValidationServiceTest extends TestCase
             EventContent::empty()
         );
 
-        return $event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
+        return $event->sign($this->keyPair, $this->signatureService());
     }
 
     private function createSignedEventWithTimestamp(Timestamp $timestamp): Event
@@ -324,7 +324,7 @@ final class Nip98ValidationServiceTest extends TestCase
             EventContent::empty()
         );
 
-        return $event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
+        return $event->sign($this->keyPair, $this->signatureService());
     }
 
     private function createSignedEventWithTags(TagCollection $tags): Event
@@ -337,6 +337,6 @@ final class Nip98ValidationServiceTest extends TestCase
             EventContent::empty()
         );
 
-        return $event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
+        return $event->sign($this->keyPair, $this->signatureService());
     }
 }

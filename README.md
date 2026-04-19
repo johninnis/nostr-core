@@ -79,7 +79,7 @@ $event = EventFactory::createTextNote(
     'Hello Nostr!'
 );
 
-$signedEvent = $event->sign($keyPair->getPrivateKey(), $signatureService);
+$signedEvent = $event->sign($keyPair, $signatureService);
 
 $signedEvent->verify($signatureService); // bool
 ```

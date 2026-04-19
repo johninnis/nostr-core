@@ -40,7 +40,7 @@ final class JsonMessageSerialiserAdapterTest extends TestCase
             TagCollection::empty(),
             EventContent::fromString('Hello Nostr!')
         );
-        $this->event = $this->event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
+        $this->event = $this->event->sign($this->keyPair, $this->signatureService());
     }
 
     public function testCanDeserialiseClientEventMessage(): void

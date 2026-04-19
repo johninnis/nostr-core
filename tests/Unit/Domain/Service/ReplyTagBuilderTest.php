@@ -32,7 +32,7 @@ final class ReplyTagBuilderTest extends TestCase
     public function testBuildReplyToRootPost(): void
     {
         $rootEvent = $this->createEvent($this->keyPair1);
-        $signedRoot = $rootEvent->sign($this->keyPair1->getPrivateKey(), $this->signatureService());
+        $signedRoot = $rootEvent->sign($this->keyPair1, $this->signatureService());
 
         $tags = ReplyTagBuilder::build($signedRoot);
 
@@ -49,10 +49,10 @@ final class ReplyTagBuilderTest extends TestCase
     public function testBuildReplyToReply(): void
     {
         $rootEvent = $this->createEvent($this->keyPair1);
-        $signedRoot = $rootEvent->sign($this->keyPair1->getPrivateKey(), $this->signatureService());
+        $signedRoot = $rootEvent->sign($this->keyPair1, $this->signatureService());
 
         $replyEvent = $this->createEvent($this->keyPair2);
-        $signedReply = $replyEvent->sign($this->keyPair2->getPrivateKey(), $this->signatureService());
+        $signedReply = $replyEvent->sign($this->keyPair2, $this->signatureService());
 
         $tags = ReplyTagBuilder::build($signedReply, $signedRoot);
 

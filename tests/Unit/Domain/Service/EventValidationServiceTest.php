@@ -51,7 +51,7 @@ final class EventValidationServiceTest extends TestCase
             TagCollection::empty(),
             EventContent::fromString('Hello')
         );
-        $signedEvent = $event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
+        $signedEvent = $event->sign($this->keyPair, $this->signatureService());
 
         $this->expectException(InvalidEventException::class);
         $this->expectExceptionMessage('Event timestamp is not reasonable');
@@ -190,6 +190,6 @@ final class EventValidationServiceTest extends TestCase
             EventContent::fromString('Hello Nostr!')
         );
 
-        return $event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
+        return $event->sign($this->keyPair, $this->signatureService());
     }
 }

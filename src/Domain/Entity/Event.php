@@ -8,7 +8,7 @@ use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
@@ -31,10 +31,10 @@ final readonly class Event
     ) {
     }
 
-    public function sign(PrivateKey $privateKey, SignatureServiceInterface $signatureService): self
+    public function sign(KeyPair $keyPair, SignatureServiceInterface $signatureService): self
     {
-        if (!$signatureService->derivePublicKey($privateKey)->equals($this->pubkey)) {
-            throw new InvalidArgumentException('Private key does not match event public key');
+        if (!$keyPair->getPublicKey()->equals($this->pubkey)) {
+            throw new InvalidArgumentException('Key pair does not match event public key');
         }
 
         $id = $this->calculateId();
@@ -42,7 +42,7 @@ final readonly class Event
         if (false === $idBytes) {
             throw new RuntimeException('Failed to decode event ID hex');
         }
-        $signature = $signatureService->sign($privateKey, $idBytes);
+        $signature = $signatureService->sign($keyPair->getPrivateKey(), $idBytes);
 
         return new self($this->pubkey, $this->createdAt, $this->kind, $this->tags, $this->content, $id, $signature);
     }

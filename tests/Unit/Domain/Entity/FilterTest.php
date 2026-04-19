@@ -74,7 +74,7 @@ final class FilterTest extends TestCase
             TagCollection::empty(),
             EventContent::fromString('test')
         );
-        $signedEvent = $event->sign($keyPair->getPrivateKey(), $this->signatureService());
+        $signedEvent = $event->sign($keyPair, $this->signatureService());
 
         $filter = new Filter(ids: [$signedEvent->getId()->toHex()]);
 
@@ -405,7 +405,7 @@ final class FilterTest extends TestCase
             TagCollection::empty(),
             EventContent::fromString('test')
         );
-        $signedEvent = $event->sign($keyPair->getPrivateKey(), $this->signatureService());
+        $signedEvent = $event->sign($keyPair, $this->signatureService());
 
         $filter = new Filter(ids: ['0000000000000000000000000000000000000000000000000000000000000000']);
 

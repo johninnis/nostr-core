@@ -189,7 +189,7 @@ final class EventFactoryTest extends TestCase
         $originalEvent = EventFactory::createTextNote(
             $this->keyPair->getPublicKey(),
             'Original post'
-        )->sign($this->keyPair->getPrivateKey(), $this->signatureService());
+        )->sign($this->keyPair, $this->signatureService());
 
         $repostingKeyPair = KeyPair::generate($this->signatureService());
         $repost = EventFactory::createRepost($repostingKeyPair->getPublicKey(), $originalEvent);
@@ -211,7 +211,7 @@ final class EventFactoryTest extends TestCase
         $targetEvent = EventFactory::createTextNote(
             $this->keyPair->getPublicKey(),
             'Target post'
-        )->sign($this->keyPair->getPrivateKey(), $this->signatureService());
+        )->sign($this->keyPair, $this->signatureService());
 
         $reactingKeyPair = KeyPair::generate($this->signatureService());
         $reaction = EventFactory::createReaction($reactingKeyPair->getPublicKey(), $targetEvent);
@@ -233,7 +233,7 @@ final class EventFactoryTest extends TestCase
         $targetEvent = EventFactory::createTextNote(
             $this->keyPair->getPublicKey(),
             'Target post'
-        )->sign($this->keyPair->getPrivateKey(), $this->signatureService());
+        )->sign($this->keyPair, $this->signatureService());
 
         $reaction = EventFactory::createReaction($this->keyPair->getPublicKey(), $targetEvent, '-');
 

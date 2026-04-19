@@ -51,7 +51,7 @@ final class EventTest extends TestCase
 
     public function testCanSignEvent(): void
     {
-        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
+        $signedEvent = $this->event->sign($this->keyPair, $this->signatureService());
 
         $this->assertTrue($signedEvent->isSigned());
         $this->assertInstanceOf(Signature::class, $signedEvent->getSignature());
@@ -59,19 +59,19 @@ final class EventTest extends TestCase
         $this->assertNotSame($this->event, $signedEvent);
     }
 
-    public function testThrowsExceptionWhenSigningWithWrongPrivateKey(): void
+    public function testThrowsExceptionWhenSigningWithWrongKeyPair(): void
     {
         $wrongKeyPair = KeyPair::generate($this->signatureService());
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Private key does not match event public key');
+        $this->expectExceptionMessage('Key pair does not match event public key');
 
-        $this->event->sign($wrongKeyPair->getPrivateKey(), $this->signatureService());
+        $this->event->sign($wrongKeyPair, $this->signatureService());
     }
 
     public function testCanVerifyValidSignature(): void
     {
-        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
+        $signedEvent = $this->event->sign($this->keyPair, $this->signatureService());
 
         $this->assertTrue($signedEvent->verify($this->signatureService()));
     }
@@ -100,7 +100,7 @@ final class EventTest extends TestCase
 
     public function testGetIdReturnsStoredIdForSignedEvent(): void
     {
-        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
+        $signedEvent = $this->event->sign($this->keyPair, $this->signatureService());
         $storedId = $signedEvent->getId();
         $calculatedId = $signedEvent->calculateId();
 
@@ -109,7 +109,7 @@ final class EventTest extends TestCase
 
     public function testCanConvertToArray(): void
     {
-        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
+        $signedEvent = $this->event->sign($this->keyPair, $this->signatureService());
         $array = $signedEvent->toArray();
 
         $this->assertArrayHasKey('id', $array);
@@ -140,7 +140,7 @@ final class EventTest extends TestCase
 
     public function testCanCreateFromArray(): void
     {
-        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
+        $signedEvent = $this->event->sign($this->keyPair, $this->signatureService());
         $array = $signedEvent->toArray();
 
         $recreatedEvent = Event::fromArray($array);
@@ -190,7 +190,7 @@ final class EventTest extends TestCase
 
     public function testFromArrayCanCreateSignedEvent(): void
     {
-        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
+        $signedEvent = $this->event->sign($this->keyPair, $this->signatureService());
         $array = $signedEvent->toArray();
 
         $recreatedEvent = Event::fromArray($array);
@@ -243,7 +243,7 @@ final class EventTest extends TestCase
 
     public function testRoundTripSerialisation(): void
     {
-        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
+        $signedEvent = $this->event->sign($this->keyPair, $this->signatureService());
         $array = $signedEvent->toArray();
         $recreatedEvent = Event::fromArray($array);
         $recreatedArray = $recreatedEvent->toArray();
@@ -546,7 +546,7 @@ final class EventTest extends TestCase
 
     public function testToStringReturnsEventIdForSignedEvent(): void
     {
-        $signedEvent = $this->event->sign($this->keyPair->getPrivateKey(), $this->signatureService());
+        $signedEvent = $this->event->sign($this->keyPair, $this->signatureService());
 
         $this->assertSame($signedEvent->getId()->toHex(), (string) $signedEvent);
     }

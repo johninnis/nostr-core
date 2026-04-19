@@ -142,7 +142,7 @@ final class GiftWrapAdapterTest extends TestCase
 
     public function testWrapRejectsSignedRumour(): void
     {
-        $rumour = $this->createRumour('Test')->sign($this->senderKeyPair->getPrivateKey(), $this->signatureService());
+        $rumour = $this->createRumour('Test')->sign($this->senderKeyPair, $this->signatureService());
 
         $this->expectException(GiftWrapException::class);
         $this->expectExceptionMessage('Rumour must not be signed');
@@ -194,7 +194,7 @@ final class GiftWrapAdapterTest extends TestCase
         $textNote = EventFactory::createTextNote(
             $this->senderKeyPair->getPublicKey(),
             'Not a gift wrap'
-        )->sign($this->senderKeyPair->getPrivateKey(), $this->signatureService());
+        )->sign($this->senderKeyPair, $this->signatureService());
 
         $this->expectException(GiftWrapException::class);
         $this->expectExceptionMessage('Event must be kind 1059');
