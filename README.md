@@ -27,17 +27,24 @@ This library takes a different approach:
 
 ## Requirements
 
+Declared in `composer.json`:
+
 - PHP 8.3 or higher
-- BCMath extension (for ECC operations)
-- Sodium extension (for NIP-44 and NIP-49 encryption)
-- Intl extension (for NFKC password normalisation in NIP-49)
-- FFI extension and `libsodium` system library (required for NIP-49 key derivation; generally already present wherever the Sodium extension is installed)
+- `ext-intl` (NFKC password normalisation in NIP-49)
+- `ext-sodium` (NIP-44 and NIP-49 AEAD, `sodium_memzero`)
+
+Used by the library but not declared as hard requirements, because several code paths are optional and the recommended typical usage will load them anyway:
+
+- `ext-gmp` is needed by the pure-PHP signing and ECDH fallback (the documented path when `libsecp256k1` is unavailable). If you know you always have `libsecp256k1` installed and never invoke the pure-PHP path, this extension is not touched.
+- `ext-mbstring` is needed by the search-filter matcher, `EventContent::getLength`, and the bech32 TLV decoder. Most consumers will hit one of these.
+- `ext-ffi` is needed by NIP-49 (unconditionally) and by the `Secp256k1SignatureService::create()` / `Secp256k1EcdhService::create()` factories (for the `libsecp256k1` probe). Consumers who do not use NIP-49 and who construct the services directly with `new Secp256k1SignatureService(null, ...)` / `new Secp256k1EcdhService()` can run without `ext-ffi` at all and stay on the pure-PHP path.
+- `libsodium` system library, reachable via FFI, is required for NIP-49 scrypt. Typically already installed wherever `ext-sodium` is installed.
 
 ### Optional (recommended)
 
-- libsecp256k1 system library
+- `libsecp256k1` system library
 
-When available, Schnorr signature operations (signing, verification, public key derivation) use the native C library for significantly faster performance. Without it, the library falls back to a pure-PHP implementation automatically.
+When present, Schnorr signing, verification, public-key derivation, and NIP-44 ECDH use the native C library for significantly faster performance. Without it, the library falls back to a pure-PHP implementation via `paragonie/ecc` automatically.
 
 ## Installation
 
