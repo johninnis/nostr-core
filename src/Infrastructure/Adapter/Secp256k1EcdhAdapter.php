@@ -9,12 +9,13 @@ use Innis\Nostr\Core\Domain\Service\EcdhServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
+use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Math;
 use LogicException;
 use Mdanter\Ecc\EccFactory;
 
 final class Secp256k1EcdhAdapter implements EcdhServiceInterface
 {
-    private const SHARED_X_HEX_LENGTH = 64;
+    private const SHARED_X_BYTE_LENGTH = 32;
     private const SECP256K1_PRIME_HEX = 'fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f';
     private const ZERO_X_HEX = '0000000000000000000000000000000000000000000000000000000000000000';
 
@@ -82,15 +83,7 @@ final class Secp256k1EcdhAdapter implements EcdhServiceInterface
                 throw new LogicException('ECDH shared point is the identity');
             }
 
-            $sharedXHex = str_pad(gmp_strval($sharedPoint->getX(), 16), self::SHARED_X_HEX_LENGTH, '0', STR_PAD_LEFT);
-            $sharedXBytes = hex2bin($sharedXHex);
-            sodium_memzero($sharedXHex);
-
-            if (false === $sharedXBytes) {
-                throw new LogicException('ECDH produced invalid shared secret');
-            }
-
-            return $sharedXBytes;
+            return Secp256k1Math::gmpToBytes($sharedPoint->getX(), self::SHARED_X_BYTE_LENGTH);
         });
         assert(is_string($sharedX));
 

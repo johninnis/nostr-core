@@ -11,7 +11,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
 use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
-use Innis\Nostr\Core\Infrastructure\Crypto\SchnorrMathHelper;
+use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Math;
 use LogicException;
 use Mdanter\Ecc\EccFactory;
 use Throwable;
@@ -135,12 +135,12 @@ final class Secp256k1SignatureAdapter implements SignatureServiceInterface
         $d = 0 === gmp_cmp(gmp_mod($P->getY(), 2), 0) ? $privateKeyInt : gmp_sub($n, $privateKeyInt);
 
         $aux = $this->randomBytes->bytes(self::AUX_RAND_LENGTH);
-        $dBytes = SchnorrMathHelper::gmpToBytes($d, 32);
-        $t = $this->xorBytes($dBytes, SchnorrMathHelper::taggedHash('BIP0340/aux', $aux));
+        $dBytes = Secp256k1Math::gmpToBytes($d, 32);
+        $t = $this->xorBytes($dBytes, Secp256k1Math::taggedHash('BIP0340/aux', $aux));
         sodium_memzero($dBytes);
 
-        $randInput = $t.SchnorrMathHelper::gmpToBytes($P->getX(), 32).$message;
-        $rand = SchnorrMathHelper::taggedHash('BIP0340/nonce', $randInput);
+        $randInput = $t.Secp256k1Math::gmpToBytes($P->getX(), 32).$message;
+        $rand = Secp256k1Math::taggedHash('BIP0340/nonce', $randInput);
         sodium_memzero($t);
         sodium_memzero($randInput);
 
@@ -159,8 +159,8 @@ final class Secp256k1SignatureAdapter implements SignatureServiceInterface
         $R = $generator->mul($kPrime);
         $k = 0 === gmp_cmp(gmp_mod($R->getY(), 2), 0) ? $kPrime : gmp_sub($n, $kPrime);
 
-        $eInput = SchnorrMathHelper::gmpToBytes($R->getX(), 32).SchnorrMathHelper::gmpToBytes($P->getX(), 32).$message;
-        $eHash = SchnorrMathHelper::taggedHash('BIP0340/challenge', $eInput);
+        $eInput = Secp256k1Math::gmpToBytes($R->getX(), 32).Secp256k1Math::gmpToBytes($P->getX(), 32).$message;
+        $eHash = Secp256k1Math::taggedHash('BIP0340/challenge', $eInput);
         $e = gmp_mod(gmp_init(bin2hex($eHash), 16), $n);
 
         $s = gmp_mod(gmp_add($k, gmp_mul($e, $d)), $n);
@@ -182,7 +182,7 @@ final class Secp256k1SignatureAdapter implements SignatureServiceInterface
         $n = $generator->getOrder();
 
         $P_x = gmp_init($publicKeyHex, 16);
-        $P = SchnorrMathHelper::liftX($P_x, $curve, $p);
+        $P = Secp256k1Math::liftX($P_x, $curve, $p);
         if (null === $P) {
             return false;
         }
@@ -194,8 +194,8 @@ final class Secp256k1SignatureAdapter implements SignatureServiceInterface
             return false;
         }
 
-        $eInput = SchnorrMathHelper::gmpToBytes($r, 32).SchnorrMathHelper::gmpToBytes($P_x, 32).$message;
-        $eHash = SchnorrMathHelper::taggedHash('BIP0340/challenge', $eInput);
+        $eInput = Secp256k1Math::gmpToBytes($r, 32).Secp256k1Math::gmpToBytes($P_x, 32).$message;
+        $eHash = Secp256k1Math::taggedHash('BIP0340/challenge', $eInput);
         $e = gmp_mod(gmp_init(bin2hex($eHash), 16), $n);
 
         $sG = $generator->mul($s);

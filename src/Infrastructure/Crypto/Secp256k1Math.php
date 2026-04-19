@@ -6,10 +6,11 @@ namespace Innis\Nostr\Core\Infrastructure\Crypto;
 
 use Exception;
 use GMP;
+use LogicException;
 use Mdanter\Ecc\Primitives\CurveFpInterface;
 use Mdanter\Ecc\Primitives\PointInterface;
 
-final class SchnorrMathHelper
+final class Secp256k1Math
 {
     public static function taggedHash(string $tag, string $msg): string
     {
@@ -21,10 +22,17 @@ final class SchnorrMathHelper
     public static function gmpToBytes(GMP $value, int $length): string
     {
         $hex = str_pad(gmp_strval($value, 16), $length * 2, '0', STR_PAD_LEFT);
-        $bytes = hex2bin($hex) ?: '';
-        sodium_memzero($hex);
 
-        return $bytes;
+        try {
+            $bytes = hex2bin($hex);
+            if (false === $bytes) {
+                throw new LogicException('GMP value produced invalid hex');
+            }
+
+            return $bytes;
+        } finally {
+            sodium_memzero($hex);
+        }
     }
 
     public static function liftX(GMP $x, CurveFpInterface $curve, GMP $p): ?PointInterface
