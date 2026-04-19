@@ -35,6 +35,10 @@ parameters:
         -
             message: '#Call to an undefined method FFI::#'
             path: src/Infrastructure/Service/LibSecp256k1Ffi.php
+        # FFI\CData->cdata is the dynamic accessor for scalar FFI types; PHPStan cannot see it
+        -
+            message: '#Access to an undefined property FFI\\CData::\$cdata#'
+            path: src/Infrastructure/Service/LibSecp256k1Ffi.php
         # Test assertions that verify runtime behaviour are legitimately trivially true from static analysis
         -
             identifier: method.alreadyNarrowedType

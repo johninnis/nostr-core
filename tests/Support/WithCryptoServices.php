@@ -32,7 +32,7 @@ trait WithCryptoServices
     protected function ecdhService(): EcdhServiceInterface
     {
         if (null === $this->ecdhService) {
-            $this->ecdhService = new Secp256k1EcdhService();
+            $this->ecdhService = Secp256k1EcdhService::create();
         }
 
         return $this->ecdhService;

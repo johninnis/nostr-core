@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Infrastructure\Service;
 
 use FFI;
+use LogicException;
 use RuntimeException;
 use Throwable;
 
@@ -13,6 +14,7 @@ final class LibSecp256k1Ffi
     private const CDEF = <<<'C'
         typedef struct secp256k1_context_struct secp256k1_context;
         typedef struct { unsigned char data[64]; } secp256k1_xonly_pubkey;
+        typedef struct { unsigned char data[64]; } secp256k1_pubkey;
         typedef struct { unsigned char data[96]; } secp256k1_keypair;
 
         secp256k1_context *secp256k1_context_create(unsigned int flags);
@@ -24,9 +26,15 @@ final class LibSecp256k1Ffi
         int secp256k1_keypair_xonly_pub(const secp256k1_context *ctx, secp256k1_xonly_pubkey *pubkey, int *pk_parity, const secp256k1_keypair *keypair);
         int secp256k1_schnorrsig_sign32(const secp256k1_context *ctx, unsigned char *sig64, const unsigned char *msg32, const secp256k1_keypair *keypair, const unsigned char *aux_rand32);
         int secp256k1_schnorrsig_verify(const secp256k1_context *ctx, const unsigned char *sig64, const unsigned char *msg, size_t msglen, const secp256k1_xonly_pubkey *pubkey);
+        int secp256k1_ec_pubkey_parse(const secp256k1_context *ctx, secp256k1_pubkey *pubkey, const unsigned char *input, size_t inputlen);
+        int secp256k1_ec_pubkey_tweak_mul(const secp256k1_context *ctx, secp256k1_pubkey *pubkey, const unsigned char *tweak32);
+        int secp256k1_ec_pubkey_serialize(const secp256k1_context *ctx, unsigned char *output, size_t *outputlen, const secp256k1_pubkey *pubkey, unsigned int flags);
         C;
 
     private const CONTEXT_SIGN_VERIFY = 769;
+    private const EC_COMPRESSED_FLAG = 258;
+    private const COMPRESSED_PUBKEY_LENGTH = 33;
+    private const XONLY_PUBKEY_LENGTH = 32;
 
     private const LIBRARY_NAMES = [
         'libsecp256k1.so.2',
@@ -105,6 +113,45 @@ final class LibSecp256k1Ffi
         $this->ffi->secp256k1_xonly_pubkey_serialize($this->context, $output, FFI::addr($pubkey));
 
         return FFI::string($output, 32);
+    }
+
+    public function computeSharedX(string $privkeyBytes, string $peerXOnlyPubkeyBytes): string
+    {
+        $compressed = "\x02".$peerXOnlyPubkeyBytes;
+
+        $pubkey = $this->ffi->new('secp256k1_pubkey');
+        if (1 !== $this->ffi->secp256k1_ec_pubkey_parse(
+            $this->context,
+            FFI::addr($pubkey),
+            FfiLibraryLoader::toBuffer($this->ffi, $compressed),
+            self::COMPRESSED_PUBKEY_LENGTH,
+        )) {
+            throw new LogicException('ECDH public key is not a valid curve point');
+        }
+
+        if (1 !== $this->ffi->secp256k1_ec_pubkey_tweak_mul(
+            $this->context,
+            FFI::addr($pubkey),
+            FfiLibraryLoader::toBuffer($this->ffi, $privkeyBytes),
+        )) {
+            throw new LogicException('ECDH shared point is the identity');
+        }
+
+        $output = $this->ffi->new('unsigned char['.self::COMPRESSED_PUBKEY_LENGTH.']');
+        $outputLen = $this->ffi->new('size_t');
+        $outputLen->cdata = self::COMPRESSED_PUBKEY_LENGTH;
+
+        if (1 !== $this->ffi->secp256k1_ec_pubkey_serialize(
+            $this->context,
+            $output,
+            FFI::addr($outputLen),
+            FFI::addr($pubkey),
+            self::EC_COMPRESSED_FLAG,
+        )) {
+            throw new LogicException('ECDH failed to serialise shared point');
+        }
+
+        return substr(FFI::string($output, self::COMPRESSED_PUBKEY_LENGTH), 1, self::XONLY_PUBKEY_LENGTH);
     }
 
     public function __destruct()

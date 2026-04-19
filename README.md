@@ -77,6 +77,29 @@ $signedEvent = $event->sign($keyPair->getPrivateKey(), $signatureService);
 $signedEvent->verify($signatureService); // bool
 ```
 
+### NIP-44 Encryption
+
+Deriving a conversation key needs an ECDH service. `Secp256k1EcdhService::create()` follows the same FFI-or-fallback pattern as the signature service:
+
+```php
+use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
+use Innis\Nostr\Core\Infrastructure\Service\Nip44EncryptionAdapter;
+use Innis\Nostr\Core\Infrastructure\Service\Secp256k1EcdhService;
+
+$ecdhService = Secp256k1EcdhService::create();
+$conversationKey = ConversationKey::derive(
+    $senderPrivateKey,
+    $recipientPublicKey,
+    $ecdhService,
+);
+
+$encryption = new Nip44EncryptionAdapter();
+$ciphertext = $encryption->encrypt('Hello in private', $conversationKey);
+$plaintext = $encryption->decrypt($ciphertext, $conversationKey);
+```
+
+Always construct the services through their `::create()` factories. Direct instantiation via `new Secp256k1SignatureService(null, ...)` or `new Secp256k1EcdhService()` exists for dependency injection and testing but stays on the pure-PHP path regardless of whether `libsecp256k1` is installed.
+
 ### Message Handling
 
 ```php
