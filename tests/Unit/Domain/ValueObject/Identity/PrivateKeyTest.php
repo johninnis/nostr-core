@@ -6,7 +6,6 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Identity;
 
 use Innis\Nostr\Core\Domain\Exception\SecretKeyMaterialZeroedException;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
-use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -124,15 +123,13 @@ final class PrivateKeyTest extends TestCase
         assert(false !== $bytes);
 
         $viaHex = PrivateKey::fromHex(self::VALID_PRIVATE_KEY_HEX) ?? throw new RuntimeException('Invalid test key');
-        $viaBytes = PrivateKey::fromBytes($bytes);
+        $viaBytes = PrivateKey::fromBytes($bytes) ?? throw new RuntimeException('Valid bytes rejected');
 
         $this->assertSame($viaHex->toHex(), $viaBytes->toHex());
     }
 
     public function testFromBytesRejectsWrongLength(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-
-        PrivateKey::fromBytes('too-short');
+        $this->assertNull(PrivateKey::fromBytes('too-short'));
     }
 }

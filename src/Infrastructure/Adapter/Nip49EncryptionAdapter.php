@@ -11,7 +11,6 @@ use Innis\Nostr\Core\Domain\Exception\Nip49DecryptionFailedException;
 use Innis\Nostr\Core\Domain\Service\Nip49EncryptionInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Ncryptsec;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
-use Innis\Nostr\Core\Domain\ValueObject\SecretKeyMaterial;
 use Innis\Nostr\Core\Infrastructure\Crypto\Nip49Scrypt;
 use InvalidArgumentException;
 use Normalizer;
@@ -84,11 +83,11 @@ final class Nip49EncryptionAdapter implements Nip49EncryptionInterface
             sodium_memzero($revealed);
         }
 
-        if (false === $plaintext || SecretKeyMaterial::BYTE_LENGTH !== strlen($plaintext)) {
+        if (false === $plaintext) {
             throw new Nip49DecryptionFailedException();
         }
 
-        $privateKey = PrivateKey::fromBytes($plaintext);
+        $privateKey = PrivateKey::fromBytes($plaintext) ?? throw new Nip49DecryptionFailedException();
         sodium_memzero($plaintext);
 
         return $privateKey;

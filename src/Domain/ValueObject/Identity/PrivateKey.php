@@ -44,8 +44,12 @@ final readonly class PrivateKey
         }
     }
 
-    public static function fromBytes(string $bytes): self
+    public static function fromBytes(string $bytes): ?self
     {
+        if (SecretKeyMaterial::BYTE_LENGTH !== strlen($bytes)) {
+            return null;
+        }
+
         return new self(new SecretKeyMaterial($bytes));
     }
 
