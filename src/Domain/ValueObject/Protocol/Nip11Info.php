@@ -75,17 +75,31 @@ final readonly class Nip11Info
     {
         return new self(
             relayUrl: $relayUrl,
-            name: $data['name'] ?? null,
-            description: $data['description'] ?? null,
-            pubkey: $data['pubkey'] ?? null,
-            contact: $data['contact'] ?? null,
-            supportedNips: $data['supported_nips'] ?? null,
-            software: $data['software'] ?? null,
-            version: $data['version'] ?? null,
-            banner: $data['banner'] ?? null,
-            icon: $data['icon'] ?? null,
+            name: self::stringOrNull($data, 'name'),
+            description: self::stringOrNull($data, 'description'),
+            pubkey: self::stringOrNull($data, 'pubkey'),
+            contact: self::stringOrNull($data, 'contact'),
+            supportedNips: self::arrayOrNull($data, 'supported_nips'),
+            software: self::stringOrNull($data, 'software'),
+            version: self::stringOrNull($data, 'version'),
+            banner: self::stringOrNull($data, 'banner'),
+            icon: self::stringOrNull($data, 'icon'),
             rawData: $data,
         );
+    }
+
+    private static function stringOrNull(array $data, string $key): ?string
+    {
+        $value = $data[$key] ?? null;
+
+        return is_string($value) ? $value : null;
+    }
+
+    private static function arrayOrNull(array $data, string $key): ?array
+    {
+        $value = $data[$key] ?? null;
+
+        return is_array($value) ? $value : null;
     }
 
     public function toArray(): array
@@ -105,71 +119,99 @@ final readonly class Nip11Info
 
     public function getLimitation(): ?array
     {
-        return $this->rawData['limitation'] ?? null;
+        $value = $this->rawData['limitation'] ?? null;
+
+        return is_array($value) ? $value : null;
     }
 
     public function getMaxSubscriptions(): ?int
     {
-        return $this->getLimitation()['max_subscriptions'] ?? null;
+        $value = $this->getLimitation()['max_subscriptions'] ?? null;
+
+        return is_int($value) ? $value : null;
     }
 
     public function getMaxLimit(): ?int
     {
-        return $this->getLimitation()['max_limit'] ?? null;
+        $value = $this->getLimitation()['max_limit'] ?? null;
+
+        return is_int($value) ? $value : null;
     }
 
     public function isAuthRequired(): bool
     {
-        return $this->getLimitation()['auth_required'] ?? false;
+        $value = $this->getLimitation()['auth_required'] ?? false;
+
+        return true === $value;
     }
 
     public function isPaymentRequired(): bool
     {
-        return $this->getLimitation()['payment_required'] ?? false;
+        $value = $this->getLimitation()['payment_required'] ?? false;
+
+        return true === $value;
     }
 
     public function getRetention(): ?array
     {
-        return $this->rawData['retention'] ?? null;
+        $value = $this->rawData['retention'] ?? null;
+
+        return is_array($value) ? $value : null;
     }
 
     public function getRelayCountries(): ?array
     {
-        return $this->rawData['relay_countries'] ?? null;
+        $value = $this->rawData['relay_countries'] ?? null;
+
+        return is_array($value) ? $value : null;
     }
 
     public function getLanguageTags(): ?array
     {
-        return $this->rawData['language_tags'] ?? null;
+        $value = $this->rawData['language_tags'] ?? null;
+
+        return is_array($value) ? $value : null;
     }
 
     public function getTags(): ?array
     {
-        return $this->rawData['tags'] ?? null;
+        $value = $this->rawData['tags'] ?? null;
+
+        return is_array($value) ? $value : null;
     }
 
     public function getPostingPolicy(): ?string
     {
-        return $this->rawData['posting_policy'] ?? null;
+        $value = $this->rawData['posting_policy'] ?? null;
+
+        return is_string($value) ? $value : null;
     }
 
     public function getPaymentsUrl(): ?string
     {
-        return $this->rawData['payments_url'] ?? null;
+        $value = $this->rawData['payments_url'] ?? null;
+
+        return is_string($value) ? $value : null;
     }
 
     public function getFees(): ?array
     {
-        return $this->rawData['fees'] ?? null;
+        $value = $this->rawData['fees'] ?? null;
+
+        return is_array($value) ? $value : null;
     }
 
     public function getPrivacyPolicy(): ?string
     {
-        return $this->rawData['privacy_policy'] ?? null;
+        $value = $this->rawData['privacy_policy'] ?? null;
+
+        return is_string($value) ? $value : null;
     }
 
     public function getTermsOfService(): ?string
     {
-        return $this->rawData['terms_of_service'] ?? null;
+        $value = $this->rawData['terms_of_service'] ?? null;
+
+        return is_string($value) ? $value : null;
     }
 }

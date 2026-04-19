@@ -7,6 +7,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Nip11Info;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use PHPUnit\Framework\TestCase;
+use stdClass;
 
 final class Nip11InfoTest extends TestCase
 {
@@ -376,5 +377,104 @@ final class Nip11InfoTest extends TestCase
         $info = Nip11Info::fromArray($this->relayUrl, []);
 
         $this->assertNull($info->getTermsOfService());
+    }
+
+    public function testFromArrayCoercesNonStringTopLevelFieldsToNull(): void
+    {
+        $info = Nip11Info::fromArray($this->relayUrl, [
+            'name' => 42,
+            'description' => ['not', 'a', 'string'],
+            'pubkey' => null,
+            'software' => true,
+            'banner' => 3.14,
+            'icon' => new stdClass(),
+        ]);
+
+        $this->assertNull($info->getName());
+        $this->assertNull($info->getDescription());
+        $this->assertNull($info->getPubkey());
+        $this->assertNull($info->getSoftware());
+        $this->assertNull($info->getBanner());
+        $this->assertNull($info->getIcon());
+    }
+
+    public function testFromArrayCoercesNonArraySupportedNipsToNull(): void
+    {
+        $info = Nip11Info::fromArray($this->relayUrl, [
+            'supported_nips' => 'not-an-array',
+        ]);
+
+        $this->assertNull($info->getSupportedNips());
+    }
+
+    public function testLimitationAccessorsReturnNullWhenLimitationIsNotArray(): void
+    {
+        $info = Nip11Info::fromArray($this->relayUrl, [
+            'limitation' => 'unexpected-string',
+        ]);
+
+        $this->assertNull($info->getLimitation());
+        $this->assertNull($info->getMaxSubscriptions());
+        $this->assertNull($info->getMaxLimit());
+        $this->assertFalse($info->isAuthRequired());
+        $this->assertFalse($info->isPaymentRequired());
+    }
+
+    public function testLimitationNumericAccessorsReturnNullWhenFieldIsNotInt(): void
+    {
+        $info = Nip11Info::fromArray($this->relayUrl, [
+            'limitation' => [
+                'max_subscriptions' => '20',
+                'max_limit' => 100.5,
+            ],
+        ]);
+
+        $this->assertNull($info->getMaxSubscriptions());
+        $this->assertNull($info->getMaxLimit());
+    }
+
+    public function testLimitationBoolAccessorsReturnFalseForTruthyNonBool(): void
+    {
+        $info = Nip11Info::fromArray($this->relayUrl, [
+            'limitation' => [
+                'auth_required' => 'yes',
+                'payment_required' => 1,
+            ],
+        ]);
+
+        $this->assertFalse($info->isAuthRequired());
+        $this->assertFalse($info->isPaymentRequired());
+    }
+
+    public function testStringAccessorsReturnNullWhenFieldIsNotString(): void
+    {
+        $info = Nip11Info::fromArray($this->relayUrl, [
+            'posting_policy' => 42,
+            'payments_url' => ['http://example.com'],
+            'privacy_policy' => true,
+            'terms_of_service' => null,
+        ]);
+
+        $this->assertNull($info->getPostingPolicy());
+        $this->assertNull($info->getPaymentsUrl());
+        $this->assertNull($info->getPrivacyPolicy());
+        $this->assertNull($info->getTermsOfService());
+    }
+
+    public function testArrayAccessorsReturnNullWhenFieldIsNotArray(): void
+    {
+        $info = Nip11Info::fromArray($this->relayUrl, [
+            'retention' => 'unexpected',
+            'relay_countries' => 42,
+            'language_tags' => true,
+            'tags' => null,
+            'fees' => 'free',
+        ]);
+
+        $this->assertNull($info->getRetention());
+        $this->assertNull($info->getRelayCountries());
+        $this->assertNull($info->getLanguageTags());
+        $this->assertNull($info->getTags());
+        $this->assertNull($info->getFees());
     }
 }
