@@ -56,6 +56,7 @@ final readonly class EventKind
     public const CUSTOM_EMOJI_LIST = 10030;
     public const DM_RELAY_LIST = 10050;
     public const KEY_PACKAGE_RELAYS = 10051;
+    public const BLOSSOM_SERVER_LIST = 10063;
     public const GOOD_WIKI_AUTHORS_LIST = 10101;
     public const GOOD_WIKI_RELAYS_LIST = 10102;
     public const REPLACEABLE_EVENT_MAX = 19999;
