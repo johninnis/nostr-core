@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Service;
 
+use Innis\Nostr\Core\Domain\Enum\Bech32Variant;
 use Innis\Nostr\Core\Domain\Exception\InvalidBech32Exception;
 
 final class Bech32Codec
@@ -23,10 +24,10 @@ final class Bech32Codec
     private const MAX_LENGTH = 5000;
     private const CHECKSUM_LENGTH = 6;
 
-    public static function encode(string $hrp, array $data): string
+    public static function encode(string $hrp, array $data, Bech32Variant $variant = Bech32Variant::Bech32): string
     {
         $words = self::convertBits($data, 8, 5, true);
-        $checksum = self::createChecksum($hrp, $words);
+        $checksum = self::createChecksum($hrp, $words, $variant);
 
         $encoded = $hrp.'1';
         foreach (array_merge($words, $checksum) as $value) {
@@ -36,7 +37,7 @@ final class Bech32Codec
         return $encoded;
     }
 
-    public static function decode(string $bech32): array
+    public static function decode(string $bech32, Bech32Variant $variant = Bech32Variant::Bech32): array
     {
         $length = strlen($bech32);
 
@@ -87,7 +88,7 @@ final class Bech32Codec
             array_slice($chars, $separatorPosition + 1)
         );
 
-        if (1 !== self::polymod(array_merge(self::hrpExpand($hrp), $data))) {
+        if ($variant->value !== self::polymod(array_merge(self::hrpExpand($hrp), $data))) {
             throw new InvalidBech32Exception('Invalid bech32 checksum');
         }
 
@@ -173,10 +174,10 @@ final class Bech32Codec
         return array_merge($expand1, [0], $expand2);
     }
 
-    private static function createChecksum(string $hrp, array $data): array
+    private static function createChecksum(string $hrp, array $data, Bech32Variant $variant): array
     {
         $values = array_merge(self::hrpExpand($hrp), $data, [0, 0, 0, 0, 0, 0]);
-        $polymod = self::polymod($values) ^ 1;
+        $polymod = self::polymod($values) ^ $variant->value;
         $checksum = [];
         for ($i = 0; $i < self::CHECKSUM_LENGTH; ++$i) {
             $checksum[] = ($polymod >> (5 * (5 - $i))) & 31;
