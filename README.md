@@ -19,7 +19,13 @@ This library takes a different approach:
 - Clean Architecture with strict layer separation
 - Domain-driven design with pure business logic
 - Comprehensive cryptographic support using secp256k1
-- Native libsecp256k1 FFI acceleration with automatic pure-PHP fallback
+- Native libsecp256k1 FFI acceleration covering BIP340 sign/verify, x-only
+  pubkey derivation, NIP-44 ECDH, and group-law primitives (compressed
+  scalar-base-mul, point-mul, point-add) — automatic pure-PHP fallback
+  when the C library is unavailable
+- Bech32 *and* bech32m encoding/decoding via a single `Bech32Codec`
+  (NIP-19 prefixes plus BIP-350 variants used by FROSTR and other
+  bech32m-prefixed consumers)
 - Full NIP compliance validation
 - Type-safe message handling with domain objects at all boundaries
 - Optimised tag lookups via lazy indexing
@@ -177,7 +183,7 @@ $signatureService->sign($privateKey, $message); // throws SecretKeyMaterialZeroe
 | [NIP-11](https://github.com/nostr-protocol/nips/blob/master/11.md) | Relay information | Relay metadata fetching and parsing |
 | [NIP-17](https://github.com/nostr-protocol/nips/blob/master/17.md) | Private direct messages | Kind 14 with NIP-44 encryption and gift wrap (kind 1059/1060) |
 | [NIP-18](https://github.com/nostr-protocol/nips/blob/master/18.md) | Reposts | Kind 6/16 with embedded event extraction and quote detection |
-| [NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md) | Bech32 encoding | npub, nsec, note, nprofile, nevent, naddr encoding/decoding |
+| [NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md) | Bech32 encoding | npub, nsec, note, nprofile, nevent, naddr encoding/decoding; `Bech32Codec` also supports the BIP-350 bech32m variant for non-NIP consumers (e.g. FROSTR `bfgroup1…` / `bfshare1…` / `bfonboard1…`) via the `Bech32Variant` enum |
 | [NIP-22](https://github.com/nostr-protocol/nips/blob/master/22.md) | Comments | Kind 1111 with root/parent kind tags and reply chain analysis |
 | [NIP-23](https://github.com/nostr-protocol/nips/blob/master/23.md) | Long-form content | Kind 30023 as parameterised replaceable events |
 | [NIP-25](https://github.com/nostr-protocol/nips/blob/master/25.md) | Reactions | Kind 7 event support |
@@ -198,7 +204,25 @@ $signatureService->sign($privateKey, $message); // throws SecretKeyMaterialZeroe
 
 ### Native FFI Acceleration
 
-The library can use the system's native `libsecp256k1` C library via PHP's FFI extension for cryptographic operations. This provides significant performance gains for applications performing bulk signature verification, such as relays or indexers.
+The library can use the system's native `libsecp256k1` C library via PHP's
+FFI extension for cryptographic operations. This provides significant
+performance gains for applications performing bulk signature verification
+(relays, indexers) or threshold-signature math (FROSTR signers).
+
+Operations routed through `LibSecp256k1Ffi` when the library is loaded:
+
+- `sign` — BIP340 Schnorr sign
+- `verify` — BIP340 Schnorr verify
+- `derivePublicKey` — secret to 32-byte x-only pubkey
+- `derivePublicKeyCompressed` — secret to 33-byte compressed pubkey (parity-aware)
+- `computeSharedX` — x-only ECDH for NIP-44 conversation keys
+- `pointMulCompressed` — arbitrary-base scalar multiplication on a compressed point
+- `pointAddCompressed` — group addition of two compressed points
+
+The last three primitives are what threshold-signature consumers like
+[`innis/frostr-core`](https://github.com/innis-xyz/frostr-core) need for
+FROST partial signing, partial ECDH and dealer setup. With FFI loaded,
+those operations run roughly 60× faster than the pure-PHP fallback.
 
 To install the native library:
 
@@ -210,7 +234,8 @@ sudo apt install libsecp256k1-1
 brew install libsecp256k1
 ```
 
-No code changes are required. The library detects and uses the native implementation automatically, falling back to pure PHP when unavailable.
+No code changes are required. The library detects and uses the native
+implementation automatically, falling back to pure PHP when unavailable.
 
 ## Architecture
 
