@@ -86,9 +86,10 @@ final readonly class RelayUrl
             return null;
         }
 
-        $normalised = strtolower($parsed['scheme']).'://'.strtolower($parsed['host']);
+        $scheme = strtolower($parsed['scheme']);
+        $normalised = $scheme.'://'.strtolower($parsed['host']);
 
-        if (isset($parsed['port'])) {
+        if (isset($parsed['port']) && !self::isDefaultPort($scheme, $parsed['port'])) {
             $normalised .= ':'.$parsed['port'];
         }
 
@@ -151,6 +152,11 @@ final readonly class RelayUrl
         }
 
         return true;
+    }
+
+    private static function isDefaultPort(string $scheme, int $port): bool
+    {
+        return ('wss' === $scheme && 443 === $port) || ('ws' === $scheme && 80 === $port);
     }
 
     public function __toString(): string

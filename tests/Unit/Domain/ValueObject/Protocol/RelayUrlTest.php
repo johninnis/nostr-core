@@ -259,4 +259,55 @@ final class RelayUrlTest extends TestCase
         $this->assertNotNull($url);
         $this->assertSame('wss://relay.example.com?auth=token', (string) $url);
     }
+
+    public function testNormalisationStripsDefaultWssPort(): void
+    {
+        $url = RelayUrl::fromString('wss://relay.example.com:443');
+
+        $this->assertSame('wss://relay.example.com', (string) $url);
+    }
+
+    public function testNormalisationStripsDefaultWsPort(): void
+    {
+        $url = RelayUrl::fromString('ws://relay.example.com:80');
+
+        $this->assertSame('ws://relay.example.com', (string) $url);
+    }
+
+    public function testNormalisationPreservesNonDefaultPort(): void
+    {
+        $url = RelayUrl::fromString('wss://relay.example.com:444');
+
+        $this->assertSame('wss://relay.example.com:444', (string) $url);
+    }
+
+    public function testNormalisationPreservesWssOnPort80(): void
+    {
+        $url = RelayUrl::fromString('wss://relay.example.com:80');
+
+        $this->assertSame('wss://relay.example.com:80', (string) $url);
+    }
+
+    public function testNormalisationPreservesWsOnPort443(): void
+    {
+        $url = RelayUrl::fromString('ws://relay.example.com:443');
+
+        $this->assertSame('ws://relay.example.com:443', (string) $url);
+    }
+
+    public function testGetPortReturnsNullAfterDefaultPortStripped(): void
+    {
+        $url = RelayUrl::fromString('wss://relay.example.com:443')
+            ?? throw new RuntimeException('Invalid test URL');
+
+        $this->assertNull($url->getPort());
+    }
+
+    public function testEqualsIsTrueAcrossExplicitAndImplicitDefaultPort(): void
+    {
+        $bare = $this->createRelayUrl('wss://relay.example.com');
+        $explicit = $this->createRelayUrl('wss://relay.example.com:443');
+
+        $this->assertTrue($bare->equals($explicit));
+    }
 }
