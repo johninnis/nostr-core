@@ -12,21 +12,12 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Infrastructure\Adapter\RelayHintExtractorAdapter;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 use RuntimeException;
 
 final class RelayHintExtractorRealDataTest extends TestCase
 {
-    private RelayHintExtractorAdapter $extractor;
-    private Bech32EncoderInterface&MockObject $bech32Encoder;
-
-    protected function setUp(): void
-    {
-        $this->bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
-        $this->extractor = new RelayHintExtractorAdapter($this->bech32Encoder, $this->createMock(\Psr\Log\LoggerInterface::class));
-    }
-
     public function testExtractRelayHintsFromSecondTestEventTags(): void
     {
         $tags = TagCollection::fromArray([
@@ -42,7 +33,7 @@ final class RelayHintExtractorRealDataTest extends TestCase
             ['r', 'wss://nostr-pub.wellorder.net/'],
         ]);
 
-        $relayHints = $this->extractor->extractRelayHintsFromTags($tags);
+        $relayHints = $this->makeExtractor()->extractRelayHintsFromTags($tags);
 
         $relayStrings = array_map(static fn ($relay) => (string) $relay, $relayHints);
 
@@ -71,7 +62,7 @@ final class RelayHintExtractorRealDataTest extends TestCase
             ['r', 'wss://relay.snort.social/'],
         ]);
 
-        $relayHints = $this->extractor->extractRelayHintsFromTags($tags);
+        $relayHints = $this->makeExtractor()->extractRelayHintsFromTags($tags);
 
         $relayStrings = array_map(static fn ($relay) => (string) $relay, $relayHints);
 
@@ -89,7 +80,8 @@ final class RelayHintExtractorRealDataTest extends TestCase
     {
         $content = "Getting married and having kids will make you level up as a man faster and further than anything else.\n\nnostr:nevent1qvzqqqqqqypzqxh7p36w84mcf6af8f0rlf255mhtqxfg6ynnnt5t5jpj0p5q3cmdqqsdxkwnafkgnfg68g6xkqau25548fewg440x5s8r4uud0sednkewugdc6hft ";
 
-        $this->bech32Encoder
+        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder
             ->expects($this->once())
             ->method('decodeComplexEntity')
             ->with('nevent1qvzqqqqqqypzqxh7p36w84mcf6af8f0rlf255mhtqxfg6ynnnt5t5jpj0p5q3cmdqqsdxkwnafkgnfg68g6xkqau25548fewg440x5s8r4uud0sednkewugdc6hft')
@@ -99,7 +91,7 @@ final class RelayHintExtractorRealDataTest extends TestCase
                 'relays' => ['wss://relay.primal.net/', 'wss://nos.lol/'],
             ]);
 
-        $relayHints = $this->extractor->extractRelayHintsFromContent($content);
+        $relayHints = $this->makeExtractor($bech32Encoder)->extractRelayHintsFromContent($content);
 
         $this->assertCount(1, $relayHints);
         $this->assertEquals('wss://relay.primal.net', (string) $relayHints[0]);
@@ -109,18 +101,14 @@ final class RelayHintExtractorRealDataTest extends TestCase
     {
         $content = "Do not be shocked if the oft talked about theory of a gold-backed BRICS currency becomes a reality this Fall.\n\nnostr:naddr1qvzqqqr4gupzq3e0gs8jnmued6f2rp4c6vs07xqvs4vs8zpwt82smcdch4txjvq7qys8wumn8ghj7cnfw33k76twd4shs6tdv9kxjum5wvhx7mnvd9hx2tcpzemhxue69uhk2er9dchxummnw3ezumrpdejz7qqlvd5xjmnp945hxttswfjhqurfdenj6en0wgkhxmmdv46xs6twvuk7xtlq";
 
-        $relayHints = $this->extractor->extractRelayHintsFromContent($content);
-
-        $this->assertEmpty($relayHints);
+        $this->assertEmpty($this->makeExtractor()->extractRelayHintsFromContent($content));
     }
 
     public function testExtractRelayHintsFromFirstTestEvent(): void
     {
         $content = "open source software is powerful because anyone can verify, modify, distribute, and use without permission\n\na robust open source ecosystem empowers all of us to take agency over our lives\n\nfighting with people over what software they run is mostly unproductive, run what you want, thats the whole point";
 
-        $relayHints = $this->extractor->extractRelayHintsFromContent($content);
-
-        $this->assertEmpty($relayHints);
+        $this->assertEmpty($this->makeExtractor()->extractRelayHintsFromContent($content));
     }
 
     public function testExtractRelayHintsFromFullSecondTestEvent(): void
@@ -138,7 +126,8 @@ final class RelayHintExtractorRealDataTest extends TestCase
             EventContent::fromString("Getting married and having kids will make you level up as a man faster and further than anything else.\n\nnostr:nevent1qvzqqqqqqypzqxh7p36w84mcf6af8f0rlf255mhtqxfg6ynnnt5t5jpj0p5q3cmdqqsdxkwnafkgnfg68g6xkqau25548fewg440x5s8r4uud0sednkewugdc6hft ")
         );
 
-        $this->bech32Encoder
+        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder
             ->expects($this->once())
             ->method('decodeComplexEntity')
             ->willReturn([
@@ -146,7 +135,7 @@ final class RelayHintExtractorRealDataTest extends TestCase
                 'relays' => ['wss://relay.damus.io/'],
             ]);
 
-        $relayHints = $this->extractor->extractRelayHints($event);
+        $relayHints = $this->makeExtractor($bech32Encoder)->extractRelayHints($event);
 
         $relayStrings = array_map(static fn ($relay) => (string) $relay, $relayHints);
 
@@ -155,5 +144,13 @@ final class RelayHintExtractorRealDataTest extends TestCase
         $this->assertContains('wss://relay.primal.net', $relayStrings);
         $this->assertContains('wss://nostr.mom', $relayStrings);
         $this->assertContains('wss://relay.damus.io', $relayStrings);
+    }
+
+    private function makeExtractor(?Bech32EncoderInterface $bech32Encoder = null): RelayHintExtractorAdapter
+    {
+        return new RelayHintExtractorAdapter(
+            $bech32Encoder ?? $this->createStub(Bech32EncoderInterface::class),
+            new NullLogger()
+        );
     }
 }

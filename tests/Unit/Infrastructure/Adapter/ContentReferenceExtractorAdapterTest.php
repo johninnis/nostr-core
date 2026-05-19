@@ -9,25 +9,16 @@ use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
 use Innis\Nostr\Core\Domain\Service\Bech32EncoderInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Infrastructure\Adapter\ContentReferenceExtractorAdapter;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 final class ContentReferenceExtractorAdapterTest extends TestCase
 {
-    private ContentReferenceExtractorAdapter $extractor;
-    private Bech32EncoderInterface&MockObject $bech32Encoder;
-
-    protected function setUp(): void
-    {
-        $this->bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
-        $this->extractor = new ContentReferenceExtractorAdapter($this->bech32Encoder);
-    }
-
     public function testExtractNostrUriReferences(): void
     {
         $content = EventContent::fromString('Check out nostr:npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz and nostr:note10123456789abcdef0123456789abcdef0123456789abcdef0123456abc');
 
-        $this->bech32Encoder
+        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder
             ->expects($this->exactly(2))
             ->method('decodeComplexEntity')
             ->willReturnCallback(static function ($bech32) {
@@ -41,7 +32,7 @@ final class ContentReferenceExtractorAdapterTest extends TestCase
                 return [];
             });
 
-        $references = $this->extractor->extractContentReferences($content);
+        $references = (new ContentReferenceExtractorAdapter($bech32Encoder))->extractContentReferences($content);
 
         $this->assertCount(2, $references);
 
@@ -59,7 +50,8 @@ final class ContentReferenceExtractorAdapterTest extends TestCase
     {
         $content = EventContent::fromString('Here is npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz and note10123456789abcdef0123456789abcdef0123456789abcdef0123456abc and nevent1qqstna2yrezu5wghjvswqqculvvwxsrcvu7uc0f78gan4xqhvz49d9spr3mhxue69uhkummnw3ez6un9d3shjtn4de6x2argwghx6egpr4mhxue69uhkummnw3ez6ur4vgh8wetvd3hhyer9wghxuet5nxnepm');
 
-        $this->bech32Encoder
+        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder
             ->expects($this->exactly(3))
             ->method('decodeComplexEntity')
             ->willReturnCallback(static function ($bech32) {
@@ -76,7 +68,7 @@ final class ContentReferenceExtractorAdapterTest extends TestCase
                 return [];
             });
 
-        $references = $this->extractor->extractContentReferences($content);
+        $references = (new ContentReferenceExtractorAdapter($bech32Encoder))->extractContentReferences($content);
 
         $this->assertCount(3, $references);
 
@@ -94,12 +86,13 @@ final class ContentReferenceExtractorAdapterTest extends TestCase
     {
         $content = EventContent::fromString('Check out #[0] and #[1] references');
 
-        $this->bech32Encoder
+        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder
             ->expects($this->exactly(2))
             ->method('decodeComplexEntity')
             ->willReturn(['type' => 'legacy']);
 
-        $references = $this->extractor->extractContentReferences($content);
+        $references = (new ContentReferenceExtractorAdapter($bech32Encoder))->extractContentReferences($content);
 
         $this->assertCount(2, $references);
 
@@ -116,13 +109,14 @@ final class ContentReferenceExtractorAdapterTest extends TestCase
     {
         $content = EventContent::fromString('Invalid reference: npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz');
 
-        $this->bech32Encoder
+        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder
             ->expects($this->once())
             ->method('decodeComplexEntity')
             ->with('npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz')
             ->willThrowException(new Exception('Invalid bech32'));
 
-        $references = $this->extractor->extractContentReferences($content);
+        $references = (new ContentReferenceExtractorAdapter($bech32Encoder))->extractContentReferences($content);
 
         $this->assertCount(1, $references);
         $this->assertEquals('unknown', $references[0]->getDecodedType());
@@ -133,7 +127,8 @@ final class ContentReferenceExtractorAdapterTest extends TestCase
     {
         $content = EventContent::fromString('Reference: nevent1test123');
 
-        $this->bech32Encoder
+        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder
             ->expects($this->once())
             ->method('decodeComplexEntity')
             ->with('nevent1test123')
@@ -144,7 +139,7 @@ final class ContentReferenceExtractorAdapterTest extends TestCase
                 'relays' => ['wss://relay1.com', 'wss://relay2.com'],
             ]);
 
-        $references = $this->extractor->extractContentReferences($content);
+        $references = (new ContentReferenceExtractorAdapter($bech32Encoder))->extractContentReferences($content);
 
         $this->assertCount(1, $references);
         $reference = $references[0];
@@ -163,7 +158,8 @@ final class ContentReferenceExtractorAdapterTest extends TestCase
     {
         $content = EventContent::fromString('Reference: nevent1test456');
 
-        $this->bech32Encoder
+        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder
             ->expects($this->once())
             ->method('decodeComplexEntity')
             ->with('nevent1test456')
@@ -174,7 +170,7 @@ final class ContentReferenceExtractorAdapterTest extends TestCase
                 'relays' => ['wss://relay1.com'],
             ]);
 
-        $references = $this->extractor->extractContentReferences($content);
+        $references = (new ContentReferenceExtractorAdapter($bech32Encoder))->extractContentReferences($content);
 
         $this->assertCount(1, $references);
         $reference = $references[0];
@@ -187,7 +183,8 @@ final class ContentReferenceExtractorAdapterTest extends TestCase
     {
         $content = EventContent::fromString('Reference: nevent1test123');
 
-        $this->bech32Encoder
+        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder
             ->expects($this->once())
             ->method('decodeComplexEntity')
             ->willReturn([
@@ -195,7 +192,7 @@ final class ContentReferenceExtractorAdapterTest extends TestCase
                 'relays' => ['wss://valid-relay.com', 'invalid-url', 'wss://another-valid.com'],
             ]);
 
-        $references = $this->extractor->extractContentReferences($content);
+        $references = (new ContentReferenceExtractorAdapter($bech32Encoder))->extractContentReferences($content);
 
         $this->assertCount(1, $references);
         $relayUrls = $references[0]->getRelays();
@@ -209,13 +206,14 @@ final class ContentReferenceExtractorAdapterTest extends TestCase
     {
         $content = EventContent::fromString('Invalid: xnpub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyzx and valid npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz');
 
-        $this->bech32Encoder
+        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder
             ->expects($this->once())
             ->method('decodeComplexEntity')
             ->with('npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz')
             ->willReturn(['type' => 'npub', 'pubkey' => 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210']);
 
-        $references = $this->extractor->extractContentReferences($content);
+        $references = (new ContentReferenceExtractorAdapter($bech32Encoder))->extractContentReferences($content);
 
         $this->assertCount(1, $references);
         $this->assertEquals('npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz', $references[0]->getIdentifier());
@@ -225,9 +223,11 @@ final class ContentReferenceExtractorAdapterTest extends TestCase
     {
         $content = EventContent::fromString('No references here, just plain text');
 
-        $references = $this->extractor->extractContentReferences($content);
+        $extractor = new ContentReferenceExtractorAdapter(
+            $this->createStub(Bech32EncoderInterface::class)
+        );
 
-        $this->assertEmpty($references);
+        $this->assertEmpty($extractor->extractContentReferences($content));
     }
 
     public function testExtractsConcatenatedReferencesWithoutSeparator(): void
@@ -237,7 +237,8 @@ final class ContentReferenceExtractorAdapterTest extends TestCase
 
         $content = EventContent::fromString("Some text\n\n{$bareNevent}nostr:{$prefixedNevent} ");
 
-        $this->bech32Encoder
+        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder
             ->expects($this->exactly(2))
             ->method('decodeComplexEntity')
             ->willReturnCallback(static function ($bech32) use ($bareNevent, $prefixedNevent) {
@@ -251,7 +252,7 @@ final class ContentReferenceExtractorAdapterTest extends TestCase
                 return [];
             });
 
-        $references = $this->extractor->extractContentReferences($content);
+        $references = (new ContentReferenceExtractorAdapter($bech32Encoder))->extractContentReferences($content);
 
         $this->assertCount(2, $references);
 

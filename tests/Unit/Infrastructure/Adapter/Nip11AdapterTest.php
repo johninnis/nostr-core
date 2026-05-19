@@ -8,32 +8,28 @@ use Innis\Nostr\Core\Application\Port\HttpServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Infrastructure\Adapter\Nip11Adapter;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\Constraint\IsType;
+use PHPUnit\Framework\NativeType;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use RuntimeException;
 
 final class Nip11AdapterTest extends TestCase
 {
-    private HttpServiceInterface&MockObject $httpService;
-    private Nip11Adapter $adapter;
-
-    protected function setUp(): void
-    {
-        $this->httpService = $this->createMock(HttpServiceInterface::class);
-        $this->adapter = new Nip11Adapter($this->httpService, new NullLogger());
-    }
-
     public function testReturnsNullWhenHttpServiceReturnsNull(): void
     {
-        $this->httpService->method('getJson')->willReturn(null);
+        $httpService = $this->createStub(HttpServiceInterface::class);
+        $httpService->method('getJson')->willReturn(null);
 
-        $this->assertNull($this->adapter->fetchNip11Info($this->relayUrl('wss://relay.example.com')));
+        $this->assertNull(
+            $this->makeAdapter($httpService)->fetchNip11Info($this->relayUrl('wss://relay.example.com'))
+        );
     }
 
     public function testReturnsPopulatedInfoOnSuccessfulFetch(): void
     {
-        $this->httpService->method('getJson')->willReturn([
+        $httpService = $this->createStub(HttpServiceInterface::class);
+        $httpService->method('getJson')->willReturn([
             'name' => 'Example Relay',
             'description' => 'A relay for examples',
             'pubkey' => 'abc123',
@@ -42,7 +38,7 @@ final class Nip11AdapterTest extends TestCase
             'version' => '1.0.0',
         ]);
 
-        $info = $this->adapter->fetchNip11Info($this->relayUrl('wss://relay.example.com'));
+        $info = $this->makeAdapter($httpService)->fetchNip11Info($this->relayUrl('wss://relay.example.com'));
 
         $this->assertNotNull($info);
         $this->assertSame('Example Relay', $info->getName());
@@ -53,12 +49,13 @@ final class Nip11AdapterTest extends TestCase
 
     public function testGracefullyHandlesMalformedSupportedNips(): void
     {
-        $this->httpService->method('getJson')->willReturn([
+        $httpService = $this->createStub(HttpServiceInterface::class);
+        $httpService->method('getJson')->willReturn([
             'name' => 'Broken Relay',
             'supported_nips' => 'not-an-array',
         ]);
 
-        $info = $this->adapter->fetchNip11Info($this->relayUrl('wss://relay.example.com'));
+        $info = $this->makeAdapter($httpService)->fetchNip11Info($this->relayUrl('wss://relay.example.com'));
 
         $this->assertNotNull($info);
         $this->assertSame('Broken Relay', $info->getName());
@@ -67,12 +64,13 @@ final class Nip11AdapterTest extends TestCase
 
     public function testGracefullyHandlesMalformedStringFields(): void
     {
-        $this->httpService->method('getJson')->willReturn([
+        $httpService = $this->createStub(HttpServiceInterface::class);
+        $httpService->method('getJson')->willReturn([
             'name' => ['unexpected' => 'array'],
             'description' => 42,
         ]);
 
-        $info = $this->adapter->fetchNip11Info($this->relayUrl('wss://relay.example.com'));
+        $info = $this->makeAdapter($httpService)->fetchNip11Info($this->relayUrl('wss://relay.example.com'));
 
         $this->assertNotNull($info);
         $this->assertNull($info->getName());
@@ -81,9 +79,10 @@ final class Nip11AdapterTest extends TestCase
 
     public function testReturnsInfoWithAllNullFieldsWhenResponseIsEmpty(): void
     {
-        $this->httpService->method('getJson')->willReturn([]);
+        $httpService = $this->createStub(HttpServiceInterface::class);
+        $httpService->method('getJson')->willReturn([]);
 
-        $info = $this->adapter->fetchNip11Info($this->relayUrl('wss://relay.example.com'));
+        $info = $this->makeAdapter($httpService)->fetchNip11Info($this->relayUrl('wss://relay.example.com'));
 
         $this->assertNotNull($info);
         $this->assertNull($info->getName());
@@ -94,13 +93,14 @@ final class Nip11AdapterTest extends TestCase
     #[DataProvider('urlRewriteCases')]
     public function testRewritesWebSocketSchemeToHttpForFetch(string $inputUrl, string $expectedHttpUrl): void
     {
-        $this->httpService
+        $httpService = $this->createMock(HttpServiceInterface::class);
+        $httpService
             ->expects($this->once())
             ->method('getJson')
-            ->with($expectedHttpUrl, $this->isType('array'))
+            ->with($expectedHttpUrl, new IsType(NativeType::Array))
             ->willReturn([]);
 
-        $this->adapter->fetchNip11Info($this->relayUrl($inputUrl));
+        $this->makeAdapter($httpService)->fetchNip11Info($this->relayUrl($inputUrl));
     }
 
     public static function urlRewriteCases(): array
@@ -113,7 +113,8 @@ final class Nip11AdapterTest extends TestCase
 
     public function testSendsNip11AcceptHeader(): void
     {
-        $this->httpService
+        $httpService = $this->createMock(HttpServiceInterface::class);
+        $httpService
             ->expects($this->once())
             ->method('getJson')
             ->with(
@@ -122,7 +123,12 @@ final class Nip11AdapterTest extends TestCase
             )
             ->willReturn([]);
 
-        $this->adapter->fetchNip11Info($this->relayUrl('wss://relay.example.com'));
+        $this->makeAdapter($httpService)->fetchNip11Info($this->relayUrl('wss://relay.example.com'));
+    }
+
+    private function makeAdapter(HttpServiceInterface $httpService): Nip11Adapter
+    {
+        return new Nip11Adapter($httpService, new NullLogger());
     }
 
     private function relayUrl(string $url): RelayUrl

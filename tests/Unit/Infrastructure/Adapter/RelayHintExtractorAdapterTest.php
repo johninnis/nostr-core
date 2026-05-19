@@ -14,21 +14,12 @@ use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Infrastructure\Adapter\RelayHintExtractorAdapter;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 use RuntimeException;
 
 final class RelayHintExtractorAdapterTest extends TestCase
 {
-    private RelayHintExtractorAdapter $extractor;
-    private Bech32EncoderInterface&MockObject $bech32Encoder;
-
-    protected function setUp(): void
-    {
-        $this->bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
-        $this->extractor = new RelayHintExtractorAdapter($this->bech32Encoder, $this->createMock(\Psr\Log\LoggerInterface::class));
-    }
-
     public function testExtractRelayHintsFromRTags(): void
     {
         $tags = TagCollection::fromArray([
@@ -37,7 +28,7 @@ final class RelayHintExtractorAdapterTest extends TestCase
             ['p', 'pubkey123', 'wss://third.com'],
         ]);
 
-        $relays = $this->extractor->extractRelayHintsFromTags($tags);
+        $relays = $this->makeExtractor()->extractRelayHintsFromTags($tags);
 
         $this->assertCount(3, $relays);
         $this->assertEquals('wss://relay.example.com', (string) $relays[0]);
@@ -53,7 +44,7 @@ final class RelayHintExtractorAdapterTest extends TestCase
             ['e', 'event789'],
         ]);
 
-        $relays = $this->extractor->extractRelayHintsFromTags($tags);
+        $relays = $this->makeExtractor()->extractRelayHintsFromTags($tags);
 
         $this->assertCount(2, $relays);
         $this->assertEquals('wss://relay1.com', (string) $relays[0]);
@@ -63,13 +54,14 @@ final class RelayHintExtractorAdapterTest extends TestCase
     public function testExtractRelayHintFromNevent(): void
     {
         $nevent = 'nevent1abc123';
-        $this->bech32Encoder
+        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder
             ->expects($this->once())
             ->method('decodeComplexEntity')
             ->with($nevent)
             ->willReturn(['relays' => ['wss://decoded-relay.com']]);
 
-        $relay = $this->extractor->extractRelayHintFromNevent($nevent);
+        $relay = $this->makeExtractor($bech32Encoder)->extractRelayHintFromNevent($nevent);
 
         $this->assertNotNull($relay);
         $this->assertEquals('wss://decoded-relay.com', (string) $relay);
@@ -78,36 +70,35 @@ final class RelayHintExtractorAdapterTest extends TestCase
     public function testExtractRelayHintFromNeventReturnsNullWhenNoRelays(): void
     {
         $nevent = 'nevent1abc123';
-        $this->bech32Encoder
+        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder
             ->expects($this->once())
             ->method('decodeComplexEntity')
             ->with($nevent)
             ->willReturn(['relays' => []]);
 
-        $relay = $this->extractor->extractRelayHintFromNevent($nevent);
-
-        $this->assertNull($relay);
+        $this->assertNull($this->makeExtractor($bech32Encoder)->extractRelayHintFromNevent($nevent));
     }
 
     public function testExtractRelayHintFromNeventHandlesException(): void
     {
         $nevent = 'nevent1invalid';
-        $this->bech32Encoder
+        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder
             ->expects($this->once())
             ->method('decodeComplexEntity')
             ->with($nevent)
             ->willThrowException(new Exception('Invalid nevent'));
 
-        $relay = $this->extractor->extractRelayHintFromNevent($nevent);
-
-        $this->assertNull($relay);
+        $this->assertNull($this->makeExtractor($bech32Encoder)->extractRelayHintFromNevent($nevent));
     }
 
     public function testExtractRelayHintsFromContentWithNevent(): void
     {
         $content = 'Check out this event: nevent1abc123 and this one nevent1def456';
 
-        $this->bech32Encoder
+        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder
             ->expects($this->exactly(2))
             ->method('decodeComplexEntity')
             ->willReturnMap([
@@ -115,7 +106,7 @@ final class RelayHintExtractorAdapterTest extends TestCase
                 ['nevent1def456', ['relays' => ['wss://relay2.com']]],
             ]);
 
-        $relays = $this->extractor->extractRelayHintsFromContent($content);
+        $relays = $this->makeExtractor($bech32Encoder)->extractRelayHintsFromContent($content);
 
         $this->assertCount(2, $relays);
         $this->assertEquals('wss://relay1.com', (string) $relays[0]);
@@ -129,7 +120,7 @@ final class RelayHintExtractorAdapterTest extends TestCase
             ['p', 'author456'],
         ]);
 
-        $relays = $this->extractor->extractRelayHints($event);
+        $relays = $this->makeExtractor()->extractRelayHints($event);
 
         $this->assertCount(1, $relays);
         $this->assertEquals('wss://repost-relay.com', (string) $relays[0]);
@@ -144,7 +135,7 @@ final class RelayHintExtractorAdapterTest extends TestCase
             ['p', 'pubkey456', 'wss://different.com'],
         ]);
 
-        $relays = $this->extractor->extractRelayHintsFromTags($tags);
+        $relays = $this->makeExtractor()->extractRelayHintsFromTags($tags);
 
         $this->assertCount(2, $relays);
         $relayUrls = array_map(static fn ($relay) => (string) $relay, $relays);
@@ -160,10 +151,18 @@ final class RelayHintExtractorAdapterTest extends TestCase
             ['e', 'event123', 'not-a-url'],
         ]);
 
-        $relays = $this->extractor->extractRelayHintsFromTags($tags);
+        $relays = $this->makeExtractor()->extractRelayHintsFromTags($tags);
 
         $this->assertCount(1, $relays);
         $this->assertEquals('wss://valid-relay.com', (string) $relays[0]);
+    }
+
+    private function makeExtractor(?Bech32EncoderInterface $bech32Encoder = null): RelayHintExtractorAdapter
+    {
+        return new RelayHintExtractorAdapter(
+            $bech32Encoder ?? $this->createStub(Bech32EncoderInterface::class),
+            new NullLogger()
+        );
     }
 
     private function createRepostEvent(array $tagArrays): Event

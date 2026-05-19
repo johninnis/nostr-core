@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\Entity\EventReferences;
 use Innis\Nostr\Core\Domain\Service\ContentReferenceExtractorInterface;
 use Innis\Nostr\Core\Domain\Service\EventReferenceExtractionService;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
@@ -13,37 +14,25 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
 final class EventReferenceExtractionServiceTest extends TestCase
 {
-    private EventReferenceExtractionService $service;
-    private ContentReferenceExtractorInterface&MockObject $contentExtractor;
-
-    protected function setUp(): void
-    {
-        $this->contentExtractor = $this->createMock(ContentReferenceExtractorInterface::class);
-
-        $this->service = new EventReferenceExtractionService(
-            $this->contentExtractor
-        );
-    }
-
     public function testExtractReferencesOrchestatesAllServices(): void
     {
-        $event = $this->createTestEvent();
-
-        $this->contentExtractor
+        $contentExtractor = $this->createMock(ContentReferenceExtractorInterface::class);
+        $contentExtractor
             ->expects($this->once())
             ->method('extractContentReferences')
             ->with($this->isInstanceOf(EventContent::class))
             ->willReturn([]);
 
-        $result = $this->service->extractReferences($event);
+        $service = new EventReferenceExtractionService($contentExtractor);
 
-        $this->assertInstanceOf(\Innis\Nostr\Core\Domain\Entity\EventReferences::class, $result);
+        $result = $service->extractReferences($this->createTestEvent());
+
+        $this->assertInstanceOf(EventReferences::class, $result);
         $this->assertCount(1, $result->getTagReferences()->getEvents());
         $this->assertCount(1, $result->getTagReferences()->getPubkeys());
         $this->assertSame([], $result->getContentReferences());
@@ -67,9 +56,12 @@ final class EventReferenceExtractionServiceTest extends TestCase
             EventContent::fromString('Test content')
         );
 
-        $this->contentExtractor->method('extractContentReferences')->willReturn([]);
+        $contentExtractor = $this->createStub(ContentReferenceExtractorInterface::class);
+        $contentExtractor->method('extractContentReferences')->willReturn([]);
 
-        $result = $this->service->extractReferences($event);
+        $service = new EventReferenceExtractionService($contentExtractor);
+
+        $result = $service->extractReferences($event);
 
         $allEventIds = $result->getAllEventIds();
         $allPublicKeys = $result->getAllPublicKeys();
@@ -100,9 +92,12 @@ final class EventReferenceExtractionServiceTest extends TestCase
             EventContent::fromString('Test content')
         );
 
-        $this->contentExtractor->method('extractContentReferences')->willReturn([]);
+        $contentExtractor = $this->createStub(ContentReferenceExtractorInterface::class);
+        $contentExtractor->method('extractContentReferences')->willReturn([]);
 
-        $result = $this->service->extractReferences($event);
+        $service = new EventReferenceExtractionService($contentExtractor);
+
+        $result = $service->extractReferences($event);
 
         $this->assertCount(1, $result->getAllEventIds());
         $this->assertCount(1, $result->getAllPublicKeys());

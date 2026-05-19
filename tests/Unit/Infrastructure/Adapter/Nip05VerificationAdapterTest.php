@@ -8,7 +8,6 @@ use Innis\Nostr\Core\Application\Port\HttpServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Nip05Identifier;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Infrastructure\Adapter\Nip05VerificationAdapter;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use RuntimeException;
@@ -17,20 +16,12 @@ final class Nip05VerificationAdapterTest extends TestCase
 {
     private const VALID_PUBKEY_HEX = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 
-    private HttpServiceInterface&MockObject $httpService;
-    private Nip05VerificationAdapter $adapter;
-
-    protected function setUp(): void
-    {
-        $this->httpService = $this->createMock(HttpServiceInterface::class);
-        $this->adapter = new Nip05VerificationAdapter($this->httpService, new NullLogger());
-    }
-
     public function testReturnsFailureWhenHttpServiceReturnsNull(): void
     {
-        $this->httpService->method('getJson')->willReturn(null);
+        $httpService = $this->createStub(HttpServiceInterface::class);
+        $httpService->method('getJson')->willReturn(null);
 
-        $result = $this->adapter->verify(
+        $result = $this->makeAdapter($httpService)->verify(
             Nip05Identifier::fromString('alice@example.com'),
             $this->pubkey(),
         );
@@ -41,9 +32,10 @@ final class Nip05VerificationAdapterTest extends TestCase
 
     public function testReturnsFailureWhenResponseLacksNamesKey(): void
     {
-        $this->httpService->method('getJson')->willReturn(['relays' => []]);
+        $httpService = $this->createStub(HttpServiceInterface::class);
+        $httpService->method('getJson')->willReturn(['relays' => []]);
 
-        $result = $this->adapter->verify(
+        $result = $this->makeAdapter($httpService)->verify(
             Nip05Identifier::fromString('alice@example.com'),
             $this->pubkey(),
         );
@@ -54,13 +46,14 @@ final class Nip05VerificationAdapterTest extends TestCase
 
     public function testReturnsFailureWhenLocalPartNotInNames(): void
     {
-        $this->httpService->method('getJson')->willReturn([
+        $httpService = $this->createStub(HttpServiceInterface::class);
+        $httpService->method('getJson')->willReturn([
             'names' => [
                 'bob' => self::VALID_PUBKEY_HEX,
             ],
         ]);
 
-        $result = $this->adapter->verify(
+        $result = $this->makeAdapter($httpService)->verify(
             Nip05Identifier::fromString('alice@example.com'),
             $this->pubkey(),
         );
@@ -72,13 +65,14 @@ final class Nip05VerificationAdapterTest extends TestCase
     public function testReturnsFailureWhenReturnedPubkeyDoesNotMatch(): void
     {
         $differentPubkey = str_repeat('f', 64);
-        $this->httpService->method('getJson')->willReturn([
+        $httpService = $this->createStub(HttpServiceInterface::class);
+        $httpService->method('getJson')->willReturn([
             'names' => [
                 'alice' => $differentPubkey,
             ],
         ]);
 
-        $result = $this->adapter->verify(
+        $result = $this->makeAdapter($httpService)->verify(
             Nip05Identifier::fromString('alice@example.com'),
             $this->pubkey(),
         );
@@ -89,13 +83,14 @@ final class Nip05VerificationAdapterTest extends TestCase
 
     public function testReturnsSuccessWhenNamesMatchExpectedPubkey(): void
     {
-        $this->httpService->method('getJson')->willReturn([
+        $httpService = $this->createStub(HttpServiceInterface::class);
+        $httpService->method('getJson')->willReturn([
             'names' => [
                 'alice' => self::VALID_PUBKEY_HEX,
             ],
         ]);
 
-        $result = $this->adapter->verify(
+        $result = $this->makeAdapter($httpService)->verify(
             Nip05Identifier::fromString('alice@example.com'),
             $this->pubkey(),
         );
@@ -106,16 +101,22 @@ final class Nip05VerificationAdapterTest extends TestCase
 
     public function testFetchesWellKnownUrlForIdentifier(): void
     {
-        $this->httpService
+        $httpService = $this->createMock(HttpServiceInterface::class);
+        $httpService
             ->expects($this->once())
             ->method('getJson')
             ->with('https://example.com/.well-known/nostr.json?name=alice')
             ->willReturn(null);
 
-        $this->adapter->verify(
+        $this->makeAdapter($httpService)->verify(
             Nip05Identifier::fromString('alice@example.com'),
             $this->pubkey(),
         );
+    }
+
+    private function makeAdapter(HttpServiceInterface $httpService): Nip05VerificationAdapter
+    {
+        return new Nip05VerificationAdapter($httpService, new NullLogger());
     }
 
     private function pubkey(): PublicKey
