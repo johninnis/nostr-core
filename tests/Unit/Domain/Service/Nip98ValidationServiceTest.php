@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
+use Innis\Nostr\Core\Application\Port\Nip98ReplayGuardInterface;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Exception\Nip98ValidationException;
 use Innis\Nostr\Core\Domain\Factory\EventFactory;
-use Innis\Nostr\Core\Domain\Service\Nip98ReplayGuard;
 use Innis\Nostr\Core\Domain\Service\Nip98ValidationService;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
@@ -27,7 +28,7 @@ final class Nip98ValidationServiceTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->service = new Nip98ValidationService($this->signatureService(), new Nip98ReplayGuard());
+        $this->service = new Nip98ValidationService($this->signatureService(), $this->createReplayGuard());
         $this->keyPair = KeyPair::generate($this->signatureService());
     }
 
@@ -273,7 +274,7 @@ final class Nip98ValidationServiceTest extends TestCase
 
     public function testCustomTimestampTolerance(): void
     {
-        $service = new Nip98ValidationService($this->signatureService(), new Nip98ReplayGuard(), timestampTolerance: 10);
+        $service = new Nip98ValidationService($this->signatureService(), $this->createReplayGuard(), timestampTolerance: 10);
         $event = $this->createSignedEventWithTimestamp(Timestamp::fromInt(time() - 30));
 
         $this->expectException(Nip98ValidationException::class);
@@ -315,6 +316,16 @@ final class Nip98ValidationServiceTest extends TestCase
         $pubkey = $this->service->validateAuthHeader($authHeader, 'https://relay.example.com/', 'GET', '');
 
         $this->assertTrue($pubkey->equals($this->keyPair->getPublicKey()));
+    }
+
+    public function testValidateAuthHeaderRejectsOversizedHeader(): void
+    {
+        $oversized = 'Nostr '.str_repeat('A', 4096);
+
+        $this->expectException(Nip98ValidationException::class);
+        $this->expectExceptionMessage('Authorization header exceeds maximum length');
+
+        $this->service->validateAuthHeader($oversized, 'https://relay.example.com/', 'POST', '');
     }
 
     public function testValidateAuthHeaderRejectsMissingPrefix(): void
@@ -419,6 +430,24 @@ final class Nip98ValidationServiceTest extends TestCase
         );
 
         return $event->sign($this->keyPair, $this->signatureService());
+    }
+
+    private function createReplayGuard(): Nip98ReplayGuardInterface
+    {
+        return new class implements Nip98ReplayGuardInterface {
+            private array $seen = [];
+
+            public function recordOnce(EventId $eventId): bool
+            {
+                $key = $eventId->toHex();
+                if (isset($this->seen[$key])) {
+                    return false;
+                }
+                $this->seen[$key] = true;
+
+                return true;
+            }
+        };
     }
 
     private function createSignedEventWithTags(TagCollection $tags): Event

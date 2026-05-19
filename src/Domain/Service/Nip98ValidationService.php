@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Service;
 
+use Innis\Nostr\Core\Application\Port\Nip98ReplayGuardInterface;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 use Innis\Nostr\Core\Domain\Exception\Nip98ValidationException;
@@ -16,10 +17,12 @@ final readonly class Nip98ValidationService implements Nip98ValidationServiceInt
 {
     private const AUTH_HEADER_PREFIX = 'Nostr ';
     private const DEFAULT_TIMESTAMP_TOLERANCE = 60;
+    private const MAX_AUTH_HEADER_LENGTH = 4096;
+    private const JSON_MAX_DEPTH = 16;
 
     public function __construct(
         private SignatureServiceInterface $signatureService,
-        private Nip98ReplayGuard $replayGuard,
+        private Nip98ReplayGuardInterface $replayGuard,
         private int $timestampTolerance = self::DEFAULT_TIMESTAMP_TOLERANCE,
     ) {
     }
@@ -27,11 +30,11 @@ final readonly class Nip98ValidationService implements Nip98ValidationServiceInt
     public function validate(Event $event, string $requestUrl, string $requestMethod, ?string $requestBodyHash = null): PublicKey
     {
         $this->validateKind($event);
-        $this->validateSignature($event);
         $this->validateTimestamp($event);
         $this->validateUrl($event, $requestUrl);
         $this->validateMethod($event, $requestMethod);
         $this->validatePayloadTagConsistency($event, $requestBodyHash);
+        $this->validateSignature($event);
 
         if (null !== $requestBodyHash) {
             $this->validatePayload($event, $requestBodyHash);
@@ -54,6 +57,10 @@ final readonly class Nip98ValidationService implements Nip98ValidationServiceInt
 
     private function parseAuthHeader(string $authHeader): Event
     {
+        if (strlen($authHeader) > self::MAX_AUTH_HEADER_LENGTH) {
+            throw new Nip98ValidationException('Authorization header exceeds maximum length');
+        }
+
         if (!str_starts_with($authHeader, self::AUTH_HEADER_PREFIX)) {
             throw new Nip98ValidationException('Invalid Authorization header format');
         }
@@ -65,7 +72,7 @@ final readonly class Nip98ValidationService implements Nip98ValidationServiceInt
         }
 
         try {
-            $data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+            $data = json_decode($json, true, self::JSON_MAX_DEPTH, JSON_THROW_ON_ERROR);
         } catch (JsonException) {
             throw new Nip98ValidationException('Invalid JSON in Authorization header');
         }
