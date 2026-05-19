@@ -128,6 +128,10 @@ final readonly class Nip98ValidationService implements Nip98ValidationServiceInt
             throw new Nip98ValidationException('Event missing u tag');
         }
 
+        if (count($urlValues) > 1) {
+            throw new Nip98ValidationException('Event must contain exactly one u tag');
+        }
+
         $eventUrl = $this->normaliseUrl($urlValues[0]);
         $expectedUrl = $this->normaliseUrl($requestUrl);
 
@@ -144,6 +148,10 @@ final readonly class Nip98ValidationService implements Nip98ValidationServiceInt
             throw new Nip98ValidationException('Event missing method tag');
         }
 
+        if (count($methodValues) > 1) {
+            throw new Nip98ValidationException('Event must contain exactly one method tag');
+        }
+
         if (strtoupper($methodValues[0]) !== strtoupper($requestMethod)) {
             throw new Nip98ValidationException('Method in method tag does not match request method');
         }
@@ -151,9 +159,13 @@ final readonly class Nip98ValidationService implements Nip98ValidationServiceInt
 
     private function validatePayloadTagConsistency(Event $event, ?string $requestBodyHash): void
     {
-        $hasPayloadTag = [] !== $event->getTags()->getValuesByType(TagType::payload());
+        $payloadValues = $event->getTags()->getValuesByType(TagType::payload());
 
-        if (null === $requestBodyHash && $hasPayloadTag) {
+        if (count($payloadValues) > 1) {
+            throw new Nip98ValidationException('Event must contain at most one payload tag');
+        }
+
+        if (null === $requestBodyHash && [] !== $payloadValues) {
             throw new Nip98ValidationException('Event contains payload tag but no request body hash was supplied for verification');
         }
     }
@@ -176,7 +188,7 @@ final readonly class Nip98ValidationService implements Nip98ValidationServiceInt
         $parsed = parse_url($url);
 
         if (false === $parsed) {
-            return $url;
+            throw new Nip98ValidationException('Malformed URL');
         }
 
         $scheme = strtolower($parsed['scheme'] ?? '');

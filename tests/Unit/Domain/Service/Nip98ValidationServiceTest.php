@@ -260,6 +260,77 @@ final class Nip98ValidationServiceTest extends TestCase
         $this->assertTrue($pubkey->equals($this->keyPair->getPublicKey()));
     }
 
+    public function testRejectsDuplicateUrlTag(): void
+    {
+        $tags = new TagCollection([
+            Tag::fromArray(['u', 'https://relay.example.com/']),
+            Tag::fromArray(['u', 'https://decoy.example.com/']),
+            Tag::fromArray(['method', 'POST']),
+        ]);
+        $event = $this->createSignedEventWithTags($tags);
+
+        $this->expectException(Nip98ValidationException::class);
+        $this->expectExceptionMessage('Event must contain exactly one u tag');
+
+        $this->service->validate($event, 'https://relay.example.com/', 'POST');
+    }
+
+    public function testRejectsDuplicateMethodTag(): void
+    {
+        $tags = new TagCollection([
+            Tag::fromArray(['u', 'https://relay.example.com/']),
+            Tag::fromArray(['method', 'POST']),
+            Tag::fromArray(['method', 'GET']),
+        ]);
+        $event = $this->createSignedEventWithTags($tags);
+
+        $this->expectException(Nip98ValidationException::class);
+        $this->expectExceptionMessage('Event must contain exactly one method tag');
+
+        $this->service->validate($event, 'https://relay.example.com/', 'POST');
+    }
+
+    public function testRejectsDuplicatePayloadTag(): void
+    {
+        $body = '{"method":"test"}';
+        $tags = new TagCollection([
+            Tag::fromArray(['u', 'https://relay.example.com/']),
+            Tag::fromArray(['method', 'POST']),
+            Tag::fromArray(['payload', hash('sha256', $body)]),
+            Tag::fromArray(['payload', hash('sha256', 'something else')]),
+        ]);
+        $event = $this->createSignedEventWithTags($tags);
+
+        $this->expectException(Nip98ValidationException::class);
+        $this->expectExceptionMessage('Event must contain at most one payload tag');
+
+        $this->service->validate($event, 'https://relay.example.com/', 'POST', hash('sha256', $body));
+    }
+
+    public function testRejectsMalformedRequestUrl(): void
+    {
+        $event = $this->createValidSignedEvent();
+
+        $this->expectException(Nip98ValidationException::class);
+        $this->expectExceptionMessage('Malformed URL');
+
+        $this->service->validate($event, 'http://:/bad', 'POST', hash('sha256', '{"method":"test"}'));
+    }
+
+    public function testRejectsMalformedEventUrl(): void
+    {
+        $tags = new TagCollection([
+            Tag::fromArray(['u', 'http://:/bad']),
+            Tag::fromArray(['method', 'POST']),
+        ]);
+        $event = $this->createSignedEventWithTags($tags);
+
+        $this->expectException(Nip98ValidationException::class);
+        $this->expectExceptionMessage('Malformed URL');
+
+        $this->service->validate($event, 'https://relay.example.com/', 'POST');
+    }
+
     public function testRejectsReplayedAuthEvent(): void
     {
         $event = $this->createValidSignedEvent();
