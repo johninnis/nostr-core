@@ -132,7 +132,7 @@ final class EventValidationServiceTest extends TestCase
         $this->assertFalse($this->service->isEventValid($event));
     }
 
-    public function testUnsignedEventPassesValidationWhenNoSignaturePresent(): void
+    public function testUnsignedEventIsRejected(): void
     {
         $event = new Event(
             $this->keyPair->getPublicKey(),
@@ -142,20 +142,42 @@ final class EventValidationServiceTest extends TestCase
             EventContent::fromString('Hello')
         );
 
+        $this->expectException(InvalidEventException::class);
+        $this->expectExceptionMessage('Event signature is invalid');
+
         $this->service->validateEvent($event);
-        $this->assertTrue($this->service->isEventValid($event));
+    }
+
+    public function testEventWithEmptySigFieldIsRejected(): void
+    {
+        $signed = $this->createValidSignedEvent();
+
+        $forged = Event::fromArray([
+            'id' => $signed->getId()->toHex(),
+            'pubkey' => $signed->getPubkey()->toHex(),
+            'created_at' => $signed->getCreatedAt()->toInt(),
+            'kind' => $signed->getKind()->toInt(),
+            'tags' => $signed->getTags()->toArray(),
+            'content' => 'forged content claiming a known pubkey',
+            'sig' => '',
+        ]);
+
+        $this->expectException(InvalidEventException::class);
+        $this->expectExceptionMessage('Event signature is invalid');
+
+        $this->service->validateEvent($forged);
     }
 
     public function testValidationChecksContentLength(): void
     {
         $maxLengthContent = str_repeat('a', 65536); // Exactly at the limit
-        $event = new Event(
+        $event = (new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::textNote(),
             TagCollection::empty(),
             EventContent::fromString($maxLengthContent)
-        );
+        ))->sign($this->keyPair, $this->signatureService());
 
         $this->service->validateEvent($event);
         $this->assertTrue($this->service->isEventValid($event));
@@ -168,13 +190,13 @@ final class EventValidationServiceTest extends TestCase
             $tags[] = Tag::hashtag("tag{$i}");
         }
 
-        $event = new Event(
+        $event = (new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::textNote(),
             new TagCollection($tags),
             EventContent::fromString('Hello')
-        );
+        ))->sign($this->keyPair, $this->signatureService());
 
         $this->service->validateEvent($event);
         $this->assertTrue($this->service->isEventValid($event));

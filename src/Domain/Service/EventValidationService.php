@@ -64,7 +64,7 @@ final class EventValidationService implements EventValidationServiceInterface
 
     private function validateSignature(Event $event): void
     {
-        if ($event->isSigned() && !$event->verify($this->signatureService)) {
+        if (!$event->isSigned() || !$event->verify($this->signatureService)) {
             throw new InvalidEventException('Event signature is invalid');
         }
     }
