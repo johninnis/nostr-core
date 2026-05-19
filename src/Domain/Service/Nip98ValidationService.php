@@ -19,6 +19,7 @@ final readonly class Nip98ValidationService implements Nip98ValidationServiceInt
 
     public function __construct(
         private SignatureServiceInterface $signatureService,
+        private Nip98ReplayGuard $replayGuard,
         private int $timestampTolerance = self::DEFAULT_TIMESTAMP_TOLERANCE,
     ) {
     }
@@ -34,6 +35,10 @@ final readonly class Nip98ValidationService implements Nip98ValidationServiceInt
 
         if (null !== $requestBodyHash) {
             $this->validatePayload($event, $requestBodyHash);
+        }
+
+        if (!$this->replayGuard->recordOnce($event->getId())) {
+            throw new Nip98ValidationException('Auth event has already been used');
         }
 
         return $event->getPubkey();

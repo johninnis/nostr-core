@@ -7,6 +7,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Exception\Nip98ValidationException;
 use Innis\Nostr\Core\Domain\Factory\EventFactory;
+use Innis\Nostr\Core\Domain\Service\Nip98ReplayGuard;
 use Innis\Nostr\Core\Domain\Service\Nip98ValidationService;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
@@ -26,7 +27,7 @@ final class Nip98ValidationServiceTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->service = new Nip98ValidationService($this->signatureService());
+        $this->service = new Nip98ValidationService($this->signatureService(), new Nip98ReplayGuard());
         $this->keyPair = KeyPair::generate($this->signatureService());
     }
 
@@ -258,9 +259,21 @@ final class Nip98ValidationServiceTest extends TestCase
         $this->assertTrue($pubkey->equals($this->keyPair->getPublicKey()));
     }
 
+    public function testRejectsReplayedAuthEvent(): void
+    {
+        $event = $this->createValidSignedEvent();
+        $body = hash('sha256', '{"method":"test"}');
+
+        $this->service->validate($event, 'https://relay.example.com/', 'POST', $body);
+
+        $this->expectException(Nip98ValidationException::class);
+        $this->expectExceptionMessage('Auth event has already been used');
+        $this->service->validate($event, 'https://relay.example.com/', 'POST', $body);
+    }
+
     public function testCustomTimestampTolerance(): void
     {
-        $service = new Nip98ValidationService($this->signatureService(), timestampTolerance: 10);
+        $service = new Nip98ValidationService($this->signatureService(), new Nip98ReplayGuard(), timestampTolerance: 10);
         $event = $this->createSignedEventWithTimestamp(Timestamp::fromInt(time() - 30));
 
         $this->expectException(Nip98ValidationException::class);
