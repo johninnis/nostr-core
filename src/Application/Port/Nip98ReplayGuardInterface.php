@@ -8,5 +8,5 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 
 interface Nip98ReplayGuardInterface
 {
-    public function recordOnce(EventId $eventId): bool;
+    public function recordOnce(EventId $eventId, int $ttlSeconds): bool;
 }

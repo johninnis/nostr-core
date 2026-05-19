@@ -20,11 +20,14 @@ final readonly class Nip98ValidationService implements Nip98ValidationServiceInt
     private const MAX_AUTH_HEADER_LENGTH = 4096;
     private const JSON_MAX_DEPTH = 16;
 
+    private int $replayTtlSeconds;
+
     public function __construct(
         private SignatureServiceInterface $signatureService,
         private Nip98ReplayGuardInterface $replayGuard,
         private int $timestampTolerance = self::DEFAULT_TIMESTAMP_TOLERANCE,
     ) {
+        $this->replayTtlSeconds = 2 * $this->timestampTolerance;
     }
 
     public function validate(Event $event, string $requestUrl, string $requestMethod, ?string $requestBodyHash = null): PublicKey
@@ -40,7 +43,7 @@ final readonly class Nip98ValidationService implements Nip98ValidationServiceInt
             $this->validatePayload($event, $requestBodyHash);
         }
 
-        if (!$this->replayGuard->recordOnce($event->getId())) {
+        if (!$this->replayGuard->recordOnce($event->getId(), $this->replayTtlSeconds)) {
             throw new Nip98ValidationException('Auth event has already been used');
         }
 

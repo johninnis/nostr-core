@@ -437,13 +437,13 @@ final class Nip98ValidationServiceTest extends TestCase
         return new class implements Nip98ReplayGuardInterface {
             private array $seen = [];
 
-            public function recordOnce(EventId $eventId): bool
+            public function recordOnce(EventId $eventId, int $ttlSeconds): bool
             {
                 $key = $eventId->toHex();
                 if (isset($this->seen[$key])) {
                     return false;
                 }
-                $this->seen[$key] = true;
+                $this->seen[$key] = $ttlSeconds;
 
                 return true;
             }
