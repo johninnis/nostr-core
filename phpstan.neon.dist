@@ -28,7 +28,3 @@ parameters:
         -
             message: '#Access to an undefined property FFI\\CData::\$cdata#'
             path: src/Infrastructure/Crypto/LibSecp256k1Ffi.php
-        # Test assertions that verify runtime behaviour are legitimately trivially true from static analysis
-        -
-            identifier: method.alreadyNarrowedType
-            path: tests/

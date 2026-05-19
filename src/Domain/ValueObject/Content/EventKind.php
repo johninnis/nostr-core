@@ -16,9 +16,15 @@ final readonly class EventKind
     public const EVENT_DELETION = 5;
     public const REPOST = 6;
     public const REACTION = 7;
+    public const BADGE_AWARD = 8;
+    public const CHAT_MESSAGE = 9;
+    public const THREAD = 11;
     public const SEAL = 13;
     public const PRIVATE_MESSAGE = 14;
+    public const FILE_MESSAGE = 15;
     public const GENERIC_REPOST = 16;
+    public const WEBSITE_REACTION = 17;
+    public const PICTURE = 20;
     public const VIDEO = 21;
     public const SHORT_FORM_VIDEO = 22;
     public const CHANNEL_CREATION = 40;
@@ -26,17 +32,32 @@ final readonly class EventKind
     public const CHANNEL_MESSAGE = 42;
     public const CHANNEL_HIDE_MESSAGE = 43;
     public const CHANNEL_MUTE_USER = 44;
+    public const VANISH_REQUEST = 62;
     public const MLS_KEY_PACKAGE = 443;
     public const MLS_WELCOME = 444;
     public const MLS_GROUP_MESSAGE = 445;
+    public const POLL_RESPONSE = 1018;
+    public const OPENTIMESTAMPS = 1040;
     public const GIFT_WRAP = 1059;
+    public const FILE_METADATA = 1063;
+    public const POLL = 1068;
     public const COMMENT = 1111;
+    public const LIVE_CHAT_MESSAGE = 1311;
+    public const REPORTING = 1984;
+    public const COMMUNITY_POST_APPROVAL = 4550;
+    public const CASHU_RESERVED_TOKENS = 7374;
+    public const CASHU_WALLET_TOKENS = 7375;
+    public const CASHU_WALLET_HISTORY = 7376;
+    public const ZAP_GOAL = 9041;
     public const ZAP_REQUEST = 9734;
     public const ZAP_RECEIPT = 9735;
     public const NUTZAP = 9321;
     public const HIGHLIGHT = 9802;
     public const CLIENT_AUTH = 22242;
+    public const WALLET_REQUEST = 23194;
+    public const WALLET_RESPONSE = 23195;
     public const NOSTR_CONNECT = 24133;
+    public const BLOSSOM_BLOB = 24242;
     public const HTTP_AUTH = 27235;
     public const REPLACEABLE_EVENT_MIN = 10000;
     public const MUTE_LIST = 10000;
@@ -47,11 +68,15 @@ final readonly class EventKind
     public const PUBLIC_CHATS_LIST = 10005;
     public const BLOCKED_RELAYS_LIST = 10006;
     public const SEARCH_RELAYS_LIST = 10007;
+    public const PROFILE_BADGES = 10008;
     public const USER_GROUPS_LIST = 10009;
+    public const EXTERNAL_IDENTITIES = 10011;
     public const RELAY_FEEDS_LIST = 10012;
+    public const PRIVATE_EVENT_RELAY_LIST = 10013;
     public const INTERESTS_LIST = 10015;
     public const GIT_AUTHORS_LIST = 10017;
     public const GIT_REPOSITORIES_LIST = 10018;
+    public const NUTZAP_MINT_RECOMMENDATION = 10019;
     public const MEDIA_FOLLOWS_LIST = 10020;
     public const CUSTOM_EMOJI_LIST = 10030;
     public const DM_RELAY_LIST = 10050;
@@ -59,6 +84,10 @@ final readonly class EventKind
     public const BLOSSOM_SERVER_LIST = 10063;
     public const GOOD_WIKI_AUTHORS_LIST = 10101;
     public const GOOD_WIKI_RELAYS_LIST = 10102;
+    public const RELAY_MONITOR_ANNOUNCEMENT = 10166;
+    public const ROOM_PRESENCE = 10312;
+    public const WALLET_INFO = 13194;
+    public const CASHU_WALLET = 17375;
     public const REPLACEABLE_EVENT_MAX = 19999;
     public const EPHEMERAL_EVENT_MIN = 20000;
     public const EPHEMERAL_EVENT_MAX = 29999;
@@ -70,14 +99,37 @@ final readonly class EventKind
     public const CURATION_SET_VIDEO = 30005;
     public const CURATION_SET_PICTURES = 30006;
     public const KIND_MUTE_SET = 30007;
+    public const BADGE_SET = 30008;
+    public const BADGE_DEFINITION = 30009;
     public const INTEREST_SET = 30015;
     public const LONGFORM_CONTENT = 30023;
+    public const LONGFORM_CONTENT_DRAFT = 30024;
     public const EMOJI_SET = 30030;
     public const RELEASE_ARTIFACT_SET = 30063;
     public const APPLICATION_SPECIFIC_DATA = 30078;
+    public const RELAY_DISCOVERY = 30166;
     public const APP_CURATION_SET = 30267;
     public const LIVE_EVENT = 30311;
+    public const INTERACTIVE_ROOM = 30312;
+    public const CONFERENCE_EVENT = 30313;
+    public const USER_STATUS = 30315;
+    public const SITE_MANIFEST = 30630;
+    public const WEB_PAGE = 30631;
+    public const WEB_PAGE_DRAFT = 30632;
+    public const WIKI_ARTICLE = 30818;
+    public const WIKI_REDIRECT = 30819;
+    public const DRAFT_EVENT = 31234;
+    public const CALENDAR_EVENT_DATE = 31922;
+    public const CALENDAR_EVENT_TIME = 31923;
     public const CALENDAR = 31924;
+    public const CALENDAR_EVENT_RSVP = 31925;
+    public const HANDLER_RECOMMENDATION = 31989;
+    public const HANDLER_INFORMATION = 31990;
+    public const VIDEO_ADDRESSABLE = 34235;
+    public const SHORT_FORM_VIDEO_ADDRESSABLE = 34236;
+    public const COMMUNITY_DEFINITION = 34550;
+    public const CASHU_MINT_ANNOUNCEMENT = 38172;
+    public const FEDIMINT_ANNOUNCEMENT = 38173;
     public const STARTER_PACK = 39089;
     public const MEDIA_STARTER_PACK = 39092;
     public const PARAMETERISED_REPLACEABLE_MAX = 39999;
@@ -186,6 +238,11 @@ final readonly class EventKind
     public static function liveEvent(): self
     {
         return new self(self::LIVE_EVENT);
+    }
+
+    public static function picture(): self
+    {
+        return new self(self::PICTURE);
     }
 
     public static function video(): self
