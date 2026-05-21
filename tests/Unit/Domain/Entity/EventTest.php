@@ -200,6 +200,48 @@ final class EventTest extends TestCase
         $this->assertNotNull($recreatedEvent->getSignature());
     }
 
+    public function testFromJsonRetainsTheVerbatimJson(): void
+    {
+        $signed = $this->event->sign($this->keyPair, $this->signatureService());
+        $json = json_encode($signed->toArray(), JSON_THROW_ON_ERROR);
+
+        $event = Event::fromJson($json);
+
+        $this->assertSame($json, $event->getRawJson());
+        $this->assertSame($signed->getId()->toHex(), $event->getId()->toHex());
+        $this->assertSame($signed->getPubkey()->toHex(), $event->getPubkey()->toHex());
+    }
+
+    public function testFromArrayLeavesRawJsonNull(): void
+    {
+        $signed = $this->event->sign($this->keyPair, $this->signatureService());
+
+        $this->assertNull(Event::fromArray($signed->toArray())->getRawJson());
+    }
+
+    public function testWithTagsDropsRawJson(): void
+    {
+        $signed = $this->event->sign($this->keyPair, $this->signatureService());
+        $event = Event::fromJson(json_encode($signed->toArray(), JSON_THROW_ON_ERROR));
+
+        $this->assertNull($event->withTags(TagCollection::empty())->getRawJson());
+    }
+
+    public function testSignDropsRawJson(): void
+    {
+        $signed = $this->event->sign($this->keyPair, $this->signatureService());
+        $event = Event::fromJson(json_encode($signed->toArray(), JSON_THROW_ON_ERROR));
+
+        $this->assertNull($event->sign($this->keyPair, $this->signatureService())->getRawJson());
+    }
+
+    public function testFromJsonThrowsWhenJsonIsNotAnObject(): void
+    {
+        $this->expectException(InvalidEventException::class);
+
+        Event::fromJson('"not an object"');
+    }
+
     public function testEventIdCalculationIsConsistent(): void
     {
         $event1 = new Event(

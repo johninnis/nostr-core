@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\PreSerialisedMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
 use InvalidArgumentException;
 
-final readonly class EventMessage extends RelayMessage
+final readonly class EventMessage extends RelayMessage implements PreSerialisedMessage
 {
     public function __construct(
         private SubscriptionId $subscriptionId,
@@ -35,6 +36,22 @@ final readonly class EventMessage extends RelayMessage
     public function toArray(): array
     {
         return ['EVENT', (string) $this->subscriptionId, $this->event->toArray()];
+    }
+
+    public function preSerialisedJson(): ?string
+    {
+        $rawJson = $this->event->getRawJson();
+
+        if (null === $rawJson) {
+            return null;
+        }
+
+        $subscriptionId = json_encode(
+            (string) $this->subscriptionId,
+            JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
+        );
+
+        return '["EVENT",'.$subscriptionId.','.$rawJson.']';
     }
 
     public static function fromArray(array $data): static

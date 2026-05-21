@@ -16,7 +16,10 @@ abstract readonly class RelayMessage
 
     final public function toJson(): string
     {
-        return json_encode($this->toArray(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $preSerialised = $this instanceof PreSerialisedMessage ? $this->preSerialisedJson() : null;
+
+        return $preSerialised
+            ?? json_encode($this->toArray(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     }
 
     final public static function fromJson(string $json): static

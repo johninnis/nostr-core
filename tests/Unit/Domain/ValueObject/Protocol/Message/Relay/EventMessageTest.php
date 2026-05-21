@@ -72,6 +72,45 @@ final class EventMessageTest extends TestCase
         $this->assertIsArray($decoded[2]);
     }
 
+    public function testToJsonSplicesRawJsonWhenEventCarriesIt(): void
+    {
+        $rawEvent = json_encode(
+            $this->createEvent()->toArray(),
+            JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
+        );
+        $message = new EventMessage(SubscriptionId::fromString('sub-1'), Event::fromJson($rawEvent));
+
+        $this->assertSame('["EVENT","sub-1",'.$rawEvent.']', $message->toJson());
+    }
+
+    public function testToJsonIsByteIdenticalWithOrWithoutRawJson(): void
+    {
+        $event = $this->createEvent();
+        $rawEvent = json_encode(
+            $event->toArray(),
+            JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
+        );
+
+        $withoutRaw = new EventMessage(SubscriptionId::fromString('sub-1'), $event);
+        $withRaw = new EventMessage(SubscriptionId::fromString('sub-1'), Event::fromJson($rawEvent));
+
+        $this->assertSame($withoutRaw->toJson(), $withRaw->toJson());
+    }
+
+    public function testPreSerialisedJsonSplicesRawEventOrReturnsNull(): void
+    {
+        $rawEvent = json_encode(
+            $this->createEvent()->toArray(),
+            JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
+        );
+
+        $stored = new EventMessage(SubscriptionId::fromString('sub-1'), Event::fromJson($rawEvent));
+        $fresh = new EventMessage(SubscriptionId::fromString('sub-1'), $this->createEvent());
+
+        self::assertSame('["EVENT","sub-1",'.$rawEvent.']', $stored->preSerialisedJson());
+        self::assertNull($fresh->preSerialisedJson());
+    }
+
     public function testFromArrayCreatesValidMessage(): void
     {
         $event = $this->createEvent();

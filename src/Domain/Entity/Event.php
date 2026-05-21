@@ -27,6 +27,7 @@ final readonly class Event
         private EventContent $content,
         private ?EventId $id = null,
         private ?Signature $signature = null,
+        private ?string $rawJson = null,
     ) {
     }
 
@@ -119,6 +120,11 @@ final readonly class Event
     public function getSignature(): ?Signature
     {
         return $this->signature;
+    }
+
+    public function getRawJson(): ?string
+    {
+        return $this->rawJson;
     }
 
     public function isSigned(): bool
@@ -218,6 +224,22 @@ final readonly class Event
 
     public static function fromArray(array $data): self
     {
+        return self::build($data, null);
+    }
+
+    public static function fromJson(string $json): self
+    {
+        $data = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+
+        if (!is_array($data)) {
+            throw new InvalidEventException('Event JSON must decode to an object');
+        }
+
+        return self::build($data, $json);
+    }
+
+    private static function build(array $data, ?string $rawJson): self
+    {
         $requiredFields = ['pubkey', 'created_at', 'kind', 'tags', 'content'];
         foreach ($requiredFields as $field) {
             if (!array_key_exists($field, $data)) {
@@ -248,7 +270,8 @@ final readonly class Event
             TagCollection::fromArray($data['tags']),
             EventContent::fromString($content),
             $id,
-            $signature
+            $signature,
+            $rawJson,
         );
     }
 
