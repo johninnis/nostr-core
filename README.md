@@ -269,6 +269,29 @@ composer analyse
 composer fix-style
 ```
 
+## Filter-set hash
+
+`FilterHasher::hash` (PHP `@innis/nostr-core`) and `hashFilters` (TypeScript `@innis/nostr-core`) compute a stable identity for a NIP-01 `REQ` filter set, suitable as a subscription dedup key. Both follow the same canonicalisation spec:
+
+1. Represent the filter set as an ordered list of filters in wire form (PHP: `Filter::toArray()`; TS: `NostrFilter` objects).
+2. Canonicalise recursively:
+   - **object / map** — sort keys ascending, then canonicalise each value;
+   - **array / list** — canonicalise each element, then sort the elements ascending by their canonical JSON encoding;
+   - **scalar** — left unchanged.
+3. JSON-encode the canonicalised structure compactly, with `/` and non-ASCII left unescaped (`JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE`).
+4. The hash is the lowercase-hex **SHA-256** of that canonical string.
+
+Because object keys, array elements, and the filters themselves are all sorted, two filter sets that select the same events produce the same digest regardless of how they were ordered on input.
+
+### Cross-language parity (status)
+
+Each implementation guarantees the property **within its own runtime**, and the two are byte-identical for all-ASCII inputs — event ids, pubkeys, kinds, and ASCII tag values (for example, both hash the empty set `[]` to `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`). Full byte-for-byte parity across every input is **not yet guaranteed**. Known residual divergences:
+
+- an **empty filter** encodes as `[]` (PHP) but `{}` (TS);
+- **element sort order** for non-ASCII values follows UTF-8 bytes (PHP) versus UTF-16 code units (TS).
+
+Until a shared conformance vector set locks byte-parity, do not key a **cross-language shared** cache or store off this digest. For same-runtime dedup it is correct today.
+
 ## License
 
 MIT License. See LICENSE file for details.
