@@ -97,4 +97,28 @@ final class FilterHasherTest extends TestCase
             FilterHasher::hash(new Filter()),
         );
     }
+
+    public function testU2028SearchStringMatchesTheCrossLanguageAnchor(): void
+    {
+        $this->assertSame(
+            'aee96085e5802e7b70a145ffdf6aa7e2335469aa223be66c79c9ad1699ecd7f2',
+            FilterHasher::hash(new Filter(search: "\u{2028}")),
+        );
+    }
+
+    public function testAstralSearchCharacterMatchesTheCrossLanguageAnchor(): void
+    {
+        $this->assertSame(
+            'ac283a84cb87cd19a956f552a82cb9155fc1a980d576356c4d987e71710a4dd3',
+            FilterHasher::hash(new Filter(search: "\u{1F600}")),
+        );
+    }
+
+    public function testAstralTagValueSortMatchesTheCrossLanguageAnchor(): void
+    {
+        $this->assertSame(
+            'a47382ebe89a655c3d9d1e27a1e5e445ca0dd4f5348e72f518b2a98b6f77f92b',
+            FilterHasher::hash(new Filter(tags: ['t' => ["\u{1F600}", "\u{1F4A9}"]])),
+        );
+    }
 }

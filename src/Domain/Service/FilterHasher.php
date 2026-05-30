@@ -9,7 +9,9 @@ use stdClass;
 
 final class FilterHasher
 {
-    private const ENCODE_FLAGS = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR;
+    // No JSON_UNESCAPED_UNICODE: non-ASCII is escaped as lowercase \uXXXX (astral chars as surrogate
+    // pairs), so the canonical form is pure ASCII and bytewise sorting agrees with the TS hashFilters.
+    private const ENCODE_FLAGS = JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR;
 
     public static function hash(Filter ...$filters): string
     {
@@ -24,7 +26,7 @@ final class FilterHasher
 
     private static function canonicaliseFilter(array $filter): stdClass
     {
-        ksort($filter);
+        ksort($filter, SORT_STRING);
 
         return (object) array_map(static fn (mixed $value): mixed => self::canonicaliseValue($value), $filter);
     }
