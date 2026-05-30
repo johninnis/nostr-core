@@ -52,7 +52,7 @@ final readonly class CountMessage extends ClientMessage
         $message = ['COUNT', (string) $this->subscriptionId];
 
         foreach ($this->filters as $filter) {
-            $message[] = $filter->toArray();
+            $message[] = $filter->jsonSerialize();
         }
 
         return $message;

@@ -95,6 +95,13 @@ final class ReqMessageTest extends TestCase
         $this->assertSame('sub-1', $decoded[1]);
     }
 
+    public function testEmptyFilterSerialisesAsAJsonObjectOnTheWire(): void
+    {
+        $message = new ReqMessage(SubscriptionId::fromString('sub-1'), [new Filter()]);
+
+        $this->assertSame('["REQ","sub-1",{}]', $message->toJson());
+    }
+
     public function testFromArrayCreatesValidMessage(): void
     {
         $data = ['REQ', 'sub-1', ['kinds' => [1]]];

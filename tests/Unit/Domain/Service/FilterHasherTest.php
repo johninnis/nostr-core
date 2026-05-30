@@ -89,4 +89,12 @@ final class FilterHasherTest extends TestCase
             FilterHasher::hash(new Filter(kinds: [2, 1], limit: 5)),
         );
     }
+
+    public function testSingleEmptyFilterMatchesTheCrossLanguageAnchor(): void
+    {
+        $this->assertSame(
+            'e10808d43975dc400731053386849f864f297e6c4f7519c380f3dbaf7067a840',
+            FilterHasher::hash(new Filter()),
+        );
+    }
 }

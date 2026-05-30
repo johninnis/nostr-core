@@ -52,7 +52,7 @@ final readonly class ReqMessage extends ClientMessage
         $message = ['REQ', (string) $this->subscriptionId];
 
         foreach ($this->filters as $filter) {
-            $message[] = $filter->toArray();
+            $message[] = $filter->jsonSerialize();
         }
 
         return $message;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Entity\Filter;
+use stdClass;
 
 final class FilterHasher
 {
@@ -12,27 +13,32 @@ final class FilterHasher
 
     public static function hash(Filter ...$filters): string
     {
-        $wireFilters = array_map(static fn (Filter $filter): array => $filter->toArray(), $filters);
+        $canonical = array_map(
+            static fn (Filter $filter): stdClass => self::canonicaliseFilter($filter->toArray()),
+            $filters,
+        );
+        usort($canonical, static fn (stdClass $a, stdClass $b): int => strcmp(self::encode($a), self::encode($b)));
 
-        return hash('sha256', self::encode(self::canonicalise($wireFilters)));
+        return hash('sha256', self::encode($canonical));
     }
 
-    private static function canonicalise(mixed $value): mixed
+    private static function canonicaliseFilter(array $filter): stdClass
+    {
+        ksort($filter);
+
+        return (object) array_map(static fn (mixed $value): mixed => self::canonicaliseValue($value), $filter);
+    }
+
+    private static function canonicaliseValue(mixed $value): mixed
     {
         if (!is_array($value)) {
             return $value;
         }
 
-        if (array_is_list($value)) {
-            $items = array_map(static fn (mixed $element): mixed => self::canonicalise($element), $value);
-            usort($items, static fn (mixed $a, mixed $b): int => strcmp(self::encode($a), self::encode($b)));
+        $items = array_map(static fn (mixed $element): mixed => self::canonicaliseValue($element), $value);
+        usort($items, static fn (mixed $a, mixed $b): int => strcmp(self::encode($a), self::encode($b)));
 
-            return $items;
-        }
-
-        ksort($value);
-
-        return array_map(static fn (mixed $element): mixed => self::canonicalise($element), $value);
+        return $items;
     }
 
     private static function encode(mixed $value): string

@@ -706,4 +706,21 @@ final class FilterTest extends TestCase
 
         Filter::fromArray(['#e' => 'not-an-array']);
     }
+
+    public function testEmptyFilterJsonSerialisesAsAnObject(): void
+    {
+        $this->assertSame('{}', json_encode((new Filter())->jsonSerialize(), JSON_THROW_ON_ERROR));
+    }
+
+    public function testNonEmptyFilterJsonSerialisesWithItsArrayShape(): void
+    {
+        $this->assertSame('{"kinds":[1]}', json_encode((new Filter(kinds: [1]))->jsonSerialize(), JSON_THROW_ON_ERROR));
+    }
+
+    public function testEmptyFilterRoundTripsThroughTheJsonForm(): void
+    {
+        $restored = Filter::fromArray((new Filter())->jsonSerialize());
+
+        $this->assertSame([], $restored->toArray());
+    }
 }

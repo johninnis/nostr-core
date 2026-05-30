@@ -8,8 +8,10 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use InvalidArgumentException;
+use JsonSerializable;
+use stdClass;
 
-final readonly class Filter
+final readonly class Filter implements JsonSerializable
 {
     public const MAX_VALUES_PER_FIELD = 1000;
 
@@ -235,8 +237,14 @@ final readonly class Filter
         return $filter;
     }
 
-    public static function fromArray(array $data): self
+    public function jsonSerialize(): array|stdClass
     {
+        return $this->toArray() ?: new stdClass();
+    }
+
+    public static function fromArray(array|stdClass $data): self
+    {
+        $data = (array) $data;
         $tags = [];
         foreach ($data as $key => $value) {
             if (!is_string($key) || !str_starts_with($key, '#')) {
