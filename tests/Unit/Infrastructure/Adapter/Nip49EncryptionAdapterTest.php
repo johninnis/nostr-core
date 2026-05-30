@@ -133,7 +133,7 @@ final class Nip49EncryptionAdapterTest extends TestCase
 
     public function testDecryptRejectsTamperedCiphertext(): void
     {
-        $tampered = $this->tamperPayloadByte($this->encryptFreshVector(), Ncryptsec::PAYLOAD_LENGTH - 1, 0xFF);
+        $tampered = $this->flipPayloadByte($this->encryptFreshVector(), Ncryptsec::PAYLOAD_LENGTH - 1);
 
         $this->expectException(Nip49DecryptionFailedException::class);
         $this->adapter->decrypt($tampered, static fn (): string => 'pw');
@@ -192,9 +192,22 @@ final class Nip49EncryptionAdapterTest extends TestCase
 
     private function tamperPayloadByte(Ncryptsec $source, int $offset, int $value): Ncryptsec
     {
+        return $this->rewritePayloadByte($source, $offset, static fn (int $original): int => $value);
+    }
+
+    // Flips every bit of the byte, so the result always differs from the original. Use this for MAC
+    // bytes, whose value is random: setting them to a fixed constant is a no-op ~1/256 of the time
+    // (when the original already equals the constant), which left the tamper test flaky.
+    private function flipPayloadByte(Ncryptsec $source, int $offset): Ncryptsec
+    {
+        return $this->rewritePayloadByte($source, $offset, static fn (int $original): int => $original ^ 0xFF);
+    }
+
+    private function rewritePayloadByte(Ncryptsec $source, int $offset, callable $mutate): Ncryptsec
+    {
         $decoded = Bech32Codec::decode((string) $source);
         $data = $decoded['data'];
-        $data[$offset] = $value;
+        $data[$offset] = $mutate($data[$offset]);
         $bech32 = Bech32Codec::encode(Ncryptsec::HRP, $data);
 
         return Ncryptsec::fromString($bech32)
