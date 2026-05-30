@@ -73,18 +73,20 @@ final class FilterHasherTest extends TestCase
         );
     }
 
-    // Pinned digests of the canonical form. These are the cross-language conformance anchors:
-    // TS `hashFilters` produces the same digest for the same canonical input.
+    // Pinned digests of the canonical form, asserted identically in the TS suite — the
+    // cross-language conformance anchors. Equivalent inputs must hash to these exact digests in
+    // both runtimes. (The property tests above use language-local inputs, so conformance rides
+    // on these shared anchors.)
     public function testEmptyFilterSetHashesToSha256OfEmptyArray(): void
     {
         $this->assertSame('4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945', FilterHasher::hash());
     }
 
-    public function testDuplicateAuthorsMatchTheCrossLanguageAnchor(): void
+    public function testKindsAndLimitFilterMatchesTheCrossLanguageAnchor(): void
     {
         $this->assertSame(
-            'cd6efb326b2adca65cf8d1b26990865205c43ad50269b16562cf1ef1c8598796',
-            FilterHasher::hash(new Filter(authors: ['a', 'a'])),
+            'a34519033f2032b87a019ef94f4be40fc1ab6a621d2b66c55b0d386c3e576587',
+            FilterHasher::hash(new Filter(kinds: [2, 1], limit: 5)),
         );
     }
 }
