@@ -31,6 +31,22 @@ final class PublicKeyTest extends TestCase
         $this->assertNull(PublicKey::fromHex('123456'));
     }
 
+    public function testToBytesRoundTripsThroughFromBytes(): void
+    {
+        $publicKey = PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
+        $bytes = $publicKey->toBytes();
+        $recreated = PublicKey::fromBytes($bytes);
+
+        $this->assertSame(32, strlen($bytes));
+        $this->assertNotNull($recreated);
+        $this->assertTrue($publicKey->equals($recreated));
+    }
+
+    public function testFromBytesReturnsNullForWrongLength(): void
+    {
+        $this->assertNull(PublicKey::fromBytes('too-short'));
+    }
+
     public function testCanConvertToBech32(): void
     {
         $publicKey = PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');

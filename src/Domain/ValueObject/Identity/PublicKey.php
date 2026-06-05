@@ -20,6 +20,14 @@ final readonly class PublicKey
         return $this->key;
     }
 
+    public function toBytes(): string
+    {
+        $bytes = hex2bin($this->key);
+        assert(false !== $bytes);
+
+        return $bytes;
+    }
+
     public function toBech32(): string
     {
         return Bech32Codec::encode('npub', Bech32Codec::hexToBytes($this->key));
@@ -37,6 +45,15 @@ final readonly class PublicKey
         }
 
         return new self($hex);
+    }
+
+    public static function fromBytes(string $bytes): ?self
+    {
+        if (self::HEX_LENGTH / 2 !== strlen($bytes)) {
+            return null;
+        }
+
+        return new self(bin2hex($bytes));
     }
 
     public static function fromBech32(string $bech32): ?self
