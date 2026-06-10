@@ -219,6 +219,43 @@ final class EventTest extends TestCase
         $this->assertNull(Event::fromArray($signed->toArray())->getRawJson());
     }
 
+    public function testWithRawJsonEncodesTheEvent(): void
+    {
+        $signed = $this->event->sign($this->keyPair, $this->signatureService());
+
+        $event = Event::fromArray($signed->toArray())->withRawJson();
+
+        $this->assertSame(
+            json_encode($signed->toArray(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_LINE_TERMINATORS),
+            $event->getRawJson()
+        );
+    }
+
+    public function testWithRawJsonReturnsSameInstanceWhenRawJsonPresent(): void
+    {
+        $signed = $this->event->sign($this->keyPair, $this->signatureService());
+        $event = Event::fromJson(json_encode($signed->toArray(), JSON_THROW_ON_ERROR));
+
+        $this->assertSame($event, $event->withRawJson());
+    }
+
+    public function testToJsonReturnsRawJsonWhenPresent(): void
+    {
+        $signed = $this->event->sign($this->keyPair, $this->signatureService());
+        $json = json_encode($signed->toArray(), JSON_THROW_ON_ERROR);
+
+        $this->assertSame($json, Event::fromJson($json)->toJson());
+    }
+
+    public function testToJsonEncodesWhenRawJsonAbsent(): void
+    {
+        $signed = $this->event->sign($this->keyPair, $this->signatureService());
+
+        $decoded = json_decode($signed->toJson(), true, flags: JSON_THROW_ON_ERROR);
+
+        $this->assertSame($signed->toArray(), $decoded);
+    }
+
     public function testWithTagsDropsRawJson(): void
     {
         $signed = $this->event->sign($this->keyPair, $this->signatureService());

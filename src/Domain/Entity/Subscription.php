@@ -24,9 +24,9 @@ final readonly class Subscription
         }
     }
 
-    public static function create(SubscriptionId $id, array $filters): self
+    public static function create(SubscriptionId $id, array $filters, SubscriptionState $state = SubscriptionState::PENDING): self
     {
-        return new self($id, $filters, Timestamp::now());
+        return new self($id, $filters, Timestamp::now(), $state);
     }
 
     public function getId(): SubscriptionId

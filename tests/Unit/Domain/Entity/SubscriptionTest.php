@@ -34,6 +34,13 @@ final class SubscriptionTest extends TestCase
         $this->assertSame(time(), $subscription->getCreatedAt()->toInt());
     }
 
+    public function testCreateAcceptsExplicitState(): void
+    {
+        $subscription = Subscription::create(SubscriptionId::generate(), [new Filter()], SubscriptionState::ACTIVE);
+
+        $this->assertSame(SubscriptionState::ACTIVE, $subscription->getState());
+    }
+
     public function testConstructorValidatesFilters(): void
     {
         $this->expectException(InvalidArgumentException::class);

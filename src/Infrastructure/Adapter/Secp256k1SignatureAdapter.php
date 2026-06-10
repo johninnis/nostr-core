@@ -13,7 +13,6 @@ use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Math;
 use LogicException;
 use Mdanter\Ecc\EccFactory;
-use Throwable;
 
 final class Secp256k1SignatureAdapter implements SignatureServiceInterface
 {
@@ -55,26 +54,22 @@ final class Secp256k1SignatureAdapter implements SignatureServiceInterface
 
     public function verify(PublicKey $publicKey, string $message, Signature $signature): bool
     {
-        try {
-            $signatureHex = $signature->toHex();
-            if (self::SIGNATURE_HEX_LENGTH !== strlen($signatureHex)) {
+        $signatureHex = $signature->toHex();
+        if (self::SIGNATURE_HEX_LENGTH !== strlen($signatureHex)) {
+            return false;
+        }
+
+        if (null !== $this->ffi) {
+            $sigBytes = hex2bin($signatureHex);
+            $pubkeyBytes = hex2bin($publicKey->toHex());
+            if (false === $sigBytes || false === $pubkeyBytes) {
                 return false;
             }
 
-            if (null !== $this->ffi) {
-                $sigBytes = hex2bin($signatureHex);
-                $pubkeyBytes = hex2bin($publicKey->toHex());
-                if (false === $sigBytes || false === $pubkeyBytes) {
-                    return false;
-                }
-
-                return $this->ffi->verify($sigBytes, $message, $pubkeyBytes);
-            }
-
-            return $this->verifyPurePhp($message, $signatureHex, $publicKey->toHex());
-        } catch (Throwable) {
-            return false;
+            return $this->ffi->verify($sigBytes, $message, $pubkeyBytes);
         }
+
+        return $this->verifyPurePhp($message, $signatureHex, $publicKey->toHex());
     }
 
     public function derivePublicKey(PrivateKey $privateKey): PublicKey

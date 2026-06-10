@@ -35,6 +35,6 @@ final readonly class EventMessage extends ClientMessage
             throw new InvalidArgumentException('Invalid EVENT message format');
         }
 
-        return new self(Event::fromArray($data[1]));
+        return new self(Event::fromArray($data[1])->withRawJson());
     }
 }

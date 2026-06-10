@@ -127,6 +127,40 @@ final readonly class Event
         return $this->rawJson;
     }
 
+    public function toJson(): string
+    {
+        return $this->rawJson ?? $this->encodeJson();
+    }
+
+    public function withRawJson(): self
+    {
+        if (null !== $this->rawJson) {
+            return $this;
+        }
+
+        return new self(
+            $this->pubkey,
+            $this->createdAt,
+            $this->kind,
+            $this->tags,
+            $this->content,
+            $this->id,
+            $this->signature,
+            $this->encodeJson(),
+        );
+    }
+
+    private function encodeJson(): string
+    {
+        $json = json_encode($this->toArray(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_LINE_TERMINATORS);
+
+        if (false === $json) {
+            throw new InvalidEventException('Failed to serialise event as JSON');
+        }
+
+        return $json;
+    }
+
     public function isSigned(): bool
     {
         return null !== $this->signature;

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\Entity;
 
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
-use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use InvalidArgumentException;
 use JsonSerializable;
@@ -16,6 +15,11 @@ final readonly class Filter implements JsonSerializable
     public const MAX_VALUES_PER_FIELD = 1000;
 
     private ?array $kinds;
+    private ?array $idSet;
+    private ?array $authorSet;
+    private ?array $kindSet;
+    private ?array $tagValueSets;
+    private ?array $searchTerms;
 
     public function __construct(
         private ?array $ids = null,
@@ -46,6 +50,21 @@ final readonly class Filter implements JsonSerializable
                 self::assertFieldWithinCap("#{$tagName}", $values);
             }
         }
+
+        $this->idSet = null !== $this->ids ? self::flipStrings($this->ids) : null;
+        $this->authorSet = null !== $this->authors ? self::flipStrings($this->authors) : null;
+        $this->kindSet = null !== $this->kinds
+            ? array_flip(array_map(static fn (EventKind $kind) => $kind->toInt(), $this->kinds))
+            : null;
+        $this->tagValueSets = null !== $this->tags ? array_map(self::flipStrings(...), $this->tags) : null;
+        $this->searchTerms = null !== $this->search
+            ? (preg_split('/\s+/', mb_strtolower(trim($this->search)), -1, PREG_SPLIT_NO_EMPTY) ?: [])
+            : null;
+    }
+
+    private static function flipStrings(array $values): array
+    {
+        return array_flip(array_filter($values, is_string(...)));
     }
 
     private static function assertFieldWithinCap(string $fieldName, ?array $values): void
@@ -61,19 +80,19 @@ final readonly class Filter implements JsonSerializable
 
     public function matches(Event $event): bool
     {
-        if (null !== $this->ids && !$this->matchesIds($event)) {
+        if (null !== $this->idSet && !isset($this->idSet[$event->getId()->toHex()])) {
             return false;
         }
 
-        if (null !== $this->authors && !$this->matchesAuthors($event)) {
+        if (null !== $this->authorSet && !isset($this->authorSet[$event->getPubkey()->toHex()])) {
             return false;
         }
 
-        if (null !== $this->kinds && !$this->matchesKinds($event)) {
+        if (null !== $this->kindSet && !isset($this->kindSet[$event->getKind()->toInt()])) {
             return false;
         }
 
-        if (null !== $this->tags && !$this->matchesTags($event)) {
+        if (null !== $this->tagValueSets && !$this->matchesTags($event)) {
             return false;
         }
 
@@ -85,7 +104,7 @@ final readonly class Filter implements JsonSerializable
             return false;
         }
 
-        if (null !== $this->search && !$this->matchesSearch($event)) {
+        if (null !== $this->searchTerms && !$this->matchesSearch($event)) {
             return false;
         }
 
@@ -160,28 +179,28 @@ final readonly class Filter implements JsonSerializable
     public function withAuthors(array $authors): self
     {
         return new self(
-            $this->ids,
-            $authors,
-            $this->kinds,
-            $this->tags,
-            $this->since,
-            $this->until,
-            $this->limit,
-            $this->search
+            ids: $this->ids,
+            authors: $authors,
+            kinds: $this->kinds,
+            tags: $this->tags,
+            since: $this->since,
+            until: $this->until,
+            limit: $this->limit,
+            search: $this->search,
         );
     }
 
     public function withKinds(array $kinds): self
     {
         return new self(
-            $this->ids,
-            $this->authors,
-            $kinds,
-            $this->tags,
-            $this->since,
-            $this->until,
-            $this->limit,
-            $this->search
+            ids: $this->ids,
+            authors: $this->authors,
+            kinds: $kinds,
+            tags: $this->tags,
+            since: $this->since,
+            until: $this->until,
+            limit: $this->limit,
+            search: $this->search,
         );
     }
 
@@ -277,39 +296,10 @@ final readonly class Filter implements JsonSerializable
         );
     }
 
-    private function matchesIds(Event $event): bool
-    {
-        return null === $this->ids || in_array($event->getId()->toHex(), $this->ids, true);
-    }
-
-    private function matchesAuthors(Event $event): bool
-    {
-        return null === $this->authors || in_array($event->getPubkey()->toHex(), $this->authors, true);
-    }
-
-    private function matchesKinds(Event $event): bool
-    {
-        if (null === $this->kinds) {
-            return true;
-        }
-
-        foreach ($this->kinds as $kind) {
-            if ($kind->equals($event->getKind())) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private function matchesTags(Event $event): bool
     {
-        if (null === $this->tags) {
-            return true;
-        }
-
-        foreach ($this->tags as $tagName => $values) {
-            if (!$this->eventMatchesTagFilter($event, $tagName, $values)) {
+        foreach ($this->tagValueSets ?? [] as $tagName => $valueSet) {
+            if (!$this->eventMatchesTagFilter($event, (string) $tagName, $valueSet)) {
                 return false;
             }
         }
@@ -319,9 +309,9 @@ final readonly class Filter implements JsonSerializable
 
     private function matchesSearch(Event $event): bool
     {
-        $terms = preg_split('/\s+/', mb_strtolower(trim($this->search ?? '')), -1, PREG_SPLIT_NO_EMPTY);
+        $terms = $this->searchTerms ?? [];
 
-        if (empty($terms)) {
+        if ([] === $terms) {
             return true;
         }
 
@@ -336,15 +326,13 @@ final readonly class Filter implements JsonSerializable
         return true;
     }
 
-    private function eventMatchesTagFilter(Event $event, string $tagName, array $filterValues): bool
+    private function eventMatchesTagFilter(Event $event, string $tagName, array $valueSet): bool
     {
-        $eventTags = $event->getTags()->findByType(TagType::fromString($tagName));
+        foreach ($event->getTags()->findByName($tagName) as $eventTag) {
+            $value = $eventTag->getValue();
 
-        foreach ($eventTags as $eventTag) {
-            foreach ($filterValues as $filterValue) {
-                if ($eventTag->hasValue($filterValue)) {
-                    return true;
-                }
+            if (null !== $value && isset($valueSet[$value])) {
+                return true;
             }
         }
 

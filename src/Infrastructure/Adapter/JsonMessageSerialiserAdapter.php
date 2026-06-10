@@ -27,7 +27,7 @@ final class JsonMessageSerialiserAdapter implements MessageSerialiserInterface
     {
         $data = json_decode($json, true);
 
-        if (null === $data || !is_array($data) || empty($data)) {
+        if (!is_array($data) || [] === $data) {
             throw new InvalidArgumentException('Invalid JSON for client message');
         }
 
@@ -47,7 +47,7 @@ final class JsonMessageSerialiserAdapter implements MessageSerialiserInterface
     {
         $data = json_decode($json, true);
 
-        if (null === $data || !is_array($data) || empty($data)) {
+        if (!is_array($data) || [] === $data) {
             throw new InvalidArgumentException('Invalid JSON for relay message');
         }
 

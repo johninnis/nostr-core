@@ -9,12 +9,14 @@ use Innis\Nostr\Core\Domain\Entity\Filter;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Tests\Support\WithCryptoServices;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class FilterTest extends TestCase
 {
@@ -154,6 +156,24 @@ final class FilterTest extends TestCase
 
         $filterOnlyTMissing = new Filter(tags: ['t' => ['bitcoin'], 'p' => [$pubkeyHex]]);
         $this->assertFalse($filterOnlyTMissing->matches($event));
+    }
+
+    public function testTagFilterMatchesOnlyTheTagValuePosition(): void
+    {
+        $pubkey = PublicKey::fromHex(str_repeat('a', 64)) ?? throw new RuntimeException('Invalid test public key');
+        $referencedId = str_repeat('c', 64);
+        $tags = new TagCollection([Tag::event($referencedId, 'wss://relay.example', 'reply')]);
+        $event = new Event(
+            $pubkey,
+            Timestamp::now(),
+            EventKind::textNote(),
+            $tags,
+            EventContent::fromString('test')
+        );
+
+        $this->assertTrue((new Filter(tags: ['e' => [$referencedId]]))->matches($event));
+        $this->assertFalse((new Filter(tags: ['e' => ['wss://relay.example']]))->matches($event));
+        $this->assertFalse((new Filter(tags: ['e' => ['reply']]))->matches($event));
     }
 
     public function testMatchesEventWithMultipleValuesInSameTagType(): void

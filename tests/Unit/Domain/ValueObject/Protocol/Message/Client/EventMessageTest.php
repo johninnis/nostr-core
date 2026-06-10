@@ -68,6 +68,15 @@ final class EventMessageTest extends TestCase
         $this->assertSame($event->getPubkey()->toHex(), $message->getEvent()->getPubkey()->toHex());
     }
 
+    public function testFromArrayCapturesRawJson(): void
+    {
+        $event = $this->createEvent();
+
+        $message = EventMessage::fromArray(['EVENT', $event->toArray()]);
+
+        $this->assertSame($event->toJson(), $message->getEvent()->getRawJson());
+    }
+
     public function testFromArrayThrowsOnInvalidFormat(): void
     {
         $this->expectException(InvalidArgumentException::class);

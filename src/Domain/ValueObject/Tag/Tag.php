@@ -44,7 +44,7 @@ final readonly class Tag
 
     public function toArray(): array
     {
-        return array_merge([(string) $this->type], $this->values);
+        return [(string) $this->type, ...$this->values];
     }
 
     public function equals(self $other): bool

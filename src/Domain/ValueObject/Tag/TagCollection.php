@@ -57,7 +57,12 @@ final class TagCollection implements IteratorAggregate, Countable
 
     public function findByType(TagType $type): array
     {
-        return $this->getTagIndex()[(string) $type] ?? [];
+        return $this->findByName((string) $type);
+    }
+
+    public function findByName(string $name): array
+    {
+        return $this->getTagIndex()[$name] ?? [];
     }
 
     public function hasType(TagType $type): bool
