@@ -10,6 +10,9 @@ final readonly class ZapAmount
 {
     public const MILLISATS_PER_SAT = 1000;
 
+    /** Sanity cap for untrusted amounts: 1 BTC in millisats. */
+    public const MAX_MILLISATS = self::BTC_TO_MILLISATS;
+
     private const BTC_TO_MILLISATS = 100_000_000_000;
 
     private function __construct(private int $millisats)
@@ -53,14 +56,23 @@ final readonly class ZapAmount
         $amount = (int) $matches[1];
         $multiplier = $matches[2] ?? '';
 
-        $millisats = match ($multiplier) {
-            'm' => $amount * intdiv(self::BTC_TO_MILLISATS, 1000),
-            'u' => $amount * intdiv(self::BTC_TO_MILLISATS, 1_000_000),
-            'n' => $amount * intdiv(self::BTC_TO_MILLISATS, 1_000_000_000),
-            'p' => intdiv($amount * self::BTC_TO_MILLISATS, 1_000_000_000_000),
-            default => $amount * self::BTC_TO_MILLISATS,
+        if ('p' === $multiplier) {
+            $millisats = intdiv($amount, 10);
+
+            return $millisats > self::MAX_MILLISATS ? null : new self($millisats);
+        }
+
+        $millisatsPerUnit = match ($multiplier) {
+            'm' => intdiv(self::BTC_TO_MILLISATS, 1000),
+            'u' => intdiv(self::BTC_TO_MILLISATS, 1_000_000),
+            'n' => intdiv(self::BTC_TO_MILLISATS, 1_000_000_000),
+            default => self::BTC_TO_MILLISATS,
         };
 
-        return new self($millisats);
+        if ($amount > intdiv(self::MAX_MILLISATS, $millisatsPerUnit)) {
+            return null;
+        }
+
+        return new self($amount * $millisatsPerUnit);
     }
 }

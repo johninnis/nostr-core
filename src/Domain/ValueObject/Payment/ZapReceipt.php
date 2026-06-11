@@ -15,7 +15,7 @@ final readonly class ZapReceipt implements PaymentReceipt
     private function __construct(
         private ?PublicKey $senderPubkey,
         private ?PublicKey $recipientPubkey,
-        private ?ZapAmount $amount,
+        private ZapAmount $amount,
         private ?string $message,
     ) {
     }
@@ -30,7 +30,7 @@ final readonly class ZapReceipt implements PaymentReceipt
         return $this->recipientPubkey;
     }
 
-    public function getAmount(): ?ZapAmount
+    public function getAmount(): ZapAmount
     {
         return $this->amount;
     }
@@ -49,12 +49,15 @@ final readonly class ZapReceipt implements PaymentReceipt
         $tags = $event->getTags();
         $zapRequest = self::extractZapRequest($tags);
 
+        $amount = self::resolveAmount($zapRequest, $tags);
+        if (null === $amount) {
+            return null;
+        }
+
         $senderPubkey = $tags->getFirstPubkeyByType(TagType::senderPubkey())
             ?? self::extractPubkeyFromZapRequest($zapRequest);
 
         $recipientPubkey = $tags->getFirstPubkeyByType(TagType::pubkey());
-
-        $amount = self::resolveAmount($zapRequest, $tags);
 
         $message = $zapRequest['content'] ?? null;
         if ('' === $message) {
@@ -89,21 +92,21 @@ final readonly class ZapReceipt implements PaymentReceipt
 
     private static function resolveAmount(?array $zapRequest, TagCollection $tags): ?ZapAmount
     {
-        $fromZapRequestTags = self::extractAmountFromTags($zapRequest['tags'] ?? []);
-        if (null !== $fromZapRequestTags) {
-            return $fromZapRequestTags;
+        $bolt11Amount = self::extractBolt11Amount($tags);
+        if (null === $bolt11Amount) {
+            return null;
         }
 
-        $receiptValues = $tags->getValuesByType(TagType::amount());
-        foreach ($receiptValues as $value) {
-            $intValue = (int) $value;
-            if ($intValue > 0) {
-                return ZapAmount::fromMillisats($intValue);
-            }
+        if (!self::zapRequestAmountMatches($zapRequest['tags'] ?? [], $bolt11Amount)) {
+            return null;
         }
 
-        $bolt11Values = $tags->getValuesByType(TagType::bolt11());
-        foreach ($bolt11Values as $value) {
+        return $bolt11Amount;
+    }
+
+    private static function extractBolt11Amount(TagCollection $tags): ?ZapAmount
+    {
+        foreach ($tags->getValuesByType(TagType::bolt11()) as $value) {
             $parsed = ZapAmount::fromBolt11($value);
             if (null !== $parsed) {
                 return $parsed;
@@ -113,17 +116,18 @@ final readonly class ZapReceipt implements PaymentReceipt
         return null;
     }
 
-    private static function extractAmountFromTags(array $tags): ?ZapAmount
+    private static function zapRequestAmountMatches(array $requestTags, ZapAmount $bolt11Amount): bool
     {
-        foreach ($tags as $tag) {
-            if (is_array($tag) && ($tag[0] ?? null) === 'amount' && isset($tag[1]) && is_numeric($tag[1])) {
-                $intValue = (int) $tag[1];
-                if ($intValue > 0) {
-                    return ZapAmount::fromMillisats($intValue);
-                }
+        foreach ($requestTags as $tag) {
+            if (!is_array($tag) || 'amount' !== ($tag[0] ?? null) || !isset($tag[1])) {
+                continue;
+            }
+
+            if (!is_numeric($tag[1]) || (int) $tag[1] !== $bolt11Amount->toMillisats()) {
+                return false;
             }
         }
 
-        return null;
+        return true;
     }
 }

@@ -32,6 +32,7 @@ final class ZapReceiptTest extends TestCase
             ['P', self::SENDER_PUBKEY],
             ['p', self::RECIPIENT_PUBKEY],
             ['description', $zapRequest],
+            ['bolt11', 'lnbc210n1p...'],
         ]);
 
         $receipt = ZapReceipt::fromEvent($event);
@@ -43,9 +44,7 @@ final class ZapReceiptTest extends TestCase
         $recipientPubkey = $receipt->getRecipientPubkey();
         $this->assertNotNull($recipientPubkey);
         $this->assertSame(self::RECIPIENT_PUBKEY, $recipientPubkey->toHex());
-        $amount = $receipt->getAmount();
-        $this->assertNotNull($amount);
-        $this->assertSame(21000, $amount->toMillisats());
+        $this->assertSame(21000, $receipt->getAmount()->toMillisats());
         $this->assertSame('Great post!', $receipt->getMessage());
     }
 
@@ -60,6 +59,7 @@ final class ZapReceiptTest extends TestCase
         $event = $this->buildReceiptEvent([
             ['p', self::RECIPIENT_PUBKEY],
             ['description', $zapRequest],
+            ['bolt11', 'lnbc50n1p...'],
         ]);
 
         $receipt = ZapReceipt::fromEvent($event);
@@ -81,6 +81,7 @@ final class ZapReceiptTest extends TestCase
         $event = $this->buildReceiptEvent([
             ['P', self::SENDER_PUBKEY],
             ['description', $zapRequest],
+            ['bolt11', 'lnbc10n1p...'],
         ]);
 
         $receipt = ZapReceipt::fromEvent($event);
@@ -89,53 +90,7 @@ final class ZapReceiptTest extends TestCase
         $this->assertNull($receipt->getRecipientPubkey());
     }
 
-    public function testAmountFromZapRequestTags(): void
-    {
-        $zapRequest = json_encode([
-            'pubkey' => self::SENDER_PUBKEY,
-            'content' => '',
-            'tags' => [['amount', '50000']],
-        ]);
-
-        $event = $this->buildReceiptEvent([
-            ['p', self::RECIPIENT_PUBKEY],
-            ['description', $zapRequest],
-            ['amount', '99999'],
-            ['bolt11', 'lnbc100u1p...'],
-        ]);
-
-        $receipt = ZapReceipt::fromEvent($event);
-
-        $this->assertNotNull($receipt);
-        $amount = $receipt->getAmount();
-        $this->assertNotNull($amount);
-        $this->assertSame(50000, $amount->toMillisats());
-    }
-
-    public function testAmountFallsBackToReceiptAmountTag(): void
-    {
-        $zapRequest = json_encode([
-            'pubkey' => self::SENDER_PUBKEY,
-            'content' => '',
-            'tags' => [],
-        ]);
-
-        $event = $this->buildReceiptEvent([
-            ['p', self::RECIPIENT_PUBKEY],
-            ['description', $zapRequest],
-            ['amount', '75000'],
-            ['bolt11', 'lnbc100u1p...'],
-        ]);
-
-        $receipt = ZapReceipt::fromEvent($event);
-
-        $this->assertNotNull($receipt);
-        $amount = $receipt->getAmount();
-        $this->assertNotNull($amount);
-        $this->assertSame(75000, $amount->toMillisats());
-    }
-
-    public function testAmountFallsBackToBolt11(): void
+    public function testAmountDerivesFromBolt11(): void
     {
         $zapRequest = json_encode([
             'pubkey' => self::SENDER_PUBKEY,
@@ -152,13 +107,110 @@ final class ZapReceiptTest extends TestCase
         $receipt = ZapReceipt::fromEvent($event);
 
         $this->assertNotNull($receipt);
-        $amount = $receipt->getAmount();
-        $this->assertNotNull($amount);
-        $this->assertSame(10000, $amount->toMillisats());
-        $this->assertSame(10, $amount->toSats());
+        $this->assertSame(10000, $receipt->getAmount()->toMillisats());
+        $this->assertSame(10, $receipt->getAmount()->toSats());
     }
 
-    public function testNoAmountReturnsNull(): void
+    public function testZapRequestAmountTagMatchingBolt11Parses(): void
+    {
+        $zapRequest = json_encode([
+            'pubkey' => self::SENDER_PUBKEY,
+            'content' => '',
+            'tags' => [['amount', '10000']],
+        ]);
+
+        $event = $this->buildReceiptEvent([
+            ['p', self::RECIPIENT_PUBKEY],
+            ['description', $zapRequest],
+            ['bolt11', 'lnbc100n1p...'],
+        ]);
+
+        $receipt = ZapReceipt::fromEvent($event);
+
+        $this->assertNotNull($receipt);
+        $this->assertSame(10000, $receipt->getAmount()->toMillisats());
+    }
+
+    public function testZapRequestAmountTagDisagreeingWithBolt11ReturnsNull(): void
+    {
+        $zapRequest = json_encode([
+            'pubkey' => self::SENDER_PUBKEY,
+            'content' => '',
+            'tags' => [['amount', '50000']],
+        ]);
+
+        $event = $this->buildReceiptEvent([
+            ['p', self::RECIPIENT_PUBKEY],
+            ['description', $zapRequest],
+            ['bolt11', 'lnbc100n1p...'],
+        ]);
+
+        $this->assertNull(ZapReceipt::fromEvent($event));
+    }
+
+    public function testForgedZapRequestAmountWithoutBolt11ReturnsNull(): void
+    {
+        $zapRequest = json_encode([
+            'pubkey' => self::SENDER_PUBKEY,
+            'content' => '',
+            'tags' => [['amount', '9223372036854775807']],
+        ]);
+
+        $event = $this->buildReceiptEvent([
+            ['p', self::RECIPIENT_PUBKEY],
+            ['description', $zapRequest],
+        ]);
+
+        $this->assertNull(ZapReceipt::fromEvent($event));
+    }
+
+    public function testReceiptLevelAmountTagIsIgnored(): void
+    {
+        $zapRequest = json_encode([
+            'pubkey' => self::SENDER_PUBKEY,
+            'content' => '',
+            'tags' => [],
+        ]);
+
+        $event = $this->buildReceiptEvent([
+            ['p', self::RECIPIENT_PUBKEY],
+            ['description', $zapRequest],
+            ['amount', '2100000000000000000'],
+            ['bolt11', 'lnbc100n1p...'],
+        ]);
+
+        $receipt = ZapReceipt::fromEvent($event);
+
+        $this->assertNotNull($receipt);
+        $this->assertSame(10000, $receipt->getAmount()->toMillisats());
+    }
+
+    public function testBolt11AboveOneBtcReturnsNull(): void
+    {
+        $zapRequest = json_encode([
+            'pubkey' => self::SENDER_PUBKEY,
+            'content' => '',
+            'tags' => [],
+        ]);
+
+        $event = $this->buildReceiptEvent([
+            ['p', self::RECIPIENT_PUBKEY],
+            ['description', $zapRequest],
+            ['bolt11', 'lnbc21m1p...'],
+        ]);
+
+        $this->assertNotNull(ZapReceipt::fromEvent($event));
+
+        $oversized = $this->buildReceiptEvent([
+            ['p', self::RECIPIENT_PUBKEY],
+            ['description', $zapRequest],
+            ['bolt11', 'lnbc2100m1p...'],
+        ]);
+
+        $this->assertNull(ZapReceipt::fromEvent($oversized));
+    }
+
+    public function testNoBolt11ReturnsNull(): void
     {
         $zapRequest = json_encode([
             'pubkey' => self::SENDER_PUBKEY,
@@ -171,10 +223,7 @@ final class ZapReceiptTest extends TestCase
             ['description', $zapRequest],
         ]);
 
-        $receipt = ZapReceipt::fromEvent($event);
-
-        $this->assertNotNull($receipt);
-        $this->assertNull($receipt->getAmount());
+        $this->assertNull(ZapReceipt::fromEvent($event));
     }
 
     public function testMessageExtraction(): void
@@ -188,6 +237,7 @@ final class ZapReceiptTest extends TestCase
         $event = $this->buildReceiptEvent([
             ['p', self::RECIPIENT_PUBKEY],
             ['description', $zapRequest],
+            ['bolt11', 'lnbc10n1p...'],
         ]);
 
         $receipt = ZapReceipt::fromEvent($event);
@@ -207,6 +257,7 @@ final class ZapReceiptTest extends TestCase
         $event = $this->buildReceiptEvent([
             ['p', self::RECIPIENT_PUBKEY],
             ['description', $zapRequest],
+            ['bolt11', 'lnbc10n1p...'],
         ]);
 
         $receipt = ZapReceipt::fromEvent($event);
@@ -233,6 +284,7 @@ final class ZapReceiptTest extends TestCase
         $event = $this->buildReceiptEvent([
             ['p', self::RECIPIENT_PUBKEY],
             ['description', 'not valid json'],
+            ['bolt11', 'lnbc100n1p...'],
         ]);
 
         $receipt = ZapReceipt::fromEvent($event);
@@ -242,7 +294,7 @@ final class ZapReceiptTest extends TestCase
         $recipientPubkey = $receipt->getRecipientPubkey();
         $this->assertNotNull($recipientPubkey);
         $this->assertSame(self::RECIPIENT_PUBKEY, $recipientPubkey->toHex());
-        $this->assertNull($receipt->getAmount());
+        $this->assertSame(10000, $receipt->getAmount()->toMillisats());
         $this->assertNull($receipt->getMessage());
     }
 
@@ -250,13 +302,14 @@ final class ZapReceiptTest extends TestCase
     {
         $event = $this->buildReceiptEvent([
             ['p', self::RECIPIENT_PUBKEY],
+            ['bolt11', 'lnbc100n1p...'],
         ]);
 
         $receipt = ZapReceipt::fromEvent($event);
 
         $this->assertNotNull($receipt);
         $this->assertNull($receipt->getSenderPubkey());
-        $this->assertNull($receipt->getAmount());
+        $this->assertSame(10000, $receipt->getAmount()->toMillisats());
         $this->assertNull($receipt->getMessage());
     }
 

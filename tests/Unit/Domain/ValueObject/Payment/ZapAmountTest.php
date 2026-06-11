@@ -93,16 +93,39 @@ final class ZapAmountTest extends TestCase
 
     public function testFromBolt11DefaultMultiplier(): void
     {
-        $amount = ZapAmount::fromBolt11('lnbc21rest');
+        $amount = ZapAmount::fromBolt11('lnbc1rest');
 
         $this->assertNotNull($amount);
-        $this->assertSame(21 * 100_000_000_000, $amount->toMillisats());
+        $this->assertSame(ZapAmount::MAX_MILLISATS, $amount->toMillisats());
     }
 
     public function testFromBolt11InvalidReturnsNull(): void
     {
         $this->assertNull(ZapAmount::fromBolt11('invalid'));
         $this->assertNull(ZapAmount::fromBolt11(''));
+    }
+
+    public function testFromBolt11AboveMaxReturnsNull(): void
+    {
+        $this->assertNull(ZapAmount::fromBolt11('lnbc2rest'));
+        $this->assertNull(ZapAmount::fromBolt11('lnbc2100m1p...'));
+        $this->assertNull(ZapAmount::fromBolt11('lnbc1000001u1p...'));
+        $this->assertNull(ZapAmount::fromBolt11('lnbc1000000001n1p...'));
+        $this->assertNull(ZapAmount::fromBolt11('lnbc2000000000001p1p...'));
+    }
+
+    public function testFromBolt11HugeAmountReturnsNullWithoutOverflow(): void
+    {
+        $this->assertNull(ZapAmount::fromBolt11('lnbc9223372036854775807m1p...'));
+        $this->assertNull(ZapAmount::fromBolt11('lnbc99999999999999999999999999991p...'));
+    }
+
+    public function testFromBolt11AtMaxParses(): void
+    {
+        $milli = ZapAmount::fromBolt11('lnbc1000m1p...');
+
+        $this->assertNotNull($milli);
+        $this->assertSame(ZapAmount::MAX_MILLISATS, $milli->toMillisats());
     }
 
     public function testEquals(): void

@@ -132,6 +132,52 @@ final class NutzapTest extends TestCase
         $this->assertSame(5, $amount->toSats());
     }
 
+    public function testTotalAboveCapReturnsNull(): void
+    {
+        $event = $this->buildNutzapEvent([
+            ['p', self::RECIPIENT_PUBKEY],
+            ['proof', json_encode(['amount' => 100_000_000, 'id' => 'a', 'secret' => 's1', 'C' => '02a'])],
+            ['proof', json_encode(['amount' => 1, 'id' => 'b', 'secret' => 's2', 'C' => '02b'])],
+        ]);
+
+        $this->assertNull(Nutzap::fromEvent($event));
+    }
+
+    public function testForgedHugeProofAmountReturnsNull(): void
+    {
+        $event = $this->buildNutzapEvent([
+            ['p', self::RECIPIENT_PUBKEY],
+            ['proof', json_encode(['amount' => '9223372036854775807', 'id' => 'a', 'secret' => 's', 'C' => '02a'])],
+        ]);
+
+        $this->assertNull(Nutzap::fromEvent($event));
+    }
+
+    public function testNegativeProofAmountReturnsNull(): void
+    {
+        $event = $this->buildNutzapEvent([
+            ['p', self::RECIPIENT_PUBKEY],
+            ['proof', json_encode(['amount' => -5, 'id' => 'a', 'secret' => 's', 'C' => '02a'])],
+        ]);
+
+        $this->assertNull(Nutzap::fromEvent($event));
+    }
+
+    public function testTotalAtCapParses(): void
+    {
+        $event = $this->buildNutzapEvent([
+            ['p', self::RECIPIENT_PUBKEY],
+            ['proof', json_encode(['amount' => 100_000_000, 'id' => 'a', 'secret' => 's', 'C' => '02a'])],
+        ]);
+
+        $nutzap = Nutzap::fromEvent($event);
+
+        $this->assertNotNull($nutzap);
+        $amount = $nutzap->getAmount();
+        $this->assertNotNull($amount);
+        $this->assertSame(100_000_000, $amount->toSats());
+    }
+
     public function testMissingRecipientReturnsNullRecipientPubkey(): void
     {
         $event = $this->buildNutzapEvent([

@@ -49,7 +49,15 @@ final readonly class Nutzap implements PaymentReceipt
         $tags = $event->getTags();
 
         $recipientPubkey = $tags->getFirstPubkeyByType(TagType::pubkey());
-        $amount = self::sumProofAmounts($tags);
+
+        $proofAmounts = self::extractProofAmounts($tags);
+        $amount = null;
+        if ([] !== $proofAmounts) {
+            $amount = self::totalWithinCap($proofAmounts, $tags);
+            if (null === $amount) {
+                return null;
+            }
+        }
 
         $message = (string) $event->getContent();
         if ('' === $message) {
@@ -59,33 +67,40 @@ final readonly class Nutzap implements PaymentReceipt
         return new self($event->getPubkey(), $recipientPubkey, $amount, $message);
     }
 
-    private static function sumProofAmounts(TagCollection $tags): ?ZapAmount
+    private static function extractProofAmounts(TagCollection $tags): array
     {
-        $proofValues = $tags->getValuesByType(TagType::proof());
-        $totalAmount = 0;
-        $hasValidProof = false;
+        $amounts = [];
 
-        foreach ($proofValues as $proofJson) {
+        foreach ($tags->getValuesByType(TagType::proof()) as $proofJson) {
             $decoded = json_decode($proofJson, true);
-            if (!is_array($decoded)) {
-                continue;
-            }
-
-            if (isset($decoded['amount']) && is_numeric($decoded['amount'])) {
-                $totalAmount += (int) $decoded['amount'];
-                $hasValidProof = true;
+            if (is_array($decoded) && isset($decoded['amount']) && is_numeric($decoded['amount'])) {
+                $amounts[] = (int) $decoded['amount'];
             }
         }
 
-        if (!$hasValidProof) {
-            return null;
-        }
+        return $amounts;
+    }
 
+    private static function totalWithinCap(array $proofAmounts, TagCollection $tags): ?ZapAmount
+    {
         $unitValues = $tags->getValuesByType(TagType::unit());
         $unit = $unitValues[0] ?? 'sat';
 
+        $maxTotal = 'msat' === $unit
+            ? ZapAmount::MAX_MILLISATS
+            : intdiv(ZapAmount::MAX_MILLISATS, ZapAmount::MILLISATS_PER_SAT);
+
+        $total = 0;
+        foreach ($proofAmounts as $proofAmount) {
+            if ($proofAmount < 0 || $proofAmount > $maxTotal - $total) {
+                return null;
+            }
+
+            $total += $proofAmount;
+        }
+
         return 'msat' === $unit
-            ? ZapAmount::fromMillisats($totalAmount)
-            : ZapAmount::fromSats($totalAmount);
+            ? ZapAmount::fromMillisats($total)
+            : ZapAmount::fromSats($total);
     }
 }
