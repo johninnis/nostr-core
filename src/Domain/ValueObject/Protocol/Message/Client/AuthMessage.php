@@ -13,7 +13,7 @@ final readonly class AuthMessage extends ClientMessage
 {
     public function __construct(private Event $event)
     {
-        if (EventKind::CLIENT_AUTH !== $this->event->getKind()->toInt()) {
+        if (!$this->event->getKind()->is(EventKind::CLIENT_AUTH)) {
             throw new InvalidArgumentException('AUTH message must contain a kind 22242 event');
         }
     }

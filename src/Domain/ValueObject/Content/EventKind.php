@@ -175,6 +175,11 @@ final readonly class EventKind
         return $this->kind === $other->kind;
     }
 
+    public function is(int $kind): bool
+    {
+        return $this->kind === $kind;
+    }
+
     public static function metadata(): self
     {
         return new self(self::METADATA);

@@ -42,7 +42,7 @@ final readonly class Nutzap implements PaymentReceipt
 
     public static function fromEvent(Event $event): ?self
     {
-        if (EventKind::NUTZAP !== $event->getKind()->toInt()) {
+        if (!$event->getKind()->is(EventKind::NUTZAP)) {
             return null;
         }
 

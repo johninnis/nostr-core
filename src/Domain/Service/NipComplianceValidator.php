@@ -25,7 +25,7 @@ final class NipComplianceValidator implements NipComplianceValidatorInterface
 
     public function validateNip02Compliance(Event $event): void
     {
-        if (EventKind::FOLLOW_LIST !== $event->getKind()->toInt()) {
+        if (!$event->getKind()->is(EventKind::FOLLOW_LIST)) {
             throw new InvalidEventException('NIP-02 events must be kind 3');
         }
 
@@ -34,7 +34,7 @@ final class NipComplianceValidator implements NipComplianceValidatorInterface
 
     public function validateNip04Compliance(Event $event): void
     {
-        if (EventKind::ENCRYPTED_DIRECT_MESSAGE !== $event->getKind()->toInt()) {
+        if (!$event->getKind()->is(EventKind::ENCRYPTED_DIRECT_MESSAGE)) {
             throw new InvalidEventException('NIP-04 events must be kind 4');
         }
 
@@ -48,7 +48,7 @@ final class NipComplianceValidator implements NipComplianceValidatorInterface
 
     public function validateNip09Compliance(Event $event): void
     {
-        if (EventKind::EVENT_DELETION !== $event->getKind()->toInt()) {
+        if (!$event->getKind()->is(EventKind::EVENT_DELETION)) {
             throw new InvalidEventException('NIP-09 events must be kind 5');
         }
 

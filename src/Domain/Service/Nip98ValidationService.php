@@ -93,7 +93,7 @@ final readonly class Nip98ValidationService implements Nip98ValidationServiceInt
 
     private function validateKind(Event $event): void
     {
-        if (!$event->getKind()->equals(EventKind::httpAuth())) {
+        if (!$event->getKind()->is(EventKind::HTTP_AUTH)) {
             throw new Nip98ValidationException('Event must be kind 27235');
         }
     }

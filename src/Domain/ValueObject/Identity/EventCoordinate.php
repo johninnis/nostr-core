@@ -108,7 +108,7 @@ final readonly class EventCoordinate
 
     public function matchesEvent(Event $event): bool
     {
-        if ($event->getKind()->toInt() !== $this->kind->toInt()) {
+        if (!$event->getKind()->equals($this->kind)) {
             return false;
         }
 

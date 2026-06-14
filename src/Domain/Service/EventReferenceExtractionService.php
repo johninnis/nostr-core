@@ -44,7 +44,7 @@ final class EventReferenceExtractionService implements EventReferenceExtractionS
     private static function analyseQuote(Event $event): QuoteAnalysis
     {
         $hasQuoteTag = false;
-        $isRepost = EventKind::REPOST === $event->getKind()->toInt();
+        $isRepost = $event->getKind()->is(EventKind::REPOST);
 
         foreach ($event->getTags()->toArray() as $tagArray) {
             if ('q' === $tagArray[0]) {
@@ -58,7 +58,7 @@ final class EventReferenceExtractionService implements EventReferenceExtractionS
             (string) $event->getContent()
         );
 
-        $isQuote = $hasQuoteTag || (EventKind::TEXT_NOTE === $event->getKind()->toInt() && $hasEventInContent);
+        $isQuote = $hasQuoteTag || ($event->getKind()->is(EventKind::TEXT_NOTE) && $hasEventInContent);
 
         return new QuoteAnalysis(
             $hasQuoteTag,

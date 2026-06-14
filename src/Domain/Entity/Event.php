@@ -168,13 +168,11 @@ final readonly class Event
 
     public function isReply(): bool
     {
-        $kindInt = $this->kind->toInt();
-
-        if (EventKind::REPOST === $kindInt || EventKind::GENERIC_REPOST === $kindInt) {
+        if ($this->kind->is(EventKind::REPOST) || $this->kind->is(EventKind::GENERIC_REPOST)) {
             return false;
         }
 
-        if (EventKind::COMMENT === $kindInt) {
+        if ($this->kind->is(EventKind::COMMENT)) {
             return true;
         }
 
@@ -204,14 +202,12 @@ final readonly class Event
 
     public function isRepost(): bool
     {
-        $kindInt = $this->kind->toInt();
-
-        return EventKind::REPOST === $kindInt || EventKind::GENERIC_REPOST === $kindInt;
+        return $this->kind->is(EventKind::REPOST) || $this->kind->is(EventKind::GENERIC_REPOST);
     }
 
     public function isDeletion(): bool
     {
-        return EventKind::EVENT_DELETION === $this->kind->toInt();
+        return $this->kind->is(EventKind::EVENT_DELETION);
     }
 
     public function isExpired(): bool

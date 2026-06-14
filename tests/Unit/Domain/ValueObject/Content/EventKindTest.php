@@ -98,6 +98,14 @@ final class EventKindTest extends TestCase
         $this->assertFalse($kind1->equals($kind3));
     }
 
+    public function testIsMatchesKindConstant(): void
+    {
+        $kind = EventKind::fromInt(EventKind::HTTP_AUTH);
+
+        $this->assertTrue($kind->is(EventKind::HTTP_AUTH));
+        $this->assertFalse($kind->is(EventKind::TEXT_NOTE));
+    }
+
     public function testNip17StaticFactoryMethods(): void
     {
         $this->assertSame(13, EventKind::seal()->toInt());

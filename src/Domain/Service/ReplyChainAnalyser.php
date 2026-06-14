@@ -19,7 +19,7 @@ final class ReplyChainAnalyser
     {
         $tagArrays = $tags->toArray();
 
-        if (null !== $kind && EventKind::COMMENT === $kind->toInt()) {
+        if (null !== $kind && $kind->is(EventKind::COMMENT)) {
             return self::analyseCommentReplyChain($tagArrays);
         }
 
