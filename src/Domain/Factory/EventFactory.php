@@ -7,6 +7,7 @@ namespace Innis\Nostr\Core\Domain\Factory;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
+use Innis\Nostr\Core\Domain\ValueObject\Content\FileMetadata;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
@@ -84,6 +85,21 @@ final class EventFactory
             $kind,
             $tags ?? TagCollection::empty(),
             $content
+        );
+    }
+
+    public static function createFileMetadata(
+        PublicKey $pubkey,
+        FileMetadata $metadata,
+        string $caption = '',
+        ?Timestamp $createdAt = null,
+    ): Event {
+        return new Event(
+            $pubkey,
+            $createdAt ?? Timestamp::now(),
+            EventKind::fromInt(EventKind::FILE_METADATA),
+            $metadata->toTags(),
+            EventContent::fromString($caption),
         );
     }
 
