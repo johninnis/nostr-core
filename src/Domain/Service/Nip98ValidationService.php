@@ -6,19 +6,15 @@ namespace Innis\Nostr\Core\Domain\Service;
 
 use Innis\Nostr\Core\Application\Port\Nip98ReplayGuardInterface;
 use Innis\Nostr\Core\Domain\Entity\Event;
-use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
+use Innis\Nostr\Core\Domain\Enum\AuthHeaderDecodeError;
 use Innis\Nostr\Core\Domain\Exception\Nip98ValidationException;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
-use JsonException;
 
 final readonly class Nip98ValidationService implements Nip98ValidationServiceInterface
 {
-    private const AUTH_HEADER_PREFIX = 'Nostr ';
     private const DEFAULT_TIMESTAMP_TOLERANCE = 60;
-    private const MAX_AUTH_HEADER_LENGTH = 4096;
-    private const JSON_MAX_DEPTH = 16;
 
     private int $replayTtlSeconds;
 
@@ -60,35 +56,21 @@ final readonly class Nip98ValidationService implements Nip98ValidationServiceInt
 
     private function parseAuthHeader(string $authHeader): Event
     {
-        if (strlen($authHeader) > self::MAX_AUTH_HEADER_LENGTH) {
-            throw new Nip98ValidationException('Authorization header exceeds maximum length');
+        $decoded = NostrAuthHeaderCodec::decode($authHeader);
+
+        if ($decoded instanceof Event) {
+            return $decoded;
         }
 
-        if (!str_starts_with($authHeader, self::AUTH_HEADER_PREFIX)) {
-            throw new Nip98ValidationException('Invalid Authorization header format');
-        }
+        $message = match ($decoded) {
+            AuthHeaderDecodeError::TooLong => 'Authorization header exceeds maximum length',
+            AuthHeaderDecodeError::BadFormat => 'Invalid Authorization header format',
+            AuthHeaderDecodeError::BadBase64 => 'Invalid base64 in Authorization header',
+            AuthHeaderDecodeError::BadJson => 'Invalid JSON in Authorization header',
+            AuthHeaderDecodeError::InvalidEvent => 'Invalid event in Authorization header',
+        };
 
-        $json = base64_decode(substr($authHeader, strlen(self::AUTH_HEADER_PREFIX)), true);
-
-        if (false === $json) {
-            throw new Nip98ValidationException('Invalid base64 in Authorization header');
-        }
-
-        try {
-            $data = json_decode($json, true, self::JSON_MAX_DEPTH, JSON_THROW_ON_ERROR);
-        } catch (JsonException) {
-            throw new Nip98ValidationException('Invalid JSON in Authorization header');
-        }
-
-        if (!is_array($data)) {
-            throw new Nip98ValidationException('Invalid JSON in Authorization header');
-        }
-
-        try {
-            return Event::fromArray($data);
-        } catch (InvalidEventException $e) {
-            throw new Nip98ValidationException('Invalid event in Authorization header: '.$e->getMessage());
-        }
+        throw new Nip98ValidationException($message);
     }
 
     private function validateKind(Event $event): void
