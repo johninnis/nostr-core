@@ -29,7 +29,7 @@ final readonly class Timestamp
 
     public function isReasonable(): bool
     {
-        $now = time();
+        $now = self::now()->toInt();
         $oneHourInFuture = $now + 3600;
         $tenYearsAgo = $now - (10 * 365 * 24 * 3600);
 
@@ -56,6 +56,16 @@ final readonly class Timestamp
         return $this->timestamp <=> $other->timestamp;
     }
 
+    public function differenceInSeconds(self $other): int
+    {
+        return abs($this->timestamp - $other->timestamp);
+    }
+
+    public function hasPassed(): bool
+    {
+        return !self::now()->isBefore($this);
+    }
+
     public static function now(): self
     {
         return new self(time());
@@ -63,7 +73,7 @@ final readonly class Timestamp
 
     public static function randomised(int $maxSecondsAgo = 172800): self
     {
-        return new self(time() - random_int(0, $maxSecondsAgo));
+        return new self(self::now()->toInt() - random_int(0, $maxSecondsAgo));
     }
 
     public static function fromInt(int $timestamp): self

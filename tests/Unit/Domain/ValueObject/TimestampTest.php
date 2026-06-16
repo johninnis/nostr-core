@@ -119,6 +119,37 @@ final class TimestampTest extends TestCase
         $this->assertSame(0, $t1->compareTo($t2));
     }
 
+    public function testDifferenceInSecondsReturnsAbsoluteDelta(): void
+    {
+        $earlier = Timestamp::fromInt(1000);
+        $later = Timestamp::fromInt(1500);
+
+        $this->assertSame(500, $later->differenceInSeconds($earlier));
+        $this->assertSame(500, $earlier->differenceInSeconds($later));
+        $this->assertSame(0, $earlier->differenceInSeconds($earlier));
+    }
+
+    public function testHasPassedReturnsTrueForPastTimestamp(): void
+    {
+        $past = Timestamp::fromInt(time() - 3600);
+
+        $this->assertTrue($past->hasPassed());
+    }
+
+    public function testHasPassedReturnsTrueForNow(): void
+    {
+        $now = Timestamp::fromInt(time());
+
+        $this->assertTrue($now->hasPassed());
+    }
+
+    public function testHasPassedReturnsFalseForFutureTimestamp(): void
+    {
+        $future = Timestamp::fromInt(time() + 3600);
+
+        $this->assertFalse($future->hasPassed());
+    }
+
     public function testZeroTimestampIsValid(): void
     {
         $timestamp = Timestamp::fromInt(0);

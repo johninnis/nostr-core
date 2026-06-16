@@ -218,9 +218,7 @@ final readonly class Event
             return false;
         }
 
-        $expiration = (int) reset($values);
-
-        return time() >= $expiration;
+        return Timestamp::fromInt((int) reset($values))->hasPassed();
     }
 
     public function isProtected(): bool

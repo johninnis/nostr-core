@@ -11,6 +11,7 @@ use Innis\Nostr\Core\Domain\Exception\Nip98ValidationException;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
+use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 
 final readonly class Nip98ValidationService implements Nip98ValidationServiceInterface
 {
@@ -93,11 +94,9 @@ final readonly class Nip98ValidationService implements Nip98ValidationServiceInt
 
     private function validateTimestamp(Event $event): void
     {
-        $now = time();
-        $eventTime = $event->getCreatedAt()->toInt();
-        $diff = abs($now - $eventTime);
+        $difference = Timestamp::now()->differenceInSeconds($event->getCreatedAt());
 
-        if ($diff > $this->timestampTolerance) {
+        if ($difference > $this->timestampTolerance) {
             throw new Nip98ValidationException('Event timestamp is outside tolerance');
         }
     }
