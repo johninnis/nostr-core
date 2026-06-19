@@ -1,5 +1,7 @@
 # Nostr Core Package
 
+[![CI](https://github.com/johninnis/nostr-core/actions/workflows/ci.yml/badge.svg)](https://github.com/johninnis/nostr-core/actions/workflows/ci.yml)
+
 A PHP library implementing core domain entities and services for the Nostr protocol, built with Clean Architecture principles.
 
 ## Why this library?
