@@ -76,7 +76,11 @@ final readonly class ReqMessage extends ClientMessage
         $filters = [];
 
         for ($i = 2; $i < count($data); ++$i) {
-            $filters[] = Filter::fromArray($data[$i]);
+            $filter = Filter::fromArray($data[$i]);
+            if (null === $filter) {
+                return null;
+            }
+            $filters[] = $filter;
         }
 
         return new self($subscriptionId, new FilterCollection($filters));

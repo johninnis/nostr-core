@@ -258,6 +258,7 @@ final class FilterTest extends TestCase
 
         $filter = Filter::fromArray($data);
 
+        $this->assertNotNull($filter);
         $this->assertSame(['event-id'], $filter->getIds());
         $this->assertSame(['author-pubkey'], $filter->getAuthors());
         $this->assertKinds([1], $filter->getKinds());
@@ -486,6 +487,7 @@ final class FilterTest extends TestCase
 
         $filter = Filter::fromArray($data);
 
+        $this->assertNotNull($filter);
         $tags = $filter->getTags();
         $this->assertNotNull($tags);
         $this->assertSame(['nostr'], $tags['t']);
@@ -498,6 +500,7 @@ final class FilterTest extends TestCase
 
         $filter = Filter::fromArray($data);
 
+        $this->assertNotNull($filter);
         $this->assertNull($filter->getTags());
     }
 
@@ -526,9 +529,9 @@ final class FilterTest extends TestCase
         ];
 
         $filter = Filter::fromArray($data);
-        $output = $filter->toArray();
 
-        $this->assertSame($data, $output);
+        $this->assertNotNull($filter);
+        $this->assertSame($data, $filter->toArray());
     }
 
     public function testMatchesSearchTermInContent(): void
@@ -637,9 +640,9 @@ final class FilterTest extends TestCase
         ];
 
         $filter = Filter::fromArray($data);
-        $output = $filter->toArray();
 
-        $this->assertSame($data, $output);
+        $this->assertNotNull($filter);
+        $this->assertSame($data, $filter->toArray());
     }
 
     public function testToArrayOmitsSearchWhenNull(): void
@@ -709,20 +712,14 @@ final class FilterTest extends TestCase
         new Filter(tags: ['e' => $values]);
     }
 
-    public function testFromArrayRejectsEmptyTagName(): void
+    public function testFromArrayReturnsNullForEmptyTagName(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('has no tag name');
-
-        Filter::fromArray(['#' => ['value']]);
+        $this->assertNull(Filter::fromArray(['#' => ['value']]));
     }
 
-    public function testFromArrayRejectsNonArrayTagValues(): void
+    public function testFromArrayReturnsNullForNonArrayTagValues(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('must be an array');
-
-        Filter::fromArray(['#e' => 'not-an-array']);
+        $this->assertNull(Filter::fromArray(['#e' => 'not-an-array']));
     }
 
     public function testEmptyFilterJsonSerialisesAsAnObject(): void
@@ -739,6 +736,7 @@ final class FilterTest extends TestCase
     {
         $restored = Filter::fromArray((new Filter())->jsonSerialize());
 
+        $this->assertNotNull($restored);
         $this->assertSame([], $restored->toArray());
     }
 }

@@ -265,7 +265,7 @@ final readonly class Filter implements JsonSerializable, Stringable
         return $this->toArray() ?: new stdClass();
     }
 
-    public static function fromArray(array|stdClass $data): self
+    public static function fromArray(array|stdClass $data): ?self
     {
         $data = (array) $data;
         $tags = [];
@@ -276,28 +276,35 @@ final readonly class Filter implements JsonSerializable, Stringable
 
             $tagName = substr($key, 1);
 
-            if ('' === $tagName) {
-                throw new InvalidArgumentException('Filter tag key "#" has no tag name');
-            }
-
-            if (!is_array($value)) {
-                throw new InvalidArgumentException(sprintf('Filter tag values for "%s" must be an array', $key));
+            if ('' === $tagName || !is_array($value)) {
+                return null;
             }
 
             $tags[$tagName] = $value;
             unset($data[$key]);
         }
 
-        return new self(
-            $data['ids'] ?? null,
-            $data['authors'] ?? null,
-            $data['kinds'] ?? null,
-            empty($tags) ? null : $tags,
-            isset($data['since']) ? Timestamp::fromInt($data['since']) : null,
-            isset($data['until']) ? Timestamp::fromInt($data['until']) : null,
-            $data['limit'] ?? null,
-            $data['search'] ?? null
-        );
+        $since = $data['since'] ?? null;
+        $until = $data['until'] ?? null;
+
+        if ((null !== $since && !is_int($since)) || (null !== $until && !is_int($until))) {
+            return null;
+        }
+
+        try {
+            return new self(
+                $data['ids'] ?? null,
+                $data['authors'] ?? null,
+                $data['kinds'] ?? null,
+                [] === $tags ? null : $tags,
+                null !== $since ? Timestamp::fromInt($since) : null,
+                null !== $until ? Timestamp::fromInt($until) : null,
+                $data['limit'] ?? null,
+                $data['search'] ?? null
+            );
+        } catch (InvalidArgumentException) {
+            return null;
+        }
     }
 
     private function matchesTags(Event $event): bool
