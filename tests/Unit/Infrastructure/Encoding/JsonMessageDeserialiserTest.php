@@ -23,7 +23,6 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\OkMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Infrastructure\Encoding\JsonMessageDeserialiser;
-use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -124,26 +123,19 @@ final class JsonMessageDeserialiserTest extends TestCase
         $this->assertSame(42, $message->getCount());
     }
 
-    public function testDeserialiseRelayMessageThrowsOnInvalidJson(): void
+    public function testDeserialiseRelayMessageReturnsNullOnInvalidJson(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-
-        $this->deserialiser->deserialiseRelayMessage('not valid json');
+        $this->assertNull($this->deserialiser->deserialiseRelayMessage('not valid json'));
     }
 
-    public function testDeserialiseRelayMessageThrowsOnEmptyArray(): void
+    public function testDeserialiseRelayMessageReturnsNullOnEmptyArray(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-
-        $this->deserialiser->deserialiseRelayMessage('[]');
+        $this->assertNull($this->deserialiser->deserialiseRelayMessage('[]'));
     }
 
-    public function testDeserialiseRelayMessageThrowsOnUnknownType(): void
+    public function testDeserialiseRelayMessageReturnsNullOnUnknownType(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Unknown relay message type');
-
-        $this->deserialiser->deserialiseRelayMessage('["UNKNOWN","data"]');
+        $this->assertNull($this->deserialiser->deserialiseRelayMessage('["UNKNOWN","data"]'));
     }
 
     public function testDeserialiseClientEventMessage(): void
@@ -198,40 +190,29 @@ final class JsonMessageDeserialiserTest extends TestCase
         $this->assertSame('sub-1', (string) $message->getSubscriptionId());
     }
 
-    public function testDeserialiseClientMessageThrowsOnInvalidJson(): void
+    public function testDeserialiseClientMessageReturnsNullOnInvalidJson(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-
-        $this->deserialiser->deserialiseClientMessage('not valid json');
+        $this->assertNull($this->deserialiser->deserialiseClientMessage('not valid json'));
     }
 
-    public function testDeserialiseClientMessageThrowsOnEmptyArray(): void
+    public function testDeserialiseClientMessageReturnsNullOnEmptyArray(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-
-        $this->deserialiser->deserialiseClientMessage('[]');
+        $this->assertNull($this->deserialiser->deserialiseClientMessage('[]'));
     }
 
-    public function testDeserialiseClientMessageThrowsOnUnknownType(): void
+    public function testDeserialiseClientMessageReturnsNullOnUnknownType(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Unknown client message type');
-
-        $this->deserialiser->deserialiseClientMessage('["UNKNOWN","data"]');
+        $this->assertNull($this->deserialiser->deserialiseClientMessage('["UNKNOWN","data"]'));
     }
 
-    public function testDeserialiseClientMessageThrowsOnNonArrayJson(): void
+    public function testDeserialiseClientMessageReturnsNullOnNonArrayJson(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-
-        $this->deserialiser->deserialiseClientMessage('"just a string"');
+        $this->assertNull($this->deserialiser->deserialiseClientMessage('"just a string"'));
     }
 
-    public function testDeserialiseRelayMessageThrowsOnNonArrayJson(): void
+    public function testDeserialiseRelayMessageReturnsNullOnNonArrayJson(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-
-        $this->deserialiser->deserialiseRelayMessage('"just a string"');
+        $this->assertNull($this->deserialiser->deserialiseRelayMessage('"just a string"'));
     }
 
     private static function createPublicKey(): PublicKey

@@ -17,7 +17,6 @@ use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Infrastructure\Encoding\JsonMessageDeserialiser;
 use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
-use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 final class JsonMessageDeserialiserTest extends TestCase
@@ -117,64 +116,46 @@ final class JsonMessageDeserialiserTest extends TestCase
         $this->assertSame('', $message->getMessage());
     }
 
-    public function testThrowsExceptionForInvalidClientMessageJson(): void
+    public function testReturnsNullForInvalidClientMessageJson(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Invalid JSON for client message');
-
-        $this->deserialiser->deserialiseClientMessage('invalid json');
+        $this->assertNull($this->deserialiser->deserialiseClientMessage('invalid json'));
     }
 
-    public function testThrowsExceptionForInvalidRelayMessageJson(): void
+    public function testReturnsNullForInvalidRelayMessageJson(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Invalid JSON for relay message');
-
-        $this->deserialiser->deserialiseRelayMessage('invalid json');
+        $this->assertNull($this->deserialiser->deserialiseRelayMessage('invalid json'));
     }
 
-    public function testThrowsExceptionForUnknownClientMessageType(): void
+    public function testReturnsNullForUnknownClientMessageType(): void
     {
         $json = json_encode(['UNKNOWN', 'data']);
         $this->assertNotFalse($json);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Unknown client message type: UNKNOWN');
-
-        $this->deserialiser->deserialiseClientMessage($json);
+        $this->assertNull($this->deserialiser->deserialiseClientMessage($json));
     }
 
-    public function testThrowsExceptionForUnknownRelayMessageType(): void
+    public function testReturnsNullForUnknownRelayMessageType(): void
     {
         $json = json_encode(['UNKNOWN', 'data']);
         $this->assertNotFalse($json);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Unknown relay message type: UNKNOWN');
-
-        $this->deserialiser->deserialiseRelayMessage($json);
+        $this->assertNull($this->deserialiser->deserialiseRelayMessage($json));
     }
 
-    public function testThrowsExceptionForEmptyClientMessage(): void
+    public function testReturnsNullForEmptyClientMessage(): void
     {
         $json = json_encode([]);
         $this->assertNotFalse($json);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Invalid JSON for client message');
-
-        $this->deserialiser->deserialiseClientMessage($json);
+        $this->assertNull($this->deserialiser->deserialiseClientMessage($json));
     }
 
-    public function testThrowsExceptionForEmptyRelayMessage(): void
+    public function testReturnsNullForEmptyRelayMessage(): void
     {
         $json = json_encode([]);
         $this->assertNotFalse($json);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Invalid JSON for relay message');
-
-        $this->deserialiser->deserialiseRelayMessage($json);
+        $this->assertNull($this->deserialiser->deserialiseRelayMessage($json));
     }
 
     public function testDeserialisationRoundTripPreservesData(): void
@@ -183,8 +164,8 @@ final class JsonMessageDeserialiserTest extends TestCase
         $json = $originalMessage->toJson();
         $deserialisedMessage = $this->deserialiser->deserialiseClientMessage($json);
 
-        $this->assertSame($originalMessage->getType(), $deserialisedMessage->getType());
         $this->assertInstanceOf(ClientEventMessage::class, $deserialisedMessage);
+        $this->assertSame($originalMessage->getType(), $deserialisedMessage->getType());
         $this->assertTrue(
             $originalMessage->getEvent()->getId()->equals($deserialisedMessage->getEvent()->getId())
         );

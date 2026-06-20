@@ -19,55 +19,51 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\EventMessage as R
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\NoticeMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\OkMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
-use InvalidArgumentException;
 use Override;
 
 final class JsonMessageDeserialiser implements MessageDeserialiserInterface
 {
     #[Override]
-    public function deserialiseClientMessage(string $json): ClientMessage
+    public function deserialiseClientMessage(string $json): ?ClientMessage
     {
         if (!json_validate($json)) {
-            throw new InvalidArgumentException('Invalid JSON for client message');
+            return null;
         }
 
         $data = json_decode($json, true);
 
         if (!is_array($data) || [] === $data) {
-            throw new InvalidArgumentException('Invalid JSON for client message');
+            return null;
         }
 
         $type = is_string($data[0] ?? null) ? $data[0] : '';
 
-        $message = match ($type) {
+        return match ($type) {
             'EVENT' => ClientEventMessage::fromArray($data),
             'REQ' => ReqMessage::fromArray($data),
             'CLOSE' => CloseMessage::fromArray($data),
             'AUTH' => ClientAuthMessage::fromArray($data),
             'COUNT' => CountMessage::fromArray($data),
-            default => throw new InvalidArgumentException("Unknown client message type: {$type}"),
+            default => null,
         };
-
-        return $message
-            ?? throw new InvalidArgumentException("Malformed {$type} client message");
     }
 
     #[Override]
-    public function deserialiseRelayMessage(string $json): RelayMessage
+    public function deserialiseRelayMessage(string $json): ?RelayMessage
     {
         if (!json_validate($json)) {
-            throw new InvalidArgumentException('Invalid JSON for relay message');
+            return null;
         }
 
         $data = json_decode($json, true);
 
         if (!is_array($data) || [] === $data) {
-            throw new InvalidArgumentException('Invalid JSON for relay message');
+            return null;
         }
 
         $type = is_string($data[0] ?? null) ? $data[0] : '';
 
-        $message = match ($type) {
+        return match ($type) {
             'EVENT' => RelayEventMessage::fromArray($data),
             'OK' => OkMessage::fromArray($data),
             'EOSE' => EoseMessage::fromArray($data),
@@ -75,10 +71,7 @@ final class JsonMessageDeserialiser implements MessageDeserialiserInterface
             'NOTICE' => NoticeMessage::fromArray($data),
             'AUTH' => RelayAuthMessage::fromArray($data),
             'COUNT' => RelayCountMessage::fromArray($data),
-            default => throw new InvalidArgumentException("Unknown relay message type: {$type}"),
+            default => null,
         };
-
-        return $message
-            ?? throw new InvalidArgumentException("Malformed {$type} relay message");
     }
 }

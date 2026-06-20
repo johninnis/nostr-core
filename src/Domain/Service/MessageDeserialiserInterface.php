@@ -9,7 +9,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
 
 interface MessageDeserialiserInterface
 {
-    public function deserialiseClientMessage(string $json): ClientMessage;
+    public function deserialiseClientMessage(string $json): ?ClientMessage;
 
-    public function deserialiseRelayMessage(string $json): RelayMessage;
+    public function deserialiseRelayMessage(string $json): ?RelayMessage;
 }
