@@ -92,10 +92,6 @@ final readonly class FileMetadata
     {
         $fields = [];
         foreach ($tags as $tag) {
-            if (!$tag instanceof Tag) {
-                continue;
-            }
-
             $value = $tag->getValue();
             if (null !== $value) {
                 $fields[(string) $tag->getType()][] = $value;

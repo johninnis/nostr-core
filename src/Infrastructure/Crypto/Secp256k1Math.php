@@ -6,7 +6,7 @@ namespace Innis\Nostr\Core\Infrastructure\Crypto;
 
 use Exception;
 use GMP;
-use LogicException;
+use Innis\Nostr\Core\Domain\Exception\CryptoException;
 use Mdanter\Ecc\Primitives\CurveFpInterface;
 use Mdanter\Ecc\Primitives\PointInterface;
 
@@ -26,7 +26,7 @@ final class Secp256k1Math
         try {
             $bytes = hex2bin($hex);
             if (false === $bytes) {
-                throw new LogicException('GMP value produced invalid hex');
+                throw new CryptoException('GMP value produced invalid hex');
             }
 
             return $bytes;

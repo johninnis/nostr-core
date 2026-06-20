@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\Enum\Nip10Marker;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
@@ -33,10 +34,10 @@ final class ReplyTagBuilder
         $effectiveRootId = $rootId ?? $replyToId;
         $effectiveRootAuthor = $rootAuthor ?? $replyToAuthor;
 
-        $tags[] = Tag::event($effectiveRootId->toHex(), null, 'root');
+        $tags[] = Tag::event($effectiveRootId->toHex(), null, Nip10Marker::Root->value);
 
         if (null !== $rootId && !$rootId->equals($replyToId)) {
-            $tags[] = Tag::event($replyToId->toHex(), null, 'reply');
+            $tags[] = Tag::event($replyToId->toHex(), null, Nip10Marker::Reply->value);
         }
 
         $tags[] = Tag::pubkey($effectiveRootAuthor->toHex());

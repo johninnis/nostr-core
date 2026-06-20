@@ -4,20 +4,25 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Service;
 
+use Innis\Nostr\Core\Domain\Entity\ContentReferenceCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Entity\EventReferences;
 use Innis\Nostr\Core\Domain\Entity\QuoteAnalysis;
 use Innis\Nostr\Core\Domain\Entity\ReplyChain;
 use Innis\Nostr\Core\Domain\Entity\TagReferences;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\EventIdCollection;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKeyCollection;
+use Override;
 
-final class EventReferenceExtractionService implements EventReferenceExtractionServiceInterface
+final class EventReferenceExtractor implements EventReferenceExtractorInterface
 {
     public function __construct(
         private ContentReferenceExtractorInterface $contentExtractor,
     ) {
     }
 
+    #[Override]
     public function extractReferences(Event $event): EventReferences
     {
         $tagReferences = TagReferenceExtractor::extract($event->getTags());
@@ -33,32 +38,29 @@ final class EventReferenceExtractionService implements EventReferenceExtractionS
 
         return new EventReferences(
             $tagReferences,
-            $contentReferences,
+            new ContentReferenceCollection($contentReferences),
             $replyChain,
             $quoteAnalysis,
-            $allEventIds,
-            $allPublicKeys
+            new EventIdCollection($allEventIds),
+            new PublicKeyCollection($allPublicKeys)
         );
     }
 
     private static function analyseQuote(Event $event): QuoteAnalysis
     {
-        $hasQuoteTag = false;
-        $isRepost = $event->getKind()->is(EventKind::REPOST);
+        $isRepost = $event->getKind()->equals(EventKind::repost());
 
-        foreach ($event->getTags()->toArray() as $tagArray) {
-            if ('q' === $tagArray[0]) {
-                $hasQuoteTag = true;
-                break;
-            }
-        }
+        $hasQuoteTag = array_any(
+            $event->getTags()->toArray(),
+            static fn (array $tagArray): bool => 'q' === $tagArray[0],
+        );
 
         $hasEventInContent = 1 === preg_match(
             '/nostr:(note1[a-z0-9]{58}|nevent1[a-z0-9]+)/i',
             (string) $event->getContent()
         );
 
-        $isQuote = $hasQuoteTag || ($event->getKind()->is(EventKind::TEXT_NOTE) && $hasEventInContent);
+        $isQuote = $hasQuoteTag || ($event->getKind()->equals(EventKind::textNote()) && $hasEventInContent);
 
         return new QuoteAnalysis(
             $hasQuoteTag,

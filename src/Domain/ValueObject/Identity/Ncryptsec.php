@@ -5,26 +5,26 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
 use Innis\Nostr\Core\Domain\Enum\KeySecurityByte;
-use Innis\Nostr\Core\Domain\Exception\InvalidBech32Exception;
 use Innis\Nostr\Core\Domain\Service\Bech32Codec;
 use InvalidArgumentException;
+use Override;
 use Stringable;
 
 final readonly class Ncryptsec implements Stringable
 {
-    public const HRP = 'ncryptsec';
-    public const PAYLOAD_LENGTH = 91;
-    public const VERSION_BYTE = 0x02;
-    public const SALT_LENGTH = 16;
-    public const NONCE_LENGTH = 24;
-    public const AEAD_OUTPUT_LENGTH = 48;
+    public const string HRP = 'ncryptsec';
+    public const int PAYLOAD_LENGTH = 91;
+    public const int VERSION_BYTE = 0x02;
+    public const int SALT_LENGTH = 16;
+    public const int NONCE_LENGTH = 24;
+    public const int AEAD_OUTPUT_LENGTH = 48;
 
-    private const VERSION_OFFSET = 0;
-    private const LOG_N_OFFSET = 1;
-    private const SALT_OFFSET = 2;
-    private const NONCE_OFFSET = 18;
-    private const KEY_SECURITY_OFFSET = 42;
-    private const CIPHERTEXT_OFFSET = 43;
+    private const int VERSION_OFFSET = 0;
+    private const int LOG_N_OFFSET = 1;
+    private const int SALT_OFFSET = 2;
+    private const int NONCE_OFFSET = 18;
+    private const int KEY_SECURITY_OFFSET = 42;
+    private const int CIPHERTEXT_OFFSET = 43;
 
     private function __construct(
         private string $bech32,
@@ -38,9 +38,8 @@ final readonly class Ncryptsec implements Stringable
             return null;
         }
 
-        try {
-            $decoded = Bech32Codec::decode($bech32);
-        } catch (InvalidBech32Exception) {
+        $decoded = Bech32Codec::decode($bech32);
+        if (null === $decoded) {
             return null;
         }
 
@@ -124,6 +123,7 @@ final readonly class Ncryptsec implements Stringable
         return substr($this->payload, self::CIPHERTEXT_OFFSET, self::AEAD_OUTPUT_LENGTH);
     }
 
+    #[Override]
     public function __toString(): string
     {
         return $this->bech32;

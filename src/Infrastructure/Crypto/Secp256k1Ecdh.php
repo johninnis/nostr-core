@@ -10,12 +10,13 @@ use Innis\Nostr\Core\Domain\Service\EcdhServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Mdanter\Ecc\EccFactory;
+use Override;
 
 final class Secp256k1Ecdh implements EcdhServiceInterface
 {
-    private const SHARED_X_BYTE_LENGTH = 32;
-    private const SECP256K1_PRIME_HEX = 'fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f';
-    private const ZERO_X_HEX = '0000000000000000000000000000000000000000000000000000000000000000';
+    private const int SHARED_X_BYTE_LENGTH = 32;
+    private const string SECP256K1_PRIME_HEX = 'fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f';
+    private const string ZERO_X_HEX = '0000000000000000000000000000000000000000000000000000000000000000';
 
     public function __construct(private readonly ?LibSecp256k1Ffi $ffi = null)
     {
@@ -30,6 +31,7 @@ final class Secp256k1Ecdh implements EcdhServiceInterface
         return new self($ffi);
     }
 
+    #[Override]
     public function computeSharedX(PrivateKey $privateKey, PublicKey $publicKey): string
     {
         $pubkeyHex = $publicKey->toHex();
@@ -53,10 +55,7 @@ final class Secp256k1Ecdh implements EcdhServiceInterface
         $pubkeyBytes = hex2bin($pubkeyHex);
         assert(false !== $pubkeyBytes);
 
-        $sharedX = $privateKey->expose(static fn (string $privkeyBytes): string => $ffi->computeSharedX($privkeyBytes, $pubkeyBytes));
-        assert(is_string($sharedX));
-
-        return $sharedX;
+        return $privateKey->expose(static fn (string $privkeyBytes): string => $ffi->computeSharedX($privkeyBytes, $pubkeyBytes));
     }
 
     private function computeSharedXPurePhp(PrivateKey $privateKey, string $pubkeyHex): string
@@ -83,7 +82,6 @@ final class Secp256k1Ecdh implements EcdhServiceInterface
 
             return Secp256k1Math::gmpToBytes($sharedPoint->getX(), self::SHARED_X_BYTE_LENGTH);
         });
-        assert(is_string($sharedX));
 
         return $sharedX;
     }

@@ -7,7 +7,7 @@ namespace Innis\Nostr\Core\Domain\Service;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 
-interface Nip98ValidationServiceInterface
+interface Nip98ValidatorInterface
 {
     public function validate(Event $event, string $requestUrl, string $requestMethod, ?string $requestBodyHash = null): PublicKey;
 

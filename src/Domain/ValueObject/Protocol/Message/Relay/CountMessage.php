@@ -7,6 +7,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
 use InvalidArgumentException;
+use Override;
 
 final readonly class CountMessage extends RelayMessage
 {
@@ -19,6 +20,7 @@ final readonly class CountMessage extends RelayMessage
         }
     }
 
+    #[Override]
     public function getType(): string
     {
         return 'COUNT';
@@ -34,24 +36,38 @@ final readonly class CountMessage extends RelayMessage
         return $this->count;
     }
 
+    #[Override]
     public function toArray(): array
     {
         return ['COUNT', (string) $this->subscriptionId, ['count' => $this->count]];
     }
 
-    public static function fromArray(array $data): static
+    #[Override]
+    public static function fromArray(array $data): ?static
     {
-        if (3 !== count($data) || 'COUNT' !== $data[0]) {
-            throw new InvalidArgumentException('Invalid COUNT message format');
+        if (3 !== count($data) || 'COUNT' !== $data[0] || !is_string($data[1])) {
+            return null;
         }
 
         if (!is_array($data[2]) || !array_key_exists('count', $data[2])) {
-            throw new InvalidArgumentException('Invalid COUNT message payload');
+            return null;
+        }
+
+        $count = (int) $data[2]['count'];
+
+        if ($count < 0) {
+            return null;
+        }
+
+        $subscriptionId = SubscriptionId::fromString($data[1]);
+
+        if (null === $subscriptionId) {
+            return null;
         }
 
         return new self(
-            SubscriptionId::fromString($data[1]),
-            (int) $data[2]['count'],
+            $subscriptionId,
+            $count,
         );
     }
 }

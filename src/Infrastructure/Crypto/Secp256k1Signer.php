@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Infrastructure\Crypto;
 
 use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
+use Innis\Nostr\Core\Domain\Exception\CryptoException;
 use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
-use LogicException;
 use Mdanter\Ecc\EccFactory;
+use Override;
 
 final class Secp256k1Signer implements SignatureServiceInterface
 {
-    private const SIGNATURE_HEX_LENGTH = 128;
-    private const SCHNORR_MESSAGE_LENGTH = 32;
-    private const AUX_RAND_LENGTH = 32;
+    private const int SCHNORR_MESSAGE_LENGTH = 32;
+    private const int AUX_RAND_LENGTH = 32;
 
     public function __construct(
         private readonly ?LibSecp256k1Ffi $ffi,
@@ -33,6 +33,7 @@ final class Secp256k1Signer implements SignatureServiceInterface
         return new self($ffi, $randomBytes);
     }
 
+    #[Override]
     public function sign(PrivateKey $privateKey, string $message): Signature
     {
         $signature = $privateKey->expose(function (string $privkeyBytes) use ($message): Signature {
@@ -40,22 +41,19 @@ final class Secp256k1Signer implements SignatureServiceInterface
                 $auxRand = $this->randomBytes->bytes(self::AUX_RAND_LENGTH);
 
                 return Signature::fromHex(bin2hex($this->ffi->sign($message, $privkeyBytes, $auxRand)))
-                    ?? throw new LogicException('FFI signing produced invalid signature');
+                    ?? throw new CryptoException('FFI signing produced invalid signature');
             }
 
             return $this->signPurePhp($privkeyBytes, $message);
         });
-        assert($signature instanceof Signature);
 
         return $signature;
     }
 
+    #[Override]
     public function verify(PublicKey $publicKey, string $message, Signature $signature): bool
     {
         $signatureHex = $signature->toHex();
-        if (self::SIGNATURE_HEX_LENGTH !== strlen($signatureHex)) {
-            return false;
-        }
 
         if (null !== $this->ffi) {
             $sigBytes = hex2bin($signatureHex);
@@ -70,17 +68,17 @@ final class Secp256k1Signer implements SignatureServiceInterface
         return $this->verifyPurePhp($message, $signatureHex, $publicKey->toHex());
     }
 
+    #[Override]
     public function derivePublicKey(PrivateKey $privateKey): PublicKey
     {
         $publicKey = $privateKey->expose(function (string $privkeyBytes): PublicKey {
             if (null !== $this->ffi) {
                 return PublicKey::fromHex(bin2hex($this->ffi->derivePublicKey($privkeyBytes)))
-                    ?? throw new LogicException('Key derivation produced invalid public key');
+                    ?? throw new CryptoException('Key derivation produced invalid public key');
             }
 
             return $this->derivePublicKeyPurePhp($privkeyBytes);
         });
-        assert($publicKey instanceof PublicKey);
 
         return $publicKey;
     }
@@ -107,7 +105,7 @@ final class Secp256k1Signer implements SignatureServiceInterface
         $publicKeyHex = str_pad(gmp_strval($publicKeyPoint->getX(), 16), 64, '0', STR_PAD_LEFT);
 
         return PublicKey::fromHex($publicKeyHex)
-            ?? throw new LogicException('Key derivation produced invalid public key');
+            ?? throw new CryptoException('Key derivation produced invalid public key');
     }
 
     private function signPurePhp(string $privkeyBytes, string $message): Signature
@@ -145,7 +143,7 @@ final class Secp256k1Signer implements SignatureServiceInterface
         }
 
         if (0 === gmp_cmp($kPrime, 0)) {
-            throw new LogicException('BIP-340 nonce generation produced zero value');
+            throw new CryptoException('BIP-340 nonce generation produced zero value');
         }
 
         $R = $generator->mul($kPrime);
@@ -161,7 +159,7 @@ final class Secp256k1Signer implements SignatureServiceInterface
         $sHex = str_pad(gmp_strval($s, 16), 64, '0', STR_PAD_LEFT);
 
         return Signature::fromHex($rHex.$sHex)
-            ?? throw new LogicException('Schnorr signing produced invalid signature');
+            ?? throw new CryptoException('Schnorr signing produced invalid signature');
     }
 
     private function verifyPurePhp(string $message, string $signatureHex, string $publicKeyHex): bool

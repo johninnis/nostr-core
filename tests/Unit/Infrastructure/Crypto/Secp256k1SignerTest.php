@@ -87,16 +87,16 @@ final class Secp256k1SignerTest extends TestCase
         $this->assertVerifyRejectsTamperedMessage($this->purePhpService());
     }
 
-    public function testVerifyRejectsMalformedSignatureHexLength(): void
+    public function testVerifyRejectsWellFormedButInvalidSignature(): void
     {
         $service = $this->purePhpService();
         $privateKey = PrivateKey::generate();
         $publicKey = $service->derivePublicKey($privateKey);
 
-        $tooShort = Signature::fromHex(str_repeat('a', 126))
-            ?? throw new RuntimeException('test setup: short hex not accepted by Signature::fromHex');
+        $invalidSignature = Signature::fromHex(str_repeat('a', 128))
+            ?? throw new RuntimeException('test setup: valid-length hex not accepted by Signature::fromHex');
 
-        $this->assertFalse($service->verify($publicKey, random_bytes(32), $tooShort));
+        $this->assertFalse($service->verify($publicKey, random_bytes(32), $invalidSignature));
     }
 
     public function testSignPurePhpAcceptsNonThirtyTwoByteMessage(): void

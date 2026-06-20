@@ -2,24 +2,26 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Infrastructure\Encoding;
+namespace Innis\Nostr\Core\Domain\Service;
 
-use Innis\Nostr\Core\Domain\Service\Bech32Codec;
-use Innis\Nostr\Core\Domain\Service\Bech32EncoderInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
-use InvalidArgumentException;
+use Override;
 
 final class Bech32Encoder implements Bech32EncoderInterface
 {
-    public function decodeComplexEntity(string $bech32): array
+    #[Override]
+    public function decodeComplexEntity(string $bech32): ?array
     {
         $decoded = Bech32Codec::decode($bech32);
-        $hrp = $decoded['hrp'];
+        if (null === $decoded) {
+            return null;
+        }
+
         $data = $decoded['data'];
 
-        return match ($hrp) {
+        return match ($decoded['hrp']) {
             'npub' => [
                 'type' => 'pubkey',
                 'pubkey' => Bech32Codec::bytesToHex($data),
@@ -31,10 +33,11 @@ final class Bech32Encoder implements Bech32EncoderInterface
             'nprofile' => $this->decodeProfile($data),
             'nevent' => $this->decodeEvent($data),
             'naddr' => $this->decodeAddress($data),
-            default => throw new InvalidArgumentException("Unknown bech32 prefix: {$hrp}"),
+            default => null,
         };
     }
 
+    #[Override]
     public function encodeAddressableEvent(string $identifier, PublicKey $pubkey, int $kind, array $relays = []): string
     {
         $bytes = self::encodeTlv(
@@ -47,12 +50,13 @@ final class Bech32Encoder implements Bech32EncoderInterface
         return Bech32Codec::encode('naddr', $bytes);
     }
 
+    #[Override]
     public function parseEventReference(string $input): EventId|EventCoordinate|null
     {
         if (str_starts_with($input, 'naddr1')) {
             $decoded = $this->decodeComplexEntity($input);
 
-            if (!isset($decoded['kind'], $decoded['pubkey'], $decoded['identifier'])) {
+            if (null === $decoded || !isset($decoded['kind'], $decoded['pubkey'], $decoded['identifier'])) {
                 return null;
             }
 
@@ -73,9 +77,12 @@ final class Bech32Encoder implements Bech32EncoderInterface
         return EventId::fromHex($input);
     }
 
-    private function decodeProfile(array $data): array
+    private function decodeProfile(array $data): ?array
     {
         $tlv = self::parseTlv($data);
+        if (null === $tlv) {
+            return null;
+        }
 
         return [
             'type' => 'profile',
@@ -84,9 +91,12 @@ final class Bech32Encoder implements Bech32EncoderInterface
         ];
     }
 
-    private function decodeEvent(array $data): array
+    private function decodeEvent(array $data): ?array
     {
         $tlv = self::parseTlv($data);
+        if (null === $tlv) {
+            return null;
+        }
 
         return [
             'type' => 'event',
@@ -97,9 +107,12 @@ final class Bech32Encoder implements Bech32EncoderInterface
         ];
     }
 
-    private function decodeAddress(array $data): array
+    private function decodeAddress(array $data): ?array
     {
         $tlv = self::parseTlv($data);
+        if (null === $tlv) {
+            return null;
+        }
 
         return [
             'type' => 'address',
@@ -110,7 +123,7 @@ final class Bech32Encoder implements Bech32EncoderInterface
         ];
     }
 
-    private static function parseTlv(array $bytes): array
+    private static function parseTlv(array $bytes): ?array
     {
         $result = [];
         $position = 0;
@@ -118,10 +131,10 @@ final class Bech32Encoder implements Bech32EncoderInterface
 
         while ($position < $count) {
             $type = $bytes[$position++];
-            $length = $bytes[$position++];
+            $length = $bytes[$position++] ?? 0;
             $value = array_slice($bytes, $position, $length);
             if (count($value) < $length) {
-                throw new InvalidArgumentException("Not enough data for TLV type {$type}");
+                return null;
             }
             $position += $length;
             $result[$type] ??= [];

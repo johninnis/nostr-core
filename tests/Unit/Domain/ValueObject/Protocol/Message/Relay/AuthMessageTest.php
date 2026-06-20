@@ -7,6 +7,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol\Message\Relay;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\AuthMessage;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class AuthMessageTest extends TestCase
 {
@@ -48,7 +49,7 @@ final class AuthMessageTest extends TestCase
 
     public function testFromArrayCreatesValidMessage(): void
     {
-        $message = AuthMessage::fromArray(['AUTH', 'challenge-xyz']);
+        $message = AuthMessage::fromArray(['AUTH', 'challenge-xyz']) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame('AUTH', $message->getType());
         $this->assertSame('challenge-xyz', $message->getChallenge());
@@ -56,32 +57,25 @@ final class AuthMessageTest extends TestCase
 
     public function testFromArrayThrowsOnInvalidFormat(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-
-        AuthMessage::fromArray(['AUTH']);
+        $this->assertNull(AuthMessage::fromArray(['AUTH']));
     }
 
     public function testFromArrayThrowsOnWrongType(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-
-        AuthMessage::fromArray(['NOTICE', 'challenge-xyz']);
+        $this->assertNull(AuthMessage::fromArray(['NOTICE', 'challenge-xyz']));
     }
 
     public function testRoundTripPreservesData(): void
     {
         $original = new AuthMessage('my-challenge-string');
 
-        $restored = AuthMessage::fromArray($original->toArray());
+        $restored = AuthMessage::fromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame($original->getChallenge(), $restored->getChallenge());
     }
 
     public function testFromArrayRejectsNonStringChallenge(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('challenge must be a string');
-
-        AuthMessage::fromArray(['AUTH', 42]);
+        $this->assertNull(AuthMessage::fromArray(['AUTH', 42]));
     }
 }

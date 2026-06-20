@@ -7,7 +7,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Payment;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 
-interface PaymentReceipt
+interface PaymentReceiptInterface
 {
     public function getSenderPubkey(): ?PublicKey;
 

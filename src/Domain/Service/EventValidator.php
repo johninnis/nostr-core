@@ -6,11 +6,12 @@ namespace Innis\Nostr\Core\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
+use Override;
 
-final class EventValidationService implements EventValidationServiceInterface
+final class EventValidator implements EventValidatorInterface
 {
-    private const MAX_CONTENT_LENGTH = 65536;
-    private const MAX_TAGS_COUNT = 5000;
+    private const int MAX_CONTENT_LENGTH = 65536;
+    private const int MAX_TAGS_COUNT = 5000;
 
     public function __construct(
         private readonly SignatureServiceInterface $signatureService,
@@ -18,6 +19,7 @@ final class EventValidationService implements EventValidationServiceInterface
     ) {
     }
 
+    #[Override]
     public function validateEvent(Event $event): void
     {
         $this->validateTimestamp($event);
@@ -30,6 +32,7 @@ final class EventValidationService implements EventValidationServiceInterface
         }
     }
 
+    #[Override]
     public function isEventValid(Event $event): bool
     {
         try {

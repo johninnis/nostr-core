@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Tests\Unit\Infrastructure\Reference;
+namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
 use Innis\Nostr\Core\Domain\Service\Bech32EncoderInterface;
+use Innis\Nostr\Core\Domain\Service\ContentReferenceExtractor;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
-use Innis\Nostr\Core\Infrastructure\Reference\ContentReferenceExtractor;
 use PHPUnit\Framework\TestCase;
 
 final class ContentReferenceExtractorRealDataTest extends TestCase

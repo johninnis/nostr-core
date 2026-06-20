@@ -12,13 +12,8 @@ final readonly class Tag
         private TagType $type,
         private array $values,
     ) {
-        // Tags can be empty (flag-style tags like ["content-warning"])
-        // So we don't validate that values must exist
-
-        foreach ($this->values as $value) {
-            if (!is_string($value)) {
-                throw new InvalidArgumentException('All tag values must be strings');
-            }
+        if (!array_all($this->values, static fn (mixed $value): bool => is_string($value))) {
+            throw new InvalidArgumentException('All tag values must be strings');
         }
     }
 
@@ -56,7 +51,6 @@ final readonly class Tag
     {
         $values = [$eventId];
 
-        // Per NIP-10: if marker is provided, relay URL must be at position 2 (even if empty)
         if (null !== $marker) {
             $values[] = $relayUrl ?? '';
             $values[] = $marker;

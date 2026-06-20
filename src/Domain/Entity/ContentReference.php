@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\Entity;
 
 use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
+use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrlCollection;
 use InvalidArgumentException;
 
 final readonly class ContentReference
@@ -20,10 +22,9 @@ final readonly class ContentReference
         private string $decodedType,
         private ?EventId $eventId = null,
         private ?PublicKey $publicKey = null,
-        private array $relays = [],
-        private ?string $error = null,
+        private RelayUrlCollection $relays = new RelayUrlCollection(),
         private ?string $addressableIdentifier = null,
-        private ?int $kind = null,
+        private ?EventKind $kind = null,
     ) {
         if ($position < 0) {
             throw new InvalidArgumentException('Position must be non-negative');
@@ -65,19 +66,9 @@ final readonly class ContentReference
         return $this->publicKey;
     }
 
-    public function getRelays(): array
+    public function getRelays(): RelayUrlCollection
     {
         return $this->relays;
-    }
-
-    public function getError(): ?string
-    {
-        return $this->error;
-    }
-
-    public function hasError(): bool
-    {
-        return null !== $this->error;
     }
 
     public function isEventReference(): bool
@@ -95,7 +86,7 @@ final readonly class ContentReference
         return $this->addressableIdentifier;
     }
 
-    public function getKind(): ?int
+    public function getKind(): ?EventKind
     {
         return $this->kind;
     }
@@ -115,10 +106,9 @@ final readonly class ContentReference
             'decoded_type' => $this->decodedType,
             'event_id' => $this->eventId?->toHex(),
             'public_key' => $this->publicKey?->toHex(),
-            'relays' => array_map(static fn (RelayUrl $relay) => (string) $relay, $this->relays),
-            'error' => $this->error,
+            'relays' => array_map(static fn (RelayUrl $relay) => (string) $relay, $this->relays->toArray()),
             'addressable_identifier' => $this->addressableIdentifier,
-            'kind' => $this->kind,
+            'kind' => $this->kind?->toInt(),
         ];
     }
 
@@ -137,10 +127,9 @@ final readonly class ContentReference
             $data['decoded_type'],
             isset($data['event_id']) ? EventId::fromHex($data['event_id']) : null,
             isset($data['public_key']) ? PublicKey::fromHex($data['public_key']) : null,
-            $relays,
-            $data['error'] ?? null,
+            new RelayUrlCollection($relays),
             $data['addressable_identifier'] ?? null,
-            $data['kind'] ?? null
+            isset($data['kind']) ? EventKind::fromInt($data['kind']) : null
         );
     }
 }

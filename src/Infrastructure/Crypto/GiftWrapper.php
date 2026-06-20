@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Infrastructure\Crypto;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Exception\GiftWrapException;
+use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 use Innis\Nostr\Core\Domain\Service\EcdhServiceInterface;
 use Innis\Nostr\Core\Domain\Service\GiftWrapServiceInterface;
 use Innis\Nostr\Core\Domain\Service\Nip44EncryptionInterface;
@@ -20,6 +21,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use InvalidArgumentException;
+use Override;
 use Throwable;
 
 final class GiftWrapper implements GiftWrapServiceInterface
@@ -31,6 +33,7 @@ final class GiftWrapper implements GiftWrapServiceInterface
     ) {
     }
 
+    #[Override]
     public function wrapForRecipient(
         Event $rumour,
         PrivateKey $senderPrivateKey,
@@ -71,6 +74,7 @@ final class GiftWrapper implements GiftWrapServiceInterface
         }
     }
 
+    #[Override]
     public function unwrap(
         Event $giftWrap,
         PrivateKey $recipientPrivateKey,
@@ -136,7 +140,7 @@ final class GiftWrapper implements GiftWrapServiceInterface
 
     private function validateRumour(Event $rumour, PrivateKey $senderPrivateKey): void
     {
-        if (!$rumour->getKind()->is(EventKind::PRIVATE_MESSAGE)) {
+        if (!$rumour->getKind()->equals(EventKind::privateMessage())) {
             throw new GiftWrapException('Rumour must be kind 14 (private message)');
         }
 
@@ -151,7 +155,7 @@ final class GiftWrapper implements GiftWrapServiceInterface
 
     private function validateGiftWrap(Event $giftWrap): void
     {
-        if (!$giftWrap->getKind()->is(EventKind::GIFT_WRAP)) {
+        if (!$giftWrap->getKind()->equals(EventKind::giftWrap())) {
             throw new GiftWrapException('Event must be kind 1059 (gift wrap)');
         }
 
@@ -162,7 +166,7 @@ final class GiftWrapper implements GiftWrapServiceInterface
 
     private function validateSeal(Event $seal): void
     {
-        if (!$seal->getKind()->is(EventKind::SEAL)) {
+        if (!$seal->getKind()->equals(EventKind::seal())) {
             throw new GiftWrapException('Decrypted event is not a seal (kind 13)');
         }
 
@@ -173,7 +177,7 @@ final class GiftWrapper implements GiftWrapServiceInterface
 
     private function validateDecryptedRumour(Event $rumour, Event $seal): void
     {
-        if (!$rumour->getKind()->is(EventKind::PRIVATE_MESSAGE)) {
+        if (!$rumour->getKind()->equals(EventKind::privateMessage())) {
             throw new GiftWrapException('Decrypted event is not a rumour (kind 14)');
         }
 
@@ -184,17 +188,19 @@ final class GiftWrapper implements GiftWrapServiceInterface
 
     private function serialiseEvent(Event $event): string
     {
-        $json = json_encode($event->toArray(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-
-        if (false === $json) {
-            throw new GiftWrapException('Failed to serialise event');
+        try {
+            return $event->toJson();
+        } catch (InvalidEventException $exception) {
+            throw new GiftWrapException('Failed to serialise event', previous: $exception);
         }
-
-        return $json;
     }
 
     private function deserialiseEvent(string $json): Event
     {
+        if (!json_validate($json)) {
+            throw new GiftWrapException('Failed to deserialise event JSON');
+        }
+
         $data = json_decode($json, true);
 
         if (!is_array($data)) {

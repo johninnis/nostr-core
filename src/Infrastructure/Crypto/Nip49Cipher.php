@@ -13,11 +13,12 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\Ncryptsec;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use InvalidArgumentException;
 use Normalizer;
+use Override;
 
 final class Nip49Cipher implements Nip49EncryptionInterface
 {
-    private const LOG_N_MIN = 1;
-    private const LOG_N_MAX = 63;
+    private const int LOG_N_MIN = 1;
+    private const int LOG_N_MAX = 22;
 
     public function __construct(
         private readonly Nip49Scrypt $scrypt = new Nip49Scrypt(),
@@ -25,6 +26,7 @@ final class Nip49Cipher implements Nip49EncryptionInterface
     ) {
     }
 
+    #[Override]
     public function encrypt(
         PrivateKey $privateKey,
         Closure $passwordProvider,
@@ -41,6 +43,7 @@ final class Nip49Cipher implements Nip49EncryptionInterface
         return $this->encryptWithSaltAndNonce($privateKey, $passwordProvider, $logN, $keySecurity, $salt, $nonce);
     }
 
+    #[Override]
     public function decrypt(Ncryptsec $ncryptsec, Closure $passwordProvider): PrivateKey
     {
         $logN = $ncryptsec->logN();
@@ -120,7 +123,6 @@ final class Nip49Cipher implements Nip49EncryptionInterface
                             $derivedKey,
                         )
                     );
-                    assert(is_string($aeadOutput));
                 } finally {
                     sodium_memzero($derivedKey);
                 }

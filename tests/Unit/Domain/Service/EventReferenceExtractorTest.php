@@ -7,7 +7,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Entity\EventReferences;
 use Innis\Nostr\Core\Domain\Service\ContentReferenceExtractorInterface;
-use Innis\Nostr\Core\Domain\Service\EventReferenceExtractionService;
+use Innis\Nostr\Core\Domain\Service\EventReferenceExtractor;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
@@ -17,7 +17,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
-final class EventReferenceExtractionServiceTest extends TestCase
+final class EventReferenceExtractorTest extends TestCase
 {
     public function testExtractReferencesOrchestatesAllServices(): void
     {
@@ -28,14 +28,14 @@ final class EventReferenceExtractionServiceTest extends TestCase
             ->with($this->isInstanceOf(EventContent::class))
             ->willReturn([]);
 
-        $service = new EventReferenceExtractionService($contentExtractor);
+        $service = new EventReferenceExtractor($contentExtractor);
 
         $result = $service->extractReferences($this->createTestEvent());
 
         $this->assertInstanceOf(EventReferences::class, $result);
         $this->assertCount(1, $result->getTagReferences()->getEvents());
         $this->assertCount(1, $result->getTagReferences()->getPubkeys());
-        $this->assertSame([], $result->getContentReferences());
+        $this->assertSame([], $result->getContentReferences()->toArray());
         $this->assertTrue($result->getReplyChain()->isReply());
         $this->assertFalse($result->getQuoteAnalysis()->isQuote());
     }
@@ -59,15 +59,15 @@ final class EventReferenceExtractionServiceTest extends TestCase
         $contentExtractor = $this->createStub(ContentReferenceExtractorInterface::class);
         $contentExtractor->method('extractContentReferences')->willReturn([]);
 
-        $service = new EventReferenceExtractionService($contentExtractor);
+        $service = new EventReferenceExtractor($contentExtractor);
 
         $result = $service->extractReferences($event);
 
         $allEventIds = $result->getAllEventIds();
         $allPublicKeys = $result->getAllPublicKeys();
 
-        $eventIdHexes = array_map(static fn ($id) => $id->toHex(), $allEventIds);
-        $pubkeyHexes = array_map(static fn ($key) => $key->toHex(), $allPublicKeys);
+        $eventIdHexes = array_map(static fn ($id) => $id->toHex(), $allEventIds->toArray());
+        $pubkeyHexes = array_map(static fn ($key) => $key->toHex(), $allPublicKeys->toArray());
 
         $this->assertContains('1111111111111111111111111111111111111111111111111111111111111111', $eventIdHexes);
         $this->assertContains('3333333333333333333333333333333333333333333333333333333333333333', $eventIdHexes);
@@ -95,15 +95,15 @@ final class EventReferenceExtractionServiceTest extends TestCase
         $contentExtractor = $this->createStub(ContentReferenceExtractorInterface::class);
         $contentExtractor->method('extractContentReferences')->willReturn([]);
 
-        $service = new EventReferenceExtractionService($contentExtractor);
+        $service = new EventReferenceExtractor($contentExtractor);
 
         $result = $service->extractReferences($event);
 
         $this->assertCount(1, $result->getAllEventIds());
         $this->assertCount(1, $result->getAllPublicKeys());
 
-        $this->assertEquals('1111111111111111111111111111111111111111111111111111111111111111', $result->getAllEventIds()[0]->toHex());
-        $this->assertEquals('2222222222222222222222222222222222222222222222222222222222222222', $result->getAllPublicKeys()[0]->toHex());
+        $this->assertEquals('1111111111111111111111111111111111111111111111111111111111111111', $result->getAllEventIds()->toArray()[0]->toHex());
+        $this->assertEquals('2222222222222222222222222222222222222222222222222222222222222222', $result->getAllPublicKeys()->toArray()[0]->toHex());
     }
 
     private function createTestEvent(): Event

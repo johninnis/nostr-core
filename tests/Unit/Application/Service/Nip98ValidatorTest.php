@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
+namespace Innis\Nostr\Core\Tests\Unit\Application\Service;
 
 use Innis\Nostr\Core\Application\Port\Nip98ReplayGuardInterface;
+use Innis\Nostr\Core\Application\Service\Nip98Validator;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Exception\Nip98ValidationException;
 use Innis\Nostr\Core\Domain\Factory\EventFactory;
-use Innis\Nostr\Core\Domain\Service\Nip98ValidationService;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
@@ -19,14 +19,14 @@ use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
 use PHPUnit\Framework\TestCase;
 
-final class Nip98ValidationServiceTest extends TestCase
+final class Nip98ValidatorTest extends TestCase
 {
-    private Nip98ValidationService $service;
+    private Nip98Validator $service;
     private KeyPair $keyPair;
 
     protected function setUp(): void
     {
-        $this->service = new Nip98ValidationService(CryptoFixtures::signer(), $this->createReplayGuard());
+        $this->service = new Nip98Validator(CryptoFixtures::signer(), $this->createReplayGuard());
         $this->keyPair = KeyPair::generate(CryptoFixtures::signer());
     }
 
@@ -343,7 +343,7 @@ final class Nip98ValidationServiceTest extends TestCase
 
     public function testCustomTimestampTolerance(): void
     {
-        $service = new Nip98ValidationService(CryptoFixtures::signer(), $this->createReplayGuard(), timestampTolerance: 10);
+        $service = new Nip98Validator(CryptoFixtures::signer(), $this->createReplayGuard(), timestampTolerance: 10);
         $event = $this->createSignedEventWithTimestamp(Timestamp::fromInt(time() - 30));
 
         $this->expectException(Nip98ValidationException::class);

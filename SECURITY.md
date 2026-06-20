@@ -26,11 +26,11 @@ Only the latest tagged release is supported. Older releases do not receive backp
 
 ### What this library provides
 
-- **BIP-340 Schnorr signing and verification** via `Secp256k1SignatureAdapter`. The FFI path uses the system `libsecp256k1` C library when available; the pure-PHP path uses `paragonie/ecc` as a fallback. Both paths produce byte-identical signatures under identical `aux_rand`, validated against every BIP-340 specification vector and a 100-iteration cross-engine property sweep.
+- **BIP-340 Schnorr signing and verification** via `Secp256k1Signer`. The FFI path uses the system `libsecp256k1` C library when available; the pure-PHP path uses `paragonie/ecc` as a fallback. Both paths produce byte-identical signatures under identical `aux_rand`, validated against every BIP-340 specification vector and a 100-iteration cross-engine property sweep.
 
 - **NIP-44 v2 authenticated encryption.** `Nip44EncryptionAdapter` implements the official NIP-44 v2 spec: ChaCha20 with HMAC-SHA256 MAC; MAC verification happens before unpadding (no padding oracle); nonces come from an injected `RandomBytesGeneratorInterface`. Covered by the official NIP-44 test vectors and a 200-iteration property fuzz that includes ciphertext-tamper and MAC-tamper rejection.
 
-- **NIP-44 ECDH with libsecp256k1 acceleration.** `Secp256k1EcdhAdapter` mirrors the signature service: FFI when available, pure-PHP fallback otherwise. FFI and pure-PHP paths produce byte-identical shared-X values, validated by a 100-iteration parity sweep.
+- **NIP-44 ECDH with libsecp256k1 acceleration.** `Secp256k1Ecdh` mirrors the signature service: FFI when available, pure-PHP fallback otherwise. FFI and pure-PHP paths produce byte-identical shared-X values, validated by a 100-iteration parity sweep.
 
 - **NIP-49 password-encrypted private keys.** `Nip49EncryptionAdapter` uses scrypt + XChaCha20-Poly1305, NFKC password normalisation per spec, and treats the password as a `Closure(): string` so the plaintext does not persist in caller scope. Spec vectors verified.
 
@@ -44,7 +44,7 @@ Only the latest tagged release is supported. Older releases do not receive backp
 
 - **NIP-05 identifier parsing.** Strict charset validation on both the local part and domain. IP literals, hostnames with injected paths or user-info, and control characters are rejected at construction.
 
-- **NIP-98 event validation.** `Nip98ValidationService` enforces kind, signature, timestamp-within-tolerance, URL match, method match, and payload-hash consistency. A signed event with a `payload` tag but no caller-supplied body hash is rejected explicitly.
+- **NIP-98 event validation.** `Nip98Validator` enforces kind, signature, timestamp-within-tolerance, URL match, method match, and payload-hash consistency. A signed event with a `payload` tag but no caller-supplied body hash is rejected explicitly.
 
 ### What this library does not provide
 
@@ -66,15 +66,15 @@ These are load-bearing consumer responsibilities. The library deliberately does 
 
 - **Safety of PHP's native `unserialize()` on library types.** Value objects in this library are not designed to round-trip through PHP's native `serialize()` / `unserialize()` functions. `unserialize` bypasses constructor validation and can instantiate library types in states the normal constructors would reject. Do not pass untrusted data through `unserialize()` into any library type. Parsing incoming relay JSON via `json_decode` and feeding the result into `Event::fromArray`, `Filter::fromArray`, or the message-layer factories is the intended flow, and those factories perform their own type validation.
 
-- **Transport-layer limits.** `JsonMessageSerialiserAdapter` uses `json_decode` with PHP's default depth limit (512) and no explicit input-size cap. WebSocket-frame size limits belong in the transport layer, outside this library.
+- **Transport-layer limits.** `JsonMessageSerialiser` uses `json_decode` with PHP's default depth limit (512) and no explicit input-size cap. WebSocket-frame size limits belong in the transport layer, outside this library.
 
 ## Design decisions
 
 ### `::create()` factories over auto-probing constructors
 
-`Secp256k1SignatureAdapter` and `Secp256k1EcdhAdapter` expose a static `create()` factory that probes for `libsecp256k1` and dispatches FFI or pure-PHP. The bare constructor stays on the pure-PHP path unless an FFI handle is passed explicitly. Constructors deliberately do not probe the system library, because a constructor that silently `dlopen`s a C library at construction time is a hidden dependency and a hidden failure mode. Keeping the probe in a named constructor makes the side effect opt-in and easy to reason about for tests and DI containers.
+`Secp256k1Signer` and `Secp256k1Ecdh` expose a static `create()` factory that probes for `libsecp256k1` and dispatches FFI or pure-PHP. The bare constructor stays on the pure-PHP path unless an FFI handle is passed explicitly. Constructors deliberately do not probe the system library, because a constructor that silently `dlopen`s a C library at construction time is a hidden dependency and a hidden failure mode. Keeping the probe in a named constructor makes the side effect opt-in and easy to reason about for tests and DI containers.
 
-Consumer code should use `Secp256k1SignatureAdapter::create()` and `Secp256k1EcdhAdapter::create()`. The bare constructor is for dependency injection and for tests that need to force the pure-PHP path.
+Consumer code should use `Secp256k1Signer::create()` and `Secp256k1Ecdh::create()`. The bare constructor is for dependency injection and for tests that need to force the pure-PHP path.
 
 ### `zero()` is a contract, not a destructor guarantee
 
@@ -110,7 +110,7 @@ Construction of `SecretKeyMaterial` goes through its constructor, which validate
 
 `Nip11Info::fromArray` and each lazy accessor type-guard the data they read. A relay returning `"supported_nips": "not-an-array"` causes `getSupportedNips()` to return `null` rather than propagating a `TypeError` to the caller. Relays are untrusted peers; graceful degradation on malformed responses is preferable to exception-based denial of service.
 
-### `Secp256k1SignatureAdapter::verify` catches `Throwable`
+### `Secp256k1Signer::verify` catches `Throwable`
 
 Any exception from the underlying FFI or pure-PHP verify implementation is caught and returned as `false`. Verification has two legitimate outcomes, valid or invalid, and any path that reaches an exception is a failure of verification, not an error worth propagating. The cost is that programmer errors in the caller surface as "invalid signature" rather than as exceptions; this is accepted as a correct trade for a method whose semantic output is a boolean.
 

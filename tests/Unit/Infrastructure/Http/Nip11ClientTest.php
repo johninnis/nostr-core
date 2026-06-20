@@ -11,7 +11,6 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Constraint\IsType;
 use PHPUnit\Framework\NativeType;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\NullLogger;
 use RuntimeException;
 
 final class Nip11ClientTest extends TestCase
@@ -128,7 +127,7 @@ final class Nip11ClientTest extends TestCase
 
     private function makeAdapter(HttpServiceInterface $httpService): Nip11Client
     {
-        return new Nip11Client($httpService, new NullLogger());
+        return new Nip11Client($httpService);
     }
 
     private function relayUrl(string $url): RelayUrl

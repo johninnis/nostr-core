@@ -6,7 +6,6 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol\Message\Relay;
 
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\OkMessage;
-use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -104,7 +103,7 @@ final class OkMessageTest extends TestCase
     {
         $data = ['OK', self::VALID_EVENT_ID_HEX, true, ''];
 
-        $message = OkMessage::fromArray($data);
+        $message = OkMessage::fromArray($data) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame('OK', $message->getType());
         $this->assertSame(self::VALID_EVENT_ID_HEX, $message->getEventId()->toHex());
@@ -116,23 +115,19 @@ final class OkMessageTest extends TestCase
     {
         $data = ['OK', self::VALID_EVENT_ID_HEX, true];
 
-        $message = OkMessage::fromArray($data);
+        $message = OkMessage::fromArray($data) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame('', $message->getMessage());
     }
 
     public function testFromArrayThrowsOnInvalidFormat(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-
-        OkMessage::fromArray(['OK', self::VALID_EVENT_ID_HEX]);
+        $this->assertNull(OkMessage::fromArray(['OK', self::VALID_EVENT_ID_HEX]));
     }
 
     public function testFromArrayThrowsOnWrongType(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-
-        OkMessage::fromArray(['EVENT', self::VALID_EVENT_ID_HEX, true, '']);
+        $this->assertNull(OkMessage::fromArray(['EVENT', self::VALID_EVENT_ID_HEX, true, '']));
     }
 
     public function testRoundTripPreservesData(): void
@@ -143,7 +138,7 @@ final class OkMessageTest extends TestCase
             'error: something went wrong',
         );
 
-        $restored = OkMessage::fromArray($original->toArray());
+        $restored = OkMessage::fromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame($original->getEventId()->toHex(), $restored->getEventId()->toHex());
         $this->assertSame($original->isAccepted(), $restored->isAccepted());
@@ -157,33 +152,21 @@ final class OkMessageTest extends TestCase
 
     public function testFromArrayRejectsStringAcceptedFlag(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('accepted flag must be a boolean');
-
-        OkMessage::fromArray(['OK', self::VALID_EVENT_ID_HEX, 'true', '']);
+        $this->assertNull(OkMessage::fromArray(['OK', self::VALID_EVENT_ID_HEX, 'true', '']));
     }
 
     public function testFromArrayRejectsIntegerAcceptedFlag(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('accepted flag must be a boolean');
-
-        OkMessage::fromArray(['OK', self::VALID_EVENT_ID_HEX, 1, '']);
+        $this->assertNull(OkMessage::fromArray(['OK', self::VALID_EVENT_ID_HEX, 1, '']));
     }
 
     public function testFromArrayRejectsNonStringEventId(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('event ID must be a string');
-
-        OkMessage::fromArray(['OK', 42, true, '']);
+        $this->assertNull(OkMessage::fromArray(['OK', 42, true, '']));
     }
 
     public function testFromArrayRejectsNonStringReason(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('reason must be a string');
-
-        OkMessage::fromArray(['OK', self::VALID_EVENT_ID_HEX, true, ['array']]);
+        $this->assertNull(OkMessage::fromArray(['OK', self::VALID_EVENT_ID_HEX, true, ['array']]));
     }
 }

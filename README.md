@@ -37,7 +37,7 @@ This library takes a different approach:
 
 Declared in `composer.json`:
 
-- PHP 8.3 or higher
+- PHP 8.4 or higher
 - `ext-intl` (NFKC password normalisation in NIP-49)
 - `ext-sodium` (NIP-44 and NIP-49 AEAD, `sodium_memzero`)
 
@@ -62,7 +62,7 @@ composer require innis/nostr-core
 
 ## Quick Start
 
-Cryptographic operations (signing, verification, public-key derivation, ECDH) are exposed as Domain service interfaces with Infrastructure adapters. The `Secp256k1Signer` and `Secp256k1Ecdh` pick an FFI-accelerated path when `libsecp256k1` is available and fall back to pure PHP otherwise — callers do not need to care.
+Cryptographic operations (signing, verification, public-key derivation, ECDH) are exposed as Domain service interfaces with Infrastructure implementations. The `Secp256k1Signer` and `Secp256k1Ecdh` pick an FFI-accelerated path when `libsecp256k1` is available and fall back to pure PHP otherwise — callers do not need to care.
 
 ### Key Generation
 
@@ -245,15 +245,13 @@ This package follows Clean Architecture principles with strict layer separation:
 
 - **Domain Layer**: Pure business logic, immutable entities and value objects (cryptographic library is the sole external dependency, used directly by identity value objects)
 - **Application Layer**: Port interfaces for external service integration
-- **Infrastructure Layer**: External adapters and implementations
+- **Infrastructure Layer**: Implementations of the domain and application interfaces, grouped by concern (`Crypto/`, `Encoding/`, `Http/`, `Reference/`)
 
 ## Dependencies
 
 | Package | Purpose |
 |---------|---------|
 | `paragonie/ecc` | Pure-PHP secp256k1 elliptic curve operations (fallback when FFI unavailable) |
-| `paragonie/sodium_compat` | ChaCha20 primitives used by NIP-44 |
-| `psr/log` | PSR-3 logger interface for infrastructure services |
 
 ## Testing
 

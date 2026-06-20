@@ -5,19 +5,22 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\ClientMessage;
 use InvalidArgumentException;
+use Override;
 
 final readonly class AuthMessage extends ClientMessage
 {
     public function __construct(private Event $event)
     {
-        if (!$this->event->getKind()->is(EventKind::CLIENT_AUTH)) {
+        if (!$this->event->getKind()->equals(EventKind::clientAuth())) {
             throw new InvalidArgumentException('AUTH message must contain a kind 22242 event');
         }
     }
 
+    #[Override]
     public function getType(): string
     {
         return 'AUTH';
@@ -28,17 +31,29 @@ final readonly class AuthMessage extends ClientMessage
         return $this->event;
     }
 
+    #[Override]
     public function toArray(): array
     {
         return ['AUTH', $this->event->toArray()];
     }
 
-    public static function fromArray(array $data): static
+    #[Override]
+    public static function fromArray(array $data): ?static
     {
         if (2 !== count($data) || 'AUTH' !== $data[0]) {
-            throw new InvalidArgumentException('Invalid AUTH message format');
+            return null;
         }
 
-        return new self(Event::fromArray($data[1]));
+        try {
+            $event = Event::fromArray($data[1]);
+        } catch (InvalidEventException) {
+            return null;
+        }
+
+        if (!$event->getKind()->equals(EventKind::clientAuth())) {
+            return null;
+        }
+
+        return new self($event);
     }
 }

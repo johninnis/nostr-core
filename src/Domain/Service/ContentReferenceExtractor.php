@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Infrastructure\Reference;
+namespace Innis\Nostr\Core\Domain\Service;
 
-use Exception;
 use Innis\Nostr\Core\Domain\Entity\ContentReference;
 use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
-use Innis\Nostr\Core\Domain\Service\Bech32EncoderInterface;
-use Innis\Nostr\Core\Domain\Service\ContentReferenceExtractorInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
+use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrlCollection;
+use Override;
 
 final class ContentReferenceExtractor implements ContentReferenceExtractorInterface
 {
@@ -21,6 +21,7 @@ final class ContentReferenceExtractor implements ContentReferenceExtractorInterf
     ) {
     }
 
+    #[Override]
     public function extractContentReferences(EventContent $content): array
     {
         $references = [];
@@ -44,13 +45,10 @@ final class ContentReferenceExtractor implements ContentReferenceExtractorInterf
                     $position = $match[1];
                     $length = strlen($match[0]);
 
-                    $overlaps = false;
-                    foreach ($usedPositions as $usedRange) {
-                        if ($position < $usedRange['end'] && $position + $length > $usedRange['start']) {
-                            $overlaps = true;
-                            break;
-                        }
-                    }
+                    $overlaps = array_any(
+                        $usedPositions,
+                        static fn (array $usedRange): bool => $position < $usedRange['end'] && $position + $length > $usedRange['start'],
+                    );
 
                     if (!$overlaps) {
                         $cleanRef = str_replace('nostr:', '', $match[0]);
@@ -66,10 +64,9 @@ final class ContentReferenceExtractor implements ContentReferenceExtractorInterf
                             $decoded['type'] ?? 'unknown',
                             isset($decoded['event_id']) ? EventId::fromHex($decoded['event_id']) : null,
                             null !== $pubkeyHex ? PublicKey::fromHex($pubkeyHex) : null,
-                            $this->parseRelayUrls($decoded['relays'] ?? []),
-                            $decoded['error'] ?? null,
+                            new RelayUrlCollection($this->parseRelayUrls($decoded['relays'] ?? [])),
                             $decoded['identifier'] ?? null,
-                            $decoded['kind'] ?? null
+                            isset($decoded['kind']) && is_int($decoded['kind']) ? EventKind::fromInt($decoded['kind']) : null
                         );
 
                         $usedPositions[] = ['start' => $position, 'end' => $position + $length];
@@ -85,14 +82,7 @@ final class ContentReferenceExtractor implements ContentReferenceExtractorInterf
 
     private function decodeBech32Reference(string $bech32): array
     {
-        try {
-            return $this->bech32Encoder->decodeComplexEntity($bech32);
-        } catch (Exception $e) {
-            return [
-                'decoded_type' => 'invalid',
-                'error' => $e->getMessage(),
-            ];
-        }
+        return $this->bech32Encoder->decodeComplexEntity($bech32) ?? [];
     }
 
     private function parseRelayUrls(array $relayStrings): array

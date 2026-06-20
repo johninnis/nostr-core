@@ -4,22 +4,26 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Infrastructure\Crypto;
 
+use Deprecated;
 use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
 use Innis\Nostr\Core\Domain\Exception\EncryptionException;
 use Innis\Nostr\Core\Domain\Service\Nip04EncryptionInterface;
 use Innis\Nostr\Core\Domain\ValueObject\SecretKeyMaterial;
+use Override;
 
 final class Nip04Cipher implements Nip04EncryptionInterface
 {
-    private const CIPHER = 'aes-256-cbc';
-    private const IV_LENGTH = 16;
-    private const KEY_LENGTH = 32;
+    private const string CIPHER = 'aes-256-cbc';
+    private const int IV_LENGTH = 16;
+    private const int KEY_LENGTH = 32;
 
     public function __construct(
         private readonly RandomBytesGeneratorInterface $randomBytes = new NativeRandomBytesGenerator(),
     ) {
     }
 
+    #[Override]
+    #[Deprecated(message: 'NIP-04 is unauthenticated and deprecated by the Nostr protocol; use Nip44Cipher instead')]
     public function encrypt(string $plaintext, SecretKeyMaterial $sharedSecret): string
     {
         $iv = $this->randomBytes->bytes(self::IV_LENGTH);
@@ -36,13 +40,11 @@ final class Nip04Cipher implements Nip04EncryptionInterface
             return $ct;
         });
 
-        if (!is_string($ciphertext)) {
-            throw new EncryptionException('NIP-04 encryption did not return ciphertext');
-        }
-
         return base64_encode($ciphertext).'?iv='.base64_encode($iv);
     }
 
+    #[Override]
+    #[Deprecated(message: 'NIP-04 is unauthenticated and deprecated by the Nostr protocol; use Nip44Cipher instead')]
     public function decrypt(string $payload, SecretKeyMaterial $sharedSecret): string
     {
         $separatorPos = strpos($payload, '?iv=');
@@ -76,10 +78,6 @@ final class Nip04Cipher implements Nip04EncryptionInterface
 
             return $pt;
         });
-
-        if (!is_string($plaintext)) {
-            throw new EncryptionException('NIP-04 decryption did not return plaintext');
-        }
 
         return $plaintext;
     }

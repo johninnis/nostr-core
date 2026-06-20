@@ -2,20 +2,24 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Domain\Service;
+namespace Innis\Nostr\Core\Application\Service;
 
 use Innis\Nostr\Core\Application\Port\Nip98ReplayGuardInterface;
 use Innis\Nostr\Core\Domain\Entity\Event;
-use Innis\Nostr\Core\Domain\Enum\AuthHeaderDecodeError;
 use Innis\Nostr\Core\Domain\Exception\Nip98ValidationException;
+use Innis\Nostr\Core\Domain\Failure\AuthHeaderDecodeFailure;
+use Innis\Nostr\Core\Domain\Service\Nip98ValidatorInterface;
+use Innis\Nostr\Core\Domain\Service\NostrAuthHeaderCodec;
+use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use Override;
 
-final readonly class Nip98ValidationService implements Nip98ValidationServiceInterface
+final readonly class Nip98Validator implements Nip98ValidatorInterface
 {
-    private const DEFAULT_TIMESTAMP_TOLERANCE = 60;
+    private const int DEFAULT_TIMESTAMP_TOLERANCE = 60;
 
     private int $replayTtlSeconds;
 
@@ -27,6 +31,7 @@ final readonly class Nip98ValidationService implements Nip98ValidationServiceInt
         $this->replayTtlSeconds = 2 * $this->timestampTolerance;
     }
 
+    #[Override]
     public function validate(Event $event, string $requestUrl, string $requestMethod, ?string $requestBodyHash = null): PublicKey
     {
         $this->validateKind($event);
@@ -47,6 +52,7 @@ final readonly class Nip98ValidationService implements Nip98ValidationServiceInt
         return $event->getPubkey();
     }
 
+    #[Override]
     public function validateAuthHeader(string $authHeader, string $requestUrl, string $requestMethod, string $requestBody): PublicKey
     {
         $event = $this->parseAuthHeader($authHeader);
@@ -64,11 +70,11 @@ final readonly class Nip98ValidationService implements Nip98ValidationServiceInt
         }
 
         $message = match ($decoded) {
-            AuthHeaderDecodeError::TooLong => 'Authorization header exceeds maximum length',
-            AuthHeaderDecodeError::BadFormat => 'Invalid Authorization header format',
-            AuthHeaderDecodeError::BadBase64 => 'Invalid base64 in Authorization header',
-            AuthHeaderDecodeError::BadJson => 'Invalid JSON in Authorization header',
-            AuthHeaderDecodeError::InvalidEvent => 'Invalid event in Authorization header',
+            AuthHeaderDecodeFailure::TooLong => 'Authorization header exceeds maximum length',
+            AuthHeaderDecodeFailure::BadFormat => 'Invalid Authorization header format',
+            AuthHeaderDecodeFailure::BadBase64 => 'Invalid base64 in Authorization header',
+            AuthHeaderDecodeFailure::BadJson => 'Invalid JSON in Authorization header',
+            AuthHeaderDecodeFailure::InvalidEvent => 'Invalid event in Authorization header',
         };
 
         throw new Nip98ValidationException($message);
@@ -76,7 +82,7 @@ final readonly class Nip98ValidationService implements Nip98ValidationServiceInt
 
     private function validateKind(Event $event): void
     {
-        if (!$event->getKind()->is(EventKind::HTTP_AUTH)) {
+        if (!$event->getKind()->equals(EventKind::httpAuth())) {
             throw new Nip98ValidationException('Event must be kind 27235');
         }
     }

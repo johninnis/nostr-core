@@ -20,6 +20,10 @@ final readonly class ProfileMetadata
 
     public static function fromJsonString(string $json): self
     {
+        if (!json_validate($json)) {
+            return new self(null, null, null, null, null, null, null, null);
+        }
+
         $data = json_decode($json, true);
 
         if (!is_array($data)) {

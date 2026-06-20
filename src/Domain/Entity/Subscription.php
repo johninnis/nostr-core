@@ -13,18 +13,13 @@ final readonly class Subscription
 {
     public function __construct(
         private SubscriptionId $id,
-        private array $filters,
+        private FilterCollection $filters,
         private Timestamp $createdAt,
         private SubscriptionState $state = SubscriptionState::PENDING,
     ) {
-        foreach ($this->filters as $filter) {
-            if (!$filter instanceof Filter) {
-                throw new InvalidArgumentException('All filters must be Filter instances');
-            }
-        }
     }
 
-    public static function create(SubscriptionId $id, array $filters, SubscriptionState $state = SubscriptionState::PENDING): self
+    public static function create(SubscriptionId $id, FilterCollection $filters, SubscriptionState $state = SubscriptionState::PENDING): self
     {
         return new self($id, $filters, Timestamp::now(), $state);
     }
@@ -34,7 +29,7 @@ final readonly class Subscription
         return $this->id;
     }
 
-    public function getFilters(): array
+    public function getFilters(): FilterCollection
     {
         return $this->filters;
     }
@@ -65,20 +60,14 @@ final readonly class Subscription
             return false;
         }
 
-        foreach ($this->filters as $filter) {
-            if ($filter->matches($event)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($this->filters->toArray(), static fn (Filter $filter): bool => $filter->matches($event));
     }
 
     public function toArray(): array
     {
         return [
             'id' => (string) $this->id,
-            'filters' => array_map(static fn (Filter $filter) => $filter->toArray(), $this->filters),
+            'filters' => array_map(static fn (Filter $filter) => $filter->toArray(), $this->filters->toArray()),
             'created_at' => $this->createdAt->toInt(),
             'state' => $this->state->value,
         ];
@@ -93,14 +82,22 @@ final readonly class Subscription
             }
         }
 
-        $filters = array_map(static fn (array $filterData) => Filter::fromArray($filterData), $data['filters']);
+        $filters = new FilterCollection(
+            array_map(static fn (array $filterData) => Filter::fromArray($filterData), $data['filters'])
+        );
 
         $state = isset($data['state'])
             ? SubscriptionState::from($data['state'])
             : (($data['active'] ?? true) ? SubscriptionState::ACTIVE : SubscriptionState::CLOSED_BY_CLIENT);
 
+        $id = is_string($data['id']) ? SubscriptionId::fromString($data['id']) : null;
+
+        if (null === $id) {
+            throw new InvalidArgumentException('Invalid subscription ID');
+        }
+
         return new self(
-            SubscriptionId::fromString($data['id']),
+            $id,
             $filters,
             Timestamp::fromInt($data['created_at']),
             $state,

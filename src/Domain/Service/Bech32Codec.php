@@ -9,8 +9,8 @@ use Innis\Nostr\Core\Domain\Exception\InvalidBech32Exception;
 
 final class Bech32Codec
 {
-    private const CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
-    private const CHARKEY = [
+    private const string CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
+    private const array CHARKEY = [
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
@@ -20,9 +20,9 @@ final class Bech32Codec
         -1, 29, -1, 24, 13, 25, 9, 8, 23, -1, 18, 22, 31, 27, 19, -1,
         1, 0, 3, 16, 11, 28, 12, 14, 6, 4, 2, -1, -1, -1, -1, -1,
     ];
-    private const GENERATOR = [0x3B6A57B2, 0x26508E6D, 0x1EA119FA, 0x3D4233DD, 0x2A1462B3];
-    private const MAX_LENGTH = 5000;
-    private const CHECKSUM_LENGTH = 6;
+    private const array GENERATOR = [0x3B6A57B2, 0x26508E6D, 0x1EA119FA, 0x3D4233DD, 0x2A1462B3];
+    private const int MAX_LENGTH = 5000;
+    private const int CHECKSUM_LENGTH = 6;
 
     public static function encode(string $hrp, array $data, Bech32Variant $variant = Bech32Variant::Bech32): string
     {
@@ -37,17 +37,17 @@ final class Bech32Codec
         return $encoded;
     }
 
-    public static function decode(string $bech32, Bech32Variant $variant = Bech32Variant::Bech32): array
+    public static function decode(string $bech32, Bech32Variant $variant = Bech32Variant::Bech32): ?array
     {
         $length = strlen($bech32);
 
         if ($length < 8 || $length > self::MAX_LENGTH) {
-            throw new InvalidBech32Exception("Invalid bech32 string length: {$length}");
+            return null;
         }
 
         $unpacked = unpack('C*', $bech32);
         if (false === $unpacked) {
-            throw new InvalidBech32Exception('Failed to unpack bech32 string');
+            return null;
         }
         $chars = array_values($unpacked);
 
@@ -58,7 +58,7 @@ final class Bech32Codec
         for ($i = 0; $i < $length; ++$i) {
             $char = $chars[$i];
             if ($char < 33 || $char > 126) {
-                throw new InvalidBech32Exception('Invalid character in bech32 string');
+                return null;
             }
             if ($char >= 0x61 && $char <= 0x7A) {
                 $hasLower = true;
@@ -73,13 +73,13 @@ final class Bech32Codec
         }
 
         if ($hasUpper && $hasLower) {
-            throw new InvalidBech32Exception('Mixed case in bech32 string');
+            return null;
         }
         if (-1 === $separatorPosition || $separatorPosition < 1) {
-            throw new InvalidBech32Exception('Missing separator in bech32 string');
+            return null;
         }
         if ($separatorPosition + 7 > $length) {
-            throw new InvalidBech32Exception('Checksum too short');
+            return null;
         }
 
         $hrp = pack('C*', ...array_slice($chars, 0, $separatorPosition));
@@ -89,15 +89,29 @@ final class Bech32Codec
         );
 
         if ($variant->value !== self::polymod(array_merge(self::hrpExpand($hrp), $data))) {
-            throw new InvalidBech32Exception('Invalid bech32 checksum');
+            return null;
         }
 
         $stripped = array_slice($data, 0, -self::CHECKSUM_LENGTH);
 
+        try {
+            $payload = self::convertBits($stripped, 5, 8, false);
+        } catch (InvalidBech32Exception) {
+            return null;
+        }
+
         return [
             'hrp' => $hrp,
-            'data' => self::convertBits($stripped, 5, 8, false),
+            'data' => $payload,
         ];
+    }
+
+    public static function encodeBytes(string $hrp, string $bytes, Bech32Variant $variant = Bech32Variant::Bech32): string
+    {
+        $unpacked = unpack('C*', $bytes);
+        assert(false !== $unpacked);
+
+        return self::encode($hrp, array_values($unpacked), $variant);
     }
 
     public static function hexToBytes(string $hex): array

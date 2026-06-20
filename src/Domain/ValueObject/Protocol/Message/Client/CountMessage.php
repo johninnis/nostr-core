@@ -5,33 +5,30 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client;
 
 use Innis\Nostr\Core\Domain\Entity\Filter;
+use Innis\Nostr\Core\Domain\Entity\FilterCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\ClientMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
 use InvalidArgumentException;
+use Override;
 
 final readonly class CountMessage extends ClientMessage
 {
-    public const MAX_FILTERS = 20;
+    public const int MAX_FILTERS = 20;
 
     public function __construct(
         private SubscriptionId $subscriptionId,
-        private array $filters,
+        private FilterCollection $filters,
     ) {
-        if (empty($this->filters)) {
+        if ($this->filters->isEmpty()) {
             throw new InvalidArgumentException('COUNT message must have at least one filter');
         }
 
         if (count($this->filters) > self::MAX_FILTERS) {
             throw new InvalidArgumentException(sprintf('COUNT message may contain at most %d filters', self::MAX_FILTERS));
         }
-
-        foreach ($this->filters as $filter) {
-            if (!$filter instanceof Filter) {
-                throw new InvalidArgumentException('All filters must be Filter instances');
-            }
-        }
     }
 
+    #[Override]
     public function getType(): string
     {
         return 'COUNT';
@@ -42,11 +39,12 @@ final readonly class CountMessage extends ClientMessage
         return $this->subscriptionId;
     }
 
-    public function getFilters(): array
+    public function getFilters(): FilterCollection
     {
         return $this->filters;
     }
 
+    #[Override]
     public function toArray(): array
     {
         $message = ['COUNT', (string) $this->subscriptionId];
@@ -58,23 +56,29 @@ final readonly class CountMessage extends ClientMessage
         return $message;
     }
 
-    public static function fromArray(array $data): static
+    #[Override]
+    public static function fromArray(array $data): ?static
     {
-        if (count($data) < 3 || 'COUNT' !== $data[0]) {
-            throw new InvalidArgumentException('Invalid COUNT message format');
+        if (count($data) < 3 || 'COUNT' !== $data[0] || !is_string($data[1])) {
+            return null;
         }
 
         if (count($data) - 2 > self::MAX_FILTERS) {
-            throw new InvalidArgumentException(sprintf('COUNT message may contain at most %d filters', self::MAX_FILTERS));
+            return null;
         }
 
         $subscriptionId = SubscriptionId::fromString($data[1]);
+
+        if (null === $subscriptionId) {
+            return null;
+        }
+
         $filters = [];
 
         for ($i = 2; $i < count($data); ++$i) {
             $filters[] = Filter::fromArray($data[$i]);
         }
 
-        return new self($subscriptionId, $filters);
+        return new self($subscriptionId, new FilterCollection($filters));
     }
 }

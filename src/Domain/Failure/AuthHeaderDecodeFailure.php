@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Domain\Enum;
+namespace Innis\Nostr\Core\Domain\Failure;
 
-enum AuthHeaderDecodeError
+enum AuthHeaderDecodeFailure
 {
     case TooLong;
     case BadFormat;

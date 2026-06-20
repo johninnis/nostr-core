@@ -10,7 +10,7 @@ abstract readonly class ClientMessage
 
     abstract public function toArray(): array;
 
-    abstract public static function fromArray(array $data): static;
+    abstract public static function fromArray(array $data): ?static;
 
     final public function toJson(): string
     {

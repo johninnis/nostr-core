@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\PreSerialisedMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
-use InvalidArgumentException;
+use Override;
 
 final readonly class EventMessage extends RelayMessage implements PreSerialisedMessage
 {
@@ -18,6 +19,7 @@ final readonly class EventMessage extends RelayMessage implements PreSerialisedM
     ) {
     }
 
+    #[Override]
     public function getType(): string
     {
         return 'EVENT';
@@ -33,11 +35,13 @@ final readonly class EventMessage extends RelayMessage implements PreSerialisedM
         return $this->event;
     }
 
+    #[Override]
     public function toArray(): array
     {
         return ['EVENT', (string) $this->subscriptionId, $this->event->toArray()];
     }
 
+    #[Override]
     public function preSerialisedJson(): ?string
     {
         $rawJson = $this->event->getRawJson();
@@ -54,15 +58,28 @@ final readonly class EventMessage extends RelayMessage implements PreSerialisedM
         return '["EVENT",'.$subscriptionId.','.$rawJson.']';
     }
 
-    public static function fromArray(array $data): static
+    #[Override]
+    public static function fromArray(array $data): ?static
     {
-        if (3 !== count($data) || 'EVENT' !== $data[0]) {
-            throw new InvalidArgumentException('Invalid EVENT message format');
+        if (3 !== count($data) || 'EVENT' !== $data[0] || !is_string($data[1])) {
+            return null;
+        }
+
+        $subscriptionId = SubscriptionId::fromString($data[1]);
+
+        if (null === $subscriptionId) {
+            return null;
+        }
+
+        try {
+            $event = Event::fromArray($data[2]);
+        } catch (InvalidEventException) {
+            return null;
         }
 
         return new self(
-            SubscriptionId::fromString($data[1]),
-            Event::fromArray($data[2])
+            $subscriptionId,
+            $event,
         );
     }
 }

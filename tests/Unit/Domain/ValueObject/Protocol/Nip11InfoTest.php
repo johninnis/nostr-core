@@ -38,18 +38,17 @@ final class Nip11InfoTest extends TestCase
 
     public function testCanCreateWithAllFields(): void
     {
-        $info = new Nip11Info(
-            relayUrl: $this->relayUrl,
-            name: 'Test Relay',
-            description: 'A test relay',
-            pubkey: str_repeat('a', 64),
-            contact: 'admin@example.com',
-            supportedNips: [1, 11, 42],
-            software: 'nostr-relay',
-            version: '1.0.0',
-            banner: 'https://example.com/banner.png',
-            icon: 'https://example.com/icon.png',
-        );
+        $info = Nip11Info::fromArray($this->relayUrl, [
+            'name' => 'Test Relay',
+            'description' => 'A test relay',
+            'pubkey' => str_repeat('a', 64),
+            'contact' => 'admin@example.com',
+            'supported_nips' => [1, 11, 42],
+            'software' => 'nostr-relay',
+            'version' => '1.0.0',
+            'banner' => 'https://example.com/banner.png',
+            'icon' => 'https://example.com/icon.png',
+        ]);
 
         $this->assertSame('Test Relay', $info->getName());
         $this->assertSame('A test relay', $info->getDescription());
@@ -105,21 +104,19 @@ final class Nip11InfoTest extends TestCase
         $this->assertNull($info->getIcon());
     }
 
-    public function testToArrayReturnsFilteredDataWhenCreatedViaConstructor(): void
+    public function testToArrayReturnsRawDataPassedToConstructor(): void
     {
-        $info = new Nip11Info(
-            relayUrl: $this->relayUrl,
-            name: 'Test Relay',
-            description: 'A test relay',
-        );
+        $info = new Nip11Info($this->relayUrl, [
+            'name' => 'Test Relay',
+            'description' => 'A test relay',
+        ]);
 
         $array = $info->toArray();
 
-        $this->assertSame('Test Relay', $array['name']);
-        $this->assertSame('A test relay', $array['description']);
+        $this->assertSame(['name' => 'Test Relay', 'description' => 'A test relay'], $array);
+        $this->assertSame('Test Relay', $info->getName());
+        $this->assertNull($info->getPubkey());
         $this->assertArrayNotHasKey('pubkey', $array);
-        $this->assertArrayNotHasKey('contact', $array);
-        $this->assertArrayNotHasKey('supported_nips', $array);
     }
 
     public function testToArrayReturnsRawDataWhenCreatedViaFromArray(): void

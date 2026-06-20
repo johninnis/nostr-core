@@ -10,6 +10,7 @@ use Innis\Nostr\Core\Domain\Enum\SubscriptionState;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
 use InvalidArgumentException;
 use IteratorAggregate;
+use Override;
 
 final class SubscriptionCollection implements IteratorAggregate, Countable
 {
@@ -98,11 +99,13 @@ final class SubscriptionCollection implements IteratorAggregate, Countable
         return $this->subscriptions;
     }
 
+    #[Override]
     public function getIterator(): ArrayIterator
     {
         return new ArrayIterator($this->subscriptions);
     }
 
+    #[Override]
     public function count(): int
     {
         return count($this->subscriptions);

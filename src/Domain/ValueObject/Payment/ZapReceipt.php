@@ -9,8 +9,9 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
+use Override;
 
-final readonly class ZapReceipt implements PaymentReceipt
+final readonly class ZapReceipt implements PaymentReceiptInterface
 {
     private function __construct(
         private ?PublicKey $senderPubkey,
@@ -20,29 +21,34 @@ final readonly class ZapReceipt implements PaymentReceipt
     ) {
     }
 
+    #[Override]
     public function getSenderPubkey(): ?PublicKey
     {
         return $this->senderPubkey;
     }
 
+    #[Override]
     public function getRecipientPubkey(): ?PublicKey
     {
         return $this->recipientPubkey;
     }
 
+    #[Override]
     public function getAmount(): ZapAmount
     {
         return $this->amount;
     }
 
+    #[Override]
     public function getMessage(): ?string
     {
         return $this->message;
     }
 
+    #[Override]
     public static function fromEvent(Event $event): ?self
     {
-        if (!$event->getKind()->is(EventKind::ZAP_RECEIPT)) {
+        if (!$event->getKind()->equals(EventKind::zapReceipt())) {
             return null;
         }
 
@@ -72,6 +78,10 @@ final readonly class ZapReceipt implements PaymentReceipt
         $values = $tags->getValuesByType(TagType::description());
 
         foreach ($values as $value) {
+            if (!json_validate($value)) {
+                continue;
+            }
+
             $decoded = json_decode($value, true);
             if (is_array($decoded)) {
                 return $decoded;

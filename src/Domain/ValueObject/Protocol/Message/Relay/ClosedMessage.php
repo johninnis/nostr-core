@@ -6,7 +6,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay;
 
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
-use InvalidArgumentException;
+use Override;
 
 final readonly class ClosedMessage extends RelayMessage
 {
@@ -16,6 +16,7 @@ final readonly class ClosedMessage extends RelayMessage
     ) {
     }
 
+    #[Override]
     public function getType(): string
     {
         return 'CLOSED';
@@ -31,28 +32,36 @@ final readonly class ClosedMessage extends RelayMessage
         return $this->message;
     }
 
+    #[Override]
     public function toArray(): array
     {
         return ['CLOSED', (string) $this->subscriptionId, $this->message];
     }
 
-    public static function fromArray(array $data): static
+    #[Override]
+    public static function fromArray(array $data): ?static
     {
         if (count($data) < 2 || 'CLOSED' !== $data[0]) {
-            throw new InvalidArgumentException('Invalid CLOSED message format');
+            return null;
         }
 
         if (!is_string($data[1])) {
-            throw new InvalidArgumentException('CLOSED subscription ID must be a string');
+            return null;
         }
 
         $message = $data[2] ?? '';
         if (!is_string($message)) {
-            throw new InvalidArgumentException('CLOSED message reason must be a string');
+            return null;
+        }
+
+        $subscriptionId = SubscriptionId::fromString($data[1]);
+
+        if (null === $subscriptionId) {
+            return null;
         }
 
         return new self(
-            SubscriptionId::fromString($data[1]),
+            $subscriptionId,
             $message,
         );
     }

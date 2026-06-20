@@ -9,8 +9,9 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
+use Override;
 
-final readonly class Nutzap implements PaymentReceipt
+final readonly class Nutzap implements PaymentReceiptInterface
 {
     private function __construct(
         private ?PublicKey $senderPubkey,
@@ -20,29 +21,34 @@ final readonly class Nutzap implements PaymentReceipt
     ) {
     }
 
+    #[Override]
     public function getSenderPubkey(): ?PublicKey
     {
         return $this->senderPubkey;
     }
 
+    #[Override]
     public function getRecipientPubkey(): ?PublicKey
     {
         return $this->recipientPubkey;
     }
 
+    #[Override]
     public function getAmount(): ?ZapAmount
     {
         return $this->amount;
     }
 
+    #[Override]
     public function getMessage(): ?string
     {
         return $this->message;
     }
 
+    #[Override]
     public static function fromEvent(Event $event): ?self
     {
-        if (!$event->getKind()->is(EventKind::NUTZAP)) {
+        if (!$event->getKind()->equals(EventKind::nutzap())) {
             return null;
         }
 
@@ -72,6 +78,10 @@ final readonly class Nutzap implements PaymentReceipt
         $amounts = [];
 
         foreach ($tags->getValuesByType(TagType::proof()) as $proofJson) {
+            if (!json_validate($proofJson)) {
+                continue;
+            }
+
             $decoded = json_decode($proofJson, true);
             if (is_array($decoded) && isset($decoded['amount']) && is_numeric($decoded['amount'])) {
                 $amounts[] = (int) $decoded['amount'];

@@ -8,11 +8,12 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use InvalidArgumentException;
 use JsonSerializable;
+use Override;
 use stdClass;
 
 final readonly class Filter implements JsonSerializable
 {
-    public const MAX_VALUES_PER_FIELD = 1000;
+    public const int MAX_VALUES_PER_FIELD = 1000;
 
     private ?array $kinds;
     private ?array $idSet;
@@ -256,6 +257,7 @@ final readonly class Filter implements JsonSerializable
         return $filter;
     }
 
+    #[Override]
     public function jsonSerialize(): array|stdClass
     {
         return $this->toArray() ?: new stdClass();
@@ -339,6 +341,7 @@ final readonly class Filter implements JsonSerializable
         return false;
     }
 
+    #[Override]
     public function __toString(): string
     {
         return json_encode($this->toArray()) ?: '';

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\Entity;
 
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
-use InvalidArgumentException;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKeyCollection;
 
 final readonly class ReplyChain
 {
@@ -14,20 +14,9 @@ final readonly class ReplyChain
         private bool $isRootPost,
         private ?EventReference $rootEvent,
         private ?EventReference $parentEvent,
-        private array $conversationParticipants,
-        private array $mentionedEvents,
+        private PublicKeyCollection $conversationParticipants,
+        private EventReferenceCollection $mentionedEvents,
     ) {
-        foreach ($this->conversationParticipants as $participant) {
-            if (!$participant instanceof PublicKey) {
-                throw new InvalidArgumentException('All conversation participants must be PublicKey instances');
-            }
-        }
-
-        foreach ($this->mentionedEvents as $event) {
-            if (!$event instanceof EventReference) {
-                throw new InvalidArgumentException('All mentioned events must be EventReference instances');
-            }
-        }
     }
 
     public function isReply(): bool
@@ -50,12 +39,12 @@ final readonly class ReplyChain
         return $this->parentEvent;
     }
 
-    public function getConversationParticipants(): array
+    public function getConversationParticipants(): PublicKeyCollection
     {
         return $this->conversationParticipants;
     }
 
-    public function getMentionedEvents(): array
+    public function getMentionedEvents(): EventReferenceCollection
     {
         return $this->mentionedEvents;
     }
@@ -72,12 +61,12 @@ final readonly class ReplyChain
 
     public function getParticipantCount(): int
     {
-        return count($this->conversationParticipants);
+        return $this->conversationParticipants->count();
     }
 
     public function getMentionedEventCount(): int
     {
-        return count($this->mentionedEvents);
+        return $this->mentionedEvents->count();
     }
 
     public function toArray(): array
@@ -89,11 +78,11 @@ final readonly class ReplyChain
             'parent_event' => $this->parentEvent?->toArray(),
             'conversation_participants' => array_map(
                 static fn (PublicKey $key) => $key->toHex(),
-                $this->conversationParticipants
+                $this->conversationParticipants->toArray()
             ),
             'mentioned_events' => array_map(
                 static fn (EventReference $ref) => $ref->toArray(),
-                $this->mentionedEvents
+                $this->mentionedEvents->toArray()
             ),
         ];
     }
@@ -121,8 +110,8 @@ final readonly class ReplyChain
             $data['is_root_post'],
             isset($data['root_event']) ? EventReference::fromArray($data['root_event']) : null,
             isset($data['parent_event']) ? EventReference::fromArray($data['parent_event']) : null,
-            $participants,
-            $mentionedEvents
+            new PublicKeyCollection($participants),
+            new EventReferenceCollection($mentionedEvents)
         );
     }
 }

@@ -8,16 +8,7 @@ final readonly class Nip11Info
 {
     public function __construct(
         private RelayUrl $relayUrl,
-        private ?string $name = null,
-        private ?string $description = null,
-        private ?string $pubkey = null,
-        private ?string $contact = null,
-        private ?array $supportedNips = null,
-        private ?string $software = null,
-        private ?string $version = null,
-        private ?string $banner = null,
-        private ?string $icon = null,
-        private ?array $rawData = null,
+        private array $rawData = [],
     ) {
     }
 
@@ -28,93 +19,71 @@ final readonly class Nip11Info
 
     public function getName(): ?string
     {
-        return $this->name;
+        return $this->stringOrNull('name');
     }
 
     public function getDescription(): ?string
     {
-        return $this->description;
+        return $this->stringOrNull('description');
     }
 
     public function getPubkey(): ?string
     {
-        return $this->pubkey;
+        return $this->stringOrNull('pubkey');
     }
 
     public function getContact(): ?string
     {
-        return $this->contact;
+        return $this->stringOrNull('contact');
     }
 
     public function getSupportedNips(): ?array
     {
-        return $this->supportedNips;
+        return $this->arrayOrNull('supported_nips');
     }
 
     public function getSoftware(): ?string
     {
-        return $this->software;
+        return $this->stringOrNull('software');
     }
 
     public function getVersion(): ?string
     {
-        return $this->version;
+        return $this->stringOrNull('version');
     }
 
     public function getBanner(): ?string
     {
-        return $this->banner;
+        return $this->stringOrNull('banner');
     }
 
     public function getIcon(): ?string
     {
-        return $this->icon;
+        return $this->stringOrNull('icon');
     }
 
     public static function fromArray(RelayUrl $relayUrl, array $data): self
     {
-        return new self(
-            relayUrl: $relayUrl,
-            name: self::stringOrNull($data, 'name'),
-            description: self::stringOrNull($data, 'description'),
-            pubkey: self::stringOrNull($data, 'pubkey'),
-            contact: self::stringOrNull($data, 'contact'),
-            supportedNips: self::arrayOrNull($data, 'supported_nips'),
-            software: self::stringOrNull($data, 'software'),
-            version: self::stringOrNull($data, 'version'),
-            banner: self::stringOrNull($data, 'banner'),
-            icon: self::stringOrNull($data, 'icon'),
-            rawData: $data,
-        );
+        return new self($relayUrl, $data);
     }
 
-    private static function stringOrNull(array $data, string $key): ?string
+    private function stringOrNull(string $key): ?string
     {
-        $value = $data[$key] ?? null;
+        $value = $this->rawData[$key] ?? null;
 
         return is_string($value) ? $value : null;
     }
 
-    private static function arrayOrNull(array $data, string $key): ?array
+    private function arrayOrNull(string $key): ?array
     {
-        $value = $data[$key] ?? null;
+        $value = $this->rawData[$key] ?? null;
 
         return is_array($value) ? $value : null;
     }
 
     public function toArray(): array
     {
-        return $this->rawData ?? array_filter([
-            'name' => $this->name,
-            'description' => $this->description,
-            'pubkey' => $this->pubkey,
-            'contact' => $this->contact,
-            'supported_nips' => $this->supportedNips,
-            'software' => $this->software,
-            'version' => $this->version,
-            'banner' => $this->banner,
-            'icon' => $this->icon,
-        ], static fn ($value) => null !== $value);
+        return $this->rawData;
     }
 
     public function getLimitation(): ?array

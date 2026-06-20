@@ -2,13 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Tests\Unit\Infrastructure\Reference;
+namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
-use Exception;
 use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
 use Innis\Nostr\Core\Domain\Service\Bech32EncoderInterface;
+use Innis\Nostr\Core\Domain\Service\ContentReferenceExtractor;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
-use Innis\Nostr\Core\Infrastructure\Reference\ContentReferenceExtractor;
 use PHPUnit\Framework\TestCase;
 
 final class ContentReferenceExtractorTest extends TestCase
@@ -105,7 +104,7 @@ final class ContentReferenceExtractorTest extends TestCase
         $this->assertEquals('#[1]', $references[1]->getIdentifier());
     }
 
-    public function testHandlesBech32DecodingException(): void
+    public function testReturnsUnknownReferenceForUndecodableBech32(): void
     {
         $content = EventContent::fromString('Invalid reference: npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz');
 
@@ -114,13 +113,12 @@ final class ContentReferenceExtractorTest extends TestCase
             ->expects($this->once())
             ->method('decodeComplexEntity')
             ->with('npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz')
-            ->willThrowException(new Exception('Invalid bech32'));
+            ->willReturn(null);
 
         $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content);
 
         $this->assertCount(1, $references);
         $this->assertEquals('unknown', $references[0]->getDecodedType());
-        $this->assertEquals('Invalid bech32', $references[0]->getError());
     }
 
     public function testCreatesValueObjectsFromDecodedData(): void
@@ -149,9 +147,10 @@ final class ContentReferenceExtractorTest extends TestCase
         $this->assertEquals('0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', $reference->getEventId()->toHex());
         $this->assertNotNull($reference->getPublicKey());
         $this->assertEquals('fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210', $reference->getPublicKey()->toHex());
-        $this->assertCount(2, $reference->getRelays());
-        $this->assertEquals('wss://relay1.com', (string) $reference->getRelays()[0]);
-        $this->assertEquals('wss://relay2.com', (string) $reference->getRelays()[1]);
+        $relays = $reference->getRelays()->toArray();
+        $this->assertCount(2, $relays);
+        $this->assertEquals('wss://relay1.com', (string) $relays[0]);
+        $this->assertEquals('wss://relay2.com', (string) $relays[1]);
     }
 
     public function testExtractsAuthorKeyAsPublicKeyForNeventReferences(): void
@@ -195,7 +194,7 @@ final class ContentReferenceExtractorTest extends TestCase
         $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content);
 
         $this->assertCount(1, $references);
-        $relayUrls = $references[0]->getRelays();
+        $relayUrls = $references[0]->getRelays()->toArray();
 
         $this->assertCount(2, $relayUrls);
         $this->assertEquals('wss://valid-relay.com', (string) $relayUrls[0]);

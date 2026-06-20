@@ -2,25 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Infrastructure\Reference;
+namespace Innis\Nostr\Core\Domain\Service;
 
-use Exception;
 use Innis\Nostr\Core\Domain\Entity\Event;
-use Innis\Nostr\Core\Domain\Service\Bech32EncoderInterface;
-use Innis\Nostr\Core\Domain\Service\RelayHintExtractionServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
-use Psr\Log\LoggerInterface;
+use Override;
 
-final class RelayHintExtractor implements RelayHintExtractionServiceInterface
+final class RelayHintExtractor implements RelayHintExtractorInterface
 {
     public function __construct(
         private Bech32EncoderInterface $bech32Encoder,
-        private readonly LoggerInterface $logger,
     ) {
     }
 
+    #[Override]
     public function extractRelayHints(Event $event): array
     {
         $relays = [];
@@ -32,6 +29,7 @@ final class RelayHintExtractor implements RelayHintExtractionServiceInterface
         return $this->deduplicateRelayUrls($relays);
     }
 
+    #[Override]
     public function extractRelayHintsFromTags(TagCollection $tags): array
     {
         $relays = [];
@@ -61,6 +59,7 @@ final class RelayHintExtractor implements RelayHintExtractionServiceInterface
         return $this->deduplicateRelayUrls($relays);
     }
 
+    #[Override]
     public function extractRelayHintsFromContent(string $content): array
     {
         $relays = [];
@@ -77,20 +76,15 @@ final class RelayHintExtractor implements RelayHintExtractionServiceInterface
         return $relays;
     }
 
+    #[Override]
     public function extractRelayHintFromNevent(string $nevent): ?RelayUrl
     {
-        try {
-            $decoded = $this->bech32Encoder->decodeComplexEntity($nevent);
-            if (isset($decoded['relays']) && !empty($decoded['relays'])) {
-                return RelayUrl::fromString($decoded['relays'][0]);
-            }
-
-            return null;
-        } catch (Exception $e) {
-            $this->logger->debug('Failed to decode nevent for relay hint', ['nevent' => $nevent, 'error' => $e->getMessage()]);
-
+        $decoded = $this->bech32Encoder->decodeComplexEntity($nevent);
+        if (null === $decoded || empty($decoded['relays'])) {
             return null;
         }
+
+        return RelayUrl::fromString($decoded['relays'][0]);
     }
 
     private function isValidUrl(string $url): bool

@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Entity\EventReference;
+use Innis\Nostr\Core\Domain\Entity\EventReferenceCollection;
 use Innis\Nostr\Core\Domain\Entity\ReplyChain;
+use Innis\Nostr\Core\Domain\Enum\Nip10Marker;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKeyCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\PubkeyReference;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 
@@ -17,13 +21,11 @@ final class ReplyChainAnalyser
 {
     public static function analyse(TagCollection $tags, ?EventKind $kind = null): ReplyChain
     {
-        $tagArrays = $tags->toArray();
-
-        if (null !== $kind && $kind->is(EventKind::COMMENT)) {
-            return self::analyseCommentReplyChain($tagArrays);
+        if (null !== $kind && $kind->equals(EventKind::comment())) {
+            return self::analyseCommentReplyChain($tags->toArray());
         }
 
-        return self::analyseNip10ReplyChain($tagArrays);
+        return self::analyseNip10ReplyChain($tags);
     }
 
     private static function analyseCommentReplyChain(array $tagArrays): ReplyChain
@@ -76,109 +78,59 @@ final class ReplyChainAnalyser
             !$isReply,
             $rootEvent,
             $parentEvent,
-            $conversationParticipants,
-            []
+            new PublicKeyCollection($conversationParticipants),
+            EventReferenceCollection::empty()
         );
     }
 
-    private static function analyseNip10ReplyChain(array $tagArrays): ReplyChain
+    private static function analyseNip10ReplyChain(TagCollection $tags): ReplyChain
     {
-        $isReply = false;
-        $isRootPost = true;
-        $rootEvent = null;
-        $parentEvent = null;
-        $conversationParticipants = [];
-        $mentionedEvents = [];
+        $references = TagReferenceExtractor::extract($tags);
+        $eventReferences = $references->getEvents()->toArray();
+        $participants = new PublicKeyCollection(array_map(
+            static fn (PubkeyReference $reference): PublicKey => $reference->getPubkey(),
+            $references->getPubkeys()->toArray()
+        ));
 
-        $eTags = [];
-
-        foreach ($tagArrays as $tagArray) {
-            if (empty($tagArray) || !is_array($tagArray)) {
-                continue;
-            }
-
-            if (TagType::EVENT === $tagArray[0] && isset($tagArray[1]) && is_string($tagArray[1])) {
-                $author = isset($tagArray[4]) && is_string($tagArray[4]) ? $tagArray[4] : null;
-                $eTags[] = [
-                    'id' => $tagArray[1],
-                    'relay' => isset($tagArray[2]) && is_string($tagArray[2]) ? $tagArray[2] : null,
-                    'marker' => isset($tagArray[3]) && is_string($tagArray[3]) ? $tagArray[3] : null,
-                    'author' => (null !== $author && '' !== $author) ? $author : null,
-                ];
-            } elseif (TagType::PUBKEY === $tagArray[0] && isset($tagArray[1]) && is_string($tagArray[1])) {
-                $pubkey = PublicKey::fromHex($tagArray[1]);
-                if (null !== $pubkey) {
-                    $conversationParticipants[] = $pubkey;
-                }
-            }
+        if ([] === $tags->findByType(TagType::event())) {
+            return new ReplyChain(false, true, null, null, $participants, EventReferenceCollection::empty());
         }
 
-        if (!empty($eTags)) {
-            $isReply = true;
-            $isRootPost = false;
+        $rootEvent = null;
+        $parentEvent = null;
+        $mentionedEvents = [];
 
-            $hasMarkers = false;
-            foreach ($eTags as $eTag) {
-                if (in_array($eTag['marker'], ['root', 'reply', 'mention'], true)) {
-                    $hasMarkers = true;
-                    break;
-                }
-            }
+        $hasMarkers = array_any(
+            $eventReferences,
+            static fn (EventReference $reference): bool => null !== Nip10Marker::tryFrom($reference->getMarker() ?? ''),
+        );
 
-            if ($hasMarkers) {
-                foreach ($eTags as $eTag) {
-                    $eventRef = self::eventReferenceFromETag($eTag);
-                    if (null === $eventRef) {
-                        continue;
-                    }
-
-                    if ('root' === $eTag['marker']) {
-                        $rootEvent = $eventRef;
-                    } elseif ('reply' === $eTag['marker']) {
-                        $parentEvent = $eventRef;
-                    } else {
-                        $mentionedEvents[] = $eventRef;
-                    }
-                }
-            } else {
-                if (1 === count($eTags)) {
-                    $parentEvent = self::eventReferenceFromETag($eTags[0]);
+        if ($hasMarkers) {
+            foreach ($eventReferences as $reference) {
+                $marker = Nip10Marker::tryFrom($reference->getMarker() ?? '');
+                if (Nip10Marker::Root === $marker) {
+                    $rootEvent = $reference;
+                } elseif (Nip10Marker::Reply === $marker) {
+                    $parentEvent = $reference;
                 } else {
-                    $rootEvent = self::eventReferenceFromETag($eTags[0]);
-                    $parentEvent = self::eventReferenceFromETag($eTags[count($eTags) - 1]);
-
-                    for ($i = 1; $i < count($eTags) - 1; ++$i) {
-                        $eventRef = self::eventReferenceFromETag($eTags[$i]);
-                        if (null !== $eventRef) {
-                            $mentionedEvents[] = $eventRef;
-                        }
-                    }
+                    $mentionedEvents[] = $reference;
                 }
             }
+        } elseif (1 === count($eventReferences)) {
+            $parentEvent = $eventReferences[0];
+        } elseif (count($eventReferences) > 1) {
+            $rootEvent = $eventReferences[0];
+            $parentEvent = $eventReferences[count($eventReferences) - 1];
+            $mentionedEvents = array_slice($eventReferences, 1, -1);
         }
 
         return new ReplyChain(
-            $isReply,
-            $isRootPost,
+            true,
+            false,
             $rootEvent,
             $parentEvent,
-            $conversationParticipants,
-            $mentionedEvents
-        );
-    }
-
-    private static function eventReferenceFromETag(array $eTag): ?EventReference
-    {
-        $eventId = EventId::fromHex($eTag['id']);
-        if (null === $eventId) {
-            return null;
-        }
-
-        return new EventReference(
-            $eventId,
-            RelayUrl::fromString($eTag['relay']),
-            $eTag['marker'],
-            null !== $eTag['author'] ? PublicKey::fromHex($eTag['author']) : null
+            $participants,
+            new EventReferenceCollection($mentionedEvents)
         );
     }
 }

@@ -20,11 +20,17 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\NoticeMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\OkMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
 use InvalidArgumentException;
+use Override;
 
 final class JsonMessageSerialiser implements MessageSerialiserInterface
 {
+    #[Override]
     public function deserialiseClientMessage(string $json): ClientMessage
     {
+        if (!json_validate($json)) {
+            throw new InvalidArgumentException('Invalid JSON for client message');
+        }
+
         $data = json_decode($json, true);
 
         if (!is_array($data) || [] === $data) {
@@ -33,7 +39,7 @@ final class JsonMessageSerialiser implements MessageSerialiserInterface
 
         $type = is_string($data[0] ?? null) ? $data[0] : '';
 
-        return match ($type) {
+        $message = match ($type) {
             'EVENT' => ClientEventMessage::fromArray($data),
             'REQ' => ReqMessage::fromArray($data),
             'CLOSE' => CloseMessage::fromArray($data),
@@ -41,10 +47,18 @@ final class JsonMessageSerialiser implements MessageSerialiserInterface
             'COUNT' => CountMessage::fromArray($data),
             default => throw new InvalidArgumentException("Unknown client message type: {$type}"),
         };
+
+        return $message
+            ?? throw new InvalidArgumentException("Malformed {$type} client message");
     }
 
+    #[Override]
     public function deserialiseRelayMessage(string $json): RelayMessage
     {
+        if (!json_validate($json)) {
+            throw new InvalidArgumentException('Invalid JSON for relay message');
+        }
+
         $data = json_decode($json, true);
 
         if (!is_array($data) || [] === $data) {
@@ -53,7 +67,7 @@ final class JsonMessageSerialiser implements MessageSerialiserInterface
 
         $type = is_string($data[0] ?? null) ? $data[0] : '';
 
-        return match ($type) {
+        $message = match ($type) {
             'EVENT' => RelayEventMessage::fromArray($data),
             'OK' => OkMessage::fromArray($data),
             'EOSE' => EoseMessage::fromArray($data),
@@ -63,5 +77,8 @@ final class JsonMessageSerialiser implements MessageSerialiserInterface
             'COUNT' => RelayCountMessage::fromArray($data),
             default => throw new InvalidArgumentException("Unknown relay message type: {$type}"),
         };
+
+        return $message
+            ?? throw new InvalidArgumentException("Malformed {$type} relay message");
     }
 }

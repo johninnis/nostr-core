@@ -8,27 +8,30 @@ use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
 use Innis\Nostr\Core\Domain\Exception\EncryptionException;
 use Innis\Nostr\Core\Domain\Service\Nip44EncryptionInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
+use Override;
 use ParagonIE_Sodium_Core_ChaCha20;
 
 final class Nip44Cipher implements Nip44EncryptionInterface
 {
-    private const VERSION = 2;
-    private const NONCE_LENGTH = 32;
-    private const MAC_LENGTH = 32;
-    private const MIN_PLAINTEXT_LENGTH = 1;
-    private const MAX_PLAINTEXT_LENGTH = 65535;
-    private const MIN_PADDED_LENGTH = 32;
+    private const int VERSION = 2;
+    private const int NONCE_LENGTH = 32;
+    private const int MAC_LENGTH = 32;
+    private const int MIN_PLAINTEXT_LENGTH = 1;
+    private const int MAX_PLAINTEXT_LENGTH = 65535;
+    private const int MIN_PADDED_LENGTH = 32;
 
     public function __construct(
         private readonly RandomBytesGeneratorInterface $randomBytes = new NativeRandomBytesGenerator(),
     ) {
     }
 
+    #[Override]
     public function encrypt(string $plaintext, ConversationKey $conversationKey): string
     {
         return $this->encryptWithNonce($plaintext, $conversationKey, $this->randomBytes->bytes(self::NONCE_LENGTH));
     }
 
+    #[Override]
     public function decrypt(string $payload, ConversationKey $conversationKey): string
     {
         $decoded = base64_decode($payload, true);
@@ -71,7 +74,6 @@ final class Nip44Cipher implements Nip44EncryptionInterface
 
             return $this->unpad($padded);
         });
-        assert(is_string($plaintext));
 
         return $plaintext;
     }
@@ -102,7 +104,6 @@ final class Nip44Cipher implements Nip44EncryptionInterface
 
             return base64_encode(chr(self::VERSION).$nonce.$ciphertext.$mac);
         });
-        assert(is_string($payload));
 
         return $payload;
     }
@@ -165,7 +166,7 @@ final class Nip44Cipher implements Nip44EncryptionInterface
         $plaintext = substr($padded, 2, $plaintextLength);
         $zeroPadding = substr($padded, 2 + $plaintextLength);
 
-        if ('' !== $zeroPadding && $zeroPadding !== str_repeat("\0", strlen($zeroPadding))) {
+        if ('' !== $zeroPadding && !hash_equals(str_repeat("\0", strlen($zeroPadding)), $zeroPadding)) {
             throw new EncryptionException('Non-zero padding bytes');
         }
 

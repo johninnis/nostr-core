@@ -4,26 +4,13 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol;
 
-use InvalidArgumentException;
-
 final readonly class SubscriptionId
 {
-    private const MAX_LENGTH = 64;
-    private const ALLOWED_PATTERN = '/^[\x21-\x7E]+$/';
+    private const int MAX_LENGTH = 64;
+    private const string ALLOWED_PATTERN = '/^[\x21-\x7E]+$/';
 
-    public function __construct(private string $id)
+    private function __construct(private string $id)
     {
-        if ('' === $this->id) {
-            throw new InvalidArgumentException('Subscription ID cannot be empty');
-        }
-
-        if (strlen($this->id) > self::MAX_LENGTH) {
-            throw new InvalidArgumentException(sprintf('Subscription ID cannot exceed %d characters', self::MAX_LENGTH));
-        }
-
-        if (!preg_match(self::ALLOWED_PATTERN, $this->id)) {
-            throw new InvalidArgumentException('Subscription ID must contain only printable ASCII characters');
-        }
     }
 
     public function equals(self $other): bool
@@ -31,8 +18,20 @@ final readonly class SubscriptionId
         return $this->id === $other->id;
     }
 
-    public static function fromString(string $id): self
+    public static function fromString(string $id): ?self
     {
+        if ('' === $id) {
+            return null;
+        }
+
+        if (strlen($id) > self::MAX_LENGTH) {
+            return null;
+        }
+
+        if (!preg_match(self::ALLOWED_PATTERN, $id)) {
+            return null;
+        }
+
         return new self($id);
     }
 

@@ -10,7 +10,7 @@ use InvalidArgumentException;
 
 final class SecretKeyMaterial
 {
-    public const BYTE_LENGTH = 32;
+    public const int BYTE_LENGTH = 32;
 
     private ?string $bytes;
 
@@ -28,6 +28,13 @@ final class SecretKeyMaterial
         return new self(random_bytes(self::BYTE_LENGTH));
     }
 
+    /**
+     * @template T
+     *
+     * @param Closure(string): T $fn
+     *
+     * @return T
+     */
     public function expose(Closure $fn): mixed
     {
         if (null === $this->bytes) {

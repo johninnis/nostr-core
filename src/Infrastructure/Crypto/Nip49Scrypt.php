@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Infrastructure\Crypto;
 
 use FFI;
-use RuntimeException;
+use Innis\Nostr\Core\Domain\Exception\CryptoException;
 
 final class Nip49Scrypt
 {
-    private const CDEF = <<<'C'
+    private const string CDEF = <<<'C'
         int crypto_pwhash_scryptsalsa208sha256_ll(
             const unsigned char *passwd, unsigned long passwdlen,
             const unsigned char *salt, unsigned long saltlen,
@@ -17,7 +17,7 @@ final class Nip49Scrypt
             unsigned char *buf, unsigned long buflen);
         C;
 
-    private const LIBRARY_NAMES = [
+    private const array LIBRARY_NAMES = [
         'libsodium.so.26',
         'libsodium.so.23',
         'libsodium.so',
@@ -26,31 +26,28 @@ final class Nip49Scrypt
         'libsodium.dylib',
     ];
 
-    private const OUTPUT_LENGTH = 32;
-    private const SCRYPT_BLOCK_SIZE = 8;
-    private const SCRYPT_PARALLELISM = 1;
+    private const int OUTPUT_LENGTH = 32;
+    private const int SCRYPT_BLOCK_SIZE = 8;
+    private const int SCRYPT_PARALLELISM = 1;
 
-    private bool $initialised = false;
-    private ?FFI $ffi = null;
+    private readonly ?FFI $ffi;
+
+    public function __construct()
+    {
+        $this->ffi = FfiLibraryLoader::tryLoad(self::CDEF, self::LIBRARY_NAMES);
+    }
 
     public function isAvailable(): bool
     {
-        if (!$this->initialised) {
-            $this->ffi = FfiLibraryLoader::tryLoad(self::CDEF, self::LIBRARY_NAMES);
-            $this->initialised = true;
-        }
-
         return null !== $this->ffi;
     }
 
     public function derive(string $password, string $salt, int $logN): string
     {
-        if (!$this->isAvailable()) {
-            throw new RuntimeException('libsodium FFI is not available for NIP-49 scrypt derivation');
-        }
-
         $ffi = $this->ffi;
-        assert(null !== $ffi);
+        if (null === $ffi) {
+            throw new CryptoException('libsodium FFI is not available for NIP-49 scrypt derivation');
+        }
 
         $passwordBuffer = FfiLibraryLoader::toBuffer($ffi, $password);
         $saltBuffer = FfiLibraryLoader::toBuffer($ffi, $salt);
@@ -69,7 +66,7 @@ final class Nip49Scrypt
         );
 
         if (0 !== $returnCode) {
-            throw new RuntimeException('scrypt derivation returned non-zero status');
+            throw new CryptoException('scrypt derivation returned non-zero status');
         }
 
         $derived = FFI::string($output, self::OUTPUT_LENGTH);
@@ -79,11 +76,5 @@ final class Nip49Scrypt
         FFI::memset($saltBuffer, 0, strlen($salt));
 
         return $derived;
-    }
-
-    public function reset(): void
-    {
-        $this->initialised = false;
-        $this->ffi = null;
     }
 }

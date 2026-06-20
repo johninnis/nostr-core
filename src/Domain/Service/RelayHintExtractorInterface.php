@@ -8,7 +8,7 @@ use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 
-interface RelayHintExtractionServiceInterface
+interface RelayHintExtractorInterface
 {
     public function extractRelayHints(Event $event): array;
 

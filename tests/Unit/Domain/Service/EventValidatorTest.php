@@ -6,7 +6,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
-use Innis\Nostr\Core\Domain\Service\EventValidationService;
+use Innis\Nostr\Core\Domain\Service\EventValidator;
 use Innis\Nostr\Core\Domain\Service\NipComplianceValidator;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
@@ -17,14 +17,14 @@ use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
 use PHPUnit\Framework\TestCase;
 
-final class EventValidationServiceTest extends TestCase
+final class EventValidatorTest extends TestCase
 {
-    private EventValidationService $service;
+    private EventValidator $service;
     private KeyPair $keyPair;
 
     protected function setUp(): void
     {
-        $this->service = new EventValidationService(
+        $this->service = new EventValidator(
             CryptoFixtures::signer(),
             new NipComplianceValidator(CryptoFixtures::signer()),
         );

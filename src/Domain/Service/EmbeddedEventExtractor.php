@@ -20,6 +20,10 @@ final class EmbeddedEventExtractor
             return null;
         }
 
+        if (!json_validate($content)) {
+            return null;
+        }
+
         $embeddedData = json_decode($content, true);
         if (!is_array($embeddedData)) {
             return null;

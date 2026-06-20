@@ -6,13 +6,13 @@ namespace Innis\Nostr\Core\Infrastructure\Crypto;
 
 use FFI;
 use FFI\CData;
-use LogicException;
-use RuntimeException;
+use Innis\Nostr\Core\Domain\Exception\CryptoException;
+use Innis\Nostr\Core\Domain\Exception\EcdhException;
 use Throwable;
 
 final class LibSecp256k1Ffi
 {
-    private const CDEF = <<<'C'
+    private const string CDEF = <<<'C'
         typedef struct secp256k1_context_struct secp256k1_context;
         typedef struct { unsigned char data[64]; } secp256k1_xonly_pubkey;
         typedef struct { unsigned char data[64]; } secp256k1_pubkey;
@@ -34,12 +34,12 @@ final class LibSecp256k1Ffi
         int secp256k1_ec_pubkey_combine(const secp256k1_context *ctx, secp256k1_pubkey *out, const secp256k1_pubkey * const * ins, size_t n);
         C;
 
-    private const CONTEXT_SIGN_VERIFY = 769;
-    private const EC_COMPRESSED_FLAG = 258;
-    private const COMPRESSED_PUBKEY_LENGTH = 33;
-    private const XONLY_PUBKEY_LENGTH = 32;
+    private const int CONTEXT_SIGN_VERIFY = 769;
+    private const int EC_COMPRESSED_FLAG = 258;
+    private const int COMPRESSED_PUBKEY_LENGTH = 33;
+    private const int XONLY_PUBKEY_LENGTH = 32;
 
-    private const LIBRARY_NAMES = [
+    private const array LIBRARY_NAMES = [
         'libsecp256k1.so.2',
         'libsecp256k1.so.1',
         'libsecp256k1.so',
@@ -74,13 +74,13 @@ final class LibSecp256k1Ffi
     {
         $keypair = $this->ffi->new('secp256k1_keypair');
         if (1 !== $this->ffi->secp256k1_keypair_create($this->context, FFI::addr($keypair), FfiLibraryLoader::toBuffer($this->ffi, $privkeyBytes))) {
-            throw new RuntimeException('Failed to create keypair from private key');
+            throw new CryptoException('Failed to create keypair from private key');
         }
 
         $sig = $this->ffi->new('unsigned char[64]');
 
         if (1 !== $this->ffi->secp256k1_schnorrsig_sign32($this->context, $sig, FfiLibraryLoader::toBuffer($this->ffi, $messageBytes), FFI::addr($keypair), FfiLibraryLoader::toBuffer($this->ffi, $auxRand32))) {
-            throw new RuntimeException('Schnorr signing failed');
+            throw new CryptoException('Schnorr signing failed');
         }
 
         return FFI::string($sig, 64);
@@ -106,14 +106,18 @@ final class LibSecp256k1Ffi
     {
         $keypair = $this->ffi->new('secp256k1_keypair');
         if (1 !== $this->ffi->secp256k1_keypair_create($this->context, FFI::addr($keypair), FfiLibraryLoader::toBuffer($this->ffi, $privkeyBytes))) {
-            throw new RuntimeException('Failed to create keypair from private key');
+            throw new CryptoException('Failed to create keypair from private key');
         }
 
         $pubkey = $this->ffi->new('secp256k1_xonly_pubkey');
-        $this->ffi->secp256k1_keypair_xonly_pub($this->context, FFI::addr($pubkey), null, FFI::addr($keypair));
+        if (1 !== $this->ffi->secp256k1_keypair_xonly_pub($this->context, FFI::addr($pubkey), null, FFI::addr($keypair))) {
+            throw new CryptoException('Failed to derive x-only public key from keypair');
+        }
 
         $output = $this->ffi->new('unsigned char[32]');
-        $this->ffi->secp256k1_xonly_pubkey_serialize($this->context, $output, FFI::addr($pubkey));
+        if (1 !== $this->ffi->secp256k1_xonly_pubkey_serialize($this->context, $output, FFI::addr($pubkey))) {
+            throw new CryptoException('Failed to serialise x-only public key');
+        }
 
         return FFI::string($output, 32);
     }
@@ -129,7 +133,7 @@ final class LibSecp256k1Ffi
             FfiLibraryLoader::toBuffer($this->ffi, $compressed),
             self::COMPRESSED_PUBKEY_LENGTH,
         )) {
-            throw new LogicException('ECDH public key is not a valid curve point');
+            throw new EcdhException('ECDH public key is not a valid curve point');
         }
 
         if (1 !== $this->ffi->secp256k1_ec_pubkey_tweak_mul(
@@ -137,7 +141,7 @@ final class LibSecp256k1Ffi
             FFI::addr($pubkey),
             FfiLibraryLoader::toBuffer($this->ffi, $privkeyBytes),
         )) {
-            throw new LogicException('ECDH shared point is the identity');
+            throw new EcdhException('ECDH shared point is the identity');
         }
 
         $output = $this->ffi->new('unsigned char['.self::COMPRESSED_PUBKEY_LENGTH.']');
@@ -151,7 +155,7 @@ final class LibSecp256k1Ffi
             FFI::addr($pubkey),
             self::EC_COMPRESSED_FLAG,
         )) {
-            throw new LogicException('ECDH failed to serialise shared point');
+            throw new EcdhException('ECDH failed to serialise shared point');
         }
 
         return substr(FFI::string($output, self::COMPRESSED_PUBKEY_LENGTH), 1, self::XONLY_PUBKEY_LENGTH);
@@ -165,7 +169,7 @@ final class LibSecp256k1Ffi
             FFI::addr($pubkey),
             FfiLibraryLoader::toBuffer($this->ffi, $seckey32),
         )) {
-            throw new RuntimeException('Failed to derive compressed public key');
+            throw new CryptoException('Failed to derive compressed public key');
         }
 
         return $this->serialiseCompressed($pubkey);
@@ -180,7 +184,7 @@ final class LibSecp256k1Ffi
             FfiLibraryLoader::toBuffer($this->ffi, $compressed33),
             self::COMPRESSED_PUBKEY_LENGTH,
         )) {
-            throw new LogicException('Invalid compressed public key for point multiplication');
+            throw new CryptoException('Invalid compressed public key for point multiplication');
         }
 
         if (1 !== $this->ffi->secp256k1_ec_pubkey_tweak_mul(
@@ -188,7 +192,7 @@ final class LibSecp256k1Ffi
             FFI::addr($pubkey),
             FfiLibraryLoader::toBuffer($this->ffi, $scalar32),
         )) {
-            throw new LogicException('Point multiplication produced the identity');
+            throw new CryptoException('Point multiplication produced the identity');
         }
 
         return $this->serialiseCompressed($pubkey);
@@ -203,7 +207,7 @@ final class LibSecp256k1Ffi
             FfiLibraryLoader::toBuffer($this->ffi, $compressedA33),
             self::COMPRESSED_PUBKEY_LENGTH,
         )) {
-            throw new LogicException('Invalid compressed public key A for point addition');
+            throw new CryptoException('Invalid compressed public key A for point addition');
         }
 
         $pubkeyB = $this->ffi->new('secp256k1_pubkey');
@@ -213,7 +217,7 @@ final class LibSecp256k1Ffi
             FfiLibraryLoader::toBuffer($this->ffi, $compressedB33),
             self::COMPRESSED_PUBKEY_LENGTH,
         )) {
-            throw new LogicException('Invalid compressed public key B for point addition');
+            throw new CryptoException('Invalid compressed public key B for point addition');
         }
 
         $sum = $this->ffi->new('secp256k1_pubkey');
@@ -227,7 +231,7 @@ final class LibSecp256k1Ffi
             $ins,
             2,
         )) {
-            throw new LogicException('Point addition produced the identity');
+            throw new CryptoException('Point addition produced the identity');
         }
 
         return $this->serialiseCompressed($sum);
@@ -246,7 +250,7 @@ final class LibSecp256k1Ffi
             FFI::addr($pubkey),
             self::EC_COMPRESSED_FLAG,
         )) {
-            throw new LogicException('Failed to serialise compressed public key');
+            throw new CryptoException('Failed to serialise compressed public key');
         }
 
         return FFI::string($output, self::COMPRESSED_PUBKEY_LENGTH);

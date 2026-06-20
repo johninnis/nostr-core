@@ -93,7 +93,6 @@ final class FileMetadataTest extends TestCase
 
         self::assertCount(1, $tags);
         foreach ($tags as $tag) {
-            self::assertInstanceOf(Tag::class, $tag);
             self::assertSame('url', (string) $tag->getType());
         }
     }

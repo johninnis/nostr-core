@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Infrastructure\Http;
 
 use Innis\Nostr\Core\Application\Port\HttpServiceInterface;
+use Innis\Nostr\Core\Domain\Failure\Nip05VerificationFailureReason;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Nip05Identifier;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Infrastructure\Http\Nip05Verifier;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\NullLogger;
 use RuntimeException;
 
 final class Nip05VerifierTest extends TestCase
@@ -21,13 +21,10 @@ final class Nip05VerifierTest extends TestCase
         $httpService = $this->createStub(HttpServiceInterface::class);
         $httpService->method('getJson')->willReturn(null);
 
-        $result = $this->makeAdapter($httpService)->verify(
-            Nip05Identifier::fromString('alice@example.com'),
-            $this->pubkey(),
-        );
+        $result = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
 
         $this->assertFalse($result->isValid());
-        $this->assertSame('Failed to fetch or parse .well-known response', $result->getErrorReason());
+        $this->assertSame(Nip05VerificationFailureReason::FetchFailed, $result->getFailureReason());
     }
 
     public function testReturnsFailureWhenResponseLacksNamesKey(): void
@@ -35,13 +32,10 @@ final class Nip05VerifierTest extends TestCase
         $httpService = $this->createStub(HttpServiceInterface::class);
         $httpService->method('getJson')->willReturn(['relays' => []]);
 
-        $result = $this->makeAdapter($httpService)->verify(
-            Nip05Identifier::fromString('alice@example.com'),
-            $this->pubkey(),
-        );
+        $result = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
 
         $this->assertFalse($result->isValid());
-        $this->assertSame('Response missing names object', $result->getErrorReason());
+        $this->assertSame(Nip05VerificationFailureReason::MissingNames, $result->getFailureReason());
     }
 
     public function testReturnsFailureWhenLocalPartNotInNames(): void
@@ -53,13 +47,10 @@ final class Nip05VerifierTest extends TestCase
             ],
         ]);
 
-        $result = $this->makeAdapter($httpService)->verify(
-            Nip05Identifier::fromString('alice@example.com'),
-            $this->pubkey(),
-        );
+        $result = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
 
         $this->assertFalse($result->isValid());
-        $this->assertSame("Name 'alice' not found in response", $result->getErrorReason());
+        $this->assertSame(Nip05VerificationFailureReason::NameNotFound, $result->getFailureReason());
     }
 
     public function testReturnsFailureWhenReturnedPubkeyDoesNotMatch(): void
@@ -72,13 +63,10 @@ final class Nip05VerifierTest extends TestCase
             ],
         ]);
 
-        $result = $this->makeAdapter($httpService)->verify(
-            Nip05Identifier::fromString('alice@example.com'),
-            $this->pubkey(),
-        );
+        $result = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
 
         $this->assertFalse($result->isValid());
-        $this->assertSame('Pubkey mismatch', $result->getErrorReason());
+        $this->assertSame(Nip05VerificationFailureReason::PubkeyMismatch, $result->getFailureReason());
     }
 
     public function testReturnsSuccessWhenNamesMatchExpectedPubkey(): void
@@ -90,13 +78,10 @@ final class Nip05VerifierTest extends TestCase
             ],
         ]);
 
-        $result = $this->makeAdapter($httpService)->verify(
-            Nip05Identifier::fromString('alice@example.com'),
-            $this->pubkey(),
-        );
+        $result = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
 
         $this->assertTrue($result->isValid());
-        $this->assertNull($result->getErrorReason());
+        $this->assertNull($result->getFailureReason());
     }
 
     public function testFetchesWellKnownUrlForIdentifier(): void
@@ -108,15 +93,18 @@ final class Nip05VerifierTest extends TestCase
             ->with('https://example.com/.well-known/nostr.json?name=alice')
             ->willReturn(null);
 
-        $this->makeAdapter($httpService)->verify(
-            Nip05Identifier::fromString('alice@example.com'),
-            $this->pubkey(),
-        );
+        $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
     }
 
     private function makeAdapter(HttpServiceInterface $httpService): Nip05Verifier
     {
-        return new Nip05Verifier($httpService, new NullLogger());
+        return new Nip05Verifier($httpService);
+    }
+
+    private function identifier(): Nip05Identifier
+    {
+        return Nip05Identifier::fromString('alice@example.com')
+            ?? throw new RuntimeException('Test setup: invalid identifier');
     }
 
     private function pubkey(): PublicKey

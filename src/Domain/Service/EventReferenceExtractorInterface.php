@@ -7,7 +7,7 @@ namespace Innis\Nostr\Core\Domain\Service;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Entity\EventReferences;
 
-interface EventReferenceExtractionServiceInterface
+interface EventReferenceExtractorInterface
 {
     public function extractReferences(Event $event): EventReferences;
 }

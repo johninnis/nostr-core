@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Entity;
 
+use Innis\Nostr\Core\Domain\Enum\Nip10Marker;
 use Innis\Nostr\Core\Domain\Exception\InvalidReferenceException;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
@@ -41,17 +42,17 @@ final readonly class EventReference
 
     public function isReply(): bool
     {
-        return 'reply' === $this->marker;
+        return Nip10Marker::Reply->value === $this->marker;
     }
 
     public function isRoot(): bool
     {
-        return 'root' === $this->marker;
+        return Nip10Marker::Root->value === $this->marker;
     }
 
     public function isMention(): bool
     {
-        return 'mention' === $this->marker;
+        return Nip10Marker::Mention->value === $this->marker;
     }
 
     public function equals(self $other): bool

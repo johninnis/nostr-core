@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Entity;
 
+use Innis\Nostr\Core\Domain\Enum\Nip10Marker;
 use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
@@ -12,6 +13,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
@@ -19,6 +21,10 @@ use InvalidArgumentException;
 
 final readonly class Event
 {
+    // JSON_UNESCAPED_LINE_TERMINATORS: NIP-01 ids require U+2028/U+2029 emitted verbatim, which PHP
+    // escapes even under JSON_UNESCAPED_UNICODE — without it ids are irreproducible for such content.
+    private const int JSON_FLAGS = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_LINE_TERMINATORS;
+
     public function __construct(
         private PublicKey $pubkey,
         private Timestamp $createdAt,
@@ -58,11 +64,6 @@ final readonly class Event
 
     public function calculateId(): EventId
     {
-        // JSON_UNESCAPED_LINE_TERMINATORS is required for NIP-01 compliance:
-        // U+2028 and U+2029 must be emitted verbatim, but PHP escapes them as
-        // \u2028 / \u2029 by default even with JSON_UNESCAPED_UNICODE. Without
-        // this flag, ids cannot be reproduced for any event whose content
-        // contains a line or paragraph separator.
         $serialised = json_encode([
             0,
             $this->pubkey->toHex(),
@@ -70,7 +71,7 @@ final readonly class Event
             $this->kind->toInt(),
             $this->tags->toArray(),
             (string) $this->content,
-        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_LINE_TERMINATORS);
+        ], self::JSON_FLAGS);
 
         if (false === $serialised) {
             throw new InvalidEventException('Failed to serialise event for ID calculation');
@@ -152,7 +153,7 @@ final readonly class Event
 
     private function encodeJson(): string
     {
-        $json = json_encode($this->toArray(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_LINE_TERMINATORS);
+        $json = json_encode($this->toArray(), self::JSON_FLAGS);
 
         if (false === $json) {
             throw new InvalidEventException('Failed to serialise event as JSON');
@@ -168,46 +169,27 @@ final readonly class Event
 
     public function isReply(): bool
     {
-        if ($this->kind->is(EventKind::REPOST) || $this->kind->is(EventKind::GENERIC_REPOST)) {
+        if ($this->kind->equals(EventKind::repost()) || $this->kind->equals(EventKind::genericRepost())) {
             return false;
         }
 
-        if ($this->kind->is(EventKind::COMMENT)) {
+        if ($this->kind->equals(EventKind::comment())) {
             return true;
         }
 
         $eTags = $this->tags->findByType(TagType::event());
-        if (empty($eTags)) {
-            return false;
-        }
 
-        // Per NIP-10: check markers on e tags
-        // - "root" or "reply" marker = IS a reply
-        // - "mention" marker = NOT a reply (just an inline reference)
-        // - No marker (deprecated positional scheme) = IS a reply
-        foreach ($eTags as $tag) {
-            $marker = $tag->getValue(2);
-
-            if ('root' === $marker || 'reply' === $marker) {
-                return true;
-            }
-
-            if (null === $marker || '' === $marker) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($eTags, static fn (Tag $tag): bool => in_array($tag->getValue(2), [Nip10Marker::Root->value, Nip10Marker::Reply->value, null, ''], true));
     }
 
     public function isRepost(): bool
     {
-        return $this->kind->is(EventKind::REPOST) || $this->kind->is(EventKind::GENERIC_REPOST);
+        return $this->kind->equals(EventKind::repost()) || $this->kind->equals(EventKind::genericRepost());
     }
 
     public function isDeletion(): bool
     {
-        return $this->kind->is(EventKind::EVENT_DELETION);
+        return $this->kind->equals(EventKind::eventDeletion());
     }
 
     public function isExpired(): bool

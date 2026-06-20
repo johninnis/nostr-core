@@ -40,7 +40,7 @@ final class TagCollectionTest extends TestCase
     public function testThrowsExceptionForNonTagItems(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('All items must be Tag instances');
+        $this->expectExceptionMessage('All items must be '.Tag::class.' instances');
 
         new TagCollection(['not-a-tag']);
     }
@@ -159,7 +159,7 @@ final class TagCollectionTest extends TestCase
 
         $references = TagReferenceExtractor::extract($tags);
 
-        $events = $references->getEvents();
+        $events = $references->getEvents()->toArray();
         $this->assertCount(2, $events);
         $this->assertInstanceOf(EventReference::class, $events[0]);
         $this->assertEquals('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', $events[0]->getEventId()->toHex());
@@ -182,7 +182,7 @@ final class TagCollectionTest extends TestCase
 
         $references = TagReferenceExtractor::extract($tags);
 
-        $pubkeys = $references->getPubkeys();
+        $pubkeys = $references->getPubkeys()->toArray();
         $this->assertCount(2, $pubkeys);
         $this->assertInstanceOf(PubkeyReference::class, $pubkeys[0]);
         $this->assertEquals('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', $pubkeys[0]->getPubkey()->toHex());
@@ -202,7 +202,7 @@ final class TagCollectionTest extends TestCase
 
         $references = TagReferenceExtractor::extract($tags);
 
-        $quotes = $references->getQuotes();
+        $quotes = $references->getQuotes()->toArray();
         $this->assertCount(2, $quotes);
         $this->assertInstanceOf(EventReference::class, $quotes[0]);
         $this->assertEquals('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', $quotes[0]->getEventId()->toHex());
@@ -226,7 +226,7 @@ final class TagCollectionTest extends TestCase
 
         $references = TagReferenceExtractor::extract($tags);
 
-        $addressable = $references->getAddressable();
+        $addressable = $references->getAddressable()->toArray();
         $this->assertCount(2, $addressable);
         $this->assertEquals(30023, $addressable[0]->getKind()->toInt());
         $this->assertEquals($pubkey1, $addressable[0]->getPubkey()->toHex());
@@ -266,7 +266,7 @@ final class TagCollectionTest extends TestCase
 
         $references = TagReferenceExtractor::extract($tags);
 
-        $addressable = $references->getAddressable();
+        $addressable = $references->getAddressable()->toArray();
         $this->assertCount(1, $addressable);
         $this->assertEquals(30023, $addressable[0]->getKind()->toInt());
     }
@@ -297,7 +297,7 @@ final class TagCollectionTest extends TestCase
 
         $references = TagReferenceExtractor::extract($tags);
 
-        $relays = $references->getRelays();
+        $relays = $references->getRelays()->toArray();
         $this->assertCount(2, $relays);
         $this->assertInstanceOf(RelayReference::class, $relays[0]);
         $this->assertEquals('wss://relay.com', (string) $relays[0]->getRelayUrl());
@@ -391,7 +391,7 @@ final class TagCollectionTest extends TestCase
         $this->assertNotNull($replyChain->getParentEvent());
         $this->assertEquals('3333333333333333333333333333333333333333333333333333333333333333', $replyChain->getParentEvent()->getEventId()->toHex());
         $this->assertCount(1, $replyChain->getMentionedEvents());
-        $this->assertEquals('2222222222222222222222222222222222222222222222222222222222222222', $replyChain->getMentionedEvents()[0]->getEventId()->toHex());
+        $this->assertEquals('2222222222222222222222222222222222222222222222222222222222222222', $replyChain->getMentionedEvents()->toArray()[0]->getEventId()->toHex());
         $this->assertCount(2, $replyChain->getConversationParticipants());
     }
 

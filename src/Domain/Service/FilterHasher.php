@@ -11,7 +11,7 @@ final class FilterHasher
 {
     // No JSON_UNESCAPED_UNICODE: non-ASCII is escaped as lowercase \uXXXX (astral chars as surrogate
     // pairs), so the canonical form is pure ASCII and bytewise sorting agrees with the TS hashFilters.
-    private const ENCODE_FLAGS = JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR;
+    private const int ENCODE_FLAGS = JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR;
 
     public static function hash(Filter ...$filters): string
     {

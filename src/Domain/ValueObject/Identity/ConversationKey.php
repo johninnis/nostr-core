@@ -6,12 +6,11 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
 use Closure;
 use Innis\Nostr\Core\Domain\Service\EcdhServiceInterface;
+use Innis\Nostr\Core\Domain\Service\HexCodec;
 use Innis\Nostr\Core\Domain\ValueObject\SecretKeyMaterial;
 
 final readonly class ConversationKey
 {
-    private const HEX_LENGTH = 64;
-
     private function __construct(private SecretKeyMaterial $material)
     {
     }
@@ -28,14 +27,11 @@ final readonly class ConversationKey
 
     public static function fromHex(string $hex): ?self
     {
-        if (!preg_match('/^[a-f0-9]{'.self::HEX_LENGTH.'}$/', $hex)) {
+        if (!HexCodec::isValid($hex, SecretKeyMaterial::BYTE_LENGTH)) {
             return null;
         }
 
-        $bytes = hex2bin($hex);
-        assert(false !== $bytes);
-
-        return new self(new SecretKeyMaterial($bytes));
+        return new self(new SecretKeyMaterial(HexCodec::toBytes($hex)));
     }
 
     public static function fromBytes(string $bytes): ?self
@@ -47,6 +43,13 @@ final readonly class ConversationKey
         return new self(new SecretKeyMaterial($bytes));
     }
 
+    /**
+     * @template T
+     *
+     * @param Closure(string): T $fn
+     *
+     * @return T
+     */
     public function expose(Closure $fn): mixed
     {
         return $this->material->expose($fn);

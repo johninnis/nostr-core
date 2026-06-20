@@ -6,15 +6,15 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol\Message\Relay;
 
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\ClosedMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
-use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class ClosedMessageTest extends TestCase
 {
     public function testGetTypeReturnsClosed(): void
     {
         $message = new ClosedMessage(
-            SubscriptionId::fromString('sub-1'),
+            SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
             'error: subscription not found',
         );
 
@@ -23,7 +23,7 @@ final class ClosedMessageTest extends TestCase
 
     public function testGetSubscriptionIdReturnsConstructedValue(): void
     {
-        $subId = SubscriptionId::fromString('sub-1');
+        $subId = SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID');
         $message = new ClosedMessage($subId, 'reason');
 
         $this->assertTrue($subId->equals($message->getSubscriptionId()));
@@ -32,7 +32,7 @@ final class ClosedMessageTest extends TestCase
     public function testGetMessageReturnsConstructedValue(): void
     {
         $message = new ClosedMessage(
-            SubscriptionId::fromString('sub-1'),
+            SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
             'error: too many subscriptions',
         );
 
@@ -42,7 +42,7 @@ final class ClosedMessageTest extends TestCase
     public function testToArrayReturnsCorrectFormat(): void
     {
         $message = new ClosedMessage(
-            SubscriptionId::fromString('sub-1'),
+            SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
             'shutting down',
         );
 
@@ -57,7 +57,7 @@ final class ClosedMessageTest extends TestCase
     public function testToJsonReturnsValidJson(): void
     {
         $message = new ClosedMessage(
-            SubscriptionId::fromString('sub-1'),
+            SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
             'reason',
         );
 
@@ -73,7 +73,7 @@ final class ClosedMessageTest extends TestCase
     {
         $data = ['CLOSED', 'sub-1', 'error: subscription closed'];
 
-        $message = ClosedMessage::fromArray($data);
+        $message = ClosedMessage::fromArray($data) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame('CLOSED', $message->getType());
         $this->assertSame('sub-1', (string) $message->getSubscriptionId());
@@ -84,33 +84,29 @@ final class ClosedMessageTest extends TestCase
     {
         $data = ['CLOSED', 'sub-1'];
 
-        $message = ClosedMessage::fromArray($data);
+        $message = ClosedMessage::fromArray($data) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame('', $message->getMessage());
     }
 
     public function testFromArrayThrowsOnInvalidFormat(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-
-        ClosedMessage::fromArray(['CLOSED']);
+        $this->assertNull(ClosedMessage::fromArray(['CLOSED']));
     }
 
     public function testFromArrayThrowsOnWrongType(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-
-        ClosedMessage::fromArray(['EOSE', 'sub-1', 'reason']);
+        $this->assertNull(ClosedMessage::fromArray(['EOSE', 'sub-1', 'reason']));
     }
 
     public function testRoundTripPreservesData(): void
     {
         $original = new ClosedMessage(
-            SubscriptionId::fromString('sub-1'),
+            SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
             'error: shutting down',
         );
 
-        $restored = ClosedMessage::fromArray($original->toArray());
+        $restored = ClosedMessage::fromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame(
             (string) $original->getSubscriptionId(),
@@ -121,17 +117,11 @@ final class ClosedMessageTest extends TestCase
 
     public function testFromArrayRejectsNonStringSubscriptionId(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('subscription ID must be a string');
-
-        ClosedMessage::fromArray(['CLOSED', 42, 'reason']);
+        $this->assertNull(ClosedMessage::fromArray(['CLOSED', 42, 'reason']));
     }
 
     public function testFromArrayRejectsNonStringReason(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('reason must be a string');
-
-        ClosedMessage::fromArray(['CLOSED', 'sub-1', ['structured']]);
+        $this->assertNull(ClosedMessage::fromArray(['CLOSED', 'sub-1', ['structured']]));
     }
 }

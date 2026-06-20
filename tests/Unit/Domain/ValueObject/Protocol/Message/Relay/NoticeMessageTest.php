@@ -7,6 +7,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol\Message\Relay;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\NoticeMessage;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class NoticeMessageTest extends TestCase
 {
@@ -48,7 +49,7 @@ final class NoticeMessageTest extends TestCase
 
     public function testFromArrayCreatesValidMessage(): void
     {
-        $message = NoticeMessage::fromArray(['NOTICE', 'rate limited']);
+        $message = NoticeMessage::fromArray(['NOTICE', 'rate limited']) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame('NOTICE', $message->getType());
         $this->assertSame('rate limited', $message->getMessage());
@@ -56,32 +57,25 @@ final class NoticeMessageTest extends TestCase
 
     public function testFromArrayThrowsOnInvalidFormat(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-
-        NoticeMessage::fromArray(['NOTICE']);
+        $this->assertNull(NoticeMessage::fromArray(['NOTICE']));
     }
 
     public function testFromArrayThrowsOnWrongType(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-
-        NoticeMessage::fromArray(['AUTH', 'some message']);
+        $this->assertNull(NoticeMessage::fromArray(['AUTH', 'some message']));
     }
 
     public function testRoundTripPreservesData(): void
     {
         $original = new NoticeMessage('error: could not connect');
 
-        $restored = NoticeMessage::fromArray($original->toArray());
+        $restored = NoticeMessage::fromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame($original->getMessage(), $restored->getMessage());
     }
 
     public function testFromArrayRejectsNonStringPayload(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('payload must be a string');
-
-        NoticeMessage::fromArray(['NOTICE', ['structured' => 'object']]);
+        $this->assertNull(NoticeMessage::fromArray(['NOTICE', ['structured' => 'object']]));
     }
 }

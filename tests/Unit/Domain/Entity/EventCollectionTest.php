@@ -44,7 +44,7 @@ final class EventCollectionTest extends TestCase
     public function testConstructorRejectsNonEventItems(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('All items must be Event instances');
+        $this->expectExceptionMessage('All items must be '.Event::class.' instances');
 
         new EventCollection(['not-an-event']);
     }

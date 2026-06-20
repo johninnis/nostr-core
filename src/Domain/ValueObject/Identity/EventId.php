@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
-use Exception;
 use Innis\Nostr\Core\Domain\Service\Bech32Codec;
+use Innis\Nostr\Core\Domain\Service\HexCodec;
 
 final readonly class EventId
 {
+    public const int BYTE_LENGTH = 32;
+
     private function __construct(private string $id)
     {
     }
@@ -20,15 +22,12 @@ final readonly class EventId
 
     public function toBytes(): string
     {
-        $bytes = hex2bin($this->id);
-        assert(false !== $bytes);
-
-        return $bytes;
+        return HexCodec::toBytes($this->id);
     }
 
     public function toBech32(): string
     {
-        return Bech32Codec::encode('note', Bech32Codec::hexToBytes($this->id));
+        return Bech32Codec::encodeBytes('note', $this->toBytes());
     }
 
     public function equals(self $other): bool
@@ -38,7 +37,7 @@ final readonly class EventId
 
     public static function fromHex(string $hex): ?self
     {
-        if (!preg_match('/^[a-f0-9]{64}$/', $hex)) {
+        if (!HexCodec::isValid($hex, self::BYTE_LENGTH)) {
             return null;
         }
 
@@ -47,11 +46,11 @@ final readonly class EventId
 
     public static function fromBytes(string $bytes): ?self
     {
-        if (32 !== strlen($bytes)) {
+        if (self::BYTE_LENGTH !== strlen($bytes)) {
             return null;
         }
 
-        return new self(bin2hex($bytes));
+        return new self(HexCodec::fromBytes($bytes));
     }
 
     public static function fromBech32(string $bech32): ?self
@@ -60,13 +59,12 @@ final readonly class EventId
             return null;
         }
 
-        try {
-            $decoded = Bech32Codec::decode($bech32);
-
-            return self::fromHex(Bech32Codec::bytesToHex($decoded['data']));
-        } catch (Exception) {
+        $decoded = Bech32Codec::decode($bech32);
+        if (null === $decoded) {
             return null;
         }
+
+        return self::fromHex(Bech32Codec::bytesToHex($decoded['data']));
     }
 
     public function __toString(): string

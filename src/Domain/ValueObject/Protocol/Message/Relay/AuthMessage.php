@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay;
 
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
 use InvalidArgumentException;
+use Override;
 
 final readonly class AuthMessage extends RelayMessage
 {
@@ -16,6 +17,7 @@ final readonly class AuthMessage extends RelayMessage
         }
     }
 
+    #[Override]
     public function getType(): string
     {
         return 'AUTH';
@@ -26,19 +28,21 @@ final readonly class AuthMessage extends RelayMessage
         return $this->challenge;
     }
 
+    #[Override]
     public function toArray(): array
     {
         return ['AUTH', $this->challenge];
     }
 
-    public static function fromArray(array $data): static
+    #[Override]
+    public static function fromArray(array $data): ?static
     {
         if (2 !== count($data) || 'AUTH' !== $data[0]) {
-            throw new InvalidArgumentException('Invalid AUTH message format');
+            return null;
         }
 
-        if (!is_string($data[1])) {
-            throw new InvalidArgumentException('AUTH challenge must be a string');
+        if (!is_string($data[1]) || '' === $data[1]) {
+            return null;
         }
 
         return new self($data[1]);

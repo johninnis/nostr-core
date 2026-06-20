@@ -11,7 +11,6 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client\EventMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
-use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -62,7 +61,7 @@ final class EventMessageTest extends TestCase
         $event = $this->createEvent();
         $data = ['EVENT', $event->toArray()];
 
-        $message = EventMessage::fromArray($data);
+        $message = EventMessage::fromArray($data) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame('EVENT', $message->getType());
         $this->assertSame($event->getPubkey()->toHex(), $message->getEvent()->getPubkey()->toHex());
@@ -72,23 +71,19 @@ final class EventMessageTest extends TestCase
     {
         $event = $this->createEvent();
 
-        $message = EventMessage::fromArray(['EVENT', $event->toArray()]);
+        $message = EventMessage::fromArray(['EVENT', $event->toArray()]) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame($event->toJson(), $message->getEvent()->getRawJson());
     }
 
     public function testFromArrayThrowsOnInvalidFormat(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-
-        EventMessage::fromArray(['EVENT']);
+        $this->assertNull(EventMessage::fromArray(['EVENT']));
     }
 
     public function testFromArrayThrowsOnWrongType(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-
-        EventMessage::fromArray(['REQ', $this->createEvent()->toArray()]);
+        $this->assertNull(EventMessage::fromArray(['REQ', $this->createEvent()->toArray()]));
     }
 
     public function testRoundTripPreservesData(): void
@@ -96,7 +91,7 @@ final class EventMessageTest extends TestCase
         $event = $this->createEvent();
         $original = new EventMessage($event);
 
-        $restored = EventMessage::fromArray($original->toArray());
+        $restored = EventMessage::fromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame($original->getEvent()->getPubkey()->toHex(), $restored->getEvent()->getPubkey()->toHex());
         $this->assertSame($original->getEvent()->getKind()->toInt(), $restored->getEvent()->getKind()->toInt());

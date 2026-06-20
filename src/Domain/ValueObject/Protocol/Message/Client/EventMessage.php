@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\ClientMessage;
-use InvalidArgumentException;
+use Override;
 
 final readonly class EventMessage extends ClientMessage
 {
@@ -14,6 +15,7 @@ final readonly class EventMessage extends ClientMessage
     {
     }
 
+    #[Override]
     public function getType(): string
     {
         return 'EVENT';
@@ -24,17 +26,25 @@ final readonly class EventMessage extends ClientMessage
         return $this->event;
     }
 
+    #[Override]
     public function toArray(): array
     {
         return ['EVENT', $this->event->toArray()];
     }
 
-    public static function fromArray(array $data): static
+    #[Override]
+    public static function fromArray(array $data): ?static
     {
         if (2 !== count($data) || 'EVENT' !== $data[0]) {
-            throw new InvalidArgumentException('Invalid EVENT message format');
+            return null;
         }
 
-        return new self(Event::fromArray($data[1])->withRawJson());
+        try {
+            $event = Event::fromArray($data[1])->withRawJson();
+        } catch (InvalidEventException) {
+            return null;
+        }
+
+        return new self($event);
     }
 }

@@ -205,7 +205,7 @@ final class Nip49CipherTest extends TestCase
 
     private function rewritePayloadByte(Ncryptsec $source, int $offset, callable $mutate): Ncryptsec
     {
-        $decoded = Bech32Codec::decode((string) $source);
+        $decoded = Bech32Codec::decode((string) $source) ?? throw new RuntimeException('Test setup: source did not decode');
         $data = $decoded['data'];
         $data[$offset] = $mutate($data[$offset]);
         $bech32 = Bech32Codec::encode(Ncryptsec::HRP, $data);

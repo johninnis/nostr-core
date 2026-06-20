@@ -5,21 +5,28 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Entity;
 
 use Innis\Nostr\Core\Domain\Entity\Filter;
+use Innis\Nostr\Core\Domain\Entity\FilterCollection;
 use Innis\Nostr\Core\Domain\Entity\Subscription;
 use Innis\Nostr\Core\Domain\Entity\SubscriptionCollection;
 use Innis\Nostr\Core\Domain\Enum\SubscriptionState;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class SubscriptionCollectionTest extends TestCase
 {
     private function createSubscription(?string $id = null): Subscription
     {
         return Subscription::create(
-            SubscriptionId::fromString($id ?? 'sub-'.bin2hex(random_bytes(4))),
-            [new Filter()],
+            self::subscriptionId($id ?? 'sub-'.bin2hex(random_bytes(4))),
+            new FilterCollection([new Filter()]),
         );
+    }
+
+    private static function subscriptionId(string $id): SubscriptionId
+    {
+        return SubscriptionId::fromString($id) ?? throw new RuntimeException('Expected a valid subscription ID');
     }
 
     public function testEmptyCollection(): void
@@ -55,7 +62,7 @@ final class SubscriptionCollectionTest extends TestCase
 
         $this->assertTrue($collection->isEmpty());
         $this->assertSame(1, $updated->count());
-        $this->assertTrue($updated->has(SubscriptionId::fromString('sub-1')));
+        $this->assertTrue($updated->has(self::subscriptionId('sub-1')));
     }
 
     public function testAddUsesSubscriptionIdAsKey(): void
@@ -71,7 +78,7 @@ final class SubscriptionCollectionTest extends TestCase
         $subscription = $this->createSubscription('sub-1');
         $collection = SubscriptionCollection::empty()->add($subscription);
 
-        $updated = $collection->remove(SubscriptionId::fromString('sub-1'));
+        $updated = $collection->remove(self::subscriptionId('sub-1'));
 
         $this->assertSame(1, $collection->count());
         $this->assertTrue($updated->isEmpty());
@@ -80,7 +87,7 @@ final class SubscriptionCollectionTest extends TestCase
     public function testRemoveNonExistentIsNoOp(): void
     {
         $collection = SubscriptionCollection::empty();
-        $updated = $collection->remove(SubscriptionId::fromString('nonexistent'));
+        $updated = $collection->remove(self::subscriptionId('nonexistent'));
 
         $this->assertTrue($updated->isEmpty());
     }
@@ -90,10 +97,10 @@ final class SubscriptionCollectionTest extends TestCase
         $subscription = $this->createSubscription('sub-1');
         $collection = SubscriptionCollection::empty()->add($subscription);
 
-        $this->assertTrue($collection->has(SubscriptionId::fromString('sub-1')));
-        $this->assertFalse($collection->has(SubscriptionId::fromString('unknown')));
-        $this->assertSame($subscription, $collection->get(SubscriptionId::fromString('sub-1')));
-        $this->assertNull($collection->get(SubscriptionId::fromString('unknown')));
+        $this->assertTrue($collection->has(self::subscriptionId('sub-1')));
+        $this->assertFalse($collection->has(self::subscriptionId('unknown')));
+        $this->assertSame($subscription, $collection->get(self::subscriptionId('sub-1')));
+        $this->assertNull($collection->get(self::subscriptionId('unknown')));
     }
 
     public function testWithUpdatedState(): void
@@ -101,16 +108,16 @@ final class SubscriptionCollectionTest extends TestCase
         $subscription = $this->createSubscription('sub-1');
         $collection = SubscriptionCollection::empty()->add($subscription);
 
-        $updated = $collection->withUpdatedState(SubscriptionId::fromString('sub-1'), SubscriptionState::ACTIVE);
+        $updated = $collection->withUpdatedState(self::subscriptionId('sub-1'), SubscriptionState::ACTIVE);
 
-        $this->assertSame(SubscriptionState::PENDING, $collection->getState(SubscriptionId::fromString('sub-1')));
-        $this->assertSame(SubscriptionState::ACTIVE, $updated->getState(SubscriptionId::fromString('sub-1')));
+        $this->assertSame(SubscriptionState::PENDING, $collection->getState(self::subscriptionId('sub-1')));
+        $this->assertSame(SubscriptionState::ACTIVE, $updated->getState(self::subscriptionId('sub-1')));
     }
 
     public function testWithUpdatedStateReturnsUnchangedForUnknown(): void
     {
         $collection = SubscriptionCollection::empty();
-        $updated = $collection->withUpdatedState(SubscriptionId::fromString('unknown'), SubscriptionState::ACTIVE);
+        $updated = $collection->withUpdatedState(self::subscriptionId('unknown'), SubscriptionState::ACTIVE);
 
         $this->assertTrue($updated->isEmpty());
     }
@@ -122,14 +129,14 @@ final class SubscriptionCollectionTest extends TestCase
         $collection = SubscriptionCollection::empty()
             ->add($sub1)
             ->add($sub2)
-            ->withUpdatedState(SubscriptionId::fromString('sub-1'), SubscriptionState::ACTIVE);
+            ->withUpdatedState(self::subscriptionId('sub-1'), SubscriptionState::ACTIVE);
 
         $active = $collection->filter(
             static fn (Subscription $s) => SubscriptionState::ACTIVE === $s->getState()
         );
 
         $this->assertSame(1, $active->count());
-        $this->assertTrue($active->has(SubscriptionId::fromString('sub-1')));
+        $this->assertTrue($active->has(self::subscriptionId('sub-1')));
     }
 
     public function testIteration(): void

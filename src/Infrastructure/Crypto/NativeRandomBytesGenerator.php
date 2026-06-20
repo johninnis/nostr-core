@@ -6,9 +6,11 @@ namespace Innis\Nostr\Core\Infrastructure\Crypto;
 
 use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
 use InvalidArgumentException;
+use Override;
 
 final class NativeRandomBytesGenerator implements RandomBytesGeneratorInterface
 {
+    #[Override]
     public function bytes(int $length): string
     {
         if ($length < 1) {

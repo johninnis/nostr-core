@@ -6,7 +6,7 @@ namespace Innis\Nostr\Core\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
 
-interface EventValidationServiceInterface
+interface EventValidatorInterface
 {
     public function validateEvent(Event $event): void;
 

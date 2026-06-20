@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\Entity;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Entity\Filter;
+use Innis\Nostr\Core\Domain\Entity\FilterCollection;
 use Innis\Nostr\Core\Domain\Entity\Subscription;
 use Innis\Nostr\Core\Domain\Enum\SubscriptionState;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
@@ -17,13 +18,14 @@ use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class SubscriptionTest extends TestCase
 {
     public function testCreateSetsDefaultPendingState(): void
     {
         $id = SubscriptionId::generate();
-        $filters = [new Filter()];
+        $filters = new FilterCollection([new Filter()]);
         $subscription = Subscription::create($id, $filters);
 
         $this->assertTrue($id->equals($subscription->getId()));
@@ -34,7 +36,7 @@ final class SubscriptionTest extends TestCase
 
     public function testCreateAcceptsExplicitState(): void
     {
-        $subscription = Subscription::create(SubscriptionId::generate(), [new Filter()], SubscriptionState::ACTIVE);
+        $subscription = Subscription::create(SubscriptionId::generate(), new FilterCollection([new Filter()]), SubscriptionState::ACTIVE);
 
         $this->assertSame(SubscriptionState::ACTIVE, $subscription->getState());
     }
@@ -43,16 +45,12 @@ final class SubscriptionTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        new Subscription(
-            SubscriptionId::generate(),
-            ['not-a-filter'],
-            Timestamp::now(),
-        );
+        new FilterCollection(['not-a-filter']);
     }
 
     public function testWithStateReturnsNewInstance(): void
     {
-        $subscription = Subscription::create(SubscriptionId::generate(), [new Filter()]);
+        $subscription = Subscription::create(SubscriptionId::generate(), new FilterCollection([new Filter()]));
         $updated = $subscription->withState(SubscriptionState::ACTIVE);
 
         $this->assertSame(SubscriptionState::PENDING, $subscription->getState());
@@ -63,7 +61,7 @@ final class SubscriptionTest extends TestCase
 
     public function testIsOpenDelegatesToState(): void
     {
-        $subscription = Subscription::create(SubscriptionId::generate(), [new Filter()]);
+        $subscription = Subscription::create(SubscriptionId::generate(), new FilterCollection([new Filter()]));
 
         $this->assertTrue($subscription->isOpen());
         $this->assertTrue($subscription->withState(SubscriptionState::ACTIVE)->isOpen());
@@ -84,7 +82,7 @@ final class SubscriptionTest extends TestCase
         );
 
         $filter = new Filter(kinds: [EventKind::TEXT_NOTE]);
-        $subscription = Subscription::create(SubscriptionId::generate(), [$filter]);
+        $subscription = Subscription::create(SubscriptionId::generate(), new FilterCollection([$filter]));
 
         $this->assertFalse($subscription->matchesEvent($event));
 
@@ -107,7 +105,7 @@ final class SubscriptionTest extends TestCase
         );
 
         $filter = new Filter(kinds: [EventKind::TEXT_NOTE]);
-        $closed = Subscription::create(SubscriptionId::generate(), [$filter])
+        $closed = Subscription::create(SubscriptionId::generate(), new FilterCollection([$filter]))
             ->withState(SubscriptionState::CLOSED_BY_CLIENT);
 
         $this->assertFalse($closed->matchesEvent($event));
@@ -115,9 +113,9 @@ final class SubscriptionTest extends TestCase
 
     public function testToArray(): void
     {
-        $id = SubscriptionId::fromString('test-sub');
+        $id = SubscriptionId::fromString('test-sub') ?? throw new RuntimeException('Expected a valid subscription ID');
         $filter = new Filter(kinds: [EventKind::TEXT_NOTE]);
-        $subscription = new Subscription($id, [$filter], Timestamp::fromInt(1700000000), SubscriptionState::LIVE);
+        $subscription = new Subscription($id, new FilterCollection([$filter]), Timestamp::fromInt(1700000000), SubscriptionState::LIVE);
 
         $array = $subscription->toArray();
 

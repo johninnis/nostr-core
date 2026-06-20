@@ -4,32 +4,28 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Tag;
 
-use ArrayIterator;
-use Countable;
+use Innis\Nostr\Core\Domain\Collection\TypedCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
-use InvalidArgumentException;
-use IteratorAggregate;
+use Override;
 
-final class TagCollection implements IteratorAggregate, Countable
+/**
+ * @extends TypedCollection<Tag>
+ */
+final class TagCollection extends TypedCollection
 {
-    private array $tags = [];
     private ?array $tagIndex = null;
 
-    public function __construct(array $tags = [])
+    #[Override]
+    protected function elementType(): string
     {
-        foreach ($tags as $tag) {
-            if (!$tag instanceof Tag) {
-                throw new InvalidArgumentException('All items must be Tag instances');
-            }
-            $this->tags[] = $tag;
-        }
+        return Tag::class;
     }
 
     public function add(Tag $newTag): self
     {
         $type = $newTag->getType();
         $filtered = array_filter(
-            $this->tags,
+            $this->items,
             static fn (Tag $tag) => !$tag->getType()->equals($type) || $tag->getValue() !== $newTag->getValue()
         );
 
@@ -42,7 +38,7 @@ final class TagCollection implements IteratorAggregate, Countable
         $value = $tagToRemove->getValue();
 
         return new self(array_values(array_filter(
-            $this->tags,
+            $this->items,
             static fn (Tag $tag) => !$tag->getType()->equals($type) || $tag->getValue() !== $value
         )));
     }
@@ -50,7 +46,7 @@ final class TagCollection implements IteratorAggregate, Countable
     public function removeAll(TagType $type): self
     {
         return new self(array_values(array_filter(
-            $this->tags,
+            $this->items,
             static fn (Tag $tag) => !$tag->getType()->equals($type)
         )));
     }
@@ -110,7 +106,7 @@ final class TagCollection implements IteratorAggregate, Countable
     {
         if (null === $this->tagIndex) {
             $this->tagIndex = [];
-            foreach ($this->tags as $tag) {
+            foreach ($this->items as $tag) {
                 $this->tagIndex[(string) $tag->getType()][] = $tag;
             }
         }
@@ -120,22 +116,7 @@ final class TagCollection implements IteratorAggregate, Countable
 
     public function toArray(): array
     {
-        return array_map(static fn (Tag $tag) => $tag->toArray(), $this->tags);
-    }
-
-    public function isEmpty(): bool
-    {
-        return empty($this->tags);
-    }
-
-    public function count(): int
-    {
-        return count($this->tags);
-    }
-
-    public function getIterator(): ArrayIterator
-    {
-        return new ArrayIterator($this->tags);
+        return array_map(static fn (Tag $tag) => $tag->toArray(), $this->items);
     }
 
     public function equals(self $other): bool
@@ -144,8 +125,8 @@ final class TagCollection implements IteratorAggregate, Countable
             return false;
         }
 
-        foreach ($this->tags as $index => $tag) {
-            if (!isset($other->tags[$index]) || !$tag->equals($other->tags[$index])) {
+        foreach ($this->items as $index => $tag) {
+            if (!isset($other->items[$index]) || !$tag->equals($other->items[$index])) {
                 return false;
             }
         }

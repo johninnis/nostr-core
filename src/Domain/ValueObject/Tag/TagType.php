@@ -8,34 +8,34 @@ use InvalidArgumentException;
 
 final readonly class TagType
 {
-    public const EVENT = 'e';
-    public const PUBKEY = 'p';
-    public const NONCE = 'nonce';
-    public const SUBJECT = 'subject';
-    public const REFERENCE = 'r';
-    public const TITLE = 'title';
-    public const HASHTAG = 't';
-    public const GEOHASH = 'g';
-    public const ADDRESSABLE = 'a';
-    public const IDENTIFIER = 'd';
-    public const RELAY = 'relay';
-    public const DELEGATION = 'delegation';
-    public const DESCRIPTION = 'description';
-    public const BOLT11 = 'bolt11';
-    public const AMOUNT = 'amount';
-    public const SENDER_PUBKEY = 'P';
-    public const ROOT_EVENT = 'E';
-    public const ROOT_ADDRESS = 'A';
-    public const EXTERNAL_IDENTITY = 'I';
-    public const ROOT_KIND = 'K';
-    public const PARENT_KIND = 'k';
-    public const MINT = 'u';
-    public const PROOF = 'proof';
-    public const UNIT = 'unit';
-    public const METHOD = 'method';
-    public const PAYLOAD = 'payload';
-    public const EXPIRATION = 'expiration';
-    public const PROTECTED = '-';
+    public const string EVENT = 'e';
+    public const string PUBKEY = 'p';
+    public const string NONCE = 'nonce';
+    public const string SUBJECT = 'subject';
+    public const string REFERENCE = 'r';
+    public const string TITLE = 'title';
+    public const string HASHTAG = 't';
+    public const string GEOHASH = 'g';
+    public const string ADDRESSABLE = 'a';
+    public const string IDENTIFIER = 'd';
+    public const string RELAY = 'relay';
+    public const string DELEGATION = 'delegation';
+    public const string DESCRIPTION = 'description';
+    public const string BOLT11 = 'bolt11';
+    public const string AMOUNT = 'amount';
+    public const string SENDER_PUBKEY = 'P';
+    public const string ROOT_EVENT = 'E';
+    public const string ROOT_ADDRESS = 'A';
+    public const string EXTERNAL_IDENTITY = 'I';
+    public const string ROOT_KIND = 'K';
+    public const string PARENT_KIND = 'k';
+    public const string MINT = 'u';
+    public const string PROOF = 'proof';
+    public const string UNIT = 'unit';
+    public const string METHOD = 'method';
+    public const string PAYLOAD = 'payload';
+    public const string EXPIRATION = 'expiration';
+    public const string PROTECTED = '-';
 
     public function __construct(private string $type)
     {

@@ -6,7 +6,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay;
 
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
-use InvalidArgumentException;
+use Override;
 
 final readonly class OkMessage extends RelayMessage
 {
@@ -17,6 +17,7 @@ final readonly class OkMessage extends RelayMessage
     ) {
     }
 
+    #[Override]
     public function getType(): string
     {
         return 'OK';
@@ -42,32 +43,40 @@ final readonly class OkMessage extends RelayMessage
         return !$this->accepted && str_starts_with($this->message, 'auth-required:');
     }
 
+    #[Override]
     public function toArray(): array
     {
         return ['OK', $this->eventId->toHex(), $this->accepted, $this->message];
     }
 
-    public static function fromArray(array $data): static
+    #[Override]
+    public static function fromArray(array $data): ?static
     {
         if (count($data) < 3 || 'OK' !== $data[0]) {
-            throw new InvalidArgumentException('Invalid OK message format');
+            return null;
         }
 
         if (!is_string($data[1])) {
-            throw new InvalidArgumentException('OK message event ID must be a string');
+            return null;
         }
 
         if (!is_bool($data[2])) {
-            throw new InvalidArgumentException('OK message accepted flag must be a boolean');
+            return null;
         }
 
         $message = $data[3] ?? '';
         if (!is_string($message)) {
-            throw new InvalidArgumentException('OK message reason must be a string');
+            return null;
+        }
+
+        $eventId = EventId::fromHex($data[1]);
+
+        if (null === $eventId) {
+            return null;
         }
 
         return new self(
-            EventId::fromHex($data[1]) ?? throw new InvalidArgumentException('Invalid event ID in OK message'),
+            $eventId,
             $data[2],
             $message,
         );

@@ -5,36 +5,20 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\Entity;
 
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\EventIdCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
-use InvalidArgumentException;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKeyCollection;
 
 final readonly class EventReferences
 {
     public function __construct(
         private TagReferences $tagReferences,
-        private array $contentReferences,
+        private ContentReferenceCollection $contentReferences,
         private ReplyChain $replyChain,
         private QuoteAnalysis $quoteAnalysis,
-        private array $allEventIds,
-        private array $allPublicKeys,
+        private EventIdCollection $allEventIds,
+        private PublicKeyCollection $allPublicKeys,
     ) {
-        foreach ($this->contentReferences as $reference) {
-            if (!$reference instanceof ContentReference) {
-                throw new InvalidArgumentException('All content references must be ContentReference instances');
-            }
-        }
-
-        foreach ($this->allEventIds as $eventId) {
-            if (!$eventId instanceof EventId) {
-                throw new InvalidArgumentException('All event IDs must be EventId instances');
-            }
-        }
-
-        foreach ($this->allPublicKeys as $publicKey) {
-            if (!$publicKey instanceof PublicKey) {
-                throw new InvalidArgumentException('All public keys must be PublicKey instances');
-            }
-        }
     }
 
     public function getTagReferences(): TagReferences
@@ -42,7 +26,7 @@ final readonly class EventReferences
         return $this->tagReferences;
     }
 
-    public function getContentReferences(): array
+    public function getContentReferences(): ContentReferenceCollection
     {
         return $this->contentReferences;
     }
@@ -57,23 +41,23 @@ final readonly class EventReferences
         return $this->quoteAnalysis;
     }
 
-    public function getAllEventIds(): array
+    public function getAllEventIds(): EventIdCollection
     {
         return $this->allEventIds;
     }
 
-    public function getAllPublicKeys(): array
+    public function getAllPublicKeys(): PublicKeyCollection
     {
         return $this->allPublicKeys;
     }
 
     public function hasReferences(): bool
     {
-        return !empty($this->tagReferences->getEvents())
-            || !empty($this->tagReferences->getPubkeys())
-            || !empty($this->tagReferences->getQuotes())
-            || !empty($this->tagReferences->getAddressable())
-            || !empty($this->contentReferences);
+        return !$this->tagReferences->getEvents()->isEmpty()
+            || !$this->tagReferences->getPubkeys()->isEmpty()
+            || !$this->tagReferences->getQuotes()->isEmpty()
+            || !$this->tagReferences->getAddressable()->isEmpty()
+            || !$this->contentReferences->isEmpty();
     }
 
     public function isReply(): bool
@@ -88,12 +72,12 @@ final readonly class EventReferences
 
     public function getReferencedEventCount(): int
     {
-        return count($this->allEventIds);
+        return $this->allEventIds->count();
     }
 
     public function getReferencedPubkeyCount(): int
     {
-        return count($this->allPublicKeys);
+        return $this->allPublicKeys->count();
     }
 
     public function toArray(): array
@@ -102,17 +86,17 @@ final readonly class EventReferences
             'tag_references' => $this->tagReferences->toArray(),
             'content_references' => array_map(
                 static fn (ContentReference $ref) => $ref->toArray(),
-                $this->contentReferences
+                $this->contentReferences->toArray()
             ),
             'reply_chain' => $this->replyChain->toArray(),
             'quote_analysis' => $this->quoteAnalysis->toArray(),
             'all_event_ids' => array_map(
                 static fn (EventId $id) => $id->toHex(),
-                $this->allEventIds
+                $this->allEventIds->toArray()
             ),
             'all_public_keys' => array_map(
                 static fn (PublicKey $key) => $key->toHex(),
-                $this->allPublicKeys
+                $this->allPublicKeys->toArray()
             ),
         ];
     }
@@ -145,11 +129,11 @@ final readonly class EventReferences
 
         return new self(
             TagReferences::fromArray($data['tag_references'] ?? []),
-            $contentReferences,
+            new ContentReferenceCollection($contentReferences),
             ReplyChain::fromArray($data['reply_chain']),
             QuoteAnalysis::fromArray($data['quote_analysis']),
-            $eventIds,
-            $publicKeys
+            new EventIdCollection($eventIds),
+            new PublicKeyCollection($publicKeys)
         );
     }
 }

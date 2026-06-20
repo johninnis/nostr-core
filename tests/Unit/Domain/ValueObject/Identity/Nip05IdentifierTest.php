@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Identity;
 
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Nip05Identifier;
-use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class Nip05IdentifierTest extends TestCase
 {
     public function testFromStringParsesValidIdentifier(): void
     {
-        $identifier = Nip05Identifier::fromString('alice@example.com');
+        $identifier = Nip05Identifier::fromString('alice@example.com') ?? throw new RuntimeException('expected valid identifier');
 
         $this->assertSame('alice', $identifier->getLocalPart());
         $this->assertSame('example.com', $identifier->getDomain());
@@ -20,39 +20,30 @@ final class Nip05IdentifierTest extends TestCase
 
     public function testFromStringTrimsWhitespace(): void
     {
-        $identifier = Nip05Identifier::fromString(' alice @  example.com ');
+        $identifier = Nip05Identifier::fromString(' alice @  example.com ') ?? throw new RuntimeException('expected valid identifier');
 
         $this->assertSame('alice', $identifier->getLocalPart());
         $this->assertSame('example.com', $identifier->getDomain());
     }
 
-    public function testFromStringThrowsForMissingAtSymbol(): void
+    public function testFromStringReturnsNullForMissingAtSymbol(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Invalid NIP-05 identifier format');
-
-        Nip05Identifier::fromString('aliceexample.com');
+        $this->assertNull(Nip05Identifier::fromString('aliceexample.com'));
     }
 
-    public function testFromStringThrowsForEmptyLocalPart(): void
+    public function testFromStringReturnsNullForEmptyLocalPart(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('NIP-05 identifier cannot have empty local part or domain');
-
-        Nip05Identifier::fromString('@example.com');
+        $this->assertNull(Nip05Identifier::fromString('@example.com'));
     }
 
-    public function testFromStringThrowsForEmptyDomain(): void
+    public function testFromStringReturnsNullForEmptyDomain(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('NIP-05 identifier cannot have empty local part or domain');
-
-        Nip05Identifier::fromString('alice@');
+        $this->assertNull(Nip05Identifier::fromString('alice@'));
     }
 
     public function testGetWellKnownUrlReturnsCorrectFormat(): void
     {
-        $identifier = Nip05Identifier::fromString('bob@relay.example.com');
+        $identifier = Nip05Identifier::fromString('bob@relay.example.com') ?? throw new RuntimeException('expected valid identifier');
 
         $this->assertSame(
             'https://relay.example.com/.well-known/nostr.json?name=bob',
@@ -62,116 +53,79 @@ final class Nip05IdentifierTest extends TestCase
 
     public function testToStringReturnsFullIdentifier(): void
     {
-        $identifier = Nip05Identifier::fromString('alice@example.com');
+        $identifier = Nip05Identifier::fromString('alice@example.com') ?? throw new RuntimeException('expected valid identifier');
 
         $this->assertSame('alice@example.com', (string) $identifier);
     }
 
-    public function testConstructorSetsProperties(): void
+    public function testFromStringParsesNestedSubdomain(): void
     {
-        $identifier = new Nip05Identifier('carol', 'nostr.band');
-
-        $this->assertSame('carol', $identifier->getLocalPart());
-        $this->assertSame('nostr.band', $identifier->getDomain());
-    }
-
-    public function testFromStringWithOnlyOneAtSymbol(): void
-    {
-        $identifier = Nip05Identifier::fromString('user@sub.domain.example.com');
+        $identifier = Nip05Identifier::fromString('user@sub.domain.example.com') ?? throw new RuntimeException('expected valid identifier');
 
         $this->assertSame('user', $identifier->getLocalPart());
         $this->assertSame('sub.domain.example.com', $identifier->getDomain());
     }
 
-    public function testFromStringRejectsQueryParamInjectionInLocalPart(): void
+    public function testFromStringReturnsNullForQueryParamInjectionInLocalPart(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('local part contains disallowed characters');
-
-        Nip05Identifier::fromString('alice&admin=1@example.com');
+        $this->assertNull(Nip05Identifier::fromString('alice&admin=1@example.com'));
     }
 
-    public function testFromStringRejectsFragmentInjectionInLocalPart(): void
+    public function testFromStringReturnsNullForFragmentInjectionInLocalPart(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('local part contains disallowed characters');
-
-        Nip05Identifier::fromString('alice#fragment@example.com');
+        $this->assertNull(Nip05Identifier::fromString('alice#fragment@example.com'));
     }
 
-    public function testFromStringRejectsPathTraversalInLocalPart(): void
+    public function testFromStringReturnsNullForPathTraversalInLocalPart(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('local part contains disallowed characters');
-
-        Nip05Identifier::fromString('../secrets@example.com');
+        $this->assertNull(Nip05Identifier::fromString('../secrets@example.com'));
     }
 
-    public function testFromStringRejectsSpaceInLocalPart(): void
+    public function testFromStringReturnsNullForSpaceInLocalPart(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('local part contains disallowed characters');
-
-        Nip05Identifier::fromString('alice bob@example.com');
+        $this->assertNull(Nip05Identifier::fromString('alice bob@example.com'));
     }
 
-    public function testFromStringRejectsPathInDomain(): void
+    public function testFromStringReturnsNullForPathInDomain(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('domain is not a valid hostname');
-
-        Nip05Identifier::fromString('alice@example.com/../secrets');
+        $this->assertNull(Nip05Identifier::fromString('alice@example.com/../secrets'));
     }
 
-    public function testFromStringRejectsUserInfoInjectionInDomain(): void
+    public function testFromStringReturnsNullForUserInfoInjectionInDomain(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('domain is not a valid hostname');
-
-        Nip05Identifier::fromString('alice@evil.com:8080@victim.com');
+        $this->assertNull(Nip05Identifier::fromString('alice@evil.com:8080@victim.com'));
     }
 
-    public function testFromStringRejectsIpv4Literal(): void
+    public function testFromStringReturnsNullForIpv4Literal(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('domain must be a hostname, not an IP literal');
-
-        Nip05Identifier::fromString('alice@169.254.169.254');
+        $this->assertNull(Nip05Identifier::fromString('alice@169.254.169.254'));
     }
 
-    public function testFromStringRejectsIpv6Literal(): void
+    public function testFromStringReturnsNullForIpv6Literal(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-
-        Nip05Identifier::fromString('alice@[::1]');
+        $this->assertNull(Nip05Identifier::fromString('alice@[::1]'));
     }
 
-    public function testFromStringRejectsSingleLabelHostname(): void
+    public function testFromStringReturnsNullForSingleLabelHostname(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('domain is not a valid hostname');
-
-        Nip05Identifier::fromString('alice@localhost');
+        $this->assertNull(Nip05Identifier::fromString('alice@localhost'));
     }
 
-    public function testFromStringRejectsPortInDomain(): void
+    public function testFromStringReturnsNullForPortInDomain(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('domain is not a valid hostname');
-
-        Nip05Identifier::fromString('alice@example.com:8080');
+        $this->assertNull(Nip05Identifier::fromString('alice@example.com:8080'));
     }
 
     public function testFromStringAcceptsPunycodeDomain(): void
     {
-        $identifier = Nip05Identifier::fromString('alice@xn--nxasmq6b.example.com');
+        $identifier = Nip05Identifier::fromString('alice@xn--nxasmq6b.example.com') ?? throw new RuntimeException('expected valid identifier');
 
         $this->assertSame('xn--nxasmq6b.example.com', $identifier->getDomain());
     }
 
     public function testGetWellKnownUrlEncodesLocalPartDefensively(): void
     {
-        $identifier = Nip05Identifier::fromString('alice.bob_42@example.com');
+        $identifier = Nip05Identifier::fromString('alice.bob_42@example.com') ?? throw new RuntimeException('expected valid identifier');
 
         $this->assertSame(
             'https://example.com/.well-known/nostr.json?name=alice.bob_42',

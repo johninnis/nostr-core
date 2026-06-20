@@ -6,7 +6,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client;
 
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\ClientMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
-use InvalidArgumentException;
+use Override;
 
 final readonly class CloseMessage extends ClientMessage
 {
@@ -14,6 +14,7 @@ final readonly class CloseMessage extends ClientMessage
     {
     }
 
+    #[Override]
     public function getType(): string
     {
         return 'CLOSE';
@@ -24,17 +25,25 @@ final readonly class CloseMessage extends ClientMessage
         return $this->subscriptionId;
     }
 
+    #[Override]
     public function toArray(): array
     {
         return ['CLOSE', (string) $this->subscriptionId];
     }
 
-    public static function fromArray(array $data): static
+    #[Override]
+    public static function fromArray(array $data): ?static
     {
-        if (2 !== count($data) || 'CLOSE' !== $data[0]) {
-            throw new InvalidArgumentException('Invalid CLOSE message format');
+        if (2 !== count($data) || 'CLOSE' !== $data[0] || !is_string($data[1])) {
+            return null;
         }
 
-        return new self(SubscriptionId::fromString($data[1]));
+        $subscriptionId = SubscriptionId::fromString($data[1]);
+
+        if (null === $subscriptionId) {
+            return null;
+        }
+
+        return new self($subscriptionId);
     }
 }

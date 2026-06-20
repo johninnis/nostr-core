@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Enum\Bech32Variant;
-use Innis\Nostr\Core\Domain\Exception\InvalidBech32Exception;
 use Innis\Nostr\Core\Domain\Service\Bech32Codec;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class Bech32CodecTest extends TestCase
 {
@@ -20,7 +20,7 @@ final class Bech32CodecTest extends TestCase
 
         $this->assertSame($encodedExplicit, $encodedDefault);
 
-        $decodedDefault = Bech32Codec::decode($encodedDefault);
+        $decodedDefault = Bech32Codec::decode($encodedDefault) ?? throw new RuntimeException('expected valid decode');
         $this->assertSame('test', $decodedDefault['hrp']);
         $this->assertSame($payload, $decodedDefault['data']);
     }
@@ -30,7 +30,7 @@ final class Bech32CodecTest extends TestCase
         $payload = [0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE];
 
         $encoded = Bech32Codec::encode('bfshare', $payload, Bech32Variant::Bech32m);
-        $decoded = Bech32Codec::decode($encoded, Bech32Variant::Bech32m);
+        $decoded = Bech32Codec::decode($encoded, Bech32Variant::Bech32m) ?? throw new RuntimeException('expected valid decode');
 
         $this->assertSame('bfshare', $decoded['hrp']);
         $this->assertSame($payload, $decoded['data']);
@@ -50,16 +50,14 @@ final class Bech32CodecTest extends TestCase
     {
         $encoded = Bech32Codec::encode('test', [0x00, 0x01], Bech32Variant::Bech32m);
 
-        $this->expectException(InvalidBech32Exception::class);
-        Bech32Codec::decode($encoded, Bech32Variant::Bech32);
+        $this->assertNull(Bech32Codec::decode($encoded, Bech32Variant::Bech32));
     }
 
     public function testBech32StringRejectedWhenDecodedAsBech32m(): void
     {
         $encoded = Bech32Codec::encode('test', [0x00, 0x01], Bech32Variant::Bech32);
 
-        $this->expectException(InvalidBech32Exception::class);
-        Bech32Codec::decode($encoded, Bech32Variant::Bech32m);
+        $this->assertNull(Bech32Codec::decode($encoded, Bech32Variant::Bech32m));
     }
 
     public function testCorruptedBech32mChecksumRejected(): void
@@ -67,13 +65,12 @@ final class Bech32CodecTest extends TestCase
         $encoded = Bech32Codec::encode('test', [0x00, 0x01, 0x02], Bech32Variant::Bech32m);
         $corrupted = substr($encoded, 0, -1).self::flipLastChar($encoded);
 
-        $this->expectException(InvalidBech32Exception::class);
-        Bech32Codec::decode($corrupted, Bech32Variant::Bech32m);
+        $this->assertNull(Bech32Codec::decode($corrupted, Bech32Variant::Bech32m));
     }
 
     public function testBip350EmptyDataVector(): void
     {
-        $decoded = Bech32Codec::decode('?1v759aa', Bech32Variant::Bech32m);
+        $decoded = Bech32Codec::decode('?1v759aa', Bech32Variant::Bech32m) ?? throw new RuntimeException('expected valid decode');
 
         $this->assertSame('?', $decoded['hrp']);
         $this->assertSame([], $decoded['data']);

@@ -6,12 +6,12 @@ namespace Innis\Nostr\Core\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\ValueObject\Payment\Nutzap;
-use Innis\Nostr\Core\Domain\ValueObject\Payment\PaymentReceipt;
+use Innis\Nostr\Core\Domain\ValueObject\Payment\PaymentReceiptInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Payment\ZapReceipt;
 
 final class PaymentReceiptParser
 {
-    public static function fromEvent(Event $event): ?PaymentReceipt
+    public static function fromEvent(Event $event): ?PaymentReceiptInterface
     {
         return ZapReceipt::fromEvent($event) ?? Nutzap::fromEvent($event);
     }

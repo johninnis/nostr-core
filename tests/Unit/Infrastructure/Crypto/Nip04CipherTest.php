@@ -8,8 +8,10 @@ use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
 use Innis\Nostr\Core\Domain\Exception\EncryptionException;
 use Innis\Nostr\Core\Domain\ValueObject\SecretKeyMaterial;
 use Innis\Nostr\Core\Infrastructure\Crypto\Nip04Cipher;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\TestCase;
 
+#[IgnoreDeprecations]
 final class Nip04CipherTest extends TestCase
 {
     public function testEncryptAndDecryptRoundTripsAsciiPlaintext(): void

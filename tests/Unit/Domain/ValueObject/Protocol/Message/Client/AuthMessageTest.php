@@ -76,7 +76,7 @@ final class AuthMessageTest extends TestCase
         $event = $this->createAuthEvent();
         $data = ['AUTH', $event->toArray()];
 
-        $message = AuthMessage::fromArray($data);
+        $message = AuthMessage::fromArray($data) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame('AUTH', $message->getType());
         $this->assertSame(EventKind::CLIENT_AUTH, $message->getEvent()->getKind()->toInt());
@@ -84,23 +84,19 @@ final class AuthMessageTest extends TestCase
 
     public function testFromArrayThrowsOnInvalidFormat(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-
-        AuthMessage::fromArray(['AUTH']);
+        $this->assertNull(AuthMessage::fromArray(['AUTH']));
     }
 
     public function testFromArrayThrowsOnWrongType(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-
-        AuthMessage::fromArray(['EVENT', $this->createAuthEvent()->toArray()]);
+        $this->assertNull(AuthMessage::fromArray(['EVENT', $this->createAuthEvent()->toArray()]));
     }
 
     public function testRoundTripPreservesData(): void
     {
         $original = new AuthMessage($this->createAuthEvent());
 
-        $restored = AuthMessage::fromArray($original->toArray());
+        $restored = AuthMessage::fromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame(
             $original->getEvent()->getPubkey()->toHex(),

@@ -10,7 +10,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 
 interface Bech32EncoderInterface
 {
-    public function decodeComplexEntity(string $bech32): array;
+    public function decodeComplexEntity(string $bech32): ?array;
 
     public function encodeAddressableEvent(string $identifier, PublicKey $pubkey, int $kind, array $relays = []): string;
 

@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Entity\ContentReference;
+use Innis\Nostr\Core\Domain\Enum\Nip10Marker;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
+use Override;
 
 final class ContentReferenceTagBuilder implements ContentReferenceTagBuilderInterface
 {
@@ -16,6 +18,7 @@ final class ContentReferenceTagBuilder implements ContentReferenceTagBuilderInte
     ) {
     }
 
+    #[Override]
     public function buildTags(EventContent $content, ?TagCollection $existingTags = null): TagCollection
     {
         $references = $this->extractor->extractContentReferences($content);
@@ -26,7 +29,7 @@ final class ContentReferenceTagBuilder implements ContentReferenceTagBuilderInte
         }
 
         foreach ($references as $ref) {
-            if (!$ref instanceof ContentReference || $ref->hasError()) {
+            if (!$ref instanceof ContentReference) {
                 continue;
             }
 
@@ -39,13 +42,14 @@ final class ContentReferenceTagBuilder implements ContentReferenceTagBuilderInte
             if (null !== $eventId) {
                 $authorHex = $pubkey?->toHex() ?? '';
                 $tags = $tags->add(Tag::fromArray(['q', $eventId->toHex(), '', $authorHex]));
-                $tags = $tags->add(Tag::event($eventId->toHex(), null, 'mention'));
+                $tags = $tags->add(Tag::event($eventId->toHex(), null, Nip10Marker::Mention->value));
             }
 
             if ($ref->isAddressableReference()) {
                 $refPubkey = $ref->getPublicKey();
-                if (null !== $refPubkey) {
-                    $coordinate = $ref->getKind().':'.$refPubkey->toHex().':'.$ref->getAddressableIdentifier();
+                $kind = $ref->getKind();
+                if (null !== $refPubkey && null !== $kind) {
+                    $coordinate = $kind->toInt().':'.$refPubkey->toHex().':'.$ref->getAddressableIdentifier();
                     $tags = $tags->add(Tag::fromArray(['a', $coordinate]));
                 }
             }

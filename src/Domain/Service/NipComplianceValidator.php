@@ -8,6 +8,7 @@ use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
+use Override;
 
 final class NipComplianceValidator implements NipComplianceValidatorInterface
 {
@@ -16,6 +17,7 @@ final class NipComplianceValidator implements NipComplianceValidatorInterface
     ) {
     }
 
+    #[Override]
     public function validateNip01Compliance(Event $event): void
     {
         $this->validateBasicStructure($event);
@@ -23,18 +25,20 @@ final class NipComplianceValidator implements NipComplianceValidatorInterface
         $this->validateEventId($event);
     }
 
+    #[Override]
     public function validateNip02Compliance(Event $event): void
     {
-        if (!$event->getKind()->is(EventKind::FOLLOW_LIST)) {
+        if (!$event->getKind()->equals(EventKind::followList())) {
             throw new InvalidEventException('NIP-02 events must be kind 3');
         }
 
         $this->validateNip01Compliance($event);
     }
 
+    #[Override]
     public function validateNip04Compliance(Event $event): void
     {
-        if (!$event->getKind()->is(EventKind::ENCRYPTED_DIRECT_MESSAGE)) {
+        if (!$event->getKind()->equals(EventKind::encryptedDirectMessage())) {
             throw new InvalidEventException('NIP-04 events must be kind 4');
         }
 
@@ -46,9 +50,10 @@ final class NipComplianceValidator implements NipComplianceValidatorInterface
         $this->validateNip01Compliance($event);
     }
 
+    #[Override]
     public function validateNip09Compliance(Event $event): void
     {
-        if (!$event->getKind()->is(EventKind::EVENT_DELETION)) {
+        if (!$event->getKind()->equals(EventKind::eventDeletion())) {
             throw new InvalidEventException('NIP-09 events must be kind 5');
         }
 

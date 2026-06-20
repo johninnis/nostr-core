@@ -8,12 +8,11 @@ use InvalidArgumentException;
 
 final readonly class ZapAmount
 {
-    public const MILLISATS_PER_SAT = 1000;
+    public const int MILLISATS_PER_SAT = 1000;
 
-    /** Sanity cap for untrusted amounts: 1 BTC in millisats. */
-    public const MAX_MILLISATS = self::BTC_TO_MILLISATS;
+    public const int MAX_MILLISATS = self::BTC_TO_MILLISATS;
 
-    private const BTC_TO_MILLISATS = 100_000_000_000;
+    private const int BTC_TO_MILLISATS = 100_000_000_000;
 
     private function __construct(private int $millisats)
     {

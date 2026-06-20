@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
 use Closure;
-use Exception;
 use Innis\Nostr\Core\Domain\Service\Bech32Codec;
+use Innis\Nostr\Core\Domain\Service\HexCodec;
 use Innis\Nostr\Core\Domain\ValueObject\SecretKeyMaterial;
 
 final readonly class PrivateKey
 {
-    public const HEX_LENGTH = 64;
+    public const int HEX_LENGTH = SecretKeyMaterial::BYTE_LENGTH * 2;
 
     private function __construct(private SecretKeyMaterial $material)
     {
@@ -19,14 +19,11 @@ final readonly class PrivateKey
 
     public static function fromHex(string $hex): ?self
     {
-        if (!preg_match('/^[a-f0-9]{'.self::HEX_LENGTH.'}$/', $hex)) {
+        if (!HexCodec::isValid($hex, SecretKeyMaterial::BYTE_LENGTH)) {
             return null;
         }
 
-        $bytes = hex2bin($hex);
-        assert(false !== $bytes);
-
-        return new self(new SecretKeyMaterial($bytes));
+        return new self(new SecretKeyMaterial(HexCodec::toBytes($hex)));
     }
 
     public static function fromBech32(string $bech32): ?self
@@ -35,13 +32,12 @@ final readonly class PrivateKey
             return null;
         }
 
-        try {
-            $decoded = Bech32Codec::decode($bech32);
-
-            return self::fromHex(Bech32Codec::bytesToHex($decoded['data']));
-        } catch (Exception) {
+        $decoded = Bech32Codec::decode($bech32);
+        if (null === $decoded) {
             return null;
         }
+
+        return self::fromHex(Bech32Codec::bytesToHex($decoded['data']));
     }
 
     public static function fromBytes(string $bytes): ?self
@@ -60,25 +56,21 @@ final readonly class PrivateKey
 
     public function toHex(): string
     {
-        $hex = $this->material->expose(static fn (string $bytes): string => bin2hex($bytes));
-        assert(is_string($hex));
-
-        return $hex;
+        return $this->material->expose(HexCodec::fromBytes(...));
     }
 
     public function toBech32(): string
     {
-        $bech32 = $this->material->expose(static function (string $bytes): string {
-            $byteValues = unpack('C*', $bytes);
-            assert(false !== $byteValues);
-
-            return Bech32Codec::encode('nsec', array_values($byteValues));
-        });
-        assert(is_string($bech32));
-
-        return $bech32;
+        return $this->material->expose(static fn (string $bytes): string => Bech32Codec::encodeBytes('nsec', $bytes));
     }
 
+    /**
+     * @template T
+     *
+     * @param Closure(string): T $fn
+     *
+     * @return T
+     */
     public function expose(Closure $fn): mixed
     {
         return $this->material->expose($fn);

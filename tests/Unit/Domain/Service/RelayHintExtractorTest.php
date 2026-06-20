@@ -2,20 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Tests\Unit\Infrastructure\Reference;
+namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
-use Exception;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Service\Bech32EncoderInterface;
+use Innis\Nostr\Core\Domain\Service\RelayHintExtractor;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
-use Innis\Nostr\Core\Infrastructure\Reference\RelayHintExtractor;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\NullLogger;
 use RuntimeException;
 
 final class RelayHintExtractorTest extends TestCase
@@ -80,7 +78,7 @@ final class RelayHintExtractorTest extends TestCase
         $this->assertNull($this->makeExtractor($bech32Encoder)->extractRelayHintFromNevent($nevent));
     }
 
-    public function testExtractRelayHintFromNeventHandlesException(): void
+    public function testExtractRelayHintFromNeventReturnsNullForUndecodableEntity(): void
     {
         $nevent = 'nevent1invalid';
         $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
@@ -88,7 +86,7 @@ final class RelayHintExtractorTest extends TestCase
             ->expects($this->once())
             ->method('decodeComplexEntity')
             ->with($nevent)
-            ->willThrowException(new Exception('Invalid nevent'));
+            ->willReturn(null);
 
         $this->assertNull($this->makeExtractor($bech32Encoder)->extractRelayHintFromNevent($nevent));
     }
@@ -161,7 +159,6 @@ final class RelayHintExtractorTest extends TestCase
     {
         return new RelayHintExtractor(
             $bech32Encoder ?? $this->createStub(Bech32EncoderInterface::class),
-            new NullLogger()
         );
     }
 
