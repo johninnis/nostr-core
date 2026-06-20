@@ -7,12 +7,13 @@ namespace Innis\Nostr\Core\Tests\Unit\Application\Service;
 use Innis\Nostr\Core\Application\Port\Nip98ReplayGuardInterface;
 use Innis\Nostr\Core\Application\Service\Nip98Validator;
 use Innis\Nostr\Core\Domain\Entity\Event;
-use Innis\Nostr\Core\Domain\Exception\Nip98ValidationException;
 use Innis\Nostr\Core\Domain\Factory\EventFactory;
+use Innis\Nostr\Core\Domain\Failure\Nip98ValidationFailure;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
@@ -34,24 +35,25 @@ final class Nip98ValidatorTest extends TestCase
     {
         $event = $this->createValidSignedEvent();
 
-        $pubkey = $this->service->validate(
+        $result = $this->service->validate(
             $event,
             'https://relay.example.com/',
             'POST',
             hash('sha256', '{"method":"test"}')
         );
 
-        $this->assertTrue($pubkey->equals($this->keyPair->getPublicKey()));
+        $this->assertInstanceOf(PublicKey::class, $result);
+        $this->assertTrue($result->equals($this->keyPair->getPublicKey()));
     }
 
     public function testRejectsWrongKind(): void
     {
         $event = $this->createSignedEvent(EventKind::textNote());
 
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('Event must be kind 27235');
-
-        $this->service->validate($event, 'https://relay.example.com/', 'POST');
+        $this->assertSame(
+            Nip98ValidationFailure::WrongKind,
+            $this->service->validate($event, 'https://relay.example.com/', 'POST')
+        );
     }
 
     public function testRejectsUnsignedEvent(): void
@@ -62,34 +64,35 @@ final class Nip98ValidatorTest extends TestCase
             'POST'
         );
 
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('Event must be signed');
-
-        $this->service->validate($event, 'https://relay.example.com/', 'POST');
+        $this->assertSame(
+            Nip98ValidationFailure::Unsigned,
+            $this->service->validate($event, 'https://relay.example.com/', 'POST')
+        );
     }
 
     public function testRejectsExpiredTimestamp(): void
     {
         $event = $this->createSignedEventWithTimestamp(Timestamp::fromInt(time() - 120));
 
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('Event timestamp is outside tolerance');
-
-        $this->service->validate($event, 'https://relay.example.com/', 'POST');
+        $this->assertSame(
+            Nip98ValidationFailure::TimestampOutsideTolerance,
+            $this->service->validate($event, 'https://relay.example.com/', 'POST')
+        );
     }
 
     public function testAcceptsTimestampWithinTolerance(): void
     {
         $event = $this->createSignedEventWithTimestamp(Timestamp::fromInt(time() - 30));
 
-        $pubkey = $this->service->validate(
+        $result = $this->service->validate(
             $event,
             'https://relay.example.com/',
             'POST',
             hash('sha256', '{"method":"test"}')
         );
 
-        $this->assertTrue($pubkey->equals($this->keyPair->getPublicKey()));
+        $this->assertInstanceOf(PublicKey::class, $result);
+        $this->assertTrue($result->equals($this->keyPair->getPublicKey()));
     }
 
     public function testRejectsMissingUrlTag(): void
@@ -99,20 +102,20 @@ final class Nip98ValidatorTest extends TestCase
         ]);
         $event = $this->createSignedEventWithTags($tags);
 
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('Event missing u tag');
-
-        $this->service->validate($event, 'https://relay.example.com/', 'POST');
+        $this->assertSame(
+            Nip98ValidationFailure::MissingUrlTag,
+            $this->service->validate($event, 'https://relay.example.com/', 'POST')
+        );
     }
 
     public function testRejectsWrongUrl(): void
     {
         $event = $this->createValidSignedEvent();
 
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('URL in u tag does not match request URL');
-
-        $this->service->validate($event, 'https://other-relay.example.com/', 'POST');
+        $this->assertSame(
+            Nip98ValidationFailure::UrlMismatch,
+            $this->service->validate($event, 'https://other-relay.example.com/', 'POST')
+        );
     }
 
     public function testRejectsMissingMethodTag(): void
@@ -122,20 +125,20 @@ final class Nip98ValidatorTest extends TestCase
         ]);
         $event = $this->createSignedEventWithTags($tags);
 
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('Event missing method tag');
-
-        $this->service->validate($event, 'https://relay.example.com/', 'POST');
+        $this->assertSame(
+            Nip98ValidationFailure::MissingMethodTag,
+            $this->service->validate($event, 'https://relay.example.com/', 'POST')
+        );
     }
 
     public function testRejectsWrongMethod(): void
     {
         $event = $this->createValidSignedEvent();
 
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('Method in method tag does not match request method');
-
-        $this->service->validate($event, 'https://relay.example.com/', 'GET');
+        $this->assertSame(
+            Nip98ValidationFailure::MethodMismatch,
+            $this->service->validate($event, 'https://relay.example.com/', 'GET')
+        );
     }
 
     public function testRejectsMissingPayloadTag(): void
@@ -146,14 +149,14 @@ final class Nip98ValidatorTest extends TestCase
         ]);
         $event = $this->createSignedEventWithTags($tags);
 
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('Event missing payload tag');
-
-        $this->service->validate(
-            $event,
-            'https://relay.example.com/',
-            'POST',
-            hash('sha256', 'body')
+        $this->assertSame(
+            Nip98ValidationFailure::MissingPayloadTag,
+            $this->service->validate(
+                $event,
+                'https://relay.example.com/',
+                'POST',
+                hash('sha256', 'body')
+            )
         );
     }
 
@@ -161,14 +164,14 @@ final class Nip98ValidatorTest extends TestCase
     {
         $event = $this->createValidSignedEvent();
 
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('Payload hash does not match request body');
-
-        $this->service->validate(
-            $event,
-            'https://relay.example.com/',
-            'POST',
-            hash('sha256', 'different body')
+        $this->assertSame(
+            Nip98ValidationFailure::PayloadMismatch,
+            $this->service->validate(
+                $event,
+                'https://relay.example.com/',
+                'POST',
+                hash('sha256', 'different body')
+            )
         );
     }
 
@@ -180,13 +183,14 @@ final class Nip98ValidatorTest extends TestCase
         ]);
         $event = $this->createSignedEventWithTags($tags);
 
-        $pubkey = $this->service->validate(
+        $result = $this->service->validate(
             $event,
             'https://relay.example.com/',
             'POST'
         );
 
-        $this->assertTrue($pubkey->equals($this->keyPair->getPublicKey()));
+        $this->assertInstanceOf(PublicKey::class, $result);
+        $this->assertTrue($result->equals($this->keyPair->getPublicKey()));
     }
 
     public function testUrlNormalisationMatchesWithTrailingSlash(): void
@@ -197,13 +201,14 @@ final class Nip98ValidatorTest extends TestCase
         ]);
         $event = $this->createSignedEventWithTags($tags);
 
-        $pubkey = $this->service->validate(
+        $result = $this->service->validate(
             $event,
             'https://relay.example.com',
             'GET'
         );
 
-        $this->assertTrue($pubkey->equals($this->keyPair->getPublicKey()));
+        $this->assertInstanceOf(PublicKey::class, $result);
+        $this->assertTrue($result->equals($this->keyPair->getPublicKey()));
     }
 
     public function testUrlNormalisationPreservesQueryString(): void
@@ -214,13 +219,14 @@ final class Nip98ValidatorTest extends TestCase
         ]);
         $event = $this->createSignedEventWithTags($tags);
 
-        $pubkey = $this->service->validate(
+        $result = $this->service->validate(
             $event,
             'https://relay.example.com/api?token=abc&page=1',
             'GET'
         );
 
-        $this->assertTrue($pubkey->equals($this->keyPair->getPublicKey()));
+        $this->assertInstanceOf(PublicKey::class, $result);
+        $this->assertTrue($result->equals($this->keyPair->getPublicKey()));
     }
 
     public function testUrlNormalisationRejectsDifferentQueryStrings(): void
@@ -231,13 +237,13 @@ final class Nip98ValidatorTest extends TestCase
         ]);
         $event = $this->createSignedEventWithTags($tags);
 
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('URL in u tag does not match request URL');
-
-        $this->service->validate(
-            $event,
-            'https://relay.example.com/api?token=xyz',
-            'GET'
+        $this->assertSame(
+            Nip98ValidationFailure::UrlMismatch,
+            $this->service->validate(
+                $event,
+                'https://relay.example.com/api?token=xyz',
+                'GET'
+            )
         );
     }
 
@@ -249,13 +255,14 @@ final class Nip98ValidatorTest extends TestCase
         ]);
         $event = $this->createSignedEventWithTags($tags);
 
-        $pubkey = $this->service->validate(
+        $result = $this->service->validate(
             $event,
             'https://relay.example.com/',
             'POST'
         );
 
-        $this->assertTrue($pubkey->equals($this->keyPair->getPublicKey()));
+        $this->assertInstanceOf(PublicKey::class, $result);
+        $this->assertTrue($result->equals($this->keyPair->getPublicKey()));
     }
 
     public function testRejectsDuplicateUrlTag(): void
@@ -267,10 +274,10 @@ final class Nip98ValidatorTest extends TestCase
         ]);
         $event = $this->createSignedEventWithTags($tags);
 
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('Event must contain exactly one u tag');
-
-        $this->service->validate($event, 'https://relay.example.com/', 'POST');
+        $this->assertSame(
+            Nip98ValidationFailure::MultipleUrlTags,
+            $this->service->validate($event, 'https://relay.example.com/', 'POST')
+        );
     }
 
     public function testRejectsDuplicateMethodTag(): void
@@ -282,10 +289,10 @@ final class Nip98ValidatorTest extends TestCase
         ]);
         $event = $this->createSignedEventWithTags($tags);
 
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('Event must contain exactly one method tag');
-
-        $this->service->validate($event, 'https://relay.example.com/', 'POST');
+        $this->assertSame(
+            Nip98ValidationFailure::MultipleMethodTags,
+            $this->service->validate($event, 'https://relay.example.com/', 'POST')
+        );
     }
 
     public function testRejectsDuplicatePayloadTag(): void
@@ -299,20 +306,20 @@ final class Nip98ValidatorTest extends TestCase
         ]);
         $event = $this->createSignedEventWithTags($tags);
 
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('Event must contain at most one payload tag');
-
-        $this->service->validate($event, 'https://relay.example.com/', 'POST', hash('sha256', $body));
+        $this->assertSame(
+            Nip98ValidationFailure::MultiplePayloadTags,
+            $this->service->validate($event, 'https://relay.example.com/', 'POST', hash('sha256', $body))
+        );
     }
 
     public function testRejectsMalformedRequestUrl(): void
     {
         $event = $this->createValidSignedEvent();
 
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('Malformed URL');
-
-        $this->service->validate($event, 'http://:/bad', 'POST', hash('sha256', '{"method":"test"}'));
+        $this->assertSame(
+            Nip98ValidationFailure::MalformedUrl,
+            $this->service->validate($event, 'http://:/bad', 'POST', hash('sha256', '{"method":"test"}'))
+        );
     }
 
     public function testRejectsMalformedEventUrl(): void
@@ -323,10 +330,10 @@ final class Nip98ValidatorTest extends TestCase
         ]);
         $event = $this->createSignedEventWithTags($tags);
 
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('Malformed URL');
-
-        $this->service->validate($event, 'https://relay.example.com/', 'POST');
+        $this->assertSame(
+            Nip98ValidationFailure::MalformedUrl,
+            $this->service->validate($event, 'https://relay.example.com/', 'POST')
+        );
     }
 
     public function testRejectsReplayedAuthEvent(): void
@@ -336,9 +343,10 @@ final class Nip98ValidatorTest extends TestCase
 
         $this->service->validate($event, 'https://relay.example.com/', 'POST', $body);
 
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('Auth event has already been used');
-        $this->service->validate($event, 'https://relay.example.com/', 'POST', $body);
+        $this->assertSame(
+            Nip98ValidationFailure::Replayed,
+            $this->service->validate($event, 'https://relay.example.com/', 'POST', $body)
+        );
     }
 
     public function testCustomTimestampTolerance(): void
@@ -346,20 +354,20 @@ final class Nip98ValidatorTest extends TestCase
         $service = new Nip98Validator(CryptoFixtures::signer(), $this->createReplayGuard(), timestampTolerance: 10);
         $event = $this->createSignedEventWithTimestamp(Timestamp::fromInt(time() - 30));
 
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('Event timestamp is outside tolerance');
-
-        $service->validate($event, 'https://relay.example.com/', 'POST');
+        $this->assertSame(
+            Nip98ValidationFailure::TimestampOutsideTolerance,
+            $service->validate($event, 'https://relay.example.com/', 'POST')
+        );
     }
 
     public function testRejectsEventWithPayloadTagWhenBodyHashNotProvided(): void
     {
         $event = $this->createValidSignedEvent();
 
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('Event contains payload tag but no request body hash was supplied');
-
-        $this->service->validate($event, 'https://relay.example.com/', 'POST');
+        $this->assertSame(
+            Nip98ValidationFailure::PayloadTagWithoutBodyHash,
+            $this->service->validate($event, 'https://relay.example.com/', 'POST')
+        );
     }
 
     public function testValidateAuthHeaderReturnsPublicKey(): void
@@ -368,9 +376,10 @@ final class Nip98ValidatorTest extends TestCase
         $event = $this->createValidSignedEvent();
         $authHeader = 'Nostr '.base64_encode((string) json_encode($event->toArray(), JSON_THROW_ON_ERROR));
 
-        $pubkey = $this->service->validateAuthHeader($authHeader, 'https://relay.example.com/', 'POST', $body);
+        $result = $this->service->validateAuthHeader($authHeader, 'https://relay.example.com/', 'POST', $body);
 
-        $this->assertTrue($pubkey->equals($this->keyPair->getPublicKey()));
+        $this->assertInstanceOf(PublicKey::class, $result);
+        $this->assertTrue($result->equals($this->keyPair->getPublicKey()));
     }
 
     public function testValidateAuthHeaderAllowsEmptyBodyWithoutPayloadTag(): void
@@ -382,63 +391,64 @@ final class Nip98ValidatorTest extends TestCase
         $event = $this->createSignedEventWithTags($tags);
         $authHeader = 'Nostr '.base64_encode((string) json_encode($event->toArray(), JSON_THROW_ON_ERROR));
 
-        $pubkey = $this->service->validateAuthHeader($authHeader, 'https://relay.example.com/', 'GET', '');
+        $result = $this->service->validateAuthHeader($authHeader, 'https://relay.example.com/', 'GET', '');
 
-        $this->assertTrue($pubkey->equals($this->keyPair->getPublicKey()));
+        $this->assertInstanceOf(PublicKey::class, $result);
+        $this->assertTrue($result->equals($this->keyPair->getPublicKey()));
     }
 
     public function testValidateAuthHeaderRejectsOversizedHeader(): void
     {
         $oversized = 'Nostr '.str_repeat('A', 4096);
 
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('Authorization header exceeds maximum length');
-
-        $this->service->validateAuthHeader($oversized, 'https://relay.example.com/', 'POST', '');
+        $this->assertSame(
+            Nip98ValidationFailure::HeaderTooLong,
+            $this->service->validateAuthHeader($oversized, 'https://relay.example.com/', 'POST', '')
+        );
     }
 
     public function testValidateAuthHeaderRejectsMissingPrefix(): void
     {
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('Invalid Authorization header format');
-
-        $this->service->validateAuthHeader('Bearer token', 'https://relay.example.com/', 'POST', '');
+        $this->assertSame(
+            Nip98ValidationFailure::HeaderBadFormat,
+            $this->service->validateAuthHeader('Bearer token', 'https://relay.example.com/', 'POST', '')
+        );
     }
 
     public function testValidateAuthHeaderRejectsInvalidBase64(): void
     {
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('Invalid base64 in Authorization header');
-
-        $this->service->validateAuthHeader('Nostr !!!not-base64!!!', 'https://relay.example.com/', 'POST', '');
+        $this->assertSame(
+            Nip98ValidationFailure::HeaderBadBase64,
+            $this->service->validateAuthHeader('Nostr !!!not-base64!!!', 'https://relay.example.com/', 'POST', '')
+        );
     }
 
     public function testValidateAuthHeaderRejectsInvalidJson(): void
     {
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('Invalid JSON in Authorization header');
-
-        $this->service->validateAuthHeader('Nostr '.base64_encode('not-json'), 'https://relay.example.com/', 'POST', '');
+        $this->assertSame(
+            Nip98ValidationFailure::HeaderBadJson,
+            $this->service->validateAuthHeader('Nostr '.base64_encode('not-json'), 'https://relay.example.com/', 'POST', '')
+        );
     }
 
     public function testValidateAuthHeaderRejectsNonObjectJson(): void
     {
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('Invalid JSON in Authorization header');
-
-        $this->service->validateAuthHeader('Nostr '.base64_encode('"a string"'), 'https://relay.example.com/', 'POST', '');
+        $this->assertSame(
+            Nip98ValidationFailure::HeaderBadJson,
+            $this->service->validateAuthHeader('Nostr '.base64_encode('"a string"'), 'https://relay.example.com/', 'POST', '')
+        );
     }
 
     public function testValidateAuthHeaderRejectsMalformedEvent(): void
     {
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('Invalid event in Authorization header');
-
-        $this->service->validateAuthHeader(
-            'Nostr '.base64_encode((string) json_encode(['kind' => 27235])),
-            'https://relay.example.com/',
-            'POST',
-            '',
+        $this->assertSame(
+            Nip98ValidationFailure::HeaderInvalidEvent,
+            $this->service->validateAuthHeader(
+                'Nostr '.base64_encode((string) json_encode(['kind' => 27235])),
+                'https://relay.example.com/',
+                'POST',
+                '',
+            )
         );
     }
 
@@ -447,10 +457,10 @@ final class Nip98ValidatorTest extends TestCase
         $event = $this->createValidSignedEvent();
         $authHeader = 'Nostr '.base64_encode((string) json_encode($event->toArray(), JSON_THROW_ON_ERROR));
 
-        $this->expectException(Nip98ValidationException::class);
-        $this->expectExceptionMessage('Payload hash does not match request body');
-
-        $this->service->validateAuthHeader($authHeader, 'https://relay.example.com/', 'POST', '{"different":"body"}');
+        $this->assertSame(
+            Nip98ValidationFailure::PayloadMismatch,
+            $this->service->validateAuthHeader($authHeader, 'https://relay.example.com/', 'POST', '{"different":"body"}')
+        );
     }
 
     private function createValidSignedEvent(): Event

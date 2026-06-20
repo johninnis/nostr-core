@@ -6,8 +6,8 @@ namespace Innis\Nostr\Core\Application\Service;
 
 use Innis\Nostr\Core\Application\Port\Nip98ReplayGuardInterface;
 use Innis\Nostr\Core\Domain\Entity\Event;
-use Innis\Nostr\Core\Domain\Exception\Nip98ValidationException;
 use Innis\Nostr\Core\Domain\Failure\AuthHeaderDecodeFailure;
+use Innis\Nostr\Core\Domain\Failure\Nip98ValidationFailure;
 use Innis\Nostr\Core\Domain\Service\Nip98ValidatorInterface;
 use Innis\Nostr\Core\Domain\Service\NostrAuthHeaderCodec;
 use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
@@ -32,36 +32,42 @@ final readonly class Nip98Validator implements Nip98ValidatorInterface
     }
 
     #[Override]
-    public function validate(Event $event, string $requestUrl, string $requestMethod, ?string $requestBodyHash = null): PublicKey
+    public function validate(Event $event, string $requestUrl, string $requestMethod, ?string $requestBodyHash = null): PublicKey|Nip98ValidationFailure
     {
-        $this->validateKind($event);
-        $this->validateTimestamp($event);
-        $this->validateUrl($event, $requestUrl);
-        $this->validateMethod($event, $requestMethod);
-        $this->validatePayloadTagConsistency($event, $requestBodyHash);
-        $this->validateSignature($event);
+        $failure = $this->validateKind($event)
+            ?? $this->validateTimestamp($event)
+            ?? $this->validateUrl($event, $requestUrl)
+            ?? $this->validateMethod($event, $requestMethod)
+            ?? $this->validatePayloadTagConsistency($event, $requestBodyHash)
+            ?? $this->validateSignature($event)
+            ?? (null !== $requestBodyHash ? $this->validatePayload($event, $requestBodyHash) : null);
 
-        if (null !== $requestBodyHash) {
-            $this->validatePayload($event, $requestBodyHash);
+        if (null !== $failure) {
+            return $failure;
         }
 
         if (!$this->replayGuard->recordOnce($event->getId(), $this->replayTtlSeconds)) {
-            throw new Nip98ValidationException('Auth event has already been used');
+            return Nip98ValidationFailure::Replayed;
         }
 
         return $event->getPubkey();
     }
 
     #[Override]
-    public function validateAuthHeader(string $authHeader, string $requestUrl, string $requestMethod, string $requestBody): PublicKey
+    public function validateAuthHeader(string $authHeader, string $requestUrl, string $requestMethod, string $requestBody): PublicKey|Nip98ValidationFailure
     {
         $event = $this->parseAuthHeader($authHeader);
+
+        if ($event instanceof Nip98ValidationFailure) {
+            return $event;
+        }
+
         $bodyHash = '' === $requestBody ? null : hash('sha256', $requestBody);
 
         return $this->validate($event, $requestUrl, $requestMethod, $bodyHash);
     }
 
-    private function parseAuthHeader(string $authHeader): Event
+    private function parseAuthHeader(string $authHeader): Event|Nip98ValidationFailure
     {
         $decoded = NostrAuthHeaderCodec::decode($authHeader);
 
@@ -69,113 +75,115 @@ final readonly class Nip98Validator implements Nip98ValidatorInterface
             return $decoded;
         }
 
-        $message = match ($decoded) {
-            AuthHeaderDecodeFailure::TooLong => 'Authorization header exceeds maximum length',
-            AuthHeaderDecodeFailure::BadFormat => 'Invalid Authorization header format',
-            AuthHeaderDecodeFailure::BadBase64 => 'Invalid base64 in Authorization header',
-            AuthHeaderDecodeFailure::BadJson => 'Invalid JSON in Authorization header',
-            AuthHeaderDecodeFailure::InvalidEvent => 'Invalid event in Authorization header',
+        return match ($decoded) {
+            AuthHeaderDecodeFailure::TooLong => Nip98ValidationFailure::HeaderTooLong,
+            AuthHeaderDecodeFailure::BadFormat => Nip98ValidationFailure::HeaderBadFormat,
+            AuthHeaderDecodeFailure::BadBase64 => Nip98ValidationFailure::HeaderBadBase64,
+            AuthHeaderDecodeFailure::BadJson => Nip98ValidationFailure::HeaderBadJson,
+            AuthHeaderDecodeFailure::InvalidEvent => Nip98ValidationFailure::HeaderInvalidEvent,
         };
-
-        throw new Nip98ValidationException($message);
     }
 
-    private function validateKind(Event $event): void
+    private function validateKind(Event $event): ?Nip98ValidationFailure
     {
-        if (!$event->getKind()->equals(EventKind::httpAuth())) {
-            throw new Nip98ValidationException('Event must be kind 27235');
-        }
+        return $event->getKind()->equals(EventKind::httpAuth())
+            ? null
+            : Nip98ValidationFailure::WrongKind;
     }
 
-    private function validateSignature(Event $event): void
+    private function validateSignature(Event $event): ?Nip98ValidationFailure
     {
         if (!$event->isSigned()) {
-            throw new Nip98ValidationException('Event must be signed');
+            return Nip98ValidationFailure::Unsigned;
         }
 
-        if (!$event->verify($this->signatureService)) {
-            throw new Nip98ValidationException('Event signature is invalid');
-        }
+        return $event->verify($this->signatureService)
+            ? null
+            : Nip98ValidationFailure::BadSignature;
     }
 
-    private function validateTimestamp(Event $event): void
+    private function validateTimestamp(Event $event): ?Nip98ValidationFailure
     {
         $difference = Timestamp::now()->differenceInSeconds($event->getCreatedAt());
 
-        if ($difference > $this->timestampTolerance) {
-            throw new Nip98ValidationException('Event timestamp is outside tolerance');
-        }
+        return $difference > $this->timestampTolerance
+            ? Nip98ValidationFailure::TimestampOutsideTolerance
+            : null;
     }
 
-    private function validateUrl(Event $event, string $requestUrl): void
+    private function validateUrl(Event $event, string $requestUrl): ?Nip98ValidationFailure
     {
         $urlValues = $event->getTags()->getValuesByType(TagType::fromString('u'));
 
-        if (empty($urlValues)) {
-            throw new Nip98ValidationException('Event missing u tag');
+        if ([] === $urlValues) {
+            return Nip98ValidationFailure::MissingUrlTag;
         }
 
         if (count($urlValues) > 1) {
-            throw new Nip98ValidationException('Event must contain exactly one u tag');
+            return Nip98ValidationFailure::MultipleUrlTags;
         }
 
         $eventUrl = $this->normaliseUrl($urlValues[0]);
         $expectedUrl = $this->normaliseUrl($requestUrl);
 
-        if ($eventUrl !== $expectedUrl) {
-            throw new Nip98ValidationException('URL in u tag does not match request URL');
+        if (null === $eventUrl || null === $expectedUrl) {
+            return Nip98ValidationFailure::MalformedUrl;
         }
+
+        return $eventUrl === $expectedUrl ? null : Nip98ValidationFailure::UrlMismatch;
     }
 
-    private function validateMethod(Event $event, string $requestMethod): void
+    private function validateMethod(Event $event, string $requestMethod): ?Nip98ValidationFailure
     {
         $methodValues = $event->getTags()->getValuesByType(TagType::method());
 
-        if (empty($methodValues)) {
-            throw new Nip98ValidationException('Event missing method tag');
+        if ([] === $methodValues) {
+            return Nip98ValidationFailure::MissingMethodTag;
         }
 
         if (count($methodValues) > 1) {
-            throw new Nip98ValidationException('Event must contain exactly one method tag');
+            return Nip98ValidationFailure::MultipleMethodTags;
         }
 
-        if (strtoupper($methodValues[0]) !== strtoupper($requestMethod)) {
-            throw new Nip98ValidationException('Method in method tag does not match request method');
-        }
+        return strtoupper($methodValues[0]) === strtoupper($requestMethod)
+            ? null
+            : Nip98ValidationFailure::MethodMismatch;
     }
 
-    private function validatePayloadTagConsistency(Event $event, ?string $requestBodyHash): void
+    private function validatePayloadTagConsistency(Event $event, ?string $requestBodyHash): ?Nip98ValidationFailure
     {
         $payloadValues = $event->getTags()->getValuesByType(TagType::payload());
 
         if (count($payloadValues) > 1) {
-            throw new Nip98ValidationException('Event must contain at most one payload tag');
+            return Nip98ValidationFailure::MultiplePayloadTags;
         }
 
         if (null === $requestBodyHash && [] !== $payloadValues) {
-            throw new Nip98ValidationException('Event contains payload tag but no request body hash was supplied for verification');
+            return Nip98ValidationFailure::PayloadTagWithoutBodyHash;
         }
+
+        return null;
     }
 
-    private function validatePayload(Event $event, string $requestBodyHash): void
+    private function validatePayload(Event $event, string $requestBodyHash): ?Nip98ValidationFailure
     {
         $payloadValues = $event->getTags()->getValuesByType(TagType::payload());
 
-        if (empty($payloadValues)) {
-            throw new Nip98ValidationException('Event missing payload tag');
+        if ([] === $payloadValues) {
+            return Nip98ValidationFailure::MissingPayloadTag;
         }
 
-        if (!hash_equals(strtolower($requestBodyHash), strtolower($payloadValues[0]))) {
-            throw new Nip98ValidationException('Payload hash does not match request body');
-        }
+        return hash_equals(strtolower($requestBodyHash), strtolower($payloadValues[0]))
+            ? null
+            : Nip98ValidationFailure::PayloadMismatch;
     }
 
-    private function normaliseUrl(string $url): string
+    private function normaliseUrl(string $url): ?string
     {
         $parsed = parse_url($url);
 
         if (false === $parsed) {
-            throw new Nip98ValidationException('Malformed URL');
+            return null;
         }
 
         $scheme = strtolower($parsed['scheme'] ?? '');
