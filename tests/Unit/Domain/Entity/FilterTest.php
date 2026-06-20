@@ -13,15 +13,13 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
-use Innis\Nostr\Core\Tests\Support\WithCryptoServices;
+use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
 final class FilterTest extends TestCase
 {
-    use WithCryptoServices;
-
     public function testCanCreateFilter(): void
     {
         $filter = new Filter(
@@ -68,7 +66,7 @@ final class FilterTest extends TestCase
 
     public function testMatchesEventById(): void
     {
-        $keyPair = KeyPair::generate($this->signatureService());
+        $keyPair = KeyPair::generate(CryptoFixtures::signer());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -76,7 +74,7 @@ final class FilterTest extends TestCase
             TagCollection::empty(),
             EventContent::fromString('test')
         );
-        $signedEvent = $event->sign($keyPair, $this->signatureService());
+        $signedEvent = $event->sign($keyPair, CryptoFixtures::signer());
 
         $filter = new Filter(ids: [$signedEvent->getId()->toHex()]);
 
@@ -85,7 +83,7 @@ final class FilterTest extends TestCase
 
     public function testMatchesEventByAuthor(): void
     {
-        $keyPair = KeyPair::generate($this->signatureService());
+        $keyPair = KeyPair::generate(CryptoFixtures::signer());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -101,7 +99,7 @@ final class FilterTest extends TestCase
 
     public function testMatchesEventByKind(): void
     {
-        $keyPair = KeyPair::generate($this->signatureService());
+        $keyPair = KeyPair::generate(CryptoFixtures::signer());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -117,7 +115,7 @@ final class FilterTest extends TestCase
 
     public function testMatchesEventByTag(): void
     {
-        $keyPair = KeyPair::generate($this->signatureService());
+        $keyPair = KeyPair::generate(CryptoFixtures::signer());
         $tags = new TagCollection([Tag::hashtag('nostr')]);
         $event = new Event(
             $keyPair->getPublicKey(),
@@ -134,7 +132,7 @@ final class FilterTest extends TestCase
 
     public function testMatchesEventWithMultipleTagTypesRequiresAll(): void
     {
-        $keyPair = KeyPair::generate($this->signatureService());
+        $keyPair = KeyPair::generate(CryptoFixtures::signer());
         $pubkeyHex = str_repeat('a', 64);
         $tags = new TagCollection([
             Tag::hashtag('nostr'),
@@ -178,7 +176,7 @@ final class FilterTest extends TestCase
 
     public function testMatchesEventWithMultipleValuesInSameTagType(): void
     {
-        $keyPair = KeyPair::generate($this->signatureService());
+        $keyPair = KeyPair::generate(CryptoFixtures::signer());
         $tags = new TagCollection([Tag::hashtag('nostr')]);
         $event = new Event(
             $keyPair->getPublicKey(),
@@ -194,7 +192,7 @@ final class FilterTest extends TestCase
 
     public function testDoesNotMatchWhenNoTagsMatchFilter(): void
     {
-        $keyPair = KeyPair::generate($this->signatureService());
+        $keyPair = KeyPair::generate(CryptoFixtures::signer());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -209,7 +207,7 @@ final class FilterTest extends TestCase
 
     public function testDoesNotMatchWhenCriteriaNotMet(): void
     {
-        $keyPair = KeyPair::generate($this->signatureService());
+        $keyPair = KeyPair::generate(CryptoFixtures::signer());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -365,7 +363,7 @@ final class FilterTest extends TestCase
 
     public function testMatchesEventBySinceTimestamp(): void
     {
-        $keyPair = KeyPair::generate($this->signatureService());
+        $keyPair = KeyPair::generate(CryptoFixtures::signer());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::fromInt(1234567895),
@@ -383,7 +381,7 @@ final class FilterTest extends TestCase
 
     public function testMatchesEventByUntilTimestamp(): void
     {
-        $keyPair = KeyPair::generate($this->signatureService());
+        $keyPair = KeyPair::generate(CryptoFixtures::signer());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::fromInt(1234567895),
@@ -401,7 +399,7 @@ final class FilterTest extends TestCase
 
     public function testMatchesEmptyFilterMatchesAnyEvent(): void
     {
-        $keyPair = KeyPair::generate($this->signatureService());
+        $keyPair = KeyPair::generate(CryptoFixtures::signer());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -417,7 +415,7 @@ final class FilterTest extends TestCase
 
     public function testDoesNotMatchEventWithWrongId(): void
     {
-        $keyPair = KeyPair::generate($this->signatureService());
+        $keyPair = KeyPair::generate(CryptoFixtures::signer());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -425,7 +423,7 @@ final class FilterTest extends TestCase
             TagCollection::empty(),
             EventContent::fromString('test')
         );
-        $signedEvent = $event->sign($keyPair, $this->signatureService());
+        $signedEvent = $event->sign($keyPair, CryptoFixtures::signer());
 
         $filter = new Filter(ids: ['0000000000000000000000000000000000000000000000000000000000000000']);
 
@@ -434,7 +432,7 @@ final class FilterTest extends TestCase
 
     public function testDoesNotMatchEventWithWrongAuthor(): void
     {
-        $keyPair = KeyPair::generate($this->signatureService());
+        $keyPair = KeyPair::generate(CryptoFixtures::signer());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -535,7 +533,7 @@ final class FilterTest extends TestCase
 
     public function testMatchesSearchTermInContent(): void
     {
-        $keyPair = KeyPair::generate($this->signatureService());
+        $keyPair = KeyPair::generate(CryptoFixtures::signer());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -551,7 +549,7 @@ final class FilterTest extends TestCase
 
     public function testSearchIsCaseInsensitive(): void
     {
-        $keyPair = KeyPair::generate($this->signatureService());
+        $keyPair = KeyPair::generate(CryptoFixtures::signer());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -567,7 +565,7 @@ final class FilterTest extends TestCase
 
     public function testSearchRequiresAllTerms(): void
     {
-        $keyPair = KeyPair::generate($this->signatureService());
+        $keyPair = KeyPair::generate(CryptoFixtures::signer());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -583,7 +581,7 @@ final class FilterTest extends TestCase
 
     public function testSearchDoesNotMatchWhenTermAbsent(): void
     {
-        $keyPair = KeyPair::generate($this->signatureService());
+        $keyPair = KeyPair::generate(CryptoFixtures::signer());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -599,7 +597,7 @@ final class FilterTest extends TestCase
 
     public function testSearchCombinesWithOtherFilters(): void
     {
-        $keyPair = KeyPair::generate($this->signatureService());
+        $keyPair = KeyPair::generate(CryptoFixtures::signer());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),

@@ -45,7 +45,7 @@ Used by the library but not declared as hard requirements, because several code 
 
 - `ext-gmp` is needed by the pure-PHP signing and ECDH fallback (the documented path when `libsecp256k1` is unavailable). If you know you always have `libsecp256k1` installed and never invoke the pure-PHP path, this extension is not touched.
 - `ext-mbstring` is needed by the search-filter matcher, `EventContent::getLength`, and the bech32 TLV decoder. Most consumers will hit one of these.
-- `ext-ffi` is needed by NIP-49 (unconditionally) and by the `Secp256k1SignatureAdapter::create()` / `Secp256k1EcdhAdapter::create()` factories (for the `libsecp256k1` probe). Consumers who do not use NIP-49 and who construct the adapters directly with `new Secp256k1SignatureAdapter(null, ...)` / `new Secp256k1EcdhAdapter()` can run without `ext-ffi` at all and stay on the pure-PHP path.
+- `ext-ffi` is needed by NIP-49 (unconditionally) and by the `Secp256k1Signer::create()` / `Secp256k1Ecdh::create()` factories (for the `libsecp256k1` probe). Consumers who do not use NIP-49 and who construct the adapters directly with `new Secp256k1Signer(null, ...)` / `new Secp256k1Ecdh()` can run without `ext-ffi` at all and stay on the pure-PHP path.
 - `libsodium` system library, reachable via FFI, is required for NIP-49 scrypt. Typically already installed wherever `ext-sodium` is installed.
 
 ### Optional (recommended)
@@ -62,15 +62,15 @@ composer require innis/nostr-core
 
 ## Quick Start
 
-Cryptographic operations (signing, verification, public-key derivation, ECDH) are exposed as Domain service interfaces with Infrastructure adapters. The `Secp256k1SignatureAdapter` and `Secp256k1EcdhAdapter` pick an FFI-accelerated path when `libsecp256k1` is available and fall back to pure PHP otherwise — callers do not need to care.
+Cryptographic operations (signing, verification, public-key derivation, ECDH) are exposed as Domain service interfaces with Infrastructure adapters. The `Secp256k1Signer` and `Secp256k1Ecdh` pick an FFI-accelerated path when `libsecp256k1` is available and fall back to pure PHP otherwise — callers do not need to care.
 
 ### Key Generation
 
 ```php
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
-use Innis\Nostr\Core\Infrastructure\Adapter\Secp256k1SignatureAdapter;
+use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Signer;
 
-$signatureService = Secp256k1SignatureAdapter::create();
+$signatureService = Secp256k1Signer::create();
 $keyPair = KeyPair::generate($signatureService);
 
 echo $keyPair->getPrivateKey()->toBech32(); // nsec1...
@@ -94,36 +94,36 @@ $signedEvent->verify($signatureService); // bool
 
 ### NIP-44 Encryption
 
-Deriving a conversation key needs an ECDH service. `Secp256k1EcdhAdapter::create()` follows the same FFI-or-fallback pattern as the signature adapter:
+Deriving a conversation key needs an ECDH service. `Secp256k1Ecdh::create()` follows the same FFI-or-fallback pattern as the signature adapter:
 
 ```php
 use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
-use Innis\Nostr\Core\Infrastructure\Adapter\Nip44EncryptionAdapter;
-use Innis\Nostr\Core\Infrastructure\Adapter\Secp256k1EcdhAdapter;
+use Innis\Nostr\Core\Infrastructure\Crypto\Nip44Cipher;
+use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Ecdh;
 
-$ecdhService = Secp256k1EcdhAdapter::create();
+$ecdhService = Secp256k1Ecdh::create();
 $conversationKey = ConversationKey::derive(
     $senderPrivateKey,
     $recipientPublicKey,
     $ecdhService,
 );
 
-$encryption = new Nip44EncryptionAdapter();
+$encryption = new Nip44Cipher();
 $ciphertext = $encryption->encrypt('Hello in private', $conversationKey);
 $plaintext = $encryption->decrypt($ciphertext, $conversationKey);
 ```
 
-Nonce generation is injected. `Nip44EncryptionAdapter` accepts an optional `RandomBytesGeneratorInterface` and defaults to `NativeRandomBytesGeneratorAdapter` (PHP's `random_bytes`) when none is supplied — that is the production path. Test suites inject a deterministic generator to reproduce the official NIP-44 vectors byte-for-byte. The adapter deliberately has no public `encryptWithNonce` method, because a caller-supplied nonce is a reuse footgun that catastrophically breaks ChaCha20 confidentiality; keeping nonce generation behind a port makes tests deterministic without giving production code a way to misuse it.
+Nonce generation is injected. `Nip44Cipher` accepts an optional `RandomBytesGeneratorInterface` and defaults to `NativeRandomBytesGenerator` (PHP's `random_bytes`) when none is supplied — that is the production path. Test suites inject a deterministic generator to reproduce the official NIP-44 vectors byte-for-byte. The adapter deliberately has no public `encryptWithNonce` method, because a caller-supplied nonce is a reuse footgun that catastrophically breaks ChaCha20 confidentiality; keeping nonce generation behind a port makes tests deterministic without giving production code a way to misuse it.
 
-Always construct the adapters through their `::create()` factories. Direct instantiation via `new Secp256k1SignatureAdapter(null, ...)` or `new Secp256k1EcdhAdapter()` exists for dependency injection and testing but stays on the pure-PHP path regardless of whether `libsecp256k1` is installed.
+Always construct the adapters through their `::create()` factories. Direct instantiation via `new Secp256k1Signer(null, ...)` or `new Secp256k1Ecdh()` exists for dependency injection and testing but stays on the pure-PHP path regardless of whether `libsecp256k1` is installed.
 
 ### Message Handling
 
 ```php
-use Innis\Nostr\Core\Infrastructure\Adapter\JsonMessageSerialiserAdapter;
+use Innis\Nostr\Core\Infrastructure\Encoding\JsonMessageSerialiser;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client\EventMessage;
 
-$serialiser = new JsonMessageSerialiserAdapter();
+$serialiser = new JsonMessageSerialiser();
 
 $eventMessage = new EventMessage($signedEvent);
 $json = $eventMessage->toJson();
@@ -139,9 +139,9 @@ The NIP-49 adapter takes the password as a `Closure(): string` rather than a raw
 use Innis\Nostr\Core\Domain\Enum\KeySecurityByte;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Ncryptsec;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
-use Innis\Nostr\Core\Infrastructure\Adapter\Nip49EncryptionAdapter;
+use Innis\Nostr\Core\Infrastructure\Crypto\Nip49Cipher;
 
-$adapter = new Nip49EncryptionAdapter();
+$adapter = new Nip49Cipher();
 $privateKey = PrivateKey::generate();
 
 $ncryptsec = $adapter->encrypt(
@@ -178,7 +178,7 @@ $signatureService->sign($privateKey, $message); // throws SecretKeyMaterialZeroe
 |-----|-------------|---------|
 | [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) | Basic protocol flow | Event creation, signing, verification, serialisation |
 | [NIP-02](https://github.com/nostr-protocol/nips/blob/master/02.md) | Follow list | Kind 3 with contact list tags |
-| [NIP-04](https://github.com/nostr-protocol/nips/blob/master/04.md) | Encrypted direct messages | Kind 4 with recipient validation; `Nip04EncryptionAdapter` for AES-256-CBC encrypt/decrypt over a 32-byte ECDH shared secret |
+| [NIP-04](https://github.com/nostr-protocol/nips/blob/master/04.md) | Encrypted direct messages | Kind 4 with recipient validation; `Nip04Cipher` for AES-256-CBC encrypt/decrypt over a 32-byte ECDH shared secret |
 | [NIP-05](https://github.com/nostr-protocol/nips/blob/master/05.md) | DNS-based identity | Identifier parsing and HTTP verification |
 | [NIP-09](https://github.com/nostr-protocol/nips/blob/master/09.md) | Event deletion | Kind 5 with deletion tag validation and `isDeletion()` detection |
 | [NIP-10](https://github.com/nostr-protocol/nips/blob/master/10.md) | Reply conventions | Reply chain analysis with root/reply/mention markers |

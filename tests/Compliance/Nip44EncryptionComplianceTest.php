@@ -8,17 +8,15 @@ use Innis\Nostr\Core\Domain\Exception\EncryptionException;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
-use Innis\Nostr\Core\Infrastructure\Adapter\Nip44EncryptionAdapter;
+use Innis\Nostr\Core\Infrastructure\Crypto\Nip44Cipher;
 use Innis\Nostr\Core\Tests\Fixtures\QueuedRandomBytesGenerator;
-use Innis\Nostr\Core\Tests\Support\WithCryptoServices;
+use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
 
 final class Nip44EncryptionComplianceTest extends TestCase
 {
-    use WithCryptoServices;
-
     #[DataProvider('conversationKeyVectorsProvider')]
     public function testConversationKeyDerivation(string $sec1, string $pub2, string $expectedKey): void
     {
@@ -28,7 +26,7 @@ final class Nip44EncryptionComplianceTest extends TestCase
         self::assertNotNull($privateKey);
         self::assertNotNull($publicKey);
 
-        $conversationKey = ConversationKey::derive($privateKey, $publicKey, $this->ecdhService());
+        $conversationKey = ConversationKey::derive($privateKey, $publicKey, CryptoFixtures::ecdh());
         $derivedHex = $conversationKey->expose(static fn (string $bytes): string => bin2hex($bytes));
 
         self::assertSame($expectedKey, $derivedHex);
@@ -44,7 +42,7 @@ final class Nip44EncryptionComplianceTest extends TestCase
         $nonce = hex2bin($nonceHex);
         self::assertNotFalse($nonce);
 
-        $adapter = new Nip44EncryptionAdapter(QueuedRandomBytesGenerator::withBytes($nonce));
+        $adapter = new Nip44Cipher(QueuedRandomBytesGenerator::withBytes($nonce));
         $conversationKey = ConversationKey::fromHex($conversationKeyHex);
         self::assertNotNull($conversationKey);
 
@@ -60,7 +58,7 @@ final class Nip44EncryptionComplianceTest extends TestCase
         string $plaintext,
         string $expectedPayload,
     ): void {
-        $adapter = new Nip44EncryptionAdapter();
+        $adapter = new Nip44Cipher();
         $conversationKey = ConversationKey::fromHex($conversationKeyHex);
         self::assertNotNull($conversationKey);
 
@@ -72,7 +70,7 @@ final class Nip44EncryptionComplianceTest extends TestCase
     #[DataProvider('paddedLengthVectorsProvider')]
     public function testCalculatePaddedLength(int $unpaddedLength, int $expectedPaddedLength): void
     {
-        $adapter = new Nip44EncryptionAdapter();
+        $adapter = new Nip44Cipher();
         $reflection = new ReflectionMethod($adapter, 'calculatePaddedLength');
 
         $result = $reflection->invoke($adapter, $unpaddedLength);
@@ -83,7 +81,7 @@ final class Nip44EncryptionComplianceTest extends TestCase
     #[DataProvider('invalidDecryptVectorsProvider')]
     public function testInvalidDecryptionVectors(string $conversationKeyHex, string $payload): void
     {
-        $adapter = new Nip44EncryptionAdapter();
+        $adapter = new Nip44Cipher();
         $conversationKey = ConversationKey::fromHex($conversationKeyHex);
         self::assertNotNull($conversationKey);
 

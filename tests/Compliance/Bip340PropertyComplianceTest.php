@@ -6,9 +6,9 @@ namespace Innis\Nostr\Core\Tests\Compliance;
 
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
-use Innis\Nostr\Core\Infrastructure\Adapter\NativeRandomBytesGeneratorAdapter;
-use Innis\Nostr\Core\Infrastructure\Adapter\Secp256k1SignatureAdapter;
 use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
+use Innis\Nostr\Core\Infrastructure\Crypto\NativeRandomBytesGenerator;
+use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Signer;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -39,7 +39,7 @@ final class Bip340PropertyComplianceTest extends TestCase
     {
         $ffiService = $this->ffiService();
         $purePhpService = $this->purePhpService();
-        $randomBytes = new NativeRandomBytesGeneratorAdapter();
+        $randomBytes = new NativeRandomBytesGenerator();
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
             $privateKey = PrivateKey::generate();
@@ -72,7 +72,7 @@ final class Bip340PropertyComplianceTest extends TestCase
     {
         $ffiService = $this->ffiService();
         $purePhpService = $this->purePhpService();
-        $randomBytes = new NativeRandomBytesGeneratorAdapter();
+        $randomBytes = new NativeRandomBytesGenerator();
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
             $privateKey = PrivateKey::generate();
@@ -102,17 +102,17 @@ final class Bip340PropertyComplianceTest extends TestCase
             ?? throw new RuntimeException('Failed to build tampered signature');
     }
 
-    private function ffiService(): Secp256k1SignatureAdapter
+    private function ffiService(): Secp256k1Signer
     {
-        $randomBytes = new NativeRandomBytesGeneratorAdapter();
+        $randomBytes = new NativeRandomBytesGenerator();
         $ffi = LibSecp256k1Ffi::tryLoad($randomBytes->bytes(32))
             ?? self::markTestSkipped('libsecp256k1 FFI unavailable');
 
-        return new Secp256k1SignatureAdapter($ffi, $randomBytes);
+        return new Secp256k1Signer($ffi, $randomBytes);
     }
 
-    private function purePhpService(): Secp256k1SignatureAdapter
+    private function purePhpService(): Secp256k1Signer
     {
-        return new Secp256k1SignatureAdapter(null, new NativeRandomBytesGeneratorAdapter());
+        return new Secp256k1Signer(null, new NativeRandomBytesGenerator());
     }
 }

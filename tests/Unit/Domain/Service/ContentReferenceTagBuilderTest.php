@@ -6,8 +6,8 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Service\ContentReferenceTagBuilder;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
-use Innis\Nostr\Core\Infrastructure\Adapter\Bech32EncoderAdapter;
-use Innis\Nostr\Core\Infrastructure\Adapter\ContentReferenceExtractorAdapter;
+use Innis\Nostr\Core\Infrastructure\Encoding\Bech32Encoder;
+use Innis\Nostr\Core\Infrastructure\Reference\ContentReferenceExtractor;
 use PHPUnit\Framework\TestCase;
 
 final class ContentReferenceTagBuilderTest extends TestCase
@@ -16,8 +16,8 @@ final class ContentReferenceTagBuilderTest extends TestCase
 
     protected function setUp(): void
     {
-        $bech32 = new Bech32EncoderAdapter();
-        $extractor = new ContentReferenceExtractorAdapter($bech32);
+        $bech32 = new Bech32Encoder();
+        $extractor = new ContentReferenceExtractor($bech32);
         $this->tagBuilder = new ContentReferenceTagBuilder($extractor);
     }
 

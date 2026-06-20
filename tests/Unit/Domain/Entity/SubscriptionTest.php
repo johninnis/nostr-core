@@ -14,14 +14,12 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
-use Innis\Nostr\Core\Tests\Support\WithCryptoServices;
+use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 final class SubscriptionTest extends TestCase
 {
-    use WithCryptoServices;
-
     public function testCreateSetsDefaultPendingState(): void
     {
         $id = SubscriptionId::generate();
@@ -76,7 +74,7 @@ final class SubscriptionTest extends TestCase
 
     public function testMatchesEventWhenReceivingEvents(): void
     {
-        $keyPair = KeyPair::generate($this->signatureService());
+        $keyPair = KeyPair::generate(CryptoFixtures::signer());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -99,7 +97,7 @@ final class SubscriptionTest extends TestCase
 
     public function testMatchesEventReturnsFalseWhenClosed(): void
     {
-        $keyPair = KeyPair::generate($this->signatureService());
+        $keyPair = KeyPair::generate(CryptoFixtures::signer());
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),

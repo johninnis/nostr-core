@@ -6,21 +6,18 @@ namespace Innis\Nostr\Core\Tests\Compliance;
 
 use Innis\Nostr\Core\Domain\Exception\EncryptionException;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
-use Innis\Nostr\Core\Infrastructure\Adapter\Nip44EncryptionAdapter;
-use Innis\Nostr\Core\Tests\Support\WithCryptoServices;
+use Innis\Nostr\Core\Infrastructure\Crypto\Nip44Cipher;
 use PHPUnit\Framework\TestCase;
 
 final class Nip44PropertyComplianceTest extends TestCase
 {
-    use WithCryptoServices;
-
     private const ITERATIONS = 200;
     private const MIN_PLAINTEXT_LENGTH = 1;
     private const MAX_PLAINTEXT_LENGTH = 65535;
 
     public function testEncryptDecryptRoundTripAcrossRandomLengthsAndKeys(): void
     {
-        $adapter = new Nip44EncryptionAdapter();
+        $adapter = new Nip44Cipher();
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
             $plaintextLength = random_int(self::MIN_PLAINTEXT_LENGTH, self::MAX_PLAINTEXT_LENGTH);
@@ -41,7 +38,7 @@ final class Nip44PropertyComplianceTest extends TestCase
 
     public function testSingleBitTamperingInCiphertextTriggersMacFailure(): void
     {
-        $adapter = new Nip44EncryptionAdapter();
+        $adapter = new Nip44Cipher();
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
             $plaintextLength = random_int(self::MIN_PLAINTEXT_LENGTH, 256);
@@ -67,7 +64,7 @@ final class Nip44PropertyComplianceTest extends TestCase
 
     public function testSingleBitTamperingInMacTriggersMacFailure(): void
     {
-        $adapter = new Nip44EncryptionAdapter();
+        $adapter = new Nip44Cipher();
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
             $plaintext = random_bytes(random_int(1, 256));
@@ -88,7 +85,7 @@ final class Nip44PropertyComplianceTest extends TestCase
 
     public function testDecryptFailsAcrossRandomConversationKeys(): void
     {
-        $adapter = new Nip44EncryptionAdapter();
+        $adapter = new Nip44Cipher();
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
             $plaintext = random_bytes(random_int(1, 256));
@@ -127,7 +124,7 @@ final class Nip44PropertyComplianceTest extends TestCase
     }
 
     private function expectsMacFailure(
-        Nip44EncryptionAdapter $adapter,
+        Nip44Cipher $adapter,
         string $payload,
         ConversationKey $key,
         int $iteration,

@@ -16,20 +16,18 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
-use Innis\Nostr\Core\Tests\Support\WithCryptoServices;
+use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
 use PHPUnit\Framework\TestCase;
 
 final class Nip98ValidationServiceTest extends TestCase
 {
-    use WithCryptoServices;
-
     private Nip98ValidationService $service;
     private KeyPair $keyPair;
 
     protected function setUp(): void
     {
-        $this->service = new Nip98ValidationService($this->signatureService(), $this->createReplayGuard());
-        $this->keyPair = KeyPair::generate($this->signatureService());
+        $this->service = new Nip98ValidationService(CryptoFixtures::signer(), $this->createReplayGuard());
+        $this->keyPair = KeyPair::generate(CryptoFixtures::signer());
     }
 
     public function testValidEventReturnsPublicKey(): void
@@ -345,7 +343,7 @@ final class Nip98ValidationServiceTest extends TestCase
 
     public function testCustomTimestampTolerance(): void
     {
-        $service = new Nip98ValidationService($this->signatureService(), $this->createReplayGuard(), timestampTolerance: 10);
+        $service = new Nip98ValidationService(CryptoFixtures::signer(), $this->createReplayGuard(), timestampTolerance: 10);
         $event = $this->createSignedEventWithTimestamp(Timestamp::fromInt(time() - 30));
 
         $this->expectException(Nip98ValidationException::class);
@@ -481,7 +479,7 @@ final class Nip98ValidationServiceTest extends TestCase
             EventContent::empty()
         );
 
-        return $event->sign($this->keyPair, $this->signatureService());
+        return $event->sign($this->keyPair, CryptoFixtures::signer());
     }
 
     private function createSignedEventWithTimestamp(Timestamp $timestamp): Event
@@ -500,7 +498,7 @@ final class Nip98ValidationServiceTest extends TestCase
             EventContent::empty()
         );
 
-        return $event->sign($this->keyPair, $this->signatureService());
+        return $event->sign($this->keyPair, CryptoFixtures::signer());
     }
 
     private function createReplayGuard(): Nip98ReplayGuardInterface
@@ -531,6 +529,6 @@ final class Nip98ValidationServiceTest extends TestCase
             EventContent::empty()
         );
 
-        return $event->sign($this->keyPair, $this->signatureService());
+        return $event->sign($this->keyPair, CryptoFixtures::signer());
     }
 }

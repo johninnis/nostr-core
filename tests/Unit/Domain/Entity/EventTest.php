@@ -16,21 +16,19 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
-use Innis\Nostr\Core\Tests\Support\WithCryptoServices;
+use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
 final class EventTest extends TestCase
 {
-    use WithCryptoServices;
-
     private KeyPair $keyPair;
     private Event $event;
 
     protected function setUp(): void
     {
-        $this->keyPair = KeyPair::generate($this->signatureService());
+        $this->keyPair = KeyPair::generate(CryptoFixtures::signer());
 
         $this->event = new Event(
             $this->keyPair->getPublicKey(),
@@ -52,7 +50,7 @@ final class EventTest extends TestCase
 
     public function testCanSignEvent(): void
     {
-        $signedEvent = $this->event->sign($this->keyPair, $this->signatureService());
+        $signedEvent = $this->event->sign($this->keyPair, CryptoFixtures::signer());
 
         $this->assertTrue($signedEvent->isSigned());
         $this->assertInstanceOf(Signature::class, $signedEvent->getSignature());
@@ -62,24 +60,24 @@ final class EventTest extends TestCase
 
     public function testThrowsExceptionWhenSigningWithWrongKeyPair(): void
     {
-        $wrongKeyPair = KeyPair::generate($this->signatureService());
+        $wrongKeyPair = KeyPair::generate(CryptoFixtures::signer());
 
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Key pair does not match event public key');
 
-        $this->event->sign($wrongKeyPair, $this->signatureService());
+        $this->event->sign($wrongKeyPair, CryptoFixtures::signer());
     }
 
     public function testCanVerifyValidSignature(): void
     {
-        $signedEvent = $this->event->sign($this->keyPair, $this->signatureService());
+        $signedEvent = $this->event->sign($this->keyPair, CryptoFixtures::signer());
 
-        $this->assertTrue($signedEvent->verify($this->signatureService()));
+        $this->assertTrue($signedEvent->verify(CryptoFixtures::signer()));
     }
 
     public function testUnsignedEventFailsVerification(): void
     {
-        $this->assertFalse($this->event->verify($this->signatureService()));
+        $this->assertFalse($this->event->verify(CryptoFixtures::signer()));
     }
 
     public function testCanCalculateEventId(): void
@@ -101,7 +99,7 @@ final class EventTest extends TestCase
 
     public function testGetIdReturnsStoredIdForSignedEvent(): void
     {
-        $signedEvent = $this->event->sign($this->keyPair, $this->signatureService());
+        $signedEvent = $this->event->sign($this->keyPair, CryptoFixtures::signer());
         $storedId = $signedEvent->getId();
         $calculatedId = $signedEvent->calculateId();
 
@@ -110,7 +108,7 @@ final class EventTest extends TestCase
 
     public function testCanConvertToArray(): void
     {
-        $signedEvent = $this->event->sign($this->keyPair, $this->signatureService());
+        $signedEvent = $this->event->sign($this->keyPair, CryptoFixtures::signer());
         $array = $signedEvent->toArray();
 
         $this->assertArrayHasKey('id', $array);
@@ -141,7 +139,7 @@ final class EventTest extends TestCase
 
     public function testCanCreateFromArray(): void
     {
-        $signedEvent = $this->event->sign($this->keyPair, $this->signatureService());
+        $signedEvent = $this->event->sign($this->keyPair, CryptoFixtures::signer());
         $array = $signedEvent->toArray();
 
         $recreatedEvent = Event::fromArray($array);
@@ -191,7 +189,7 @@ final class EventTest extends TestCase
 
     public function testFromArrayCanCreateSignedEvent(): void
     {
-        $signedEvent = $this->event->sign($this->keyPair, $this->signatureService());
+        $signedEvent = $this->event->sign($this->keyPair, CryptoFixtures::signer());
         $array = $signedEvent->toArray();
 
         $recreatedEvent = Event::fromArray($array);
@@ -202,7 +200,7 @@ final class EventTest extends TestCase
 
     public function testFromJsonRetainsTheVerbatimJson(): void
     {
-        $signed = $this->event->sign($this->keyPair, $this->signatureService());
+        $signed = $this->event->sign($this->keyPair, CryptoFixtures::signer());
         $json = json_encode($signed->toArray(), JSON_THROW_ON_ERROR);
 
         $event = Event::fromJson($json);
@@ -214,14 +212,14 @@ final class EventTest extends TestCase
 
     public function testFromArrayLeavesRawJsonNull(): void
     {
-        $signed = $this->event->sign($this->keyPair, $this->signatureService());
+        $signed = $this->event->sign($this->keyPair, CryptoFixtures::signer());
 
         $this->assertNull(Event::fromArray($signed->toArray())->getRawJson());
     }
 
     public function testWithRawJsonEncodesTheEvent(): void
     {
-        $signed = $this->event->sign($this->keyPair, $this->signatureService());
+        $signed = $this->event->sign($this->keyPair, CryptoFixtures::signer());
 
         $event = Event::fromArray($signed->toArray())->withRawJson();
 
@@ -233,7 +231,7 @@ final class EventTest extends TestCase
 
     public function testWithRawJsonReturnsSameInstanceWhenRawJsonPresent(): void
     {
-        $signed = $this->event->sign($this->keyPair, $this->signatureService());
+        $signed = $this->event->sign($this->keyPair, CryptoFixtures::signer());
         $event = Event::fromJson(json_encode($signed->toArray(), JSON_THROW_ON_ERROR));
 
         $this->assertSame($event, $event->withRawJson());
@@ -241,7 +239,7 @@ final class EventTest extends TestCase
 
     public function testToJsonReturnsRawJsonWhenPresent(): void
     {
-        $signed = $this->event->sign($this->keyPair, $this->signatureService());
+        $signed = $this->event->sign($this->keyPair, CryptoFixtures::signer());
         $json = json_encode($signed->toArray(), JSON_THROW_ON_ERROR);
 
         $this->assertSame($json, Event::fromJson($json)->toJson());
@@ -249,7 +247,7 @@ final class EventTest extends TestCase
 
     public function testToJsonEncodesWhenRawJsonAbsent(): void
     {
-        $signed = $this->event->sign($this->keyPair, $this->signatureService());
+        $signed = $this->event->sign($this->keyPair, CryptoFixtures::signer());
 
         $decoded = json_decode($signed->toJson(), true, flags: JSON_THROW_ON_ERROR);
 
@@ -258,7 +256,7 @@ final class EventTest extends TestCase
 
     public function testWithTagsDropsRawJson(): void
     {
-        $signed = $this->event->sign($this->keyPair, $this->signatureService());
+        $signed = $this->event->sign($this->keyPair, CryptoFixtures::signer());
         $event = Event::fromJson(json_encode($signed->toArray(), JSON_THROW_ON_ERROR));
 
         $this->assertNull($event->withTags(TagCollection::empty())->getRawJson());
@@ -266,10 +264,10 @@ final class EventTest extends TestCase
 
     public function testSignDropsRawJson(): void
     {
-        $signed = $this->event->sign($this->keyPair, $this->signatureService());
+        $signed = $this->event->sign($this->keyPair, CryptoFixtures::signer());
         $event = Event::fromJson(json_encode($signed->toArray(), JSON_THROW_ON_ERROR));
 
-        $this->assertNull($event->sign($this->keyPair, $this->signatureService())->getRawJson());
+        $this->assertNull($event->sign($this->keyPair, CryptoFixtures::signer())->getRawJson());
     }
 
     public function testFromJsonThrowsWhenJsonIsNotAnObject(): void
@@ -323,7 +321,7 @@ final class EventTest extends TestCase
 
     public function testRoundTripSerialisation(): void
     {
-        $signedEvent = $this->event->sign($this->keyPair, $this->signatureService());
+        $signedEvent = $this->event->sign($this->keyPair, CryptoFixtures::signer());
         $array = $signedEvent->toArray();
         $recreatedEvent = Event::fromArray($array);
         $recreatedArray = $recreatedEvent->toArray();
@@ -626,7 +624,7 @@ final class EventTest extends TestCase
 
     public function testToStringReturnsEventIdForSignedEvent(): void
     {
-        $signedEvent = $this->event->sign($this->keyPair, $this->signatureService());
+        $signedEvent = $this->event->sign($this->keyPair, CryptoFixtures::signer());
 
         $this->assertSame($signedEvent->getId()->toHex(), (string) $signedEvent);
     }
@@ -739,7 +737,7 @@ final class EventTest extends TestCase
             $event->calculateId()->toHex(),
             'calculateId() must emit U+2029 verbatim per NIP-01'
         );
-        $this->assertTrue($event->verify($this->signatureService()), 'verify() must succeed for an event whose content contains U+2029');
+        $this->assertTrue($event->verify(CryptoFixtures::signer()), 'verify() must succeed for an event whose content contains U+2029');
     }
 
     private function createEventWithKindAndContent(int $kind, string $content, array $tagArrays): Event

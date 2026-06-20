@@ -12,13 +12,11 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
-use Innis\Nostr\Core\Tests\Support\WithCryptoServices;
+use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
 use PHPUnit\Framework\TestCase;
 
 final class NostrAuthHeaderCodecTest extends TestCase
 {
-    use WithCryptoServices;
-
     public function testEncodeDecodeRoundTrip(): void
     {
         $event = $this->signedEvent();
@@ -65,13 +63,13 @@ final class NostrAuthHeaderCodecTest extends TestCase
 
     private function signedEvent(): Event
     {
-        $keyPair = KeyPair::generate($this->signatureService());
+        $keyPair = KeyPair::generate(CryptoFixtures::signer());
 
         return EventFactory::createCustomKind(
             $keyPair->getPublicKey(),
             EventKind::httpAuth(),
             new EventContent(''),
             new TagCollection([]),
-        )->sign($keyPair, $this->signatureService());
+        )->sign($keyPair, CryptoFixtures::signer());
     }
 }

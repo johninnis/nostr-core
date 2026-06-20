@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Compliance;
 
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
-use Innis\Nostr\Core\Infrastructure\Adapter\NativeRandomBytesGeneratorAdapter;
-use Innis\Nostr\Core\Infrastructure\Adapter\Secp256k1EcdhAdapter;
-use Innis\Nostr\Core\Infrastructure\Adapter\Secp256k1SignatureAdapter;
 use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
+use Innis\Nostr\Core\Infrastructure\Crypto\NativeRandomBytesGenerator;
+use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Ecdh;
+use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Signer;
 use PHPUnit\Framework\TestCase;
 
 final class EcdhParityComplianceTest extends TestCase
@@ -18,8 +18,8 @@ final class EcdhParityComplianceTest extends TestCase
     public function testFfiAndPurePhpComputeByteIdenticalSharedXAcrossRandomInputs(): void
     {
         $ffiEcdh = $this->ffiEcdhService();
-        $purePhpEcdh = new Secp256k1EcdhAdapter();
-        $signer = new Secp256k1SignatureAdapter(null, new NativeRandomBytesGeneratorAdapter());
+        $purePhpEcdh = new Secp256k1Ecdh();
+        $signer = new Secp256k1Signer(null, new NativeRandomBytesGenerator());
 
         $problems = [];
 
@@ -46,8 +46,8 @@ final class EcdhParityComplianceTest extends TestCase
     public function testSharedXIsSymmetricAcrossBothEngines(): void
     {
         $ffiEcdh = $this->ffiEcdhService();
-        $purePhpEcdh = new Secp256k1EcdhAdapter();
-        $signer = new Secp256k1SignatureAdapter(null, new NativeRandomBytesGeneratorAdapter());
+        $purePhpEcdh = new Secp256k1Ecdh();
+        $signer = new Secp256k1Signer(null, new NativeRandomBytesGenerator());
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
             $privateKeyA = PrivateKey::generate();
@@ -66,12 +66,12 @@ final class EcdhParityComplianceTest extends TestCase
         }
     }
 
-    private function ffiEcdhService(): Secp256k1EcdhAdapter
+    private function ffiEcdhService(): Secp256k1Ecdh
     {
-        $randomBytes = new NativeRandomBytesGeneratorAdapter();
+        $randomBytes = new NativeRandomBytesGenerator();
         $ffi = LibSecp256k1Ffi::tryLoad($randomBytes->bytes(32))
             ?? self::markTestSkipped('libsecp256k1 FFI unavailable');
 
-        return new Secp256k1EcdhAdapter($ffi);
+        return new Secp256k1Ecdh($ffi);
     }
 }

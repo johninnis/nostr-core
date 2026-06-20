@@ -7,13 +7,11 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Identity;
 use Innis\Nostr\Core\Domain\Exception\SecretKeyMaterialZeroedException;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
-use Innis\Nostr\Core\Tests\Support\WithCryptoServices;
+use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
 use PHPUnit\Framework\TestCase;
 
 final class ConversationKeyTest extends TestCase
 {
-    use WithCryptoServices;
-
     public function testFromHexAcceptsValidHex(): void
     {
         $key = ConversationKey::fromHex(str_repeat('ab', 32));
@@ -57,10 +55,10 @@ final class ConversationKeyTest extends TestCase
     public function testDeriveIsDeterministic(): void
     {
         $privateKey = PrivateKey::generate();
-        $otherPublicKey = $this->signatureService()->derivePublicKey(PrivateKey::generate());
+        $otherPublicKey = CryptoFixtures::signer()->derivePublicKey(PrivateKey::generate());
 
-        $keyA = ConversationKey::derive($privateKey, $otherPublicKey, $this->ecdhService());
-        $keyB = ConversationKey::derive($privateKey, $otherPublicKey, $this->ecdhService());
+        $keyA = ConversationKey::derive($privateKey, $otherPublicKey, CryptoFixtures::ecdh());
+        $keyB = ConversationKey::derive($privateKey, $otherPublicKey, CryptoFixtures::ecdh());
 
         $bytesA = $keyA->expose(static fn (string $b): string => $b);
         $bytesB = $keyB->expose(static fn (string $b): string => $b);
@@ -72,11 +70,11 @@ final class ConversationKeyTest extends TestCase
     {
         $privateKeyA = PrivateKey::generate();
         $privateKeyB = PrivateKey::generate();
-        $publicKeyA = $this->signatureService()->derivePublicKey($privateKeyA);
-        $publicKeyB = $this->signatureService()->derivePublicKey($privateKeyB);
+        $publicKeyA = CryptoFixtures::signer()->derivePublicKey($privateKeyA);
+        $publicKeyB = CryptoFixtures::signer()->derivePublicKey($privateKeyB);
 
-        $keyAB = ConversationKey::derive($privateKeyA, $publicKeyB, $this->ecdhService());
-        $keyBA = ConversationKey::derive($privateKeyB, $publicKeyA, $this->ecdhService());
+        $keyAB = ConversationKey::derive($privateKeyA, $publicKeyB, CryptoFixtures::ecdh());
+        $keyBA = ConversationKey::derive($privateKeyB, $publicKeyA, CryptoFixtures::ecdh());
 
         $bytesAB = $keyAB->expose(static fn (string $b): string => $b);
         $bytesBA = $keyBA->expose(static fn (string $b): string => $b);
@@ -87,9 +85,9 @@ final class ConversationKeyTest extends TestCase
     public function testDeriveProduces32ByteKey(): void
     {
         $privateKey = PrivateKey::generate();
-        $otherPublicKey = $this->signatureService()->derivePublicKey(PrivateKey::generate());
+        $otherPublicKey = CryptoFixtures::signer()->derivePublicKey(PrivateKey::generate());
 
-        $key = ConversationKey::derive($privateKey, $otherPublicKey, $this->ecdhService());
+        $key = ConversationKey::derive($privateKey, $otherPublicKey, CryptoFixtures::ecdh());
 
         $length = $key->expose(static fn (string $b): int => strlen($b));
 

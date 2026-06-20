@@ -6,16 +6,14 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Identity;
 
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
-use Innis\Nostr\Core\Tests\Support\WithCryptoServices;
+use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
 use PHPUnit\Framework\TestCase;
 
 final class KeyPairTest extends TestCase
 {
-    use WithCryptoServices;
-
     public function testCanGenerateKeyPair(): void
     {
-        $keyPair = KeyPair::generate($this->signatureService());
+        $keyPair = KeyPair::generate(CryptoFixtures::signer());
 
         $this->assertSame(64, strlen($keyPair->getPrivateKey()->toHex()));
         $this->assertSame(64, strlen($keyPair->getPublicKey()->toHex()));
@@ -24,18 +22,18 @@ final class KeyPairTest extends TestCase
     public function testCanCreateFromPrivateKey(): void
     {
         $privateKey = PrivateKey::generate();
-        $keyPair = KeyPair::fromPrivateKey($privateKey, $this->signatureService());
+        $keyPair = KeyPair::fromPrivateKey($privateKey, CryptoFixtures::signer());
 
         $this->assertSame($privateKey->toHex(), $keyPair->getPrivateKey()->toHex());
         $this->assertTrue(
-            $keyPair->getPublicKey()->equals($this->signatureService()->derivePublicKey($privateKey))
+            $keyPair->getPublicKey()->equals(CryptoFixtures::signer()->derivePublicKey($privateKey))
         );
     }
 
     public function testGeneratedKeyPairsAreUnique(): void
     {
-        $keyPair1 = KeyPair::generate($this->signatureService());
-        $keyPair2 = KeyPair::generate($this->signatureService());
+        $keyPair1 = KeyPair::generate(CryptoFixtures::signer());
+        $keyPair2 = KeyPair::generate(CryptoFixtures::signer());
 
         $this->assertNotEquals($keyPair1->getPrivateKey()->toHex(), $keyPair2->getPrivateKey()->toHex());
         $this->assertNotEquals($keyPair1->getPublicKey()->toHex(), $keyPair2->getPublicKey()->toHex());
