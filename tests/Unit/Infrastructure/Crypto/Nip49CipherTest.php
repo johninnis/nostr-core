@@ -207,7 +207,7 @@ final class Nip49CipherTest extends TestCase
     {
         $decoded = Bech32Codec::decode((string) $source) ?? throw new RuntimeException('Test setup: source did not decode');
         $data = $decoded['data'];
-        $data[$offset] = $mutate($data[$offset]);
+        $data[$offset] = chr($mutate(ord($data[$offset])));
         $bech32 = Bech32Codec::encode(Ncryptsec::HRP, $data);
 
         return Ncryptsec::fromString($bech32)

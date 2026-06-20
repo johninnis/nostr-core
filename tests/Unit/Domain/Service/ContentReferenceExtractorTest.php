@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
-use Innis\Nostr\Core\Domain\Service\Bech32EncoderInterface;
 use Innis\Nostr\Core\Domain\Service\ContentReferenceExtractor;
+use Innis\Nostr\Core\Domain\Service\Nip19CodecInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use PHPUnit\Framework\TestCase;
 
@@ -16,7 +16,7 @@ final class ContentReferenceExtractorTest extends TestCase
     {
         $content = EventContent::fromString('Check out nostr:npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz and nostr:note10123456789abcdef0123456789abcdef0123456789abcdef0123456abc');
 
-        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
         $bech32Encoder
             ->expects($this->exactly(2))
             ->method('decodeComplexEntity')
@@ -49,7 +49,7 @@ final class ContentReferenceExtractorTest extends TestCase
     {
         $content = EventContent::fromString('Here is npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz and note10123456789abcdef0123456789abcdef0123456789abcdef0123456abc and nevent1qqstna2yrezu5wghjvswqqculvvwxsrcvu7uc0f78gan4xqhvz49d9spr3mhxue69uhkummnw3ez6un9d3shjtn4de6x2argwghx6egpr4mhxue69uhkummnw3ez6ur4vgh8wetvd3hhyer9wghxuet5nxnepm');
 
-        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
         $bech32Encoder
             ->expects($this->exactly(3))
             ->method('decodeComplexEntity')
@@ -85,7 +85,7 @@ final class ContentReferenceExtractorTest extends TestCase
     {
         $content = EventContent::fromString('Check out #[0] and #[1] references');
 
-        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
         $bech32Encoder
             ->expects($this->exactly(2))
             ->method('decodeComplexEntity')
@@ -108,7 +108,7 @@ final class ContentReferenceExtractorTest extends TestCase
     {
         $content = EventContent::fromString('Invalid reference: npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz');
 
-        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
         $bech32Encoder
             ->expects($this->once())
             ->method('decodeComplexEntity')
@@ -125,7 +125,7 @@ final class ContentReferenceExtractorTest extends TestCase
     {
         $content = EventContent::fromString('Reference: nevent1test123');
 
-        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
         $bech32Encoder
             ->expects($this->once())
             ->method('decodeComplexEntity')
@@ -157,7 +157,7 @@ final class ContentReferenceExtractorTest extends TestCase
     {
         $content = EventContent::fromString('Reference: nevent1test456');
 
-        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
         $bech32Encoder
             ->expects($this->once())
             ->method('decodeComplexEntity')
@@ -182,7 +182,7 @@ final class ContentReferenceExtractorTest extends TestCase
     {
         $content = EventContent::fromString('Reference: nevent1test123');
 
-        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
         $bech32Encoder
             ->expects($this->once())
             ->method('decodeComplexEntity')
@@ -205,7 +205,7 @@ final class ContentReferenceExtractorTest extends TestCase
     {
         $content = EventContent::fromString('Invalid: xnpub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyzx and valid npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz');
 
-        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
         $bech32Encoder
             ->expects($this->once())
             ->method('decodeComplexEntity')
@@ -223,7 +223,7 @@ final class ContentReferenceExtractorTest extends TestCase
         $content = EventContent::fromString('No references here, just plain text');
 
         $extractor = new ContentReferenceExtractor(
-            $this->createStub(Bech32EncoderInterface::class)
+            $this->createStub(Nip19CodecInterface::class)
         );
 
         $this->assertEmpty($extractor->extractContentReferences($content));
@@ -236,7 +236,7 @@ final class ContentReferenceExtractorTest extends TestCase
 
         $content = EventContent::fromString("Some text\n\n{$bareNevent}nostr:{$prefixedNevent} ");
 
-        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
         $bech32Encoder
             ->expects($this->exactly(2))
             ->method('decodeComplexEntity')

@@ -9,7 +9,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Override;
 
-final class Bech32Encoder implements Bech32EncoderInterface
+final class Nip19Codec implements Nip19CodecInterface
 {
     #[Override]
     public function decodeComplexEntity(string $bech32): ?array
@@ -24,11 +24,11 @@ final class Bech32Encoder implements Bech32EncoderInterface
         return match ($decoded['hrp']) {
             'npub' => [
                 'type' => 'pubkey',
-                'pubkey' => Bech32Codec::bytesToHex($data),
+                'pubkey' => HexCodec::fromBytes($data),
             ],
             'note' => [
                 'type' => 'event',
-                'event_id' => Bech32Codec::bytesToHex($data),
+                'event_id' => HexCodec::fromBytes($data),
             ],
             'nprofile' => $this->decodeProfile($data),
             'nevent' => $this->decodeEvent($data),
@@ -40,12 +40,12 @@ final class Bech32Encoder implements Bech32EncoderInterface
     #[Override]
     public function encodeAddressableEvent(string $identifier, PublicKey $pubkey, int $kind, array $relays = []): string
     {
-        $bytes = self::encodeTlv(
-            [self::utf8ToBytes($identifier)],
-            array_map(self::utf8ToBytes(...), $relays),
-            [Bech32Codec::hexToBytes($pubkey->toHex())],
-            [self::integerToBytes($kind)],
-        );
+        $bytes = self::tlvEntry(0, $identifier);
+        foreach ($relays as $relay) {
+            $bytes .= self::tlvEntry(1, (string) $relay);
+        }
+        $bytes .= self::tlvEntry(2, $pubkey->toBytes());
+        $bytes .= self::tlvEntry(3, self::integerToBytes($kind));
 
         return Bech32Codec::encode('naddr', $bytes);
     }
@@ -77,7 +77,7 @@ final class Bech32Encoder implements Bech32EncoderInterface
         return EventId::fromHex($input);
     }
 
-    private function decodeProfile(array $data): ?array
+    private function decodeProfile(string $data): ?array
     {
         $tlv = self::parseTlv($data);
         if (null === $tlv) {
@@ -86,12 +86,12 @@ final class Bech32Encoder implements Bech32EncoderInterface
 
         return [
             'type' => 'profile',
-            'pubkey' => isset($tlv[0][0]) ? Bech32Codec::bytesToHex($tlv[0][0]) : '',
+            'pubkey' => isset($tlv[0][0]) ? HexCodec::fromBytes($tlv[0][0]) : '',
             'relays' => self::extractRelays($tlv),
         ];
     }
 
-    private function decodeEvent(array $data): ?array
+    private function decodeEvent(string $data): ?array
     {
         $tlv = self::parseTlv($data);
         if (null === $tlv) {
@@ -100,14 +100,14 @@ final class Bech32Encoder implements Bech32EncoderInterface
 
         return [
             'type' => 'event',
-            'event_id' => isset($tlv[0][0]) ? Bech32Codec::bytesToHex($tlv[0][0]) : '',
+            'event_id' => isset($tlv[0][0]) ? HexCodec::fromBytes($tlv[0][0]) : '',
             'relays' => self::extractRelays($tlv),
-            'author' => isset($tlv[2][0]) ? Bech32Codec::bytesToHex($tlv[2][0]) : null,
+            'author' => isset($tlv[2][0]) ? HexCodec::fromBytes($tlv[2][0]) : null,
             'kind' => isset($tlv[3][0]) ? self::bytesToInteger($tlv[3][0]) : null,
         ];
     }
 
-    private function decodeAddress(array $data): ?array
+    private function decodeAddress(string $data): ?array
     {
         $tlv = self::parseTlv($data);
         if (null === $tlv) {
@@ -116,27 +116,27 @@ final class Bech32Encoder implements Bech32EncoderInterface
 
         return [
             'type' => 'address',
-            'identifier' => isset($tlv[0][0]) ? self::bytesToUtf8($tlv[0][0]) : '',
-            'pubkey' => isset($tlv[2][0]) ? Bech32Codec::bytesToHex($tlv[2][0]) : '',
+            'identifier' => $tlv[0][0] ?? '',
+            'pubkey' => isset($tlv[2][0]) ? HexCodec::fromBytes($tlv[2][0]) : '',
             'kind' => isset($tlv[3][0]) ? self::bytesToInteger($tlv[3][0]) : null,
             'relays' => self::extractRelays($tlv),
         ];
     }
 
-    private static function parseTlv(array $bytes): ?array
+    private static function parseTlv(string $bytes): ?array
     {
         $result = [];
         $position = 0;
-        $count = count($bytes);
+        $length = strlen($bytes);
 
-        while ($position < $count) {
-            $type = $bytes[$position++];
-            $length = $bytes[$position++] ?? 0;
-            $value = array_slice($bytes, $position, $length);
-            if (count($value) < $length) {
+        while ($position < $length) {
+            $type = ord($bytes[$position++]);
+            $valueLength = $position < $length ? ord($bytes[$position++]) : 0;
+            $value = substr($bytes, $position, $valueLength);
+            if (strlen($value) < $valueLength) {
                 return null;
             }
-            $position += $length;
+            $position += $valueLength;
             $result[$type] ??= [];
             $result[$type][] = $value;
         }
@@ -144,56 +144,25 @@ final class Bech32Encoder implements Bech32EncoderInterface
         return $result;
     }
 
-    private static function encodeTlv(array ...$tlvEntries): array
+    private static function tlvEntry(int $type, string $value): string
     {
-        $result = [];
-        foreach ($tlvEntries as $type => $values) {
-            foreach ($values as $value) {
-                $result[] = $type;
-                $result[] = count($value);
-                array_push($result, ...$value);
-            }
-        }
-
-        return $result;
+        return pack('CC', $type, strlen($value)).$value;
     }
 
     private static function extractRelays(array $tlv): array
     {
-        if (!isset($tlv[1])) {
-            return [];
-        }
-
-        return array_map(self::bytesToUtf8(...), $tlv[1]);
+        return $tlv[1] ?? [];
     }
 
-    private static function bytesToUtf8(array $bytes): string
+    private static function bytesToInteger(string $bytes): int
     {
-        $utf8 = '';
-        foreach ($bytes as $byte) {
-            $utf8 .= chr($byte);
-        }
+        $unpacked = unpack('N', str_pad($bytes, 4, "\x00", STR_PAD_LEFT));
 
-        return $utf8;
+        return false === $unpacked ? 0 : $unpacked[1];
     }
 
-    private static function utf8ToBytes(string $utf8): array
+    private static function integerToBytes(int $integer): string
     {
-        return array_map('ord', mb_str_split($utf8));
-    }
-
-    private static function bytesToInteger(array $bytes): int
-    {
-        return (int) hexdec(Bech32Codec::bytesToHex($bytes));
-    }
-
-    private static function integerToBytes(int $integer): array
-    {
-        return [
-            ($integer >> 24) & 0xFF,
-            ($integer >> 16) & 0xFF,
-            ($integer >> 8) & 0xFF,
-            $integer & 0xFF,
-        ];
+        return pack('N', $integer);
     }
 }

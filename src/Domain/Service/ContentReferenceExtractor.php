@@ -17,7 +17,7 @@ use Override;
 final class ContentReferenceExtractor implements ContentReferenceExtractorInterface
 {
     public function __construct(
-        private Bech32EncoderInterface $bech32Encoder,
+        private Nip19CodecInterface $nip19Codec,
     ) {
     }
 
@@ -82,7 +82,7 @@ final class ContentReferenceExtractor implements ContentReferenceExtractorInterf
 
     private function decodeBech32Reference(string $bech32): array
     {
-        return $this->bech32Encoder->decodeComplexEntity($bech32) ?? [];
+        return $this->nip19Codec->decodeComplexEntity($bech32) ?? [];
     }
 
     private function parseRelayUrls(array $relayStrings): array

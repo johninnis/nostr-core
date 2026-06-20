@@ -13,7 +13,7 @@ use Override;
 final class RelayHintExtractor implements RelayHintExtractorInterface
 {
     public function __construct(
-        private Bech32EncoderInterface $bech32Encoder,
+        private Nip19CodecInterface $nip19Codec,
     ) {
     }
 
@@ -79,7 +79,7 @@ final class RelayHintExtractor implements RelayHintExtractorInterface
     #[Override]
     public function extractRelayHintFromNevent(string $nevent): ?RelayUrl
     {
-        $decoded = $this->bech32Encoder->decodeComplexEntity($nevent);
+        $decoded = $this->nip19Codec->decodeComplexEntity($nevent);
         if (null === $decoded || empty($decoded['relays'])) {
             return null;
         }

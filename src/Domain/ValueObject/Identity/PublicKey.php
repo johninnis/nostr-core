@@ -28,7 +28,7 @@ final readonly class PublicKey
 
     public function toBech32(): string
     {
-        return Bech32Codec::encodeBytes('npub', $this->toBytes());
+        return Bech32Codec::encode('npub', $this->toBytes());
     }
 
     public function equals(self $other): bool
@@ -56,16 +56,12 @@ final readonly class PublicKey
 
     public static function fromBech32(string $bech32): ?self
     {
-        if (!str_starts_with($bech32, 'npub1')) {
-            return null;
-        }
-
         $decoded = Bech32Codec::decode($bech32);
-        if (null === $decoded) {
+        if (null === $decoded || 'npub' !== $decoded['hrp']) {
             return null;
         }
 
-        return new self(Bech32Codec::bytesToHex($decoded['data']));
+        return self::fromBytes($decoded['data']);
     }
 
     public function __toString(): string

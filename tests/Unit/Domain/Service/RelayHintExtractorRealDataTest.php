@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
-use Innis\Nostr\Core\Domain\Service\Bech32EncoderInterface;
+use Innis\Nostr\Core\Domain\Service\Nip19CodecInterface;
 use Innis\Nostr\Core\Domain\Service\RelayHintExtractor;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
@@ -79,7 +79,7 @@ final class RelayHintExtractorRealDataTest extends TestCase
     {
         $content = "Getting married and having kids will make you level up as a man faster and further than anything else.\n\nnostr:nevent1qvzqqqqqqypzqxh7p36w84mcf6af8f0rlf255mhtqxfg6ynnnt5t5jpj0p5q3cmdqqsdxkwnafkgnfg68g6xkqau25548fewg440x5s8r4uud0sednkewugdc6hft ";
 
-        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
         $bech32Encoder
             ->expects($this->once())
             ->method('decodeComplexEntity')
@@ -125,7 +125,7 @@ final class RelayHintExtractorRealDataTest extends TestCase
             EventContent::fromString("Getting married and having kids will make you level up as a man faster and further than anything else.\n\nnostr:nevent1qvzqqqqqqypzqxh7p36w84mcf6af8f0rlf255mhtqxfg6ynnnt5t5jpj0p5q3cmdqqsdxkwnafkgnfg68g6xkqau25548fewg440x5s8r4uud0sednkewugdc6hft ")
         );
 
-        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
         $bech32Encoder
             ->expects($this->once())
             ->method('decodeComplexEntity')
@@ -145,10 +145,10 @@ final class RelayHintExtractorRealDataTest extends TestCase
         $this->assertContains('wss://relay.damus.io', $relayStrings);
     }
 
-    private function makeExtractor(?Bech32EncoderInterface $bech32Encoder = null): RelayHintExtractor
+    private function makeExtractor(?Nip19CodecInterface $bech32Encoder = null): RelayHintExtractor
     {
         return new RelayHintExtractor(
-            $bech32Encoder ?? $this->createStub(Bech32EncoderInterface::class),
+            $bech32Encoder ?? $this->createStub(Nip19CodecInterface::class),
         );
     }
 }

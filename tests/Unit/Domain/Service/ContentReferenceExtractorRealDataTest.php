@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
-use Innis\Nostr\Core\Domain\Service\Bech32EncoderInterface;
 use Innis\Nostr\Core\Domain\Service\ContentReferenceExtractor;
+use Innis\Nostr\Core\Domain\Service\Nip19CodecInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use PHPUnit\Framework\TestCase;
 
@@ -16,7 +16,7 @@ final class ContentReferenceExtractorRealDataTest extends TestCase
     {
         $content = EventContent::fromString("Getting married and having kids will make you level up as a man faster and further than anything else.\n\nnostr:nevent1qvzqqqqqqypzqxh7p36w84mcf6af8f0rlf255mhtqxfg6ynnnt5t5jpj0p5q3cmdqqsdxkwnafkgnfg68g6xkqau25548fewg440x5s8r4uud0sednkewugdc6hft ");
 
-        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
         $bech32Encoder
             ->expects($this->once())
             ->method('decodeComplexEntity')
@@ -39,7 +39,7 @@ final class ContentReferenceExtractorRealDataTest extends TestCase
     {
         $content = EventContent::fromString("Do not be shocked if the oft talked about theory of a gold-backed BRICS currency becomes a reality this Fall.\n\nnostr:naddr1qvzqqqr4gupzq3e0gs8jnmued6f2rp4c6vs07xqvs4vs8zpwt82smcdch4txjvq7qys8wumn8ghj7cnfw33k76twd4shs6tdv9kxjum5wvhx7mnvd9hx2tcpzemhxue69uhk2er9dchxummnw3ezumrpdejz7qqlvd5xjmnp945hxttswfjhqurfdenj6en0wgkhxmmdv46xs6twvuk7xtlq");
 
-        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
         $bech32Encoder
             ->expects($this->once())
             ->method('decodeComplexEntity')
@@ -63,7 +63,7 @@ final class ContentReferenceExtractorRealDataTest extends TestCase
         $content = EventContent::fromString("open source software is powerful because anyone can verify, modify, distribute, and use without permission\n\na robust open source ecosystem empowers all of us to take agency over our lives\n\nfighting with people over what software they run is mostly unproductive, run what you want, thats the whole point");
 
         $extractor = new ContentReferenceExtractor(
-            $this->createStub(Bech32EncoderInterface::class)
+            $this->createStub(Nip19CodecInterface::class)
         );
 
         $this->assertEmpty($extractor->extractContentReferences($content));

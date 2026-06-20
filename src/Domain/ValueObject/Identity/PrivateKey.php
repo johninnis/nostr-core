@@ -28,16 +28,12 @@ final readonly class PrivateKey
 
     public static function fromBech32(string $bech32): ?self
     {
-        if (!str_starts_with($bech32, 'nsec1')) {
-            return null;
-        }
-
         $decoded = Bech32Codec::decode($bech32);
-        if (null === $decoded) {
+        if (null === $decoded || 'nsec' !== $decoded['hrp']) {
             return null;
         }
 
-        return self::fromHex(Bech32Codec::bytesToHex($decoded['data']));
+        return self::fromBytes($decoded['data']);
     }
 
     public static function fromBytes(string $bytes): ?self
@@ -61,7 +57,7 @@ final readonly class PrivateKey
 
     public function toBech32(): string
     {
-        return $this->material->expose(static fn (string $bytes): string => Bech32Codec::encodeBytes('nsec', $bytes));
+        return $this->material->expose(static fn (string $bytes): string => Bech32Codec::encode('nsec', $bytes));
     }
 
     /**

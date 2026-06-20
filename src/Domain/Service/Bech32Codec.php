@@ -24,13 +24,14 @@ final class Bech32Codec
     private const int MAX_LENGTH = 5000;
     private const int CHECKSUM_LENGTH = 6;
 
-    public static function encode(string $hrp, array $data, Bech32Variant $variant = Bech32Variant::Bech32): string
+    public static function encode(string $hrp, string $bytes, Bech32Variant $variant = Bech32Variant::Bech32): string
     {
-        $words = self::convertBits($data, 8, 5, true);
+        $byteValues = '' === $bytes ? [] : array_values((array) unpack('C*', $bytes));
+        $words = self::convertBits($byteValues, 8, 5, true);
         $checksum = self::createChecksum($hrp, $words, $variant);
 
         $encoded = $hrp.'1';
-        foreach (array_merge($words, $checksum) as $value) {
+        foreach ([...$words, ...$checksum] as $value) {
             $encoded .= self::CHARSET[$value];
         }
 
@@ -102,31 +103,8 @@ final class Bech32Codec
 
         return [
             'hrp' => $hrp,
-            'data' => $payload,
+            'data' => pack('C*', ...$payload),
         ];
-    }
-
-    public static function encodeBytes(string $hrp, string $bytes, Bech32Variant $variant = Bech32Variant::Bech32): string
-    {
-        $unpacked = unpack('C*', $bytes);
-        assert(false !== $unpacked);
-
-        return self::encode($hrp, array_values($unpacked), $variant);
-    }
-
-    public static function hexToBytes(string $hex): array
-    {
-        return array_map('hexdec', str_split($hex, 2));
-    }
-
-    public static function bytesToHex(array $bytes): string
-    {
-        $hex = '';
-        foreach ($bytes as $byte) {
-            $hex .= str_pad(dechex($byte), 2, '0', STR_PAD_LEFT);
-        }
-
-        return $hex;
     }
 
     private static function convertBits(array $data, int $fromBits, int $toBits, bool $pad): array

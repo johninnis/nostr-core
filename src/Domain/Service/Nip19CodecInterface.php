@@ -8,7 +8,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 
-interface Bech32EncoderInterface
+interface Nip19CodecInterface
 {
     public function decodeComplexEntity(string $bech32): ?array;
 

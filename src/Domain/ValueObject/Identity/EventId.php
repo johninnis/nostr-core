@@ -27,7 +27,7 @@ final readonly class EventId
 
     public function toBech32(): string
     {
-        return Bech32Codec::encodeBytes('note', $this->toBytes());
+        return Bech32Codec::encode('note', $this->toBytes());
     }
 
     public function equals(self $other): bool
@@ -55,16 +55,12 @@ final readonly class EventId
 
     public static function fromBech32(string $bech32): ?self
     {
-        if (!str_starts_with($bech32, 'note1')) {
-            return null;
-        }
-
         $decoded = Bech32Codec::decode($bech32);
-        if (null === $decoded) {
+        if (null === $decoded || 'note' !== $decoded['hrp']) {
             return null;
         }
 
-        return self::fromHex(Bech32Codec::bytesToHex($decoded['data']));
+        return self::fromBytes($decoded['data']);
     }
 
     public function __toString(): string

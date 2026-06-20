@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
-use Innis\Nostr\Core\Domain\Service\Bech32EncoderInterface;
+use Innis\Nostr\Core\Domain\Service\Nip19CodecInterface;
 use Innis\Nostr\Core\Domain\Service\RelayHintExtractor;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
@@ -52,7 +52,7 @@ final class RelayHintExtractorTest extends TestCase
     public function testExtractRelayHintFromNevent(): void
     {
         $nevent = 'nevent1abc123';
-        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
         $bech32Encoder
             ->expects($this->once())
             ->method('decodeComplexEntity')
@@ -68,7 +68,7 @@ final class RelayHintExtractorTest extends TestCase
     public function testExtractRelayHintFromNeventReturnsNullWhenNoRelays(): void
     {
         $nevent = 'nevent1abc123';
-        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
         $bech32Encoder
             ->expects($this->once())
             ->method('decodeComplexEntity')
@@ -81,7 +81,7 @@ final class RelayHintExtractorTest extends TestCase
     public function testExtractRelayHintFromNeventReturnsNullForUndecodableEntity(): void
     {
         $nevent = 'nevent1invalid';
-        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
         $bech32Encoder
             ->expects($this->once())
             ->method('decodeComplexEntity')
@@ -95,7 +95,7 @@ final class RelayHintExtractorTest extends TestCase
     {
         $content = 'Check out this event: nevent1abc123 and this one nevent1def456';
 
-        $bech32Encoder = $this->createMock(Bech32EncoderInterface::class);
+        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
         $bech32Encoder
             ->expects($this->exactly(2))
             ->method('decodeComplexEntity')
@@ -155,10 +155,10 @@ final class RelayHintExtractorTest extends TestCase
         $this->assertEquals('wss://valid-relay.com', (string) $relays[0]);
     }
 
-    private function makeExtractor(?Bech32EncoderInterface $bech32Encoder = null): RelayHintExtractor
+    private function makeExtractor(?Nip19CodecInterface $bech32Encoder = null): RelayHintExtractor
     {
         return new RelayHintExtractor(
-            $bech32Encoder ?? $this->createStub(Bech32EncoderInterface::class),
+            $bech32Encoder ?? $this->createStub(Nip19CodecInterface::class),
         );
     }
 

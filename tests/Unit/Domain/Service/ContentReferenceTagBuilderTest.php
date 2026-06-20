@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
-use Innis\Nostr\Core\Domain\Service\Bech32Encoder;
 use Innis\Nostr\Core\Domain\Service\ContentReferenceExtractor;
 use Innis\Nostr\Core\Domain\Service\ContentReferenceTagBuilder;
+use Innis\Nostr\Core\Domain\Service\Nip19Codec;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use PHPUnit\Framework\TestCase;
 
@@ -16,7 +16,7 @@ final class ContentReferenceTagBuilderTest extends TestCase
 
     protected function setUp(): void
     {
-        $bech32 = new Bech32Encoder();
+        $bech32 = new Nip19Codec();
         $extractor = new ContentReferenceExtractor($bech32);
         $this->tagBuilder = new ContentReferenceTagBuilder($extractor);
     }

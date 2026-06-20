@@ -34,24 +34,16 @@ final readonly class Ncryptsec implements Stringable
 
     public static function fromString(string $bech32): ?self
     {
-        if (!str_starts_with($bech32, self::HRP.'1')) {
-            return null;
-        }
-
         $decoded = Bech32Codec::decode($bech32);
-        if (null === $decoded) {
+        if (null === $decoded || self::HRP !== $decoded['hrp']) {
             return null;
         }
 
-        if (self::HRP !== $decoded['hrp']) {
+        $payload = $decoded['data'];
+
+        if (self::PAYLOAD_LENGTH !== strlen($payload)) {
             return null;
         }
-
-        if (self::PAYLOAD_LENGTH !== count($decoded['data'])) {
-            return null;
-        }
-
-        $payload = pack('C*', ...$decoded['data']);
 
         if (self::VERSION_BYTE !== ord($payload[self::VERSION_OFFSET])) {
             return null;
@@ -90,12 +82,7 @@ final readonly class Ncryptsec implements Stringable
             .chr($keySecurity->value)
             .$aeadOutput;
 
-        $byteValues = unpack('C*', $payload);
-        assert(false !== $byteValues);
-
-        $bech32 = Bech32Codec::encode(self::HRP, array_values($byteValues));
-
-        return new self($bech32, $payload);
+        return new self(Bech32Codec::encode(self::HRP, $payload), $payload);
     }
 
     public function logN(): int
