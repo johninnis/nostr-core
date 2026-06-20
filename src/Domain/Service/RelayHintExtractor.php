@@ -95,16 +95,11 @@ final class RelayHintExtractor implements RelayHintExtractorInterface
     private function deduplicateRelayUrls(array $relayUrls): array
     {
         $unique = [];
-        $seen = [];
 
         foreach ($relayUrls as $relayUrl) {
-            $urlString = (string) $relayUrl;
-            if (!isset($seen[$urlString])) {
-                $unique[] = $relayUrl;
-                $seen[$urlString] = true;
-            }
+            $unique[(string) $relayUrl] ??= $relayUrl;
         }
 
-        return $unique;
+        return array_values($unique);
     }
 }

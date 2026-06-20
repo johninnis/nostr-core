@@ -115,18 +115,13 @@ final class EventCollection extends TypedCollection implements JsonSerializable
 
     public function unique(): self
     {
-        $seen = [];
         $unique = [];
 
         foreach ($this->items as $event) {
-            $id = (string) $event->getId();
-            if (!isset($seen[$id])) {
-                $seen[$id] = true;
-                $unique[] = $event;
-            }
+            $unique[(string) $event->getId()] ??= $event;
         }
 
-        return new self($unique);
+        return new self(array_values($unique));
     }
 
     #[Override]

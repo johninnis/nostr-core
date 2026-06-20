@@ -91,7 +91,7 @@ final class SubscriptionCollection implements IteratorAggregate, Countable
 
     public function isEmpty(): bool
     {
-        return empty($this->subscriptions);
+        return [] === $this->subscriptions;
     }
 
     public function toArray(): array

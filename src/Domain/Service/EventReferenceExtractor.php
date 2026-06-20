@@ -127,16 +127,11 @@ final class EventReferenceExtractor implements EventReferenceExtractorInterface
     private function deduplicateByHex(array $items): array
     {
         $unique = [];
-        $seen = [];
 
         foreach ($items as $item) {
-            $hex = $item->toHex();
-            if (!isset($seen[$hex])) {
-                $unique[] = $item;
-                $seen[$hex] = true;
-            }
+            $unique[$item->toHex()] ??= $item;
         }
 
-        return $unique;
+        return array_values($unique);
     }
 }
