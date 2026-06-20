@@ -34,7 +34,7 @@ final class Nip04Cipher implements Nip04EncryptionInterface
             }
             $ct = openssl_encrypt($plaintext, self::CIPHER, $key, OPENSSL_RAW_DATA, $iv);
             if (false === $ct) {
-                throw new EncryptionException('NIP-04 encryption failed: '.openssl_error_string());
+                throw new EncryptionException('NIP-04 encryption failed');
             }
 
             return $ct;
@@ -73,7 +73,7 @@ final class Nip04Cipher implements Nip04EncryptionInterface
             }
             $pt = openssl_decrypt($ciphertext, self::CIPHER, $key, OPENSSL_RAW_DATA, $iv);
             if (false === $pt) {
-                throw new EncryptionException('NIP-04 decryption failed: '.openssl_error_string());
+                throw new EncryptionException('NIP-04 decryption failed');
             }
 
             return $pt;
