@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Domain\Entity;
+namespace Innis\Nostr\Core\Domain\ValueObject\Reference;
 
 final readonly class QuoteAnalysis
 {

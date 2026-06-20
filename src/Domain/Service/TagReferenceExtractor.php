@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Service;
 
-use Innis\Nostr\Core\Domain\Entity\EventReference;
-use Innis\Nostr\Core\Domain\Entity\EventReferenceCollection;
-use Innis\Nostr\Core\Domain\Entity\TagReferences;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinateCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReference;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReferenceCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\PubkeyReference;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\PubkeyReferenceCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\RelayReference;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\RelayReferenceCollection;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\TagReferences;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 

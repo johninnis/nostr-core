@@ -2,14 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Domain\Entity;
+namespace Innis\Nostr\Core\Domain\ValueObject\Reference;
 
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinateCollection;
-use Innis\Nostr\Core\Domain\ValueObject\Reference\PubkeyReference;
-use Innis\Nostr\Core\Domain\ValueObject\Reference\PubkeyReferenceCollection;
-use Innis\Nostr\Core\Domain\ValueObject\Reference\RelayReference;
-use Innis\Nostr\Core\Domain\ValueObject\Reference\RelayReferenceCollection;
 use InvalidArgumentException;
 
 final readonly class TagReferences

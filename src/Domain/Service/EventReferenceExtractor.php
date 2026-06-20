@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Service;
 
-use Innis\Nostr\Core\Domain\Entity\ContentReferenceCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
-use Innis\Nostr\Core\Domain\Entity\EventReferences;
-use Innis\Nostr\Core\Domain\Entity\QuoteAnalysis;
-use Innis\Nostr\Core\Domain\Entity\ReplyChain;
-use Innis\Nostr\Core\Domain\Entity\TagReferences;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventIdCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKeyCollection;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\ContentReferenceCollection;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReferences;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\QuoteAnalysis;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\ReplyChain;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\TagReferences;
 use Override;
 
 final class EventReferenceExtractor implements EventReferenceExtractorInterface

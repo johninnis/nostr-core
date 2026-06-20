@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Service;
 
-use Innis\Nostr\Core\Domain\Entity\EventReference;
-use Innis\Nostr\Core\Domain\Entity\EventReferenceCollection;
-use Innis\Nostr\Core\Domain\Entity\ReplyChain;
 use Innis\Nostr\Core\Domain\Enum\Nip10Marker;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKeyCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReference;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReferenceCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\PubkeyReference;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\ReplyChain;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 

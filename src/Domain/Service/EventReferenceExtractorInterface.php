@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
-use Innis\Nostr\Core\Domain\Entity\EventReferences;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReferences;
 
 interface EventReferenceExtractorInterface
 {

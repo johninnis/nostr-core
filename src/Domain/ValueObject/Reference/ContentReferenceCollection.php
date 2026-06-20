@@ -2,24 +2,24 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Domain\Entity;
+namespace Innis\Nostr\Core\Domain\ValueObject\Reference;
 
 use Innis\Nostr\Core\Domain\Collection\TypedCollection;
 use Override;
 
 /**
- * @extends TypedCollection<EventReference>
+ * @extends TypedCollection<ContentReference>
  */
-final class EventReferenceCollection extends TypedCollection
+final class ContentReferenceCollection extends TypedCollection
 {
     #[Override]
     protected function elementType(): string
     {
-        return EventReference::class;
+        return ContentReference::class;
     }
 
     /**
-     * @return list<EventReference>
+     * @return list<ContentReference>
      */
     public function toArray(): array
     {
