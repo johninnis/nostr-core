@@ -45,7 +45,7 @@ final class Nip05Verifier implements Nip05VerificationServiceInterface
         $returnedPubkey = $data['names'][$localPart];
         $expectedHex = $expectedPubkey->toHex();
 
-        if ($returnedPubkey !== $expectedHex) {
+        if (!is_string($returnedPubkey) || 0 !== strcasecmp($returnedPubkey, $expectedHex)) {
             return Nip05VerificationResult::failure($identifier, $expectedPubkey, Nip05VerificationFailureReason::PubkeyMismatch);
         }
 

@@ -49,6 +49,10 @@ final readonly class EventCoordinate implements Stringable
             return null;
         }
 
+        if (!ctype_digit($parts[0])) {
+            return null;
+        }
+
         $kind = (int) $parts[0];
         $pubkey = $parts[1];
         $identifier = implode(':', array_slice($parts, 2));

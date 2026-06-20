@@ -88,7 +88,7 @@ final readonly class Subscription
 
         $state = isset($data['state'])
             ? SubscriptionState::from($data['state'])
-            : (($data['active'] ?? true) ? SubscriptionState::ACTIVE : SubscriptionState::CLOSED_BY_CLIENT);
+            : SubscriptionState::PENDING;
 
         $id = is_string($data['id']) ? SubscriptionId::fromString($data['id']) : null;
 

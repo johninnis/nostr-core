@@ -140,18 +140,17 @@ final class SubscriptionTest extends TestCase
         $this->assertSame(SubscriptionState::ACTIVE, $subscription->getState());
     }
 
-    public function testFromArrayWithLegacyActiveBool(): void
+    public function testFromArrayDefaultsToPendingWhenStateAbsent(): void
     {
         $data = [
             'id' => 'test-sub',
             'filters' => [['kinds' => [1]]],
             'created_at' => 1700000000,
-            'active' => false,
         ];
 
         $subscription = Subscription::fromArray($data);
 
-        $this->assertSame(SubscriptionState::CLOSED_BY_CLIENT, $subscription->getState());
+        $this->assertSame(SubscriptionState::PENDING, $subscription->getState());
     }
 
     public function testFromArrayMissingRequiredField(): void

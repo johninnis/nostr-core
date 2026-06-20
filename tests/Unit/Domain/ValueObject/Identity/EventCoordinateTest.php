@@ -87,6 +87,12 @@ final class EventCoordinateTest extends TestCase
         $this->assertNull(EventCoordinate::fromString('30023:'.self::VALID_PUBKEY));
     }
 
+    public function testFromStringReturnsNullForNonNumericKind(): void
+    {
+        $this->assertNull(EventCoordinate::fromString('30023x:'.self::VALID_PUBKEY.':my-article'));
+        $this->assertNull(EventCoordinate::fromString('abc:'.self::VALID_PUBKEY.':my-article'));
+    }
+
     public function testFromStringWithRelayHint(): void
     {
         $coordinateString = self::VALID_KIND.':'.self::VALID_PUBKEY.':'.self::VALID_IDENTIFIER;

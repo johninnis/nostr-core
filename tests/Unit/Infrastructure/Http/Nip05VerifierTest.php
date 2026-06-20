@@ -84,6 +84,21 @@ final class Nip05VerifierTest extends TestCase
         $this->assertNull($result->getFailureReason());
     }
 
+    public function testReturnsSuccessWhenReturnedPubkeyDiffersOnlyByCase(): void
+    {
+        $httpService = $this->createStub(HttpServiceInterface::class);
+        $httpService->method('getJson')->willReturn([
+            'names' => [
+                'alice' => strtoupper(self::VALID_PUBKEY_HEX),
+            ],
+        ]);
+
+        $result = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
+
+        $this->assertTrue($result->isValid());
+        $this->assertNull($result->getFailureReason());
+    }
+
     public function testFetchesWellKnownUrlForIdentifier(): void
     {
         $httpService = $this->createMock(HttpServiceInterface::class);
