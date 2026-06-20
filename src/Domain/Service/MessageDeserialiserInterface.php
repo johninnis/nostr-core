@@ -7,7 +7,7 @@ namespace Innis\Nostr\Core\Domain\Service;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\ClientMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
 
-interface MessageSerialiserInterface
+interface MessageDeserialiserInterface
 {
     public function deserialiseClientMessage(string $json): ClientMessage;
 

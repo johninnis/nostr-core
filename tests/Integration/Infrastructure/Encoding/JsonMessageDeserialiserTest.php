@@ -15,20 +15,20 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\NoticeMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\OkMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
-use Innis\Nostr\Core\Infrastructure\Encoding\JsonMessageSerialiser;
+use Innis\Nostr\Core\Infrastructure\Encoding\JsonMessageDeserialiser;
 use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
-final class JsonMessageSerialiserTest extends TestCase
+final class JsonMessageDeserialiserTest extends TestCase
 {
-    private JsonMessageSerialiser $serialiser;
+    private JsonMessageDeserialiser $deserialiser;
     private KeyPair $keyPair;
     private Event $event;
 
     protected function setUp(): void
     {
-        $this->serialiser = new JsonMessageSerialiser();
+        $this->deserialiser = new JsonMessageDeserialiser();
         $this->keyPair = KeyPair::generate(CryptoFixtures::signer());
 
         $this->event = new Event(
@@ -47,7 +47,7 @@ final class JsonMessageSerialiserTest extends TestCase
         $json = json_encode(['EVENT', $eventData]);
         $this->assertNotFalse($json);
 
-        $message = $this->serialiser->deserialiseClientMessage($json);
+        $message = $this->deserialiser->deserialiseClientMessage($json);
 
         $this->assertInstanceOf(ClientEventMessage::class, $message);
         $this->assertSame('EVENT', $message->getType());
@@ -59,7 +59,7 @@ final class JsonMessageSerialiserTest extends TestCase
         $json = json_encode(['CLOSE', 'test-sub']);
         $this->assertNotFalse($json);
 
-        $message = $this->serialiser->deserialiseClientMessage($json);
+        $message = $this->deserialiser->deserialiseClientMessage($json);
 
         $this->assertInstanceOf(CloseMessage::class, $message);
         $this->assertSame('CLOSE', $message->getType());
@@ -72,7 +72,7 @@ final class JsonMessageSerialiserTest extends TestCase
         $json = json_encode(['OK', $eventId, true, 'accepted']);
         $this->assertNotFalse($json);
 
-        $message = $this->serialiser->deserialiseRelayMessage($json);
+        $message = $this->deserialiser->deserialiseRelayMessage($json);
 
         $this->assertInstanceOf(OkMessage::class, $message);
         $this->assertSame('OK', $message->getType());
@@ -86,7 +86,7 @@ final class JsonMessageSerialiserTest extends TestCase
         $json = json_encode(['NOTICE', 'Test notice']);
         $this->assertNotFalse($json);
 
-        $message = $this->serialiser->deserialiseRelayMessage($json);
+        $message = $this->deserialiser->deserialiseRelayMessage($json);
 
         $this->assertInstanceOf(NoticeMessage::class, $message);
         $this->assertSame('NOTICE', $message->getType());
@@ -98,7 +98,7 @@ final class JsonMessageSerialiserTest extends TestCase
         $json = json_encode(['CLOSED', 'test-sub', 'subscription ended']);
         $this->assertNotFalse($json);
 
-        $message = $this->serialiser->deserialiseRelayMessage($json);
+        $message = $this->deserialiser->deserialiseRelayMessage($json);
 
         $this->assertInstanceOf(ClosedMessage::class, $message);
         $this->assertSame('CLOSED', $message->getType());
@@ -111,7 +111,7 @@ final class JsonMessageSerialiserTest extends TestCase
         $json = json_encode(['CLOSED', 'test-sub']);
         $this->assertNotFalse($json);
 
-        $message = $this->serialiser->deserialiseRelayMessage($json);
+        $message = $this->deserialiser->deserialiseRelayMessage($json);
 
         $this->assertInstanceOf(ClosedMessage::class, $message);
         $this->assertSame('', $message->getMessage());
@@ -122,7 +122,7 @@ final class JsonMessageSerialiserTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid JSON for client message');
 
-        $this->serialiser->deserialiseClientMessage('invalid json');
+        $this->deserialiser->deserialiseClientMessage('invalid json');
     }
 
     public function testThrowsExceptionForInvalidRelayMessageJson(): void
@@ -130,7 +130,7 @@ final class JsonMessageSerialiserTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid JSON for relay message');
 
-        $this->serialiser->deserialiseRelayMessage('invalid json');
+        $this->deserialiser->deserialiseRelayMessage('invalid json');
     }
 
     public function testThrowsExceptionForUnknownClientMessageType(): void
@@ -141,7 +141,7 @@ final class JsonMessageSerialiserTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Unknown client message type: UNKNOWN');
 
-        $this->serialiser->deserialiseClientMessage($json);
+        $this->deserialiser->deserialiseClientMessage($json);
     }
 
     public function testThrowsExceptionForUnknownRelayMessageType(): void
@@ -152,7 +152,7 @@ final class JsonMessageSerialiserTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Unknown relay message type: UNKNOWN');
 
-        $this->serialiser->deserialiseRelayMessage($json);
+        $this->deserialiser->deserialiseRelayMessage($json);
     }
 
     public function testThrowsExceptionForEmptyClientMessage(): void
@@ -163,7 +163,7 @@ final class JsonMessageSerialiserTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid JSON for client message');
 
-        $this->serialiser->deserialiseClientMessage($json);
+        $this->deserialiser->deserialiseClientMessage($json);
     }
 
     public function testThrowsExceptionForEmptyRelayMessage(): void
@@ -174,14 +174,14 @@ final class JsonMessageSerialiserTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid JSON for relay message');
 
-        $this->serialiser->deserialiseRelayMessage($json);
+        $this->deserialiser->deserialiseRelayMessage($json);
     }
 
     public function testDeserialisationRoundTripPreservesData(): void
     {
         $originalMessage = new ClientEventMessage($this->event);
         $json = $originalMessage->toJson();
-        $deserialisedMessage = $this->serialiser->deserialiseClientMessage($json);
+        $deserialisedMessage = $this->deserialiser->deserialiseClientMessage($json);
 
         $this->assertSame($originalMessage->getType(), $deserialisedMessage->getType());
         $this->assertInstanceOf(ClientEventMessage::class, $deserialisedMessage);

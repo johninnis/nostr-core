@@ -22,18 +22,18 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\NoticeMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\OkMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
-use Innis\Nostr\Core\Infrastructure\Encoding\JsonMessageSerialiser;
+use Innis\Nostr\Core\Infrastructure\Encoding\JsonMessageDeserialiser;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
-final class JsonMessageSerialiserTest extends TestCase
+final class JsonMessageDeserialiserTest extends TestCase
 {
-    private JsonMessageSerialiser $serialiser;
+    private JsonMessageDeserialiser $deserialiser;
 
     protected function setUp(): void
     {
-        $this->serialiser = new JsonMessageSerialiser();
+        $this->deserialiser = new JsonMessageDeserialiser();
     }
 
     public function testDeserialiseRelayEventMessage(): void
@@ -41,7 +41,7 @@ final class JsonMessageSerialiserTest extends TestCase
         $event = $this->createEvent();
         $json = json_encode(['EVENT', 'sub-1', $event->toArray()], JSON_THROW_ON_ERROR);
 
-        $message = $this->serialiser->deserialiseRelayMessage($json);
+        $message = $this->deserialiser->deserialiseRelayMessage($json);
 
         $this->assertInstanceOf(RelayEventMessage::class, $message);
         $this->assertSame('EVENT', $message->getType());
@@ -53,7 +53,7 @@ final class JsonMessageSerialiserTest extends TestCase
         $eventId = str_repeat('aa', 32);
         $json = json_encode(['OK', $eventId, true, ''], JSON_THROW_ON_ERROR);
 
-        $message = $this->serialiser->deserialiseRelayMessage($json);
+        $message = $this->deserialiser->deserialiseRelayMessage($json);
 
         $this->assertInstanceOf(OkMessage::class, $message);
         $this->assertSame('OK', $message->getType());
@@ -65,7 +65,7 @@ final class JsonMessageSerialiserTest extends TestCase
         $eventId = str_repeat('aa', 32);
         $json = json_encode(['OK', $eventId, false, 'duplicate: already have this event'], JSON_THROW_ON_ERROR);
 
-        $message = $this->serialiser->deserialiseRelayMessage($json);
+        $message = $this->deserialiser->deserialiseRelayMessage($json);
 
         $this->assertInstanceOf(OkMessage::class, $message);
         $this->assertFalse($message->isAccepted());
@@ -76,7 +76,7 @@ final class JsonMessageSerialiserTest extends TestCase
     {
         $json = json_encode(['EOSE', 'sub-1'], JSON_THROW_ON_ERROR);
 
-        $message = $this->serialiser->deserialiseRelayMessage($json);
+        $message = $this->deserialiser->deserialiseRelayMessage($json);
 
         $this->assertInstanceOf(EoseMessage::class, $message);
         $this->assertSame('sub-1', (string) $message->getSubscriptionId());
@@ -86,7 +86,7 @@ final class JsonMessageSerialiserTest extends TestCase
     {
         $json = json_encode(['CLOSED', 'sub-1', 'error: shutting down'], JSON_THROW_ON_ERROR);
 
-        $message = $this->serialiser->deserialiseRelayMessage($json);
+        $message = $this->deserialiser->deserialiseRelayMessage($json);
 
         $this->assertInstanceOf(ClosedMessage::class, $message);
         $this->assertSame('sub-1', (string) $message->getSubscriptionId());
@@ -97,7 +97,7 @@ final class JsonMessageSerialiserTest extends TestCase
     {
         $json = json_encode(['NOTICE', 'rate limited'], JSON_THROW_ON_ERROR);
 
-        $message = $this->serialiser->deserialiseRelayMessage($json);
+        $message = $this->deserialiser->deserialiseRelayMessage($json);
 
         $this->assertInstanceOf(NoticeMessage::class, $message);
         $this->assertSame('rate limited', $message->getMessage());
@@ -107,7 +107,7 @@ final class JsonMessageSerialiserTest extends TestCase
     {
         $json = json_encode(['AUTH', 'challenge-string-123'], JSON_THROW_ON_ERROR);
 
-        $message = $this->serialiser->deserialiseRelayMessage($json);
+        $message = $this->deserialiser->deserialiseRelayMessage($json);
 
         $this->assertInstanceOf(RelayAuthMessage::class, $message);
         $this->assertSame('challenge-string-123', $message->getChallenge());
@@ -117,7 +117,7 @@ final class JsonMessageSerialiserTest extends TestCase
     {
         $json = json_encode(['COUNT', 'sub-1', ['count' => 42]], JSON_THROW_ON_ERROR);
 
-        $message = $this->serialiser->deserialiseRelayMessage($json);
+        $message = $this->deserialiser->deserialiseRelayMessage($json);
 
         $this->assertInstanceOf(RelayCountMessage::class, $message);
         $this->assertSame('sub-1', (string) $message->getSubscriptionId());
@@ -128,14 +128,14 @@ final class JsonMessageSerialiserTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        $this->serialiser->deserialiseRelayMessage('not valid json');
+        $this->deserialiser->deserialiseRelayMessage('not valid json');
     }
 
     public function testDeserialiseRelayMessageThrowsOnEmptyArray(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
-        $this->serialiser->deserialiseRelayMessage('[]');
+        $this->deserialiser->deserialiseRelayMessage('[]');
     }
 
     public function testDeserialiseRelayMessageThrowsOnUnknownType(): void
@@ -143,7 +143,7 @@ final class JsonMessageSerialiserTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Unknown relay message type');
 
-        $this->serialiser->deserialiseRelayMessage('["UNKNOWN","data"]');
+        $this->deserialiser->deserialiseRelayMessage('["UNKNOWN","data"]');
     }
 
     public function testDeserialiseClientEventMessage(): void
@@ -151,7 +151,7 @@ final class JsonMessageSerialiserTest extends TestCase
         $event = $this->createEvent();
         $json = json_encode(['EVENT', $event->toArray()], JSON_THROW_ON_ERROR);
 
-        $message = $this->serialiser->deserialiseClientMessage($json);
+        $message = $this->deserialiser->deserialiseClientMessage($json);
 
         $this->assertInstanceOf(ClientEventMessage::class, $message);
         $this->assertSame('EVENT', $message->getType());
@@ -161,7 +161,7 @@ final class JsonMessageSerialiserTest extends TestCase
     {
         $json = json_encode(['REQ', 'sub-1', ['kinds' => [1]]], JSON_THROW_ON_ERROR);
 
-        $message = $this->serialiser->deserialiseClientMessage($json);
+        $message = $this->deserialiser->deserialiseClientMessage($json);
 
         $this->assertInstanceOf(ReqMessage::class, $message);
         $this->assertSame('sub-1', (string) $message->getSubscriptionId());
@@ -171,7 +171,7 @@ final class JsonMessageSerialiserTest extends TestCase
     {
         $json = json_encode(['CLOSE', 'sub-1'], JSON_THROW_ON_ERROR);
 
-        $message = $this->serialiser->deserialiseClientMessage($json);
+        $message = $this->deserialiser->deserialiseClientMessage($json);
 
         $this->assertInstanceOf(CloseMessage::class, $message);
         $this->assertSame('sub-1', (string) $message->getSubscriptionId());
@@ -182,7 +182,7 @@ final class JsonMessageSerialiserTest extends TestCase
         $event = $this->createAuthEvent();
         $json = json_encode(['AUTH', $event->toArray()], JSON_THROW_ON_ERROR);
 
-        $message = $this->serialiser->deserialiseClientMessage($json);
+        $message = $this->deserialiser->deserialiseClientMessage($json);
 
         $this->assertInstanceOf(ClientAuthMessage::class, $message);
         $this->assertSame(EventKind::CLIENT_AUTH, $message->getEvent()->getKind()->toInt());
@@ -192,7 +192,7 @@ final class JsonMessageSerialiserTest extends TestCase
     {
         $json = json_encode(['COUNT', 'sub-1', ['kinds' => [1]]], JSON_THROW_ON_ERROR);
 
-        $message = $this->serialiser->deserialiseClientMessage($json);
+        $message = $this->deserialiser->deserialiseClientMessage($json);
 
         $this->assertInstanceOf(CountMessage::class, $message);
         $this->assertSame('sub-1', (string) $message->getSubscriptionId());
@@ -202,14 +202,14 @@ final class JsonMessageSerialiserTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        $this->serialiser->deserialiseClientMessage('not valid json');
+        $this->deserialiser->deserialiseClientMessage('not valid json');
     }
 
     public function testDeserialiseClientMessageThrowsOnEmptyArray(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
-        $this->serialiser->deserialiseClientMessage('[]');
+        $this->deserialiser->deserialiseClientMessage('[]');
     }
 
     public function testDeserialiseClientMessageThrowsOnUnknownType(): void
@@ -217,21 +217,21 @@ final class JsonMessageSerialiserTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Unknown client message type');
 
-        $this->serialiser->deserialiseClientMessage('["UNKNOWN","data"]');
+        $this->deserialiser->deserialiseClientMessage('["UNKNOWN","data"]');
     }
 
     public function testDeserialiseClientMessageThrowsOnNonArrayJson(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
-        $this->serialiser->deserialiseClientMessage('"just a string"');
+        $this->deserialiser->deserialiseClientMessage('"just a string"');
     }
 
     public function testDeserialiseRelayMessageThrowsOnNonArrayJson(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
-        $this->serialiser->deserialiseRelayMessage('"just a string"');
+        $this->deserialiser->deserialiseRelayMessage('"just a string"');
     }
 
     private static function createPublicKey(): PublicKey

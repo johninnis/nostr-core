@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Infrastructure\Encoding;
 
-use Innis\Nostr\Core\Domain\Service\MessageSerialiserInterface;
+use Innis\Nostr\Core\Domain\Service\MessageDeserialiserInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client\AuthMessage as ClientAuthMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client\CloseMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client\CountMessage;
@@ -22,7 +22,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
 use InvalidArgumentException;
 use Override;
 
-final class JsonMessageSerialiser implements MessageSerialiserInterface
+final class JsonMessageDeserialiser implements MessageDeserialiserInterface
 {
     #[Override]
     public function deserialiseClientMessage(string $json): ClientMessage
