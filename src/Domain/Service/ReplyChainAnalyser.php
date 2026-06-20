@@ -63,7 +63,7 @@ final class ReplyChainAnalyser
                         (null !== $author && '' !== $author) ? PublicKey::fromHex($author) : null
                     );
                 }
-            } elseif (TagType::PUBKEY === $marker) {
+            } elseif (TagType::PUBKEY === $marker || TagType::SENDER_PUBKEY === $marker) {
                 $pubkey = PublicKey::fromHex($tagArray[1]);
                 if (null !== $pubkey) {
                     $conversationParticipants[] = $pubkey;
