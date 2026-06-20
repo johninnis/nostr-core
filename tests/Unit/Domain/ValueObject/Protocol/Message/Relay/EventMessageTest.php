@@ -77,7 +77,7 @@ final class EventMessageTest extends TestCase
             $this->createEvent()->toArray(),
             JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
         );
-        $message = new EventMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), Event::fromJson($rawEvent));
+        $message = new EventMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), Event::fromJson($rawEvent) ?? throw new RuntimeException('Expected a valid event'));
 
         $this->assertSame('["EVENT","sub-1",'.$rawEvent.']', $message->toJson());
     }
@@ -90,8 +90,9 @@ final class EventMessageTest extends TestCase
             JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
         );
 
-        $withoutRaw = new EventMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), $event);
-        $withRaw = new EventMessage(SubscriptionId::fromString('sub-1'), Event::fromJson($rawEvent));
+        $subscriptionId = SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID');
+        $withoutRaw = new EventMessage($subscriptionId, $event);
+        $withRaw = new EventMessage($subscriptionId, Event::fromJson($rawEvent) ?? throw new RuntimeException('Expected a valid event'));
 
         $this->assertSame($withoutRaw->toJson(), $withRaw->toJson());
     }
@@ -103,7 +104,7 @@ final class EventMessageTest extends TestCase
             JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
         );
 
-        $stored = new EventMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), Event::fromJson($rawEvent));
+        $stored = new EventMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), Event::fromJson($rawEvent) ?? throw new RuntimeException('Expected a valid event'));
         $fresh = new EventMessage(SubscriptionId::fromString('sub-1'), $this->createEvent());
 
         self::assertSame('["EVENT","sub-1",'.$rawEvent.']', $stored->preSerialisedJson());

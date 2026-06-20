@@ -234,57 +234,87 @@ final readonly class Event implements Stringable
         ];
     }
 
-    public static function fromArray(array $data): self
+    public static function fromArray(array $data): ?self
     {
         return self::build($data, null);
     }
 
-    public static function fromJson(string $json): self
+    public static function fromJson(string $json): ?self
     {
-        $data = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+        if (!json_validate($json)) {
+            return null;
+        }
+
+        $data = json_decode($json, true);
 
         if (!is_array($data)) {
-            throw new InvalidEventException('Event JSON must decode to an object');
+            return null;
         }
 
         return self::build($data, $json);
     }
 
-    private static function build(array $data, ?string $rawJson): self
+    private static function build(array $data, ?string $rawJson): ?self
     {
-        $requiredFields = ['pubkey', 'created_at', 'kind', 'tags', 'content'];
-        foreach ($requiredFields as $field) {
+        foreach (['pubkey', 'created_at', 'kind', 'tags', 'content'] as $field) {
             if (!array_key_exists($field, $data)) {
-                throw new InvalidEventException("Missing required field: {$field}");
+                return null;
             }
+        }
+
+        if (!is_string($data['pubkey']) || !is_int($data['created_at']) || !is_int($data['kind']) || !is_array($data['tags'])) {
+            return null;
+        }
+
+        $pubkey = PublicKey::fromHex($data['pubkey']);
+        if (null === $pubkey) {
+            return null;
         }
 
         $content = $data['content'];
         if (!is_string($content)) {
-            $encoded = json_encode($content, JSON_UNESCAPED_SLASHES);
-            if (false === $encoded) {
-                throw new InvalidEventException('Failed to encode content as JSON');
+            $content = json_encode($content, JSON_UNESCAPED_SLASHES);
+            if (false === $content) {
+                return null;
             }
-            $content = $encoded;
         }
 
-        $id = isset($data['id']) ? EventId::fromHex($data['id']) : null;
+        $id = null;
+        if (isset($data['id'])) {
+            if (!is_string($data['id'])) {
+                return null;
+            }
+            $id = EventId::fromHex($data['id']);
+            if (null === $id) {
+                return null;
+            }
+        }
 
         $signature = null;
         if (isset($data['sig']) && '' !== $data['sig']) {
+            if (!is_string($data['sig'])) {
+                return null;
+            }
             $signature = Signature::fromHex($data['sig']);
+            if (null === $signature) {
+                return null;
+            }
         }
 
-        return new self(
-            PublicKey::fromHex($data['pubkey']) ?? throw new InvalidEventException('Invalid pubkey in event data'),
-            Timestamp::fromInt($data['created_at']),
-            EventKind::fromInt($data['kind']),
-            TagCollection::fromArray($data['tags']),
-            EventContent::fromString($content),
-            $id,
-            $signature,
-            $rawJson,
-        );
+        try {
+            return new self(
+                $pubkey,
+                Timestamp::fromInt($data['created_at']),
+                EventKind::fromInt($data['kind']),
+                TagCollection::fromArray($data['tags']),
+                EventContent::fromString($content),
+                $id,
+                $signature,
+                $rawJson,
+            );
+        } catch (InvalidArgumentException) {
+            return null;
+        }
     }
 
     #[Override]

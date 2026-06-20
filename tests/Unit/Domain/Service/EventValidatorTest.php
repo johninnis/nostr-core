@@ -106,9 +106,11 @@ final class EventValidatorTest extends TestCase
             'created_at' => $event->getCreatedAt()->toInt(),
             'kind' => $event->getKind()->toInt(),
             'tags' => $event->getTags()->toArray(),
-            'content' => 'Different content', // This will make signature invalid
+            'content' => 'Different content',
             'sig' => $event->getSignature()?->toHex() ?? '',
         ]);
+
+        $this->assertNotNull($invalidEvent);
 
         $this->expectException(InvalidEventException::class);
         $this->expectExceptionMessage('Event signature is invalid');
@@ -159,6 +161,8 @@ final class EventValidatorTest extends TestCase
             'content' => 'forged content claiming a known pubkey',
             'sig' => '',
         ]);
+
+        $this->assertNotNull($forged);
 
         $this->expectException(InvalidEventException::class);
         $this->expectExceptionMessage('Event signature is invalid');

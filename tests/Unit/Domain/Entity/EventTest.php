@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Entity;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
-use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 use Innis\Nostr\Core\Domain\Service\ReplyChainAnalyser;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
@@ -144,6 +143,7 @@ final class EventTest extends TestCase
 
         $recreatedEvent = Event::fromArray($array);
 
+        $this->assertNotNull($recreatedEvent);
         $this->assertTrue($recreatedEvent->getId()->equals($signedEvent->getId()));
         $this->assertTrue($recreatedEvent->getPubkey()->equals($signedEvent->getPubkey()));
         $this->assertTrue($recreatedEvent->getCreatedAt()->equals($signedEvent->getCreatedAt()));
@@ -157,18 +157,14 @@ final class EventTest extends TestCase
         $this->assertTrue($recreatedSignature->equals($signedSignature));
     }
 
-    public function testFromArrayThrowsExceptionForMissingRequiredFields(): void
+    public function testFromArrayReturnsNullForMissingRequiredFields(): void
     {
         $incompleteArray = [
             'pubkey' => $this->keyPair->getPublicKey()->toHex(),
             'created_at' => time(),
-            // Missing 'kind', 'tags', 'content'
         ];
 
-        $this->expectException(InvalidEventException::class);
-        $this->expectExceptionMessage('Missing required field: kind');
-
-        Event::fromArray($incompleteArray);
+        $this->assertNull(Event::fromArray($incompleteArray));
     }
 
     public function testFromArrayCanCreateUnsignedEvent(): void
@@ -183,6 +179,7 @@ final class EventTest extends TestCase
 
         $event = Event::fromArray($array);
 
+        $this->assertNotNull($event);
         $this->assertFalse($event->isSigned());
         $this->assertNull($event->getSignature());
     }
@@ -194,6 +191,7 @@ final class EventTest extends TestCase
 
         $recreatedEvent = Event::fromArray($array);
 
+        $this->assertNotNull($recreatedEvent);
         $this->assertTrue($recreatedEvent->isSigned());
         $this->assertNotNull($recreatedEvent->getSignature());
     }
@@ -205,6 +203,7 @@ final class EventTest extends TestCase
 
         $event = Event::fromJson($json);
 
+        $this->assertNotNull($event);
         $this->assertSame($json, $event->getRawJson());
         $this->assertSame($signed->getId()->toHex(), $event->getId()->toHex());
         $this->assertSame($signed->getPubkey()->toHex(), $event->getPubkey()->toHex());
@@ -214,14 +213,19 @@ final class EventTest extends TestCase
     {
         $signed = $this->event->sign($this->keyPair, CryptoFixtures::signer());
 
-        $this->assertNull(Event::fromArray($signed->toArray())->getRawJson());
+        $event = Event::fromArray($signed->toArray());
+
+        $this->assertNotNull($event);
+        $this->assertNull($event->getRawJson());
     }
 
     public function testWithRawJsonEncodesTheEvent(): void
     {
         $signed = $this->event->sign($this->keyPair, CryptoFixtures::signer());
 
-        $event = Event::fromArray($signed->toArray())->withRawJson();
+        $event = Event::fromArray($signed->toArray());
+        $this->assertNotNull($event);
+        $event = $event->withRawJson();
 
         $this->assertSame(
             json_encode($signed->toArray(), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_LINE_TERMINATORS),
@@ -234,6 +238,7 @@ final class EventTest extends TestCase
         $signed = $this->event->sign($this->keyPair, CryptoFixtures::signer());
         $event = Event::fromJson(json_encode($signed->toArray(), JSON_THROW_ON_ERROR));
 
+        $this->assertNotNull($event);
         $this->assertSame($event, $event->withRawJson());
     }
 
@@ -242,7 +247,10 @@ final class EventTest extends TestCase
         $signed = $this->event->sign($this->keyPair, CryptoFixtures::signer());
         $json = json_encode($signed->toArray(), JSON_THROW_ON_ERROR);
 
-        $this->assertSame($json, Event::fromJson($json)->toJson());
+        $event = Event::fromJson($json);
+
+        $this->assertNotNull($event);
+        $this->assertSame($json, $event->toJson());
     }
 
     public function testToJsonEncodesWhenRawJsonAbsent(): void
@@ -259,6 +267,7 @@ final class EventTest extends TestCase
         $signed = $this->event->sign($this->keyPair, CryptoFixtures::signer());
         $event = Event::fromJson(json_encode($signed->toArray(), JSON_THROW_ON_ERROR));
 
+        $this->assertNotNull($event);
         $this->assertNull($event->withTags(TagCollection::empty())->getRawJson());
     }
 
@@ -267,14 +276,13 @@ final class EventTest extends TestCase
         $signed = $this->event->sign($this->keyPair, CryptoFixtures::signer());
         $event = Event::fromJson(json_encode($signed->toArray(), JSON_THROW_ON_ERROR));
 
+        $this->assertNotNull($event);
         $this->assertNull($event->sign($this->keyPair, CryptoFixtures::signer())->getRawJson());
     }
 
-    public function testFromJsonThrowsWhenJsonIsNotAnObject(): void
+    public function testFromJsonReturnsNullWhenJsonIsNotAnObject(): void
     {
-        $this->expectException(InvalidEventException::class);
-
-        Event::fromJson('"not an object"');
+        $this->assertNull(Event::fromJson('"not an object"'));
     }
 
     public function testEventIdCalculationIsConsistent(): void
@@ -324,9 +332,9 @@ final class EventTest extends TestCase
         $signedEvent = $this->event->sign($this->keyPair, CryptoFixtures::signer());
         $array = $signedEvent->toArray();
         $recreatedEvent = Event::fromArray($array);
-        $recreatedArray = $recreatedEvent->toArray();
 
-        $this->assertSame($array, $recreatedArray);
+        $this->assertNotNull($recreatedEvent);
+        $this->assertSame($array, $recreatedEvent->toArray());
     }
 
     public function testIsReplyReturnsFalseForEventWithNoEventTags(): void
@@ -646,6 +654,7 @@ final class EventTest extends TestCase
 
         $event = Event::fromArray($array);
 
+        $this->assertNotNull($event);
         $this->assertSame('{"key":"value"}', (string) $event->getContent());
     }
 
@@ -662,6 +671,7 @@ final class EventTest extends TestCase
 
         $event = Event::fromArray($array);
 
+        $this->assertNotNull($event);
         $this->assertFalse($event->isSigned());
         $this->assertNull($event->getSignature());
     }
@@ -732,6 +742,7 @@ final class EventTest extends TestCase
             'sig' => '7614f8586aacb36e5a501d2f11b0501faa070ab0d90434f7e81bd7dbde4cabb935e80a0064f9db2ba8db2f673ec510ade473a855d1407572ba53873fc13f3290',
         ]);
 
+        $this->assertNotNull($event);
         $this->assertSame(
             'ebb6b3d01d4f5ade21554c70ccc18d663a9765573ba42eac6ff4c504a0b81111',
             $event->calculateId()->toHex(),

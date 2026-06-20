@@ -207,6 +207,12 @@ final class GiftWrapper implements GiftWrapServiceInterface
             throw new GiftWrapException('Failed to deserialise event JSON');
         }
 
-        return Event::fromArray($data);
+        $event = Event::fromArray($data);
+
+        if (null === $event) {
+            throw new GiftWrapException('Failed to deserialise event JSON');
+        }
+
+        return $event;
     }
 }

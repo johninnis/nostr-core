@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
-use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\ClientMessage;
 use Override;
 
@@ -39,12 +38,12 @@ final readonly class EventMessage extends ClientMessage
             return null;
         }
 
-        try {
-            $event = Event::fromArray($data[1])->withRawJson();
-        } catch (InvalidEventException) {
+        $event = Event::fromArray($data[1]);
+
+        if (null === $event) {
             return null;
         }
 
-        return new self($event);
+        return new self($event->withRawJson());
     }
 }

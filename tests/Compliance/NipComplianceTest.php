@@ -213,6 +213,7 @@ final class NipComplianceTest extends TestCase
             'content' => $content,
         ]);
 
+        $this->assertNotNull($event);
         $calculatedId = $event->calculateId();
 
         // The ID should be a valid SHA-256 hash

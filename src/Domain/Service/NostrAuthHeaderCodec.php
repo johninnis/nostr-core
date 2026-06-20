@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
-use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 use Innis\Nostr\Core\Domain\Failure\AuthHeaderDecodeFailure;
 use JsonException;
 
@@ -40,11 +39,9 @@ final class NostrAuthHeaderCodec
             return AuthHeaderDecodeFailure::BadJson;
         }
 
-        try {
-            return Event::fromArray($data);
-        } catch (InvalidEventException) {
-            return AuthHeaderDecodeFailure::InvalidEvent;
-        }
+        $event = Event::fromArray($data);
+
+        return $event ?? AuthHeaderDecodeFailure::InvalidEvent;
     }
 
     public static function encode(Event $event): string

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
-use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\PreSerialisedMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
@@ -68,9 +67,9 @@ final readonly class EventMessage extends RelayMessage implements PreSerialisedM
             return null;
         }
 
-        try {
-            $event = Event::fromArray($data[2]);
-        } catch (InvalidEventException) {
+        $event = Event::fromArray($data[2]);
+
+        if (null === $event) {
             return null;
         }
 
