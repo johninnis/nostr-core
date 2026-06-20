@@ -88,9 +88,7 @@ final readonly class Nip11Info
 
     public function getLimitation(): ?array
     {
-        $value = $this->rawData['limitation'] ?? null;
-
-        return is_array($value) ? $value : null;
+        return $this->arrayOrNull('limitation');
     }
 
     public function getMaxSubscriptions(): ?int
@@ -123,64 +121,46 @@ final readonly class Nip11Info
 
     public function getRetention(): ?array
     {
-        $value = $this->rawData['retention'] ?? null;
-
-        return is_array($value) ? $value : null;
+        return $this->arrayOrNull('retention');
     }
 
     public function getRelayCountries(): ?array
     {
-        $value = $this->rawData['relay_countries'] ?? null;
-
-        return is_array($value) ? $value : null;
+        return $this->arrayOrNull('relay_countries');
     }
 
     public function getLanguageTags(): ?array
     {
-        $value = $this->rawData['language_tags'] ?? null;
-
-        return is_array($value) ? $value : null;
+        return $this->arrayOrNull('language_tags');
     }
 
     public function getTags(): ?array
     {
-        $value = $this->rawData['tags'] ?? null;
-
-        return is_array($value) ? $value : null;
+        return $this->arrayOrNull('tags');
     }
 
     public function getPostingPolicy(): ?string
     {
-        $value = $this->rawData['posting_policy'] ?? null;
-
-        return is_string($value) ? $value : null;
+        return $this->stringOrNull('posting_policy');
     }
 
     public function getPaymentsUrl(): ?string
     {
-        $value = $this->rawData['payments_url'] ?? null;
-
-        return is_string($value) ? $value : null;
+        return $this->stringOrNull('payments_url');
     }
 
     public function getFees(): ?array
     {
-        $value = $this->rawData['fees'] ?? null;
-
-        return is_array($value) ? $value : null;
+        return $this->arrayOrNull('fees');
     }
 
     public function getPrivacyPolicy(): ?string
     {
-        $value = $this->rawData['privacy_policy'] ?? null;
-
-        return is_string($value) ? $value : null;
+        return $this->stringOrNull('privacy_policy');
     }
 
     public function getTermsOfService(): ?string
     {
-        $value = $this->rawData['terms_of_service'] ?? null;
-
-        return is_string($value) ? $value : null;
+        return $this->stringOrNull('terms_of_service');
     }
 }

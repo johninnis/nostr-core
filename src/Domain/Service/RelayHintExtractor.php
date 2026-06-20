@@ -39,7 +39,7 @@ final class RelayHintExtractor implements RelayHintExtractorInterface
                 continue;
             }
 
-            if ('r' === $tagArray[0] && is_string($tagArray[1]) && $this->isValidUrl($tagArray[1])) {
+            if ('r' === $tagArray[0] && is_string($tagArray[1])) {
                 $relayUrl = RelayUrl::fromString($tagArray[1]);
                 if (null !== $relayUrl) {
                     $relays[] = $relayUrl;
@@ -47,7 +47,7 @@ final class RelayHintExtractor implements RelayHintExtractorInterface
             }
 
             if (in_array($tagArray[0], [TagType::EVENT, TagType::PUBKEY], true) && count($tagArray) >= 3) {
-                if (is_string($tagArray[2]) && $this->isValidUrl($tagArray[2])) {
+                if (is_string($tagArray[2])) {
                     $relayUrl = RelayUrl::fromString($tagArray[2]);
                     if (null !== $relayUrl) {
                         $relays[] = $relayUrl;
@@ -85,11 +85,6 @@ final class RelayHintExtractor implements RelayHintExtractorInterface
         }
 
         return RelayUrl::fromString($decoded['relays'][0]);
-    }
-
-    private function isValidUrl(string $url): bool
-    {
-        return false !== filter_var($url, FILTER_VALIDATE_URL);
     }
 
     private function deduplicateRelayUrls(array $relayUrls): array
