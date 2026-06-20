@@ -50,10 +50,7 @@ final readonly class EventMessage extends RelayMessage implements PreSerialisedM
             return null;
         }
 
-        $subscriptionId = json_encode(
-            (string) $this->subscriptionId,
-            JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
-        );
+        $subscriptionId = self::encode((string) $this->subscriptionId);
 
         return '["EVENT",'.$subscriptionId.','.$rawJson.']';
     }

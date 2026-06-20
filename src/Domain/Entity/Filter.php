@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\Entity;
 
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Message;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use InvalidArgumentException;
 use JsonSerializable;
@@ -345,6 +346,6 @@ final readonly class Filter implements JsonSerializable, Stringable
     #[Override]
     public function __toString(): string
     {
-        return json_encode($this->toArray()) ?: '';
+        return json_encode($this->toArray(), Message::JSON_FLAGS);
     }
 }
