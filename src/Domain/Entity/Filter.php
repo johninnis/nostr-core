@@ -10,8 +10,9 @@ use InvalidArgumentException;
 use JsonSerializable;
 use Override;
 use stdClass;
+use Stringable;
 
-final readonly class Filter implements JsonSerializable
+final readonly class Filter implements JsonSerializable, Stringable
 {
     public const int MAX_VALUES_PER_FIELD = 1000;
 

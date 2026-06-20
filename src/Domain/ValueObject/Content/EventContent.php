@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Content;
 
-final readonly class EventContent
+use Override;
+use Stringable;
+
+final readonly class EventContent implements Stringable
 {
     public function __construct(private string $content)
     {
@@ -48,6 +51,7 @@ final readonly class EventContent
         return array_values(array_unique($hashtags));
     }
 
+    #[Override]
     public function __toString(): string
     {
         return $this->content;

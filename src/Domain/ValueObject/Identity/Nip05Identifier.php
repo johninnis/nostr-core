@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
-final readonly class Nip05Identifier
+use Override;
+use Stringable;
+
+final readonly class Nip05Identifier implements Stringable
 {
     private const string LOCAL_PART_PATTERN = '/^[A-Za-z0-9._-]+$/';
     private const string DOMAIN_PATTERN = '/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/i';
@@ -64,6 +67,7 @@ final readonly class Nip05Identifier
         );
     }
 
+    #[Override]
     public function __toString(): string
     {
         return $this->localPart.'@'.$this->domain;

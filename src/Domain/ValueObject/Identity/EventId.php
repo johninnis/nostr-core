@@ -6,8 +6,10 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
 use Innis\Nostr\Core\Domain\Service\Bech32Codec;
 use Innis\Nostr\Core\Domain\Service\HexCodec;
+use Override;
+use Stringable;
 
-final readonly class EventId
+final readonly class EventId implements Stringable
 {
     public const int BYTE_LENGTH = 32;
 
@@ -63,6 +65,7 @@ final readonly class EventId
         return self::fromBytes($decoded['data']);
     }
 
+    #[Override]
     public function __toString(): string
     {
         return $this->id;

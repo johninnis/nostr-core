@@ -8,8 +8,10 @@ use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
+use Override;
+use Stringable;
 
-final readonly class EventCoordinate
+final readonly class EventCoordinate implements Stringable
 {
     private function __construct(
         private EventKind $kind,
@@ -90,6 +92,7 @@ final readonly class EventCoordinate
         return new self($this->kind, $this->pubkey, $this->identifier, $relayHint);
     }
 
+    #[Override]
     public function __toString(): string
     {
         return $this->kind->toInt().':'.$this->pubkey->toHex().':'.$this->identifier;

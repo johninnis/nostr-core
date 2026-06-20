@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol;
 
-final readonly class RelayHttpUrl
+use Override;
+use Stringable;
+
+final readonly class RelayHttpUrl implements Stringable
 {
     private string $url;
 
@@ -16,6 +19,7 @@ final readonly class RelayHttpUrl
             : 'http://'.substr($wsUrl, 5);
     }
 
+    #[Override]
     public function __toString(): string
     {
         return $this->url;

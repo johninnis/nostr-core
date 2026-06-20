@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol;
 
-final readonly class SubscriptionId
+use Override;
+use Stringable;
+
+final readonly class SubscriptionId implements Stringable
 {
     private const int MAX_LENGTH = 64;
     private const string ALLOWED_PATTERN = '/^[\x21-\x7E]+$/';
@@ -45,6 +48,7 @@ final readonly class SubscriptionId
         return new self(bin2hex(random_bytes(4)));
     }
 
+    #[Override]
     public function __toString(): string
     {
         return $this->id;

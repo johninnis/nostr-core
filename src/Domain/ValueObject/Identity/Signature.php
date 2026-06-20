@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
 use Innis\Nostr\Core\Domain\Service\HexCodec;
+use Override;
+use Stringable;
 
-final readonly class Signature
+final readonly class Signature implements Stringable
 {
     public const int BYTE_LENGTH = 64;
 
@@ -33,6 +35,7 @@ final readonly class Signature
         return new self($hex);
     }
 
+    #[Override]
     public function __toString(): string
     {
         return $this->signature;

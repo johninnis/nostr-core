@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Tag;
 
 use InvalidArgumentException;
+use Override;
+use Stringable;
 
-final readonly class TagType
+final readonly class TagType implements Stringable
 {
     public const string EVENT = 'e';
     public const string PUBKEY = 'p';
@@ -159,6 +161,7 @@ final readonly class TagType
         return new self($type);
     }
 
+    #[Override]
     public function __toString(): string
     {
         return $this->type;

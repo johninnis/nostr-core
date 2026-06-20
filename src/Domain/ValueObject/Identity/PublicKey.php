@@ -6,8 +6,10 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
 use Innis\Nostr\Core\Domain\Service\Bech32Codec;
 use Innis\Nostr\Core\Domain\Service\HexCodec;
+use Override;
+use Stringable;
 
-final readonly class PublicKey
+final readonly class PublicKey implements Stringable
 {
     public const int BYTE_LENGTH = 32;
     public const int HEX_LENGTH = self::BYTE_LENGTH * 2;
@@ -64,6 +66,7 @@ final readonly class PublicKey
         return self::fromBytes($decoded['data']);
     }
 
+    #[Override]
     public function __toString(): string
     {
         return $this->key;

@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol;
 
-final readonly class RelayUrl
+use Override;
+use Stringable;
+
+final readonly class RelayUrl implements Stringable
 {
     private function __construct(
         private string $url,
@@ -159,6 +162,7 @@ final readonly class RelayUrl
         return ('wss' === $scheme && 443 === $port) || ('ws' === $scheme && 80 === $port);
     }
 
+    #[Override]
     public function __toString(): string
     {
         return $this->url;

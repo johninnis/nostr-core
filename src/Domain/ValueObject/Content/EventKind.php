@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Content;
 
 use InvalidArgumentException;
+use Override;
+use Stringable;
 
-final readonly class EventKind
+final readonly class EventKind implements Stringable
 {
     public const int METADATA = 0;
     public const int TEXT_NOTE = 1;
@@ -305,6 +307,7 @@ final readonly class EventKind
         return new self($kind);
     }
 
+    #[Override]
     public function __toString(): string
     {
         return (string) $this->kind;

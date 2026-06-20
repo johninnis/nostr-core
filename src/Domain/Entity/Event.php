@@ -18,8 +18,10 @@ use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use InvalidArgumentException;
+use Override;
+use Stringable;
 
-final readonly class Event
+final readonly class Event implements Stringable
 {
     // JSON_UNESCAPED_LINE_TERMINATORS: NIP-01 ids require U+2028/U+2029 emitted verbatim, which PHP
     // escapes even under JSON_UNESCAPED_UNICODE — without it ids are irreproducible for such content.
@@ -285,6 +287,7 @@ final readonly class Event
         );
     }
 
+    #[Override]
     public function __toString(): string
     {
         return null !== $this->id ? (string) $this->id : '';

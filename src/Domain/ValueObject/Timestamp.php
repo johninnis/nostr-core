@@ -7,8 +7,10 @@ namespace Innis\Nostr\Core\Domain\ValueObject;
 use DateTimeImmutable;
 use DateTimeInterface;
 use InvalidArgumentException;
+use Override;
+use Stringable;
 
-final readonly class Timestamp
+final readonly class Timestamp implements Stringable
 {
     public function __construct(private int $timestamp)
     {
@@ -86,6 +88,7 @@ final readonly class Timestamp
         return new self($dateTime->getTimestamp());
     }
 
+    #[Override]
     public function __toString(): string
     {
         return (string) $this->timestamp;
