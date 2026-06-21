@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Application\Service;
 
+use Innis\Nostr\Core\Application\Port\ClockInterface;
 use Innis\Nostr\Core\Application\Port\Nip98ReplayGuardInterface;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Failure\AuthHeaderDecodeFailure;
@@ -14,7 +15,6 @@ use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
-use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Override;
 
 final readonly class Nip98Validator implements Nip98ValidatorInterface
@@ -26,6 +26,7 @@ final readonly class Nip98Validator implements Nip98ValidatorInterface
     public function __construct(
         private SignatureServiceInterface $signatureService,
         private Nip98ReplayGuardInterface $replayGuard,
+        private ClockInterface $clock,
         private int $timestampTolerance = self::DEFAULT_TIMESTAMP_TOLERANCE,
     ) {
         $this->replayTtlSeconds = 2 * $this->timestampTolerance;
@@ -104,7 +105,7 @@ final readonly class Nip98Validator implements Nip98ValidatorInterface
 
     private function validateTimestamp(Event $event): ?Nip98ValidationFailure
     {
-        $difference = Timestamp::now()->differenceInSeconds($event->getCreatedAt());
+        $difference = $this->clock->now()->differenceInSeconds($event->getCreatedAt());
 
         return $difference > $this->timestampTolerance
             ? Nip98ValidationFailure::TimestampOutsideTolerance

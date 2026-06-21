@@ -19,9 +19,9 @@ final readonly class Subscription
     ) {
     }
 
-    public static function create(SubscriptionId $id, FilterCollection $filters, SubscriptionState $state = SubscriptionState::PENDING): self
+    public static function create(SubscriptionId $id, FilterCollection $filters, SubscriptionState $state = SubscriptionState::PENDING, ?Timestamp $createdAt = null): self
     {
-        return new self($id, $filters, Timestamp::now(), $state);
+        return new self($id, $filters, $createdAt ?? Timestamp::now(), $state);
     }
 
     public function getId(): SubscriptionId

@@ -29,13 +29,17 @@ final readonly class Timestamp implements Stringable
         return new DateTimeImmutable('@'.$this->timestamp);
     }
 
-    public function isReasonable(): bool
+    public function isReasonableAt(self $reference): bool
     {
-        $now = self::now()->toInt();
-        $oneHourInFuture = $now + 3600;
-        $tenYearsAgo = $now - (10 * 365 * 24 * 3600);
+        $oneHourInFuture = $reference->timestamp + 3600;
+        $tenYearsAgo = $reference->timestamp - (10 * 365 * 24 * 3600);
 
         return $this->timestamp >= $tenYearsAgo && $this->timestamp <= $oneHourInFuture;
+    }
+
+    public function isReasonable(): bool
+    {
+        return $this->isReasonableAt(self::now());
     }
 
     public function equals(self $other): bool

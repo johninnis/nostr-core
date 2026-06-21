@@ -17,6 +17,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use Innis\Nostr\Core\Infrastructure\Time\SystemClock;
 use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
 use PHPUnit\Framework\TestCase;
 
@@ -27,7 +28,7 @@ final class Nip98ValidatorTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->service = new Nip98Validator(CryptoFixtures::signer(), $this->createReplayGuard());
+        $this->service = new Nip98Validator(CryptoFixtures::signer(), $this->createReplayGuard(), new SystemClock());
         $this->keyPair = KeyPair::generate(CryptoFixtures::signer());
     }
 
@@ -351,7 +352,7 @@ final class Nip98ValidatorTest extends TestCase
 
     public function testCustomTimestampTolerance(): void
     {
-        $service = new Nip98Validator(CryptoFixtures::signer(), $this->createReplayGuard(), timestampTolerance: 10);
+        $service = new Nip98Validator(CryptoFixtures::signer(), $this->createReplayGuard(), new SystemClock(), timestampTolerance: 10);
         $event = $this->createSignedEventWithTimestamp(Timestamp::fromInt(time() - 30));
 
         $this->assertSame(
