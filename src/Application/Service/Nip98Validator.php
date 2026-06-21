@@ -9,7 +9,6 @@ use Innis\Nostr\Core\Application\Port\Nip98ReplayGuardInterface;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Failure\AuthHeaderDecodeFailure;
 use Innis\Nostr\Core\Domain\Failure\Nip98ValidationFailure;
-use Innis\Nostr\Core\Domain\Service\Nip98ValidatorInterface;
 use Innis\Nostr\Core\Domain\Service\NostrAuthHeaderCodec;
 use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
@@ -114,7 +113,7 @@ final readonly class Nip98Validator implements Nip98ValidatorInterface
 
     private function validateUrl(Event $event, string $requestUrl): ?Nip98ValidationFailure
     {
-        $urlValues = $event->getTags()->getValuesByType(TagType::fromString('u'));
+        $urlValues = $event->getTags()->getValuesByType(TagType::fromString(TagType::URL));
 
         if ([] === $urlValues) {
             return Nip98ValidationFailure::MissingUrlTag;

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Infrastructure\Crypto;
 
 use FFI;
-use FFI\CData;
 use Innis\Nostr\Core\Domain\Exception\CryptoException;
 use Innis\Nostr\Core\Domain\Exception\EcdhException;
 use Throwable;
@@ -30,8 +29,6 @@ final class LibSecp256k1Ffi
         int secp256k1_ec_pubkey_parse(const secp256k1_context *ctx, secp256k1_pubkey *pubkey, const unsigned char *input, size_t inputlen);
         int secp256k1_ec_pubkey_tweak_mul(const secp256k1_context *ctx, secp256k1_pubkey *pubkey, const unsigned char *tweak32);
         int secp256k1_ec_pubkey_serialize(const secp256k1_context *ctx, unsigned char *output, size_t *outputlen, const secp256k1_pubkey *pubkey, unsigned int flags);
-        int secp256k1_ec_pubkey_create(const secp256k1_context *ctx, secp256k1_pubkey *pubkey, const unsigned char *seckey32);
-        int secp256k1_ec_pubkey_combine(const secp256k1_context *ctx, secp256k1_pubkey *out, const secp256k1_pubkey * const * ins, size_t n);
         C;
 
     private const int CONTEXT_SIGN_VERIFY = 769;
@@ -159,101 +156,6 @@ final class LibSecp256k1Ffi
         }
 
         return substr(FFI::string($output, self::COMPRESSED_PUBKEY_LENGTH), 1, self::XONLY_PUBKEY_LENGTH);
-    }
-
-    public function derivePublicKeyCompressed(string $seckey32): string
-    {
-        $pubkey = $this->ffi->new('secp256k1_pubkey');
-        if (1 !== $this->ffi->secp256k1_ec_pubkey_create(
-            $this->context,
-            FFI::addr($pubkey),
-            FfiLibraryLoader::toBuffer($this->ffi, $seckey32),
-        )) {
-            throw new CryptoException('Failed to derive compressed public key');
-        }
-
-        return $this->serialiseCompressed($pubkey);
-    }
-
-    public function pointMulCompressed(string $compressed33, string $scalar32): string
-    {
-        $pubkey = $this->ffi->new('secp256k1_pubkey');
-        if (1 !== $this->ffi->secp256k1_ec_pubkey_parse(
-            $this->context,
-            FFI::addr($pubkey),
-            FfiLibraryLoader::toBuffer($this->ffi, $compressed33),
-            self::COMPRESSED_PUBKEY_LENGTH,
-        )) {
-            throw new CryptoException('Invalid compressed public key for point multiplication');
-        }
-
-        if (1 !== $this->ffi->secp256k1_ec_pubkey_tweak_mul(
-            $this->context,
-            FFI::addr($pubkey),
-            FfiLibraryLoader::toBuffer($this->ffi, $scalar32),
-        )) {
-            throw new CryptoException('Point multiplication produced the identity');
-        }
-
-        return $this->serialiseCompressed($pubkey);
-    }
-
-    public function pointAddCompressed(string $compressedA33, string $compressedB33): string
-    {
-        $pubkeyA = $this->ffi->new('secp256k1_pubkey');
-        if (1 !== $this->ffi->secp256k1_ec_pubkey_parse(
-            $this->context,
-            FFI::addr($pubkeyA),
-            FfiLibraryLoader::toBuffer($this->ffi, $compressedA33),
-            self::COMPRESSED_PUBKEY_LENGTH,
-        )) {
-            throw new CryptoException('Invalid compressed public key A for point addition');
-        }
-
-        $pubkeyB = $this->ffi->new('secp256k1_pubkey');
-        if (1 !== $this->ffi->secp256k1_ec_pubkey_parse(
-            $this->context,
-            FFI::addr($pubkeyB),
-            FfiLibraryLoader::toBuffer($this->ffi, $compressedB33),
-            self::COMPRESSED_PUBKEY_LENGTH,
-        )) {
-            throw new CryptoException('Invalid compressed public key B for point addition');
-        }
-
-        $sum = $this->ffi->new('secp256k1_pubkey');
-        $ins = $this->ffi->new('secp256k1_pubkey *[2]');
-        $ins[0] = FFI::addr($pubkeyA);
-        $ins[1] = FFI::addr($pubkeyB);
-
-        if (1 !== $this->ffi->secp256k1_ec_pubkey_combine(
-            $this->context,
-            FFI::addr($sum),
-            $ins,
-            2,
-        )) {
-            throw new CryptoException('Point addition produced the identity');
-        }
-
-        return $this->serialiseCompressed($sum);
-    }
-
-    private function serialiseCompressed(CData $pubkey): string
-    {
-        $output = $this->ffi->new('unsigned char['.self::COMPRESSED_PUBKEY_LENGTH.']');
-        $outputLen = $this->ffi->new('size_t');
-        $outputLen->cdata = self::COMPRESSED_PUBKEY_LENGTH;
-
-        if (1 !== $this->ffi->secp256k1_ec_pubkey_serialize(
-            $this->context,
-            $output,
-            FFI::addr($outputLen),
-            FFI::addr($pubkey),
-            self::EC_COMPRESSED_FLAG,
-        )) {
-            throw new CryptoException('Failed to serialise compressed public key');
-        }
-
-        return FFI::string($output, self::COMPRESSED_PUBKEY_LENGTH);
     }
 
     public function __destruct()

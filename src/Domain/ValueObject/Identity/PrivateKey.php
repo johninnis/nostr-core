@@ -11,8 +11,6 @@ use Innis\Nostr\Core\Domain\ValueObject\SecretKeyMaterial;
 
 final readonly class PrivateKey
 {
-    public const int HEX_LENGTH = SecretKeyMaterial::BYTE_LENGTH * 2;
-
     private function __construct(private SecretKeyMaterial $material)
     {
     }

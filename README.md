@@ -279,6 +279,22 @@ PHP 8.4 property hooks and asymmetric visibility (`public private(set)`) let a *
 
 Setters do not arise. Value objects are immutable and transform by returning a new instance (`withTags(...)`); the few entities with genuine lifecycle state (`Event`, `Subscription`) mutate only through named transformations.
 
+### Why `PublicKey`, `EventId`, and `Signature` are separate types, not a shared base
+
+These three look alike — each wraps a fixed-length binary string and exposes `toHex` / `fromHex` / `equals` — so it is tempting to collapse them onto one `abstract readonly` base. The library keeps them as three independent `final` types deliberately:
+
+1. **A shared base forfeits the type safety on `equals()`.** Pulled onto a base, `equals()` has to accept the base type (`equals(self $other)`), which makes `$publicKey->equals($eventId)` pass at PHPStan level 9 — exactly the identity confusion a crypto library must never allow silently. PHP's parameter contravariance then forbids narrowing that parameter back to the concrete type in each leaf, so `equals` must be redeclared per type anyway: the base saves nothing where it matters and removes a guarantee the analyser gives today.
+2. **The shared logic is already factored out — into a collaborator, not a parent.** Hex validation and conversion live once in `HexCodec`, bech32 once in `Bech32Codec`, and every identity type routes through them. What is left in each class is a thin, type-specific surface, not duplicated logic. Sharing through a collaborator is composition; a base class here would be inheritance for incidental syntactic resemblance.
+3. **They are not the same concept.** `PublicKey` and `EventId` are 32-byte, bech32-encodable identities; `Signature` is a 64-byte opaque blob with no bech32 form. The resemblance is a coincidence of width, not a shared abstraction.
+
+Where logic reuse is genuine it goes through a collaborator, not a parent: `PrivateKey` and `ConversationKey` both compose a `SecretKeyMaterial` value object, which is the single home for secret-key validation and memory zeroing.
+
+### Why `Timestamp::now()` reads the clock directly, but `Nip98Validator` takes a `ClockInterface`
+
+The library reads wall-clock time in exactly one place — `Timestamp::now()` — and everything that needs the current instant goes through it, so there is a single obvious source of "now" rather than scattered `time()` calls. `Timestamp` is a value object and `now()` is simply its named constructor for the present instant; the comparisons it backs are available in a pure form that takes the reference instant as an argument (`isReasonableAt(self $reference)`, `isAfter`, `isBefore`, `differenceInSeconds`), so the time-dependent logic itself stays a pure function of its inputs.
+
+Where the passage of time is part of the behaviour under test, the present instant is injected as an `ClockInterface` port instead of read directly. `Nip98Validator` is the example: its whole job is to accept or reject an event against a timestamp-tolerance window, so it takes a `ClockInterface` and a test can freeze time to exercise the boundaries deterministically. The rule of thumb is to read `Timestamp::now()` directly in construction and glue code, and to inject `ClockInterface` wherever elapsed time is the thing being decided.
+
 ## Dependencies
 
 | Package | Purpose |

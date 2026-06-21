@@ -34,8 +34,8 @@ final readonly class HighlightMetadata
     public static function fromTagCollection(TagCollection $tags): self
     {
         return new self(
-            $tags->getFirstValueByType(TagType::fromString('context')),
-            $tags->getFirstValueByType(TagType::fromString('comment')),
+            $tags->getFirstValueByType(TagType::fromString(TagType::CONTEXT)),
+            $tags->getFirstValueByType(TagType::fromString(TagType::COMMENT)),
             self::extractSourceUrl($tags),
         );
     }
@@ -43,7 +43,7 @@ final readonly class HighlightMetadata
     private static function extractSourceUrl(TagCollection $tags): ?string
     {
         return array_find(
-            $tags->getValuesByType(TagType::fromString('r')),
+            $tags->getValuesByType(TagType::fromString(TagType::REFERENCE)),
             static fn (string $value): bool => str_starts_with($value, 'http://') || str_starts_with($value, 'https://'),
         );
     }

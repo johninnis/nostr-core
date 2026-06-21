@@ -40,6 +40,14 @@ final readonly class TagType implements Stringable
     public const string PAYLOAD = 'payload';
     public const string EXPIRATION = 'expiration';
     public const string PROTECTED = '-';
+    public const string URL = 'u';
+    public const string IMAGE = 'image';
+    public const string SUMMARY = 'summary';
+    public const string STATUS = 'status';
+    public const string STREAMING = 'streaming';
+    public const string PUBLISHED_AT = 'published_at';
+    public const string CONTEXT = 'context';
+    public const string COMMENT = 'comment';
 
     public function __construct(private string $type)
     {

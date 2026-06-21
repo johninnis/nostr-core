@@ -12,7 +12,6 @@ use Stringable;
 final readonly class PublicKey implements Stringable
 {
     public const int BYTE_LENGTH = 32;
-    public const int HEX_LENGTH = self::BYTE_LENGTH * 2;
 
     private function __construct(private string $key)
     {
@@ -64,6 +63,11 @@ final readonly class PublicKey implements Stringable
         }
 
         return self::fromBytes($decoded['data']);
+    }
+
+    public static function fromNpubOrHex(string $value): ?self
+    {
+        return str_starts_with($value, 'npub') ? self::fromBech32($value) : self::fromHex($value);
     }
 
     #[Override]

@@ -58,11 +58,11 @@ final readonly class LiveEventMetadata
 
         return new self(
             $identifier,
-            $tags->getFirstValueByType(TagType::fromString('title')),
-            $tags->getFirstValueByType(TagType::fromString('summary')),
-            $tags->getFirstValueByType(TagType::fromString('image')),
-            $tags->getFirstValueByType(TagType::fromString('status')),
-            $tags->getFirstValueByType(TagType::fromString('streaming')),
+            $tags->getFirstValueByType(TagType::fromString(TagType::TITLE)),
+            $tags->getFirstValueByType(TagType::fromString(TagType::SUMMARY)),
+            $tags->getFirstValueByType(TagType::fromString(TagType::IMAGE)),
+            $tags->getFirstValueByType(TagType::fromString(TagType::STATUS)),
+            $tags->getFirstValueByType(TagType::fromString(TagType::STREAMING)),
         );
     }
 

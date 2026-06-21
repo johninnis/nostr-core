@@ -58,14 +58,14 @@ final readonly class LongformMetadata
             return null;
         }
 
-        $publishedAtValue = (int) ($tags->getFirstValueByType(TagType::fromString('published_at')) ?? '0');
+        $publishedAtValue = (int) ($tags->getFirstValueByType(TagType::fromString(TagType::PUBLISHED_AT)) ?? '0');
         $publishedAt = $publishedAtValue > 0 ? Timestamp::fromInt($publishedAtValue) : null;
 
         return new self(
             $identifier,
-            $tags->getFirstValueByType(TagType::fromString('title')),
-            $tags->getFirstValueByType(TagType::fromString('summary')),
-            $tags->getFirstValueByType(TagType::fromString('image')),
+            $tags->getFirstValueByType(TagType::fromString(TagType::TITLE)),
+            $tags->getFirstValueByType(TagType::fromString(TagType::SUMMARY)),
+            $tags->getFirstValueByType(TagType::fromString(TagType::IMAGE)),
             $publishedAt,
             array_values($tags->getValuesByType(TagType::hashtag())),
         );

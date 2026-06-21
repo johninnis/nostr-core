@@ -21,6 +21,11 @@ final readonly class Signature implements Stringable
         return $this->signature;
     }
 
+    public function toBytes(): string
+    {
+        return HexCodec::toBytes($this->signature);
+    }
+
     public function equals(self $other): bool
     {
         return $this->signature === $other->signature;
@@ -33,6 +38,15 @@ final readonly class Signature implements Stringable
         }
 
         return new self($hex);
+    }
+
+    public static function fromBytes(string $bytes): ?self
+    {
+        if (self::BYTE_LENGTH !== strlen($bytes)) {
+            return null;
+        }
+
+        return new self(HexCodec::fromBytes($bytes));
     }
 
     #[Override]

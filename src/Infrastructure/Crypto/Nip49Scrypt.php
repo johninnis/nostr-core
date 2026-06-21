@@ -37,11 +37,6 @@ final class Nip49Scrypt
         $this->ffi = FfiLibraryLoader::tryLoad(self::CDEF, self::LIBRARY_NAMES);
     }
 
-    public function isAvailable(): bool
-    {
-        return null !== $this->ffi;
-    }
-
     public function derive(string $password, string $salt, int $logN): string
     {
         $ffi = $this->ffi;

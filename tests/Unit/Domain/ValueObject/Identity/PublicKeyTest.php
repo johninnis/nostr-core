@@ -92,4 +92,27 @@ final class PublicKeyTest extends TestCase
     {
         $this->assertNull(PublicKey::fromHex(strtoupper(self::VALID_PUBLIC_KEY_HEX)));
     }
+
+    public function testFromNpubOrHexAcceptsHex(): void
+    {
+        $publicKey = PublicKey::fromNpubOrHex(self::VALID_PUBLIC_KEY_HEX);
+
+        $this->assertNotNull($publicKey);
+        $this->assertSame(self::VALID_PUBLIC_KEY_HEX, $publicKey->toHex());
+    }
+
+    public function testFromNpubOrHexAcceptsNpub(): void
+    {
+        $expected = PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
+        $publicKey = PublicKey::fromNpubOrHex($expected->toBech32());
+
+        $this->assertNotNull($publicKey);
+        $this->assertTrue($expected->equals($publicKey));
+    }
+
+    public function testFromNpubOrHexReturnsNullForInvalidInput(): void
+    {
+        $this->assertNull(PublicKey::fromNpubOrHex('not-a-key'));
+        $this->assertNull(PublicKey::fromNpubOrHex('npub1invalidchecksum'));
+    }
 }

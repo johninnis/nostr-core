@@ -205,7 +205,7 @@ final readonly class Event implements Stringable
 
     public function getPublishedAt(): ?Timestamp
     {
-        $value = $this->tags->getFirstValueByType(TagType::fromString('published_at'));
+        $value = $this->tags->getFirstValueByType(TagType::fromString(TagType::PUBLISHED_AT));
 
         return null !== $value ? Timestamp::fromInt((int) $value) : null;
     }
