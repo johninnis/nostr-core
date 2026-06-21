@@ -17,17 +17,4 @@ final class EventIdCollection extends TypedCollection
     {
         return EventId::class;
     }
-
-    /**
-     * @return list<EventId>
-     */
-    public function toArray(): array
-    {
-        return $this->items;
-    }
-
-    public static function empty(): self
-    {
-        return new self();
-    }
 }

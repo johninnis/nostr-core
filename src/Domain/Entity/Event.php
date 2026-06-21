@@ -68,7 +68,7 @@ final readonly class Event implements Stringable
             $this->pubkey->toHex(),
             $this->createdAt->toInt(),
             $this->kind->toInt(),
-            $this->tags->toArray(),
+            $this->tags->toJsonArray(),
             (string) $this->content,
         ], JsonWireFormat::EVENT);
 
@@ -76,10 +76,8 @@ final readonly class Event implements Stringable
             throw new InvalidEventException('Failed to serialise event for ID calculation');
         }
 
-        $id = EventId::fromBytes(hash('sha256', $serialised, true));
-        assert(null !== $id);
-
-        return $id;
+        return EventId::fromBytes(hash('sha256', $serialised, true))
+            ?? throw new InvalidEventException('Hashed event ID was not a valid 32-byte value');
     }
 
     public function getId(): EventId
@@ -217,7 +215,7 @@ final readonly class Event implements Stringable
             'pubkey' => $this->pubkey->toHex(),
             'created_at' => $this->createdAt->toInt(),
             'kind' => $this->kind->toInt(),
-            'tags' => $this->tags->toArray(),
+            'tags' => $this->tags->toJsonArray(),
             'content' => (string) $this->content,
             'sig' => $this->signature?->toHex() ?? '',
         ];

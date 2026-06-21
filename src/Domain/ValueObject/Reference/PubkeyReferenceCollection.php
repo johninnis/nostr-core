@@ -18,14 +18,6 @@ final class PubkeyReferenceCollection extends TypedCollection
         return PubkeyReference::class;
     }
 
-    /**
-     * @return list<PubkeyReference>
-     */
-    public function toArray(): array
-    {
-        return $this->items;
-    }
-
     public static function empty(): self
     {
         return new self();

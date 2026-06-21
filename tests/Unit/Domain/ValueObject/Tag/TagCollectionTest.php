@@ -118,7 +118,7 @@ final class TagCollectionTest extends TestCase
         $collection = new TagCollection([$tag]);
 
         $expected = [['e', 'event-id', 'relay-url']];
-        $this->assertSame($expected, $collection->toArray());
+        $this->assertSame($expected, $collection->toJsonArray());
     }
 
     public function testEqualsWorksCorrectly(): void

@@ -118,7 +118,7 @@ final class TagCollection extends TypedCollection
         return $this->tagIndex;
     }
 
-    public function toArray(): array
+    public function toJsonArray(): array
     {
         return array_map(static fn (Tag $tag) => $tag->toArray(), $this->items);
     }
@@ -151,6 +151,6 @@ final class TagCollection extends TypedCollection
 
     public static function empty(): self
     {
-        return new self([]);
+        return new self();
     }
 }

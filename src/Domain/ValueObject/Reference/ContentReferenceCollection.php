@@ -17,17 +17,4 @@ final class ContentReferenceCollection extends TypedCollection
     {
         return ContentReference::class;
     }
-
-    /**
-     * @return list<ContentReference>
-     */
-    public function toArray(): array
-    {
-        return $this->items;
-    }
-
-    public static function empty(): self
-    {
-        return new self();
-    }
 }

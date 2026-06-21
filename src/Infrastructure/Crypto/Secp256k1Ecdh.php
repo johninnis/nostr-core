@@ -9,7 +9,6 @@ use Innis\Nostr\Core\Domain\Exception\EcdhException;
 use Innis\Nostr\Core\Domain\Service\EcdhServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
-use Mdanter\Ecc\EccFactory;
 use Override;
 
 final class Secp256k1Ecdh implements EcdhServiceInterface
@@ -60,20 +59,14 @@ final class Secp256k1Ecdh implements EcdhServiceInterface
 
     private function computeSharedXPurePhp(PrivateKey $privateKey, string $pubkeyHex): string
     {
-        $adapter = EccFactory::getAdapter();
-        $curve = EccFactory::getSecgCurves($adapter)->curve256k1();
+        $curve = Secp256k1Math::curve();
 
         $publicKeyX = gmp_init($pubkeyHex, 16);
         $publicKeyY = $curve->recoverYfromX(false, $publicKeyX);
         $publicKeyPoint = $curve->getPoint($publicKeyX, $publicKeyY);
 
-        $sharedX = $privateKey->expose(static function (string $privkeyBytes) use ($publicKeyPoint): string {
-            $privateKeyHex = bin2hex($privkeyBytes);
-            try {
-                $privateKeyInt = gmp_init($privateKeyHex, 16);
-            } finally {
-                sodium_memzero($privateKeyHex);
-            }
+        return $privateKey->expose(static function (string $privkeyBytes) use ($publicKeyPoint): string {
+            $privateKeyInt = Secp256k1Math::scalarFromBytes($privkeyBytes);
 
             $sharedPoint = $publicKeyPoint->mul($privateKeyInt);
             if ($sharedPoint->isInfinity()) {
@@ -82,7 +75,5 @@ final class Secp256k1Ecdh implements EcdhServiceInterface
 
             return Secp256k1Math::gmpToBytes($sharedPoint->getX(), self::SHARED_X_BYTE_LENGTH);
         });
-
-        return $sharedX;
     }
 }

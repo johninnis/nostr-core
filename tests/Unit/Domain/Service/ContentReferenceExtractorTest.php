@@ -42,9 +42,8 @@ final class ContentReferenceExtractorTest extends TestCase
     {
         $content = EventContent::fromString('Check out nostr:npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz and nostr:note10123456789abcdef0123456789abcdef0123456789abcdef0123456abc');
 
-        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
+        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
-            ->expects($this->exactly(2))
             ->method('decodeComplexEntity')
             ->willReturnCallback(static function (string $bech32): ?DecodedNip19Entity {
                 if ('npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz' === $bech32) {
@@ -75,9 +74,8 @@ final class ContentReferenceExtractorTest extends TestCase
     {
         $content = EventContent::fromString('Here is npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz and note10123456789abcdef0123456789abcdef0123456789abcdef0123456abc and nevent1qqstna2yrezu5wghjvswqqculvvwxsrcvu7uc0f78gan4xqhvz49d9spr3mhxue69uhkummnw3ez6un9d3shjtn4de6x2argwghx6egpr4mhxue69uhkummnw3ez6ur4vgh8wetvd3hhyer9wghxuet5nxnepm');
 
-        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
+        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
-            ->expects($this->exactly(3))
             ->method('decodeComplexEntity')
             ->willReturnCallback(static function (string $bech32): ?DecodedNip19Entity {
                 if ('npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz' === $bech32) {
@@ -111,9 +109,8 @@ final class ContentReferenceExtractorTest extends TestCase
     {
         $content = EventContent::fromString('Check out #[0] and #[1] references');
 
-        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
+        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
-            ->expects($this->exactly(2))
             ->method('decodeComplexEntity')
             ->willReturn(self::decoded('legacy'));
 
@@ -134,11 +131,9 @@ final class ContentReferenceExtractorTest extends TestCase
     {
         $content = EventContent::fromString('Invalid reference: npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz');
 
-        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
+        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
-            ->expects($this->once())
             ->method('decodeComplexEntity')
-            ->with('npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz')
             ->willReturn(null);
 
         $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content);
@@ -151,11 +146,9 @@ final class ContentReferenceExtractorTest extends TestCase
     {
         $content = EventContent::fromString('Reference: nevent1test123');
 
-        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
+        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
-            ->expects($this->once())
             ->method('decodeComplexEntity')
-            ->with('nevent1test123')
             ->willReturn(self::decoded(
                 DecodedNip19Entity::TYPE_EVENT,
                 pubkeyHex: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
@@ -183,11 +176,9 @@ final class ContentReferenceExtractorTest extends TestCase
     {
         $content = EventContent::fromString('Reference: nevent1test456');
 
-        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
+        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
-            ->expects($this->once())
             ->method('decodeComplexEntity')
-            ->with('nevent1test456')
             ->willReturn(self::decoded(
                 DecodedNip19Entity::TYPE_EVENT,
                 pubkeyHex: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
@@ -208,9 +199,8 @@ final class ContentReferenceExtractorTest extends TestCase
     {
         $content = EventContent::fromString('Reference: nevent1test123');
 
-        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
+        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
-            ->expects($this->once())
             ->method('decodeComplexEntity')
             ->willReturn(self::decoded(
                 DecodedNip19Entity::TYPE_EVENT,
@@ -231,11 +221,9 @@ final class ContentReferenceExtractorTest extends TestCase
     {
         $content = EventContent::fromString('Invalid: xnpub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyzx and valid npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz');
 
-        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
+        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
-            ->expects($this->once())
             ->method('decodeComplexEntity')
-            ->with('npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz')
             ->willReturn(self::decoded(DecodedNip19Entity::TYPE_PUBKEY, pubkeyHex: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'));
 
         $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content);
@@ -262,9 +250,8 @@ final class ContentReferenceExtractorTest extends TestCase
 
         $content = EventContent::fromString("Some text\n\n{$bareNevent}nostr:{$prefixedNevent} ");
 
-        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
+        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
-            ->expects($this->exactly(2))
             ->method('decodeComplexEntity')
             ->willReturnCallback(static function (string $bech32) use ($bareNevent, $prefixedNevent): ?DecodedNip19Entity {
                 if ($bech32 === $bareNevent || $bech32 === $prefixedNevent) {

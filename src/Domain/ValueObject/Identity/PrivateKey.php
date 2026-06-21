@@ -17,11 +17,9 @@ final readonly class PrivateKey
 
     public static function fromHex(string $hex): ?self
     {
-        if (!HexCodec::isValid($hex, SecretKeyMaterial::BYTE_LENGTH)) {
-            return null;
-        }
+        $material = SecretKeyMaterial::fromHex($hex);
 
-        return new self(new SecretKeyMaterial(HexCodec::toBytes($hex)));
+        return null === $material ? null : new self($material);
     }
 
     public static function fromBech32(string $bech32): ?self
@@ -36,11 +34,9 @@ final readonly class PrivateKey
 
     public static function fromBytes(string $bytes): ?self
     {
-        if (SecretKeyMaterial::BYTE_LENGTH !== strlen($bytes)) {
-            return null;
-        }
+        $material = SecretKeyMaterial::fromBytes($bytes);
 
-        return new self(new SecretKeyMaterial($bytes));
+        return null === $material ? null : new self($material);
     }
 
     public static function generate(): self

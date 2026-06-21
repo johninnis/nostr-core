@@ -17,17 +17,4 @@ final class PublicKeyCollection extends TypedCollection
     {
         return PublicKey::class;
     }
-
-    /**
-     * @return list<PublicKey>
-     */
-    public function toArray(): array
-    {
-        return $this->items;
-    }
-
-    public static function empty(): self
-    {
-        return new self();
-    }
 }

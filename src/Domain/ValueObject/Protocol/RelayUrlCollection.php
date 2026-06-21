@@ -17,14 +17,4 @@ final class RelayUrlCollection extends TypedCollection
     {
         return RelayUrl::class;
     }
-
-    public function toArray(): array
-    {
-        return $this->items;
-    }
-
-    public static function empty(): self
-    {
-        return new self();
-    }
 }

@@ -10,7 +10,6 @@ use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
-use Mdanter\Ecc\EccFactory;
 use Override;
 
 final class Secp256k1Signer implements SignatureServiceInterface
@@ -85,16 +84,9 @@ final class Secp256k1Signer implements SignatureServiceInterface
 
     private function derivePublicKeyPurePhp(string $privkeyBytes): PublicKey
     {
-        $adapter = EccFactory::getAdapter();
-        $generator = EccFactory::getSecgCurves($adapter)->generator256k1();
+        $generator = Secp256k1Math::generator();
 
-        $privateKeyHex = bin2hex($privkeyBytes);
-        try {
-            $privateKeyInt = gmp_init($privateKeyHex, 16);
-        } finally {
-            sodium_memzero($privateKeyHex);
-        }
-
+        $privateKeyInt = Secp256k1Math::scalarFromBytes($privkeyBytes);
         $publicKeyPoint = $generator->mul($privateKeyInt);
 
         if (0 !== gmp_cmp(gmp_mod($publicKeyPoint->getY(), 2), 0)) {
@@ -102,31 +94,23 @@ final class Secp256k1Signer implements SignatureServiceInterface
             $publicKeyPoint = $generator->mul($privateKeyInt);
         }
 
-        $publicKeyHex = str_pad(gmp_strval($publicKeyPoint->getX(), 16), 64, '0', STR_PAD_LEFT);
-
-        return PublicKey::fromHex($publicKeyHex)
+        return PublicKey::fromHex(Secp256k1Math::gmpToHex($publicKeyPoint->getX(), 32))
             ?? throw new CryptoException('Key derivation produced invalid public key');
     }
 
     private function signPurePhp(string $privkeyBytes, string $message): Signature
     {
-        $adapter = EccFactory::getAdapter();
-        $generator = EccFactory::getSecgCurves($adapter)->generator256k1();
+        $generator = Secp256k1Math::generator();
         $n = $generator->getOrder();
 
-        $privateKeyHex = bin2hex($privkeyBytes);
-        try {
-            $privateKeyInt = gmp_init($privateKeyHex, 16);
-        } finally {
-            sodium_memzero($privateKeyHex);
-        }
+        $privateKeyInt = Secp256k1Math::scalarFromBytes($privkeyBytes);
 
         $P = $generator->mul($privateKeyInt);
         $d = 0 === gmp_cmp(gmp_mod($P->getY(), 2), 0) ? $privateKeyInt : gmp_sub($n, $privateKeyInt);
 
         $aux = $this->randomBytes->bytes(self::AUX_RAND_LENGTH);
         $dBytes = Secp256k1Math::gmpToBytes($d, 32);
-        $t = $this->xorBytes($dBytes, Secp256k1Math::taggedHash('BIP0340/aux', $aux));
+        $t = $dBytes ^ Secp256k1Math::taggedHash('BIP0340/aux', $aux);
         sodium_memzero($dBytes);
 
         $randInput = $t.Secp256k1Math::gmpToBytes($P->getX(), 32).$message;
@@ -155,8 +139,8 @@ final class Secp256k1Signer implements SignatureServiceInterface
 
         $s = gmp_mod(gmp_add($k, gmp_mul($e, $d)), $n);
 
-        $rHex = str_pad(gmp_strval($R->getX(), 16), 64, '0', STR_PAD_LEFT);
-        $sHex = str_pad(gmp_strval($s, 16), 64, '0', STR_PAD_LEFT);
+        $rHex = Secp256k1Math::gmpToHex($R->getX(), 32);
+        $sHex = Secp256k1Math::gmpToHex($s, 32);
 
         return Signature::fromHex($rHex.$sHex)
             ?? throw new CryptoException('Schnorr signing produced invalid signature');
@@ -164,9 +148,8 @@ final class Secp256k1Signer implements SignatureServiceInterface
 
     private function verifyPurePhp(string $message, string $signatureHex, string $publicKeyHex): bool
     {
-        $adapter = EccFactory::getAdapter();
-        $generator = EccFactory::getSecgCurves($adapter)->generator256k1();
-        $curve = EccFactory::getSecgCurves($adapter)->curve256k1();
+        $generator = Secp256k1Math::generator();
+        $curve = Secp256k1Math::curve();
 
         $p = $curve->getPrime();
         $n = $generator->getOrder();
@@ -204,16 +187,5 @@ final class Secp256k1Signer implements SignatureServiceInterface
         }
 
         return 0 === gmp_cmp($R->getX(), $r);
-    }
-
-    private function xorBytes(string $a, string $b): string
-    {
-        $result = '';
-        $length = min(strlen($a), strlen($b));
-        for ($i = 0; $i < $length; ++$i) {
-            $result .= chr((ord($a[$i]) ^ ord($b[$i])) & 0xFF);
-        }
-
-        return $result;
     }
 }

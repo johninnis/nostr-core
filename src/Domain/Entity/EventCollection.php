@@ -98,11 +98,6 @@ final class EventCollection extends TypedCollection implements JsonSerializable
         return $this->items[count($this->items) - 1] ?? null;
     }
 
-    public function toArray(): array
-    {
-        return $this->items;
-    }
-
     public function toJsonArray(): array
     {
         return array_map(static fn (Event $event) => $event->toArray(), $this->items);

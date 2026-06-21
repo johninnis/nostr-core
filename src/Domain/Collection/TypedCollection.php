@@ -20,7 +20,7 @@ abstract class TypedCollection implements IteratorAggregate, Countable
     /** @var list<T> */
     protected array $items;
 
-    public function __construct(array $items = [])
+    final public function __construct(array $items = [])
     {
         $type = $this->elementType();
         $validated = [];
@@ -59,5 +59,13 @@ abstract class TypedCollection implements IteratorAggregate, Countable
     final public function getIterator(): ArrayIterator
     {
         return new ArrayIterator($this->items);
+    }
+
+    /**
+     * @return list<T>
+     */
+    final public function toArray(): array
+    {
+        return $this->items;
     }
 }

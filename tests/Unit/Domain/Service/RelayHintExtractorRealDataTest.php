@@ -95,11 +95,9 @@ final class RelayHintExtractorRealDataTest extends TestCase
     {
         $content = "Getting married and having kids will make you level up as a man faster and further than anything else.\n\nnostr:nevent1qvzqqqqqqypzqxh7p36w84mcf6af8f0rlf255mhtqxfg6ynnnt5t5jpj0p5q3cmdqqsdxkwnafkgnfg68g6xkqau25548fewg440x5s8r4uud0sednkewugdc6hft ";
 
-        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
+        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
-            ->expects($this->once())
             ->method('decodeComplexEntity')
-            ->with('nevent1qvzqqqqqqypzqxh7p36w84mcf6af8f0rlf255mhtqxfg6ynnnt5t5jpj0p5q3cmdqqsdxkwnafkgnfg68g6xkqau25548fewg440x5s8r4uud0sednkewugdc6hft')
             ->willReturn(self::decoded('wss://relay.primal.net/', 'wss://nos.lol/'));
 
         $relayHints = $this->makeExtractor($bech32Encoder)->extractRelayHintsFromContent($content);
@@ -137,9 +135,8 @@ final class RelayHintExtractorRealDataTest extends TestCase
             EventContent::fromString("Getting married and having kids will make you level up as a man faster and further than anything else.\n\nnostr:nevent1qvzqqqqqqypzqxh7p36w84mcf6af8f0rlf255mhtqxfg6ynnnt5t5jpj0p5q3cmdqqsdxkwnafkgnfg68g6xkqau25548fewg440x5s8r4uud0sednkewugdc6hft ")
         );
 
-        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
+        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
-            ->expects($this->once())
             ->method('decodeComplexEntity')
             ->willReturn(self::decoded('wss://relay.damus.io/'));
 

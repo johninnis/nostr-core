@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject;
 
 use Closure;
 use Innis\Nostr\Core\Domain\Exception\SecretKeyMaterialZeroedException;
+use Innis\Nostr\Core\Domain\Service\HexCodec;
 use InvalidArgumentException;
 
 final class SecretKeyMaterial
@@ -26,6 +27,16 @@ final class SecretKeyMaterial
     public static function random(): self
     {
         return new self(random_bytes(self::BYTE_LENGTH));
+    }
+
+    public static function fromHex(string $hex): ?self
+    {
+        return HexCodec::isValid($hex, self::BYTE_LENGTH) ? new self(HexCodec::toBytes($hex)) : null;
+    }
+
+    public static function fromBytes(string $bytes): ?self
+    {
+        return self::BYTE_LENGTH === strlen($bytes) ? new self($bytes) : null;
     }
 
     /**

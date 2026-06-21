@@ -6,7 +6,6 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
 use Closure;
 use Innis\Nostr\Core\Domain\Service\EcdhServiceInterface;
-use Innis\Nostr\Core\Domain\Service\HexCodec;
 use Innis\Nostr\Core\Domain\ValueObject\SecretKeyMaterial;
 
 final readonly class ConversationKey
@@ -27,20 +26,16 @@ final readonly class ConversationKey
 
     public static function fromHex(string $hex): ?self
     {
-        if (!HexCodec::isValid($hex, SecretKeyMaterial::BYTE_LENGTH)) {
-            return null;
-        }
+        $material = SecretKeyMaterial::fromHex($hex);
 
-        return new self(new SecretKeyMaterial(HexCodec::toBytes($hex)));
+        return null === $material ? null : new self($material);
     }
 
     public static function fromBytes(string $bytes): ?self
     {
-        if (SecretKeyMaterial::BYTE_LENGTH !== strlen($bytes)) {
-            return null;
-        }
+        $material = SecretKeyMaterial::fromBytes($bytes);
 
-        return new self(new SecretKeyMaterial($bytes));
+        return null === $material ? null : new self($material);
     }
 
     /**

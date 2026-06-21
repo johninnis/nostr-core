@@ -33,7 +33,7 @@ final class ContentReferenceTagBuilderTest extends TestCase
         );
 
         $tags = $this->tagBuilder->buildTags($content);
-        $tagArrays = $tags->toArray();
+        $tagArrays = $tags->toJsonArray();
 
         $nprofilePubkey = '97c70a44366a6535c145b333f973ea86dfdc2d7a99da618c40c64705ad98e322';
         $noteId = 'b02876ad954e1ad9f90548bf5a1688f140819ed482d58d3185a98a6e219aa8e2';

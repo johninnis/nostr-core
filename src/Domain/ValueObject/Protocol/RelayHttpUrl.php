@@ -15,8 +15,8 @@ final readonly class RelayHttpUrl implements Stringable
     {
         $wsUrl = (string) $relayUrl;
         $this->url = $relayUrl->isSecure()
-            ? 'https://'.substr($wsUrl, 6)
-            : 'http://'.substr($wsUrl, 5);
+            ? 'https://'.substr($wsUrl, strlen('wss://'))
+            : 'http://'.substr($wsUrl, strlen('ws://'));
     }
 
     #[Override]

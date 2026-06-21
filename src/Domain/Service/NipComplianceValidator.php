@@ -22,7 +22,6 @@ final class NipComplianceValidator implements NipComplianceValidatorInterface
     {
         $this->validateBasicStructure($event);
         $this->validateSignature($event);
-        $this->validateEventId($event);
     }
 
     #[Override]
@@ -99,16 +98,6 @@ final class NipComplianceValidator implements NipComplianceValidatorInterface
 
         if (!$event->verify($this->signatureService)) {
             throw new InvalidEventException('Event signature is invalid');
-        }
-    }
-
-    private function validateEventId(Event $event): void
-    {
-        $calculatedId = $event->calculateId();
-        $eventId = $event->getId();
-
-        if (!$calculatedId->equals($eventId)) {
-            throw new InvalidEventException('Event ID does not match calculated ID');
         }
     }
 }

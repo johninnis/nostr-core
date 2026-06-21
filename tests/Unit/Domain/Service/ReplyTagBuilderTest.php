@@ -12,7 +12,8 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
-use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
+use Innis\Nostr\Core\Tests\Fake\FakeSignatureService;
+use Innis\Nostr\Core\Tests\Support\KeyMother;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -23,18 +24,18 @@ final class ReplyTagBuilderTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->keyPair1 = KeyPair::generate(CryptoFixtures::signer());
-        $this->keyPair2 = KeyPair::generate(CryptoFixtures::signer());
+        $this->keyPair1 = KeyMother::alice();
+        $this->keyPair2 = KeyMother::bob();
     }
 
     public function testBuildReplyToRootPost(): void
     {
         $rootEvent = $this->createEvent($this->keyPair1);
-        $signedRoot = $rootEvent->sign($this->keyPair1, CryptoFixtures::signer());
+        $signedRoot = $rootEvent->sign($this->keyPair1, FakeSignatureService::accepting());
 
         $tags = ReplyTagBuilder::build($signedRoot);
 
-        $tagArray = $tags->toArray();
+        $tagArray = $tags->toJsonArray();
         $this->assertCount(2, $tagArray);
         $this->assertSame('e', $tagArray[0][0]);
         $this->assertSame($signedRoot->getId()->toHex(), $tagArray[0][1]);
@@ -47,14 +48,14 @@ final class ReplyTagBuilderTest extends TestCase
     public function testBuildReplyToReply(): void
     {
         $rootEvent = $this->createEvent($this->keyPair1);
-        $signedRoot = $rootEvent->sign($this->keyPair1, CryptoFixtures::signer());
+        $signedRoot = $rootEvent->sign($this->keyPair1, FakeSignatureService::accepting());
 
         $replyEvent = $this->createEvent($this->keyPair2);
-        $signedReply = $replyEvent->sign($this->keyPair2, CryptoFixtures::signer());
+        $signedReply = $replyEvent->sign($this->keyPair2, FakeSignatureService::accepting());
 
         $tags = ReplyTagBuilder::build($signedReply, $signedRoot);
 
-        $tagArray = $tags->toArray();
+        $tagArray = $tags->toJsonArray();
         $this->assertCount(4, $tagArray);
 
         $this->assertSame('e', $tagArray[0][0]);
@@ -81,7 +82,7 @@ final class ReplyTagBuilderTest extends TestCase
 
         $tags = ReplyTagBuilder::buildFromValues($replyToId, $replyToAuthor, $rootId, $rootAuthor);
 
-        $tagArray = $tags->toArray();
+        $tagArray = $tags->toJsonArray();
         $this->assertCount(4, $tagArray);
         $this->assertSame($rootId->toHex(), $tagArray[0][1]);
         $this->assertSame('root', $tagArray[0][3]);
@@ -97,7 +98,7 @@ final class ReplyTagBuilderTest extends TestCase
 
         $tags = ReplyTagBuilder::buildFromValues($replyToId, $author, $rootId, $author);
 
-        $tagArray = $tags->toArray();
+        $tagArray = $tags->toJsonArray();
         $this->assertCount(3, $tagArray);
         $pTags = array_filter($tagArray, static fn ($t) => 'p' === $t[0]);
         $this->assertCount(1, $pTags);

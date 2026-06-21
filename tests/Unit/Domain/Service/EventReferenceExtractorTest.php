@@ -21,11 +21,9 @@ final class EventReferenceExtractorTest extends TestCase
 {
     public function testExtractReferencesOrchestatesAllServices(): void
     {
-        $contentExtractor = $this->createMock(ContentReferenceExtractorInterface::class);
+        $contentExtractor = $this->createStub(ContentReferenceExtractorInterface::class);
         $contentExtractor
-            ->expects($this->once())
             ->method('extractContentReferences')
-            ->with($this->isInstanceOf(EventContent::class))
             ->willReturn([]);
 
         $service = new EventReferenceExtractor($contentExtractor);

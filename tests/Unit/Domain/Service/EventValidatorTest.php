@@ -14,7 +14,8 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
-use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
+use Innis\Nostr\Core\Tests\Fake\FakeSignatureService;
+use Innis\Nostr\Core\Tests\Support\KeyMother;
 use PHPUnit\Framework\TestCase;
 
 final class EventValidatorTest extends TestCase
@@ -25,10 +26,10 @@ final class EventValidatorTest extends TestCase
     protected function setUp(): void
     {
         $this->service = new EventValidator(
-            CryptoFixtures::signer(),
-            new NipComplianceValidator(CryptoFixtures::signer()),
+            FakeSignatureService::accepting(),
+            new NipComplianceValidator(FakeSignatureService::accepting()),
         );
-        $this->keyPair = KeyPair::generate(CryptoFixtures::signer());
+        $this->keyPair = KeyMother::alice();
     }
 
     public function testValidEventPassesValidation(): void
@@ -49,7 +50,7 @@ final class EventValidatorTest extends TestCase
             TagCollection::empty(),
             EventContent::fromString('Hello')
         );
-        $signedEvent = $event->sign($this->keyPair, CryptoFixtures::signer());
+        $signedEvent = $event->sign($this->keyPair, FakeSignatureService::accepting());
 
         $this->expectException(InvalidEventException::class);
         $this->expectExceptionMessage('Event timestamp is not reasonable');
@@ -105,7 +106,7 @@ final class EventValidatorTest extends TestCase
             'pubkey' => $event->getPubkey()->toHex(),
             'created_at' => $event->getCreatedAt()->toInt(),
             'kind' => $event->getKind()->toInt(),
-            'tags' => $event->getTags()->toArray(),
+            'tags' => $event->getTags()->toJsonArray(),
             'content' => 'Different content',
             'sig' => $event->getSignature()?->toHex() ?? '',
         ]);
@@ -157,7 +158,7 @@ final class EventValidatorTest extends TestCase
             'pubkey' => $signed->getPubkey()->toHex(),
             'created_at' => $signed->getCreatedAt()->toInt(),
             'kind' => $signed->getKind()->toInt(),
-            'tags' => $signed->getTags()->toArray(),
+            'tags' => $signed->getTags()->toJsonArray(),
             'content' => 'forged content claiming a known pubkey',
             'sig' => '',
         ]);
@@ -179,7 +180,7 @@ final class EventValidatorTest extends TestCase
             EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString($maxLengthContent)
-        ))->sign($this->keyPair, CryptoFixtures::signer());
+        ))->sign($this->keyPair, FakeSignatureService::accepting());
 
         $this->service->validateEvent($event);
         $this->assertTrue($this->service->isEventValid($event));
@@ -198,7 +199,7 @@ final class EventValidatorTest extends TestCase
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection($tags),
             EventContent::fromString('Hello')
-        ))->sign($this->keyPair, CryptoFixtures::signer());
+        ))->sign($this->keyPair, FakeSignatureService::accepting());
 
         $this->service->validateEvent($event);
         $this->assertTrue($this->service->isEventValid($event));
@@ -214,6 +215,6 @@ final class EventValidatorTest extends TestCase
             EventContent::fromString('Hello Nostr!')
         );
 
-        return $event->sign($this->keyPair, CryptoFixtures::signer());
+        return $event->sign($this->keyPair, FakeSignatureService::accepting());
     }
 }

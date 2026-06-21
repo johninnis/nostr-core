@@ -10,9 +10,9 @@ use Innis\Nostr\Core\Domain\Failure\AuthHeaderDecodeFailure;
 use Innis\Nostr\Core\Domain\Service\NostrAuthHeaderCodec;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
-use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
+use Innis\Nostr\Core\Tests\Fake\FakeSignatureService;
+use Innis\Nostr\Core\Tests\Support\KeyMother;
 use PHPUnit\Framework\TestCase;
 
 final class NostrAuthHeaderCodecTest extends TestCase
@@ -63,13 +63,13 @@ final class NostrAuthHeaderCodecTest extends TestCase
 
     private function signedEvent(): Event
     {
-        $keyPair = KeyPair::generate(CryptoFixtures::signer());
+        $keyPair = KeyMother::alice();
 
         return EventFactory::createCustomKind(
             $keyPair->getPublicKey(),
             EventKind::fromInt(EventKind::HTTP_AUTH),
             new EventContent(''),
             new TagCollection([]),
-        )->sign($keyPair, CryptoFixtures::signer());
+        )->sign($keyPair, FakeSignatureService::accepting());
     }
 }

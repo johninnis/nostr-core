@@ -18,14 +18,6 @@ final class EventCoordinateCollection extends TypedCollection
         return EventCoordinate::class;
     }
 
-    /**
-     * @return list<EventCoordinate>
-     */
-    public function toArray(): array
-    {
-        return $this->items;
-    }
-
     public static function empty(): self
     {
         return new self();

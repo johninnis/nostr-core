@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventIdCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKeyCollection;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\ContentReference;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\ContentReferenceCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReferences;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\QuoteAnalysis;
@@ -28,7 +30,7 @@ final class EventReferenceExtractor implements EventReferenceExtractorInterface
         $tagReferences = TagReferenceExtractor::extract($event->getTags());
         $contentReferences = $this->contentExtractor->extractContentReferences($event->getContent());
         $replyChain = ReplyChainAnalyser::analyse($event->getTags(), $event->getKind());
-        $quoteAnalysis = self::analyseQuote($event);
+        $quoteAnalysis = self::analyseQuote($event, $contentReferences);
 
         [$allEventIds, $allPublicKeys] = $this->mergeAllReferences(
             $tagReferences,
@@ -46,18 +48,18 @@ final class EventReferenceExtractor implements EventReferenceExtractorInterface
         );
     }
 
-    private static function analyseQuote(Event $event): QuoteAnalysis
+    private static function analyseQuote(Event $event, array $contentReferences): QuoteAnalysis
     {
         $isRepost = $event->getKind()->is(EventKind::REPOST);
 
         $hasQuoteTag = array_any(
-            $event->getTags()->toArray(),
+            $event->getTags()->toJsonArray(),
             static fn (array $tagArray): bool => 'q' === $tagArray[0],
         );
 
-        $hasEventInContent = 1 === preg_match(
-            '/nostr:(note1[a-z0-9]{58}|nevent1[a-z0-9]+)/i',
-            (string) $event->getContent()
+        $hasEventInContent = array_any(
+            $contentReferences,
+            static fn (ContentReference $ref): bool => ContentReferenceType::NostrUri === $ref->getType() && $ref->isEventReference(),
         );
 
         $isQuote = $hasQuoteTag || ($event->getKind()->is(EventKind::TEXT_NOTE) && $hasEventInContent);

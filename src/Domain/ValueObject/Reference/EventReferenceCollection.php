@@ -18,14 +18,6 @@ final class EventReferenceCollection extends TypedCollection
         return EventReference::class;
     }
 
-    /**
-     * @return list<EventReference>
-     */
-    public function toArray(): array
-    {
-        return $this->items;
-    }
-
     public static function empty(): self
     {
         return new self();

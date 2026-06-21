@@ -18,14 +18,6 @@ final class FilterCollection extends TypedCollection
         return Filter::class;
     }
 
-    /**
-     * @return list<Filter>
-     */
-    public function toArray(): array
-    {
-        return $this->items;
-    }
-
     public static function empty(): self
     {
         return new self();

@@ -18,14 +18,6 @@ final class RelayReferenceCollection extends TypedCollection
         return RelayReference::class;
     }
 
-    /**
-     * @return list<RelayReference>
-     */
-    public function toArray(): array
-    {
-        return $this->items;
-    }
-
     public static function empty(): self
     {
         return new self();

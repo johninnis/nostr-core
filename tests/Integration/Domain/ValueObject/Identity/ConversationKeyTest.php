@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Identity;
+namespace Innis\Nostr\Core\Tests\Integration\Domain\ValueObject\Identity;
 
 use Innis\Nostr\Core\Domain\Exception\SecretKeyMaterialZeroedException;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;

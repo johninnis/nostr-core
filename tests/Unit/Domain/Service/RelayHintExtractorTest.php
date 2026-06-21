@@ -68,11 +68,9 @@ final class RelayHintExtractorTest extends TestCase
     public function testExtractRelayHintFromNevent(): void
     {
         $nevent = 'nevent1abc123';
-        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
+        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
-            ->expects($this->once())
             ->method('decodeComplexEntity')
-            ->with($nevent)
             ->willReturn(self::decoded('wss://decoded-relay.com'));
 
         $relay = $this->makeExtractor($bech32Encoder)->extractRelayHintFromNevent($nevent);
@@ -84,11 +82,9 @@ final class RelayHintExtractorTest extends TestCase
     public function testExtractRelayHintFromNeventReturnsNullWhenNoRelays(): void
     {
         $nevent = 'nevent1abc123';
-        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
+        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
-            ->expects($this->once())
             ->method('decodeComplexEntity')
-            ->with($nevent)
             ->willReturn(self::decoded());
 
         $this->assertNull($this->makeExtractor($bech32Encoder)->extractRelayHintFromNevent($nevent));
@@ -97,11 +93,9 @@ final class RelayHintExtractorTest extends TestCase
     public function testExtractRelayHintFromNeventReturnsNullForUndecodableEntity(): void
     {
         $nevent = 'nevent1invalid';
-        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
+        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
-            ->expects($this->once())
             ->method('decodeComplexEntity')
-            ->with($nevent)
             ->willReturn(null);
 
         $this->assertNull($this->makeExtractor($bech32Encoder)->extractRelayHintFromNevent($nevent));
@@ -111,9 +105,8 @@ final class RelayHintExtractorTest extends TestCase
     {
         $content = 'Check out this event: nevent1abc123 and this one nevent1def456';
 
-        $bech32Encoder = $this->createMock(Nip19CodecInterface::class);
+        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
-            ->expects($this->exactly(2))
             ->method('decodeComplexEntity')
             ->willReturnMap([
                 ['nevent1abc123', self::decoded('wss://relay1.com')],

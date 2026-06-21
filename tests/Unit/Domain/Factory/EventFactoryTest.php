@@ -14,7 +14,8 @@ use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
-use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
+use Innis\Nostr\Core\Tests\Fake\FakeSignatureService;
+use Innis\Nostr\Core\Tests\Support\KeyMother;
 use PHPUnit\Framework\TestCase;
 
 final class EventFactoryTest extends TestCase
@@ -23,7 +24,7 @@ final class EventFactoryTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->keyPair = KeyPair::generate(CryptoFixtures::signer());
+        $this->keyPair = KeyMother::alice();
     }
 
     public function testCanCreateTextNote(): void
@@ -188,9 +189,9 @@ final class EventFactoryTest extends TestCase
         $originalEvent = EventFactory::createTextNote(
             $this->keyPair->getPublicKey(),
             'Original post'
-        )->sign($this->keyPair, CryptoFixtures::signer());
+        )->sign($this->keyPair, FakeSignatureService::accepting());
 
-        $repostingKeyPair = KeyPair::generate(CryptoFixtures::signer());
+        $repostingKeyPair = KeyMother::bob();
         $repost = EventFactory::createRepost($repostingKeyPair->getPublicKey(), $originalEvent);
 
         $this->assertTrue($repost->getKind()->is(EventKind::REPOST));
@@ -210,9 +211,9 @@ final class EventFactoryTest extends TestCase
         $targetEvent = EventFactory::createTextNote(
             $this->keyPair->getPublicKey(),
             'Target post'
-        )->sign($this->keyPair, CryptoFixtures::signer());
+        )->sign($this->keyPair, FakeSignatureService::accepting());
 
-        $reactingKeyPair = KeyPair::generate(CryptoFixtures::signer());
+        $reactingKeyPair = KeyMother::bob();
         $reaction = EventFactory::createReaction($reactingKeyPair->getPublicKey(), $targetEvent);
 
         $this->assertTrue($reaction->getKind()->is(EventKind::REACTION));
@@ -232,7 +233,7 @@ final class EventFactoryTest extends TestCase
         $targetEvent = EventFactory::createTextNote(
             $this->keyPair->getPublicKey(),
             'Target post'
-        )->sign($this->keyPair, CryptoFixtures::signer());
+        )->sign($this->keyPair, FakeSignatureService::accepting());
 
         $reaction = EventFactory::createReaction($this->keyPair->getPublicKey(), $targetEvent, '-');
 

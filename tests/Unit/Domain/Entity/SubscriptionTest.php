@@ -11,11 +11,10 @@ use Innis\Nostr\Core\Domain\Entity\Subscription;
 use Innis\Nostr\Core\Domain\Enum\SubscriptionState;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
-use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
+use Innis\Nostr\Core\Tests\Support\KeyMother;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -72,7 +71,7 @@ final class SubscriptionTest extends TestCase
 
     public function testMatchesEventWhenReceivingEvents(): void
     {
-        $keyPair = KeyPair::generate(CryptoFixtures::signer());
+        $keyPair = KeyMother::alice();
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -95,7 +94,7 @@ final class SubscriptionTest extends TestCase
 
     public function testMatchesEventReturnsFalseWhenClosed(): void
     {
-        $keyPair = KeyPair::generate(CryptoFixtures::signer());
+        $keyPair = KeyMother::alice();
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
