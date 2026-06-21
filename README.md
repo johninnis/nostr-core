@@ -295,6 +295,24 @@ The library reads wall-clock time in exactly one place — `Timestamp::now()` �
 
 Where the passage of time is part of the behaviour under test, the present instant is injected as an `ClockInterface` port instead of read directly. `Nip98Validator` is the example: its whole job is to accept or reject an event against a timestamp-tolerance window, so it takes a `ClockInterface` and a test can freeze time to exercise the boundaries deterministically. The rule of thumb is to read `Timestamp::now()` directly in construction and glue code, and to inject `ClockInterface` wherever elapsed time is the thing being decided.
 
+### Deliberate designs that read like smells
+
+A few choices look like duplication or an anti-pattern at a glance and have been "corrected" before to the codebase's detriment. They are intentional, and each is held in place by a test that fails if it is undone — so the justification matters more than the appearance.
+
+- **`TagType` is a value object, not a backed `enum`.** NIP-01 tag names are an *open* set: any string is a valid tag name, and `Tag::fromArray` builds a `TagType` from whatever arrives on the wire. A backed enum models a *closed* set — its `tryFrom` returns `null` for an unrecognised case, so a relay or client could no longer round-trip a tag it does not know. The class keeps typed constants for the well-known names plus a `fromString` constructor for the rest, which is the correct shape for an open vocabulary. (The "backed enums for closed sets" rule above still holds; this set is not closed.)
+
+- **`SubscriptionCollection` does not extend `TypedCollection`.** It is a string-keyed map — `add`/`get`/`remove` work by subscription id and iteration yields the id as the key — whereas `TypedCollection` models an ordered `list<T>`. Forcing the map onto the list base would break its public contract (`toArray()` returning a keyed array, `foreach` exposing ids), which its tests assert. A keyed registry is a genuinely different data structure, not a fork of the list collection.
+
+- **Some domain services are `static`, others are injected interfaces.** The split is by dependency, not by accident. A pure, dependency-free transformation (`TagReferenceExtractor`, `ReplyChainAnalyser`, `ReplyTagBuilder`, `EmbeddedEventExtractor`) is a `static` function: there is nothing to inject and nothing to mock, so a unit test feeds it real input and asserts the output. A service that needs a collaborator — the ones taking a `Nip19CodecInterface` — is an injected interface so the collaborator can be a test double. Making the pure functions injectable too would add wiring and a seam that buys nothing.
+
+- **`KeySecurityByte::fromByte` throws on an unrecognised byte instead of falling back to `Unknown`.** Under NIP-49 the key-security byte is authenticated as associated data by the AEAD, and `fromByte` is only ever called mid-decrypt. Throwing on an out-of-range byte is precisely what rejects a *tampered* `ncryptsec`: if the byte were silently mapped to `Unknown` (`0x02`), flipping the stored byte to any other value would still yield the same associated data and the tampered payload would decrypt. `Unknown` is a valid spec value, distinct from a corrupt one — they must not be conflated. This regressed once; `Nip49CipherTest::testDecryptRejectsUnknownKeySecurityByte` guards it.
+
+- **`RelayUrl::fromString` rejects more than malformed syntax.** It also returns `null` for a path that repeats the host, a doubled slash, a percent-encoded space, and an out-of-range port — normalisation strictness aimed at the duplicated-authority and mangled URLs that show up in real relay lists. These are deliberate, tested rejections, not oversights.
+
+- **`ContentReferenceTagBuilder` emits both a `q` tag and an `e` mention for a quoted event.** This is deliberate interoperability: NIP-18 quote reposts carry a `q` tag, while older clients only read the NIP-10 `e` mention. Emitting both maximises the set of clients that resolve the quote.
+
+- **`Event` does not cache its computed id.** `Event` is a `final readonly class`, so a lazy memoisation field is not available; `getId()` recomputes the SHA-256 only when the event is unsigned (a signed event already carries its id). The hash is cheap, and dropping the class-level `readonly` to add a cache would cost more in immutability guarantees than it saves.
+
 ## Dependencies
 
 | Package | Purpose |
