@@ -33,28 +33,19 @@ final readonly class HighlightMetadata
 
     public static function fromTagCollection(TagCollection $tags): self
     {
-        $contextValues = $tags->getValuesByType(TagType::fromString('context'));
-        $commentValues = $tags->getValuesByType(TagType::fromString('comment'));
-        $sourceUrl = self::extractSourceUrl($tags);
-
         return new self(
-            !empty($contextValues) ? reset($contextValues) : null,
-            !empty($commentValues) ? reset($commentValues) : null,
-            $sourceUrl
+            $tags->getFirstValueByType(TagType::fromString('context')),
+            $tags->getFirstValueByType(TagType::fromString('comment')),
+            self::extractSourceUrl($tags),
         );
     }
 
     private static function extractSourceUrl(TagCollection $tags): ?string
     {
-        $rValues = $tags->getValuesByType(TagType::fromString('r'));
-
-        foreach ($rValues as $value) {
-            if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
-                return $value;
-            }
-        }
-
-        return null;
+        return array_find(
+            $tags->getValuesByType(TagType::fromString('r')),
+            static fn (string $value): bool => str_starts_with($value, 'http://') || str_starts_with($value, 'https://'),
+        );
     }
 
     public function toArray(): array

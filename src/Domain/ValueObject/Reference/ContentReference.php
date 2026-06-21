@@ -19,12 +19,7 @@ final readonly class ContentReference
         private string $rawText,
         private string $identifier,
         private int $position,
-        private string $decodedType,
-        private ?EventId $eventId = null,
-        private ?PublicKey $publicKey = null,
-        private RelayUrlCollection $relays = new RelayUrlCollection(),
-        private ?string $addressableIdentifier = null,
-        private ?EventKind $kind = null,
+        private ?DecodedNip19Entity $decoded = null,
     ) {
         if ($position < 0) {
             throw new InvalidArgumentException('Position must be non-negative');
@@ -53,47 +48,47 @@ final readonly class ContentReference
 
     public function getDecodedType(): string
     {
-        return $this->decodedType;
+        return $this->decoded?->getType() ?? 'unknown';
     }
 
     public function getEventId(): ?EventId
     {
-        return $this->eventId;
+        return $this->decoded?->getEventId();
     }
 
     public function getPublicKey(): ?PublicKey
     {
-        return $this->publicKey;
+        return $this->decoded?->getPublicKey();
     }
 
     public function getRelays(): RelayUrlCollection
     {
-        return $this->relays;
-    }
-
-    public function isEventReference(): bool
-    {
-        return null !== $this->eventId;
-    }
-
-    public function isPubkeyReference(): bool
-    {
-        return null !== $this->publicKey;
+        return $this->decoded?->getRelays() ?? new RelayUrlCollection();
     }
 
     public function getAddressableIdentifier(): ?string
     {
-        return $this->addressableIdentifier;
+        return $this->decoded?->getIdentifier();
     }
 
     public function getKind(): ?EventKind
     {
-        return $this->kind;
+        return $this->decoded?->getKind();
+    }
+
+    public function isEventReference(): bool
+    {
+        return null !== $this->getEventId();
+    }
+
+    public function isPubkeyReference(): bool
+    {
+        return null !== $this->getPublicKey();
     }
 
     public function isAddressableReference(): bool
     {
-        return null !== $this->addressableIdentifier && null !== $this->kind && null !== $this->publicKey;
+        return null !== $this->getAddressableIdentifier() && null !== $this->getKind() && null !== $this->getPublicKey();
     }
 
     public function toArray(): array
@@ -103,12 +98,12 @@ final readonly class ContentReference
             'raw_text' => $this->rawText,
             'identifier' => $this->identifier,
             'position' => $this->position,
-            'decoded_type' => $this->decodedType,
-            'event_id' => $this->eventId?->toHex(),
-            'public_key' => $this->publicKey?->toHex(),
-            'relays' => array_map(static fn (RelayUrl $relay) => (string) $relay, $this->relays->toArray()),
-            'addressable_identifier' => $this->addressableIdentifier,
-            'kind' => $this->kind?->toInt(),
+            'decoded_type' => $this->getDecodedType(),
+            'event_id' => $this->getEventId()?->toHex(),
+            'public_key' => $this->getPublicKey()?->toHex(),
+            'relays' => array_map(static fn (RelayUrl $relay) => (string) $relay, $this->getRelays()->toArray()),
+            'addressable_identifier' => $this->getAddressableIdentifier(),
+            'kind' => $this->getKind()?->toInt(),
         ];
     }
 
@@ -116,20 +111,29 @@ final readonly class ContentReference
     {
         $relays = [];
         if (isset($data['relays']) && is_array($data['relays'])) {
-            $relays = array_values(array_filter(array_map(static fn (mixed $url) => is_string($url) ? RelayUrl::fromString($url) : null, $data['relays'])));
+            $relays = array_values(array_filter(array_map(
+                static fn (mixed $url) => is_string($url) ? RelayUrl::fromString($url) : null,
+                $data['relays'],
+            )));
         }
+
+        $addressableIdentifier = $data['addressable_identifier'] ?? null;
+
+        $decoded = new DecodedNip19Entity(
+            $data['decoded_type'] ?? 'unknown',
+            isset($data['public_key']) ? PublicKey::fromHex($data['public_key']) : null,
+            isset($data['event_id']) ? EventId::fromHex($data['event_id']) : null,
+            is_string($addressableIdentifier) ? $addressableIdentifier : null,
+            isset($data['kind']) && is_int($data['kind']) ? EventKind::fromInt($data['kind']) : null,
+            new RelayUrlCollection($relays),
+        );
 
         return new self(
             ContentReferenceType::from($data['type']),
             $data['raw_text'],
             $data['identifier'],
             $data['position'],
-            $data['decoded_type'],
-            isset($data['event_id']) ? EventId::fromHex($data['event_id']) : null,
-            isset($data['public_key']) ? PublicKey::fromHex($data['public_key']) : null,
-            new RelayUrlCollection($relays),
-            $data['addressable_identifier'] ?? null,
-            isset($data['kind']) ? EventKind::fromInt($data['kind']) : null
+            $decoded,
         );
     }
 }

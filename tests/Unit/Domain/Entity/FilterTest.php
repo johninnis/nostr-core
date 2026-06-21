@@ -15,6 +15,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -70,7 +71,7 @@ final class FilterTest extends TestCase
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('test')
         );
@@ -87,7 +88,7 @@ final class FilterTest extends TestCase
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('test')
         );
@@ -103,7 +104,7 @@ final class FilterTest extends TestCase
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('test')
         );
@@ -120,7 +121,7 @@ final class FilterTest extends TestCase
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             $tags,
             EventContent::fromString('test')
         );
@@ -141,7 +142,7 @@ final class FilterTest extends TestCase
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             $tags,
             EventContent::fromString('test')
         );
@@ -164,7 +165,7 @@ final class FilterTest extends TestCase
         $event = new Event(
             $pubkey,
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             $tags,
             EventContent::fromString('test')
         );
@@ -181,7 +182,7 @@ final class FilterTest extends TestCase
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             $tags,
             EventContent::fromString('test')
         );
@@ -196,7 +197,7 @@ final class FilterTest extends TestCase
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('test')
         );
@@ -211,7 +212,7 @@ final class FilterTest extends TestCase
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('test')
         );
@@ -368,7 +369,7 @@ final class FilterTest extends TestCase
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::fromInt(1234567895),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('test')
         );
@@ -386,7 +387,7 @@ final class FilterTest extends TestCase
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::fromInt(1234567895),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('test')
         );
@@ -404,7 +405,7 @@ final class FilterTest extends TestCase
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('test')
         );
@@ -420,7 +421,7 @@ final class FilterTest extends TestCase
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('test')
         );
@@ -437,7 +438,7 @@ final class FilterTest extends TestCase
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('test')
         );
@@ -471,7 +472,7 @@ final class FilterTest extends TestCase
 
     public function testToArrayConvertsEventKindObjectsToIntegers(): void
     {
-        $filter = new Filter(kinds: [EventKind::textNote()]);
+        $filter = new Filter(kinds: [EventKind::fromInt(EventKind::TEXT_NOTE)]);
 
         $array = $filter->toArray();
 
@@ -502,6 +503,29 @@ final class FilterTest extends TestCase
 
         $this->assertNotNull($filter);
         $this->assertNull($filter->getTags());
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function malformedFilterProvider(): iterable
+    {
+        yield 'kinds not an array' => [['kinds' => 'one']];
+        yield 'kinds with non-int element' => [['kinds' => ['1']]];
+        yield 'ids not an array' => [['ids' => str_repeat('a', 64)]];
+        yield 'authors not an array' => [['authors' => str_repeat('a', 64)]];
+        yield 'limit not an int' => [['limit' => '5']];
+        yield 'search not a string' => [['search' => ['nostr']]];
+        yield 'since not an int' => [['since' => '1700000000']];
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    #[DataProvider('malformedFilterProvider')]
+    public function testFromArrayReturnsNullForMalformedScalarFields(array $data): void
+    {
+        $this->assertNull(Filter::fromArray($data));
     }
 
     public function testToStringReturnsJsonRepresentation(): void
@@ -540,7 +564,7 @@ final class FilterTest extends TestCase
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('Hello Nostr world')
         );
@@ -556,7 +580,7 @@ final class FilterTest extends TestCase
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('Hello NOSTR World')
         );
@@ -572,7 +596,7 @@ final class FilterTest extends TestCase
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('Hello Nostr')
         );
@@ -588,7 +612,7 @@ final class FilterTest extends TestCase
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('Hello world')
         );
@@ -604,7 +628,7 @@ final class FilterTest extends TestCase
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('Hello Nostr')
         );

@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Tag;
 
 use Innis\Nostr\Core\Domain\Collection\TypedCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use InvalidArgumentException;
 use Override;
 
 /**
@@ -63,7 +64,7 @@ final class TagCollection extends TypedCollection
 
     public function hasType(TagType $type): bool
     {
-        return !empty($this->findByType($type));
+        return [] !== $this->findByType($type);
     }
 
     public function getValuesByType(TagType $type, int $valueIndex = 0): array
@@ -88,14 +89,17 @@ final class TagCollection extends TypedCollection
         return $this->getValuesByType(TagType::event());
     }
 
+    public function getFirstValueByType(TagType $type): ?string
+    {
+        return $this->getValuesByType($type)[0] ?? null;
+    }
+
     public function getFirstPubkeyByType(TagType $type): ?PublicKey
     {
         foreach ($this->getValuesByType($type) as $value) {
-            if (PublicKey::HEX_LENGTH === strlen($value)) {
-                $pubkey = PublicKey::fromHex($value);
-                if (null !== $pubkey) {
-                    return $pubkey;
-                }
+            $pubkey = PublicKey::fromHex($value);
+            if (null !== $pubkey) {
+                return $pubkey;
             }
         }
 
@@ -133,7 +137,14 @@ final class TagCollection extends TypedCollection
 
     public static function fromArray(array $data): self
     {
-        $tags = array_map(static fn (array $tagData) => Tag::fromArray($tagData), $data);
+        $tags = [];
+        foreach ($data as $tagData) {
+            if (!is_array($tagData)) {
+                throw new InvalidArgumentException('Each tag must be an array');
+            }
+
+            $tags[] = Tag::fromArray($tagData);
+        }
 
         return new self($tags);
     }

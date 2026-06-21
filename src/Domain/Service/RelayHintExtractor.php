@@ -20,13 +20,10 @@ final class RelayHintExtractor implements RelayHintExtractorInterface
     #[Override]
     public function extractRelayHints(Event $event): array
     {
-        $relays = [];
-
-        $relays = array_merge($relays, $this->extractRelayHintsFromTags($event->getTags()));
-
-        $relays = array_merge($relays, $this->extractRelayHintsFromContent((string) $event->getContent()));
-
-        return $this->deduplicateRelayUrls($relays);
+        return $this->deduplicateRelayUrls([
+            ...$this->extractRelayHintsFromTags($event->getTags()),
+            ...$this->extractRelayHintsFromContent((string) $event->getContent()),
+        ]);
     }
 
     #[Override]
@@ -34,25 +31,17 @@ final class RelayHintExtractor implements RelayHintExtractorInterface
     {
         $relays = [];
 
-        foreach ($tags->toArray() as $tagArray) {
-            if (!is_array($tagArray) || count($tagArray) < 2) {
-                continue;
-            }
+        foreach ($tags as $tag) {
+            $type = (string) $tag->getType();
+            $relayValue = match (true) {
+                TagType::REFERENCE === $type => $tag->getValue(0),
+                TagType::EVENT === $type, TagType::PUBKEY === $type => $tag->getValue(1),
+                default => null,
+            };
 
-            if ('r' === $tagArray[0] && is_string($tagArray[1])) {
-                $relayUrl = RelayUrl::fromString($tagArray[1]);
-                if (null !== $relayUrl) {
-                    $relays[] = $relayUrl;
-                }
-            }
-
-            if (in_array($tagArray[0], [TagType::EVENT, TagType::PUBKEY], true) && count($tagArray) >= 3) {
-                if (is_string($tagArray[2])) {
-                    $relayUrl = RelayUrl::fromString($tagArray[2]);
-                    if (null !== $relayUrl) {
-                        $relays[] = $relayUrl;
-                    }
-                }
+            $relayUrl = RelayUrl::fromString($relayValue);
+            if (null !== $relayUrl) {
+                $relays[] = $relayUrl;
             }
         }
 
@@ -79,12 +68,7 @@ final class RelayHintExtractor implements RelayHintExtractorInterface
     #[Override]
     public function extractRelayHintFromNevent(string $nevent): ?RelayUrl
     {
-        $decoded = $this->nip19Codec->decodeComplexEntity($nevent);
-        if (null === $decoded || empty($decoded['relays'])) {
-            return null;
-        }
-
-        return RelayUrl::fromString($decoded['relays'][0]);
+        return $this->nip19Codec->decodeComplexEntity($nevent)?->getRelays()->toArray()[0] ?? null;
     }
 
     private function deduplicateRelayUrls(array $relayUrls): array

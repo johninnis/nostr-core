@@ -53,9 +53,9 @@ final readonly class CountMessage extends RelayMessage
             return null;
         }
 
-        $count = (int) $data[2]['count'];
+        $count = $data[2]['count'];
 
-        if ($count < 0) {
+        if (!is_int($count) || $count < 0) {
             return null;
         }
 

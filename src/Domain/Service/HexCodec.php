@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Service;
 
+use InvalidArgumentException;
+
 final class HexCodec
 {
     public static function isValid(string $hex, int $byteLength): bool
@@ -14,7 +16,9 @@ final class HexCodec
     public static function toBytes(string $hex): string
     {
         $bytes = hex2bin($hex);
-        assert(false !== $bytes);
+        if (false === $bytes) {
+            throw new InvalidArgumentException('Hexadecimal string must contain an even number of valid hex digits');
+        }
 
         return $bytes;
     }

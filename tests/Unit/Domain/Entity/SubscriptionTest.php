@@ -76,7 +76,7 @@ final class SubscriptionTest extends TestCase
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('test'),
         );
@@ -99,7 +99,7 @@ final class SubscriptionTest extends TestCase
         $event = new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('test'),
         );
@@ -136,6 +136,7 @@ final class SubscriptionTest extends TestCase
 
         $subscription = Subscription::fromArray($data);
 
+        $this->assertNotNull($subscription);
         $this->assertSame('test-sub', (string) $subscription->getId());
         $this->assertSame(SubscriptionState::ACTIVE, $subscription->getState());
     }
@@ -150,13 +151,40 @@ final class SubscriptionTest extends TestCase
 
         $subscription = Subscription::fromArray($data);
 
+        $this->assertNotNull($subscription);
         $this->assertSame(SubscriptionState::PENDING, $subscription->getState());
     }
 
-    public function testFromArrayMissingRequiredField(): void
+    public function testFromArrayReturnsNullWhenRequiredFieldMissing(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->assertNull(Subscription::fromArray(['id' => 'test']));
+    }
 
-        Subscription::fromArray(['id' => 'test']);
+    public function testFromArrayReturnsNullWhenStateInvalid(): void
+    {
+        $this->assertNull(Subscription::fromArray([
+            'id' => 'test-sub',
+            'filters' => [['kinds' => [1]]],
+            'created_at' => 1700000000,
+            'state' => 'bogus',
+        ]));
+    }
+
+    public function testFromArrayReturnsNullWhenFilterMalformed(): void
+    {
+        $this->assertNull(Subscription::fromArray([
+            'id' => 'test-sub',
+            'filters' => ['not-an-array'],
+            'created_at' => 1700000000,
+        ]));
+    }
+
+    public function testFromArrayReturnsNullWhenCreatedAtNotInteger(): void
+    {
+        $this->assertNull(Subscription::fromArray([
+            'id' => 'test-sub',
+            'filters' => [['kinds' => [1]]],
+            'created_at' => 'soon',
+        ]));
     }
 }

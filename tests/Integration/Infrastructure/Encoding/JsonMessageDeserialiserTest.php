@@ -33,7 +33,7 @@ final class JsonMessageDeserialiserTest extends TestCase
         $this->event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('Hello Nostr!')
         );

@@ -91,7 +91,7 @@ final class NutzapTest extends TestCase
         $event = new Event(
             PublicKey::fromHex(self::SENDER_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1700000000),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('hello'),
         );
@@ -195,7 +195,7 @@ final class NutzapTest extends TestCase
         return new Event(
             PublicKey::fromHex(self::SENDER_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1700000000),
-            EventKind::nutzap(),
+            EventKind::fromInt(EventKind::NUTZAP),
             TagCollection::fromArray($rawTags),
             EventContent::fromString($content),
         );

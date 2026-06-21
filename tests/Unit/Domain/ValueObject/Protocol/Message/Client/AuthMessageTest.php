@@ -40,7 +40,7 @@ final class AuthMessageTest extends TestCase
         $event = new Event(
             self::createPublicKey(),
             Timestamp::fromInt(1700000000),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString(''),
         );
@@ -118,7 +118,7 @@ final class AuthMessageTest extends TestCase
         return new Event(
             self::createPublicKey(),
             Timestamp::fromInt(1700000000),
-            EventKind::clientAuth(),
+            EventKind::fromInt(EventKind::CLIENT_AUTH),
             TagCollection::empty(),
             EventContent::fromString(''),
         );

@@ -87,7 +87,7 @@ final readonly class Nip98Validator implements Nip98ValidatorInterface
 
     private function validateKind(Event $event): ?Nip98ValidationFailure
     {
-        return $event->getKind()->equals(EventKind::httpAuth())
+        return $event->getKind()->is(EventKind::HTTP_AUTH)
             ? null
             : Nip98ValidationFailure::WrongKind;
     }

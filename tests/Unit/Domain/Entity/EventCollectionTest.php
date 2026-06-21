@@ -104,10 +104,10 @@ final class EventCollectionTest extends TestCase
     public function testFilterByKindReturnsMatchingEvents(): void
     {
         $textNote = $this->createEvent('Text note');
-        $metadata = $this->createEventWithKind(EventKind::metadata(), '{"name":"test"}');
+        $metadata = $this->createEventWithKind(EventKind::fromInt(EventKind::METADATA), '{"name":"test"}');
         $collection = new EventCollection([$textNote, $metadata]);
 
-        $filtered = $collection->filterByKind(EventKind::textNote());
+        $filtered = $collection->filterByKind(EventKind::fromInt(EventKind::TEXT_NOTE));
 
         $this->assertSame(1, $filtered->count());
         $first = $filtered->first();
@@ -120,7 +120,7 @@ final class EventCollectionTest extends TestCase
         $textNote = $this->createEvent('Text note');
         $collection = new EventCollection([$textNote]);
 
-        $filtered = $collection->filterByKind(EventKind::metadata());
+        $filtered = $collection->filterByKind(EventKind::fromInt(EventKind::METADATA));
 
         $this->assertTrue($filtered->isEmpty());
     }
@@ -132,7 +132,7 @@ final class EventCollectionTest extends TestCase
         $event2 = new Event(
             $otherKeyPair->getPublicKey(),
             Timestamp::fromInt(1234567890),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('By other author')
         );
@@ -447,7 +447,7 @@ final class EventCollectionTest extends TestCase
         $original = new EventCollection([$event1]);
 
         $afterAdd = $original->add($event2);
-        $afterFilter = $original->filterByKind(EventKind::metadata());
+        $afterFilter = $original->filterByKind(EventKind::fromInt(EventKind::METADATA));
         $afterSort = $original->sortByTimestamp();
 
         $this->assertSame(1, $original->count());
@@ -461,7 +461,7 @@ final class EventCollectionTest extends TestCase
         return new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::fromInt(1234567890),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString($content)
         );
@@ -472,7 +472,7 @@ final class EventCollectionTest extends TestCase
         return new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::fromInt($timestamp),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString($content)
         );

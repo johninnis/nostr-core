@@ -6,7 +6,6 @@ namespace Innis\Nostr\Core\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Enum\Nip10Marker;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
-use Innis\Nostr\Core\Domain\ValueObject\Reference\ContentReference;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Override;
@@ -24,15 +23,7 @@ final class ContentReferenceTagBuilder implements ContentReferenceTagBuilderInte
         $references = $this->extractor->extractContentReferences($content);
         $tags = $existingTags ?? TagCollection::empty();
 
-        if (empty($references)) {
-            return $tags;
-        }
-
         foreach ($references as $ref) {
-            if (!$ref instanceof ContentReference) {
-                continue;
-            }
-
             $pubkey = $ref->getPublicKey();
             if (null !== $pubkey) {
                 $tags = $tags->add(Tag::pubkey($pubkey->toHex()));

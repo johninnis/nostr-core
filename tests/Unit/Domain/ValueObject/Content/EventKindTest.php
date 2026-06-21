@@ -36,29 +36,29 @@ final class EventKindTest extends TestCase
 
     public function testStaticFactoryMethods(): void
     {
-        $this->assertSame(0, EventKind::metadata()->toInt());
-        $this->assertSame(1, EventKind::textNote()->toInt());
-        $this->assertSame(3, EventKind::followList()->toInt());
-        $this->assertSame(4, EventKind::encryptedDirectMessage()->toInt());
-        $this->assertSame(5, EventKind::eventDeletion()->toInt());
+        $this->assertSame(0, EventKind::fromInt(EventKind::METADATA)->toInt());
+        $this->assertSame(1, EventKind::fromInt(EventKind::TEXT_NOTE)->toInt());
+        $this->assertSame(3, EventKind::fromInt(EventKind::FOLLOW_LIST)->toInt());
+        $this->assertSame(4, EventKind::fromInt(EventKind::ENCRYPTED_DIRECT_MESSAGE)->toInt());
+        $this->assertSame(5, EventKind::fromInt(EventKind::EVENT_DELETION)->toInt());
     }
 
     public function testIsRegular(): void
     {
         $this->assertTrue(EventKind::fromInt(1)->isRegular());
         $this->assertTrue(EventKind::fromInt(9999)->isRegular());
-        $this->assertFalse(EventKind::metadata()->isRegular());
-        $this->assertFalse(EventKind::followList()->isRegular());
+        $this->assertFalse(EventKind::fromInt(EventKind::METADATA)->isRegular());
+        $this->assertFalse(EventKind::fromInt(EventKind::FOLLOW_LIST)->isRegular());
         $this->assertFalse(EventKind::fromInt(10000)->isRegular());
     }
 
     public function testIsReplaceable(): void
     {
-        $this->assertTrue(EventKind::metadata()->isReplaceable());
-        $this->assertTrue(EventKind::followList()->isReplaceable());
+        $this->assertTrue(EventKind::fromInt(EventKind::METADATA)->isReplaceable());
+        $this->assertTrue(EventKind::fromInt(EventKind::FOLLOW_LIST)->isReplaceable());
         $this->assertTrue(EventKind::fromInt(10000)->isReplaceable());
         $this->assertTrue(EventKind::fromInt(19999)->isReplaceable());
-        $this->assertFalse(EventKind::textNote()->isReplaceable());
+        $this->assertFalse(EventKind::fromInt(EventKind::TEXT_NOTE)->isReplaceable());
         $this->assertFalse(EventKind::fromInt(20000)->isReplaceable());
     }
 
@@ -102,15 +102,15 @@ final class EventKindTest extends TestCase
     {
         $kind = EventKind::fromInt(EventKind::HTTP_AUTH);
 
-        $this->assertTrue($kind->equals(EventKind::httpAuth()));
-        $this->assertFalse($kind->equals(EventKind::textNote()));
+        $this->assertTrue($kind->is(EventKind::HTTP_AUTH));
+        $this->assertFalse($kind->is(EventKind::TEXT_NOTE));
     }
 
     public function testNip17StaticFactoryMethods(): void
     {
-        $this->assertSame(13, EventKind::seal()->toInt());
-        $this->assertSame(14, EventKind::privateMessage()->toInt());
-        $this->assertSame(1059, EventKind::giftWrap()->toInt());
+        $this->assertSame(13, EventKind::fromInt(EventKind::SEAL)->toInt());
+        $this->assertSame(14, EventKind::fromInt(EventKind::PRIVATE_MESSAGE)->toInt());
+        $this->assertSame(1059, EventKind::fromInt(EventKind::GIFT_WRAP)->toInt());
     }
 
     public function testNip17KindConstants(): void
@@ -121,21 +121,21 @@ final class EventKindTest extends TestCase
 
     public function testAdditionalStaticFactoryMethods(): void
     {
-        $this->assertSame(6, EventKind::repost()->toInt());
-        $this->assertSame(7, EventKind::reaction()->toInt());
-        $this->assertSame(1111, EventKind::comment()->toInt());
-        $this->assertSame(30023, EventKind::longformContent()->toInt());
-        $this->assertSame(30311, EventKind::liveEvent()->toInt());
-        $this->assertSame(10002, EventKind::relayList()->toInt());
-        $this->assertSame(10000, EventKind::muteList()->toInt());
-        $this->assertSame(20, EventKind::picture()->toInt());
-        $this->assertSame(21, EventKind::video()->toInt());
-        $this->assertSame(22, EventKind::shortFormVideo()->toInt());
-        $this->assertSame(22242, EventKind::clientAuth()->toInt());
-        $this->assertSame(24133, EventKind::nostrConnect()->toInt());
-        $this->assertSame(9735, EventKind::zapReceipt()->toInt());
-        $this->assertSame(9321, EventKind::nutzap()->toInt());
-        $this->assertSame(10050, EventKind::dmRelayList()->toInt());
+        $this->assertSame(6, EventKind::fromInt(EventKind::REPOST)->toInt());
+        $this->assertSame(7, EventKind::fromInt(EventKind::REACTION)->toInt());
+        $this->assertSame(1111, EventKind::fromInt(EventKind::COMMENT)->toInt());
+        $this->assertSame(30023, EventKind::fromInt(EventKind::LONGFORM_CONTENT)->toInt());
+        $this->assertSame(30311, EventKind::fromInt(EventKind::LIVE_EVENT)->toInt());
+        $this->assertSame(10002, EventKind::fromInt(EventKind::RELAY_LIST)->toInt());
+        $this->assertSame(10000, EventKind::fromInt(EventKind::MUTE_LIST)->toInt());
+        $this->assertSame(20, EventKind::fromInt(EventKind::PICTURE)->toInt());
+        $this->assertSame(21, EventKind::fromInt(EventKind::VIDEO)->toInt());
+        $this->assertSame(22, EventKind::fromInt(EventKind::SHORT_FORM_VIDEO)->toInt());
+        $this->assertSame(22242, EventKind::fromInt(EventKind::CLIENT_AUTH)->toInt());
+        $this->assertSame(24133, EventKind::fromInt(EventKind::NOSTR_CONNECT)->toInt());
+        $this->assertSame(9735, EventKind::fromInt(EventKind::ZAP_RECEIPT)->toInt());
+        $this->assertSame(9321, EventKind::fromInt(EventKind::NUTZAP)->toInt());
+        $this->assertSame(10050, EventKind::fromInt(EventKind::DM_RELAY_LIST)->toInt());
     }
 
     public function testReplaceableListKindConstants(): void

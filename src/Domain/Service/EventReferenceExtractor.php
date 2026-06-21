@@ -48,7 +48,7 @@ final class EventReferenceExtractor implements EventReferenceExtractorInterface
 
     private static function analyseQuote(Event $event): QuoteAnalysis
     {
-        $isRepost = $event->getKind()->equals(EventKind::repost());
+        $isRepost = $event->getKind()->is(EventKind::REPOST);
 
         $hasQuoteTag = array_any(
             $event->getTags()->toArray(),
@@ -60,7 +60,7 @@ final class EventReferenceExtractor implements EventReferenceExtractorInterface
             (string) $event->getContent()
         );
 
-        $isQuote = $hasQuoteTag || ($event->getKind()->equals(EventKind::textNote()) && $hasEventInContent);
+        $isQuote = $hasQuoteTag || ($event->getKind()->is(EventKind::TEXT_NOTE) && $hasEventInContent);
 
         return new QuoteAnalysis(
             $hasQuoteTag,

@@ -32,7 +32,7 @@ final class EventTest extends TestCase
         $this->event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('Hello Nostr!')
         );
@@ -42,7 +42,7 @@ final class EventTest extends TestCase
     {
         $this->assertInstanceOf(Event::class, $this->event);
         $this->assertTrue($this->event->getPubkey()->equals($this->keyPair->getPublicKey()));
-        $this->assertTrue($this->event->getKind()->equals(EventKind::textNote()));
+        $this->assertTrue($this->event->getKind()->is(EventKind::TEXT_NOTE));
         $this->assertSame('Hello Nostr!', (string) $this->event->getContent());
         $this->assertFalse($this->event->isSigned());
     }
@@ -285,12 +285,25 @@ final class EventTest extends TestCase
         $this->assertNull(Event::fromJson('"not an object"'));
     }
 
+    public function testFromJsonReturnsNullWhenTagElementIsNotAnArray(): void
+    {
+        $json = json_encode([
+            'pubkey' => str_repeat('a', 64),
+            'created_at' => 1700000000,
+            'kind' => 1,
+            'tags' => ['not-an-array'],
+            'content' => 'hello',
+        ], JSON_THROW_ON_ERROR);
+
+        $this->assertNull(Event::fromJson($json));
+    }
+
     public function testEventIdCalculationIsConsistent(): void
     {
         $event1 = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::fromInt(1234567890),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('test')
         );
@@ -298,7 +311,7 @@ final class EventTest extends TestCase
         $event2 = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::fromInt(1234567890),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('test')
         );
@@ -311,7 +324,7 @@ final class EventTest extends TestCase
         $event1 = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::fromInt(1234567890),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('test1')
         );
@@ -319,7 +332,7 @@ final class EventTest extends TestCase
         $event2 = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::fromInt(1234567890),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('test2')
         );
@@ -342,7 +355,7 @@ final class EventTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('This is not a reply')
         );
@@ -358,7 +371,7 @@ final class EventTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             $tags,
             EventContent::fromString('This is a reply')
         );
@@ -373,7 +386,7 @@ final class EventTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             $tags,
             EventContent::fromString('This is a reply to root')
         );
@@ -388,7 +401,7 @@ final class EventTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             $tags,
             EventContent::fromString('This is a reply')
         );
@@ -404,7 +417,7 @@ final class EventTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             $tags,
             EventContent::fromString('This mentions an event but is not a reply')
         );
@@ -423,7 +436,7 @@ final class EventTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             $tags,
             EventContent::fromString('This mentions events but is not a reply')
         );
@@ -442,7 +455,7 @@ final class EventTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             $tags,
             EventContent::fromString('This is a reply that also mentions')
         );
@@ -458,7 +471,7 @@ final class EventTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             $tags,
             EventContent::fromString('This is a reply')
         );

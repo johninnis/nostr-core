@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Entity;
 
+use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
-use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Message;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use InvalidArgumentException;
 use JsonSerializable;
@@ -284,23 +284,38 @@ final readonly class Filter implements JsonSerializable, Stringable
             unset($data[$key]);
         }
 
+        $ids = $data['ids'] ?? null;
+        $authors = $data['authors'] ?? null;
+        $kinds = $data['kinds'] ?? null;
         $since = $data['since'] ?? null;
         $until = $data['until'] ?? null;
+        $limit = $data['limit'] ?? null;
+        $search = $data['search'] ?? null;
 
-        if ((null !== $since && !is_int($since)) || (null !== $until && !is_int($until))) {
+        if ((null !== $ids && !is_array($ids))
+            || (null !== $authors && !is_array($authors))
+            || (null !== $since && !is_int($since))
+            || (null !== $until && !is_int($until))
+            || (null !== $limit && !is_int($limit))
+            || (null !== $search && !is_string($search))
+        ) {
+            return null;
+        }
+
+        if (null !== $kinds && (!is_array($kinds) || !array_all($kinds, static fn (mixed $kind): bool => is_int($kind)))) {
             return null;
         }
 
         try {
             return new self(
-                $data['ids'] ?? null,
-                $data['authors'] ?? null,
-                $data['kinds'] ?? null,
+                $ids,
+                $authors,
+                $kinds,
                 [] === $tags ? null : $tags,
                 null !== $since ? Timestamp::fromInt($since) : null,
                 null !== $until ? Timestamp::fromInt($until) : null,
-                $data['limit'] ?? null,
-                $data['search'] ?? null
+                $limit,
+                $search
             );
         } catch (InvalidArgumentException) {
             return null;
@@ -353,6 +368,6 @@ final readonly class Filter implements JsonSerializable, Stringable
     #[Override]
     public function __toString(): string
     {
-        return json_encode($this->toArray(), Message::JSON_FLAGS);
+        return json_encode($this->toArray(), JsonWireFormat::MESSAGE);
     }
 }

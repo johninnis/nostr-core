@@ -8,10 +8,36 @@ use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
 use Innis\Nostr\Core\Domain\Service\ContentReferenceExtractor;
 use Innis\Nostr\Core\Domain\Service\Nip19CodecInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrlCollection;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\DecodedNip19Entity;
 use PHPUnit\Framework\TestCase;
 
 final class ContentReferenceExtractorTest extends TestCase
 {
+    /**
+     * @param list<string> $relayUrls
+     */
+    private static function decoded(string $type, ?string $pubkeyHex = null, ?string $eventIdHex = null, array $relayUrls = []): DecodedNip19Entity
+    {
+        $relays = [];
+        foreach ($relayUrls as $url) {
+            $relay = RelayUrl::fromString($url);
+            if (null !== $relay) {
+                $relays[] = $relay;
+            }
+        }
+
+        return new DecodedNip19Entity(
+            $type,
+            null !== $pubkeyHex ? PublicKey::fromHex($pubkeyHex) : null,
+            null !== $eventIdHex ? EventId::fromHex($eventIdHex) : null,
+            relays: new RelayUrlCollection($relays),
+        );
+    }
+
     public function testExtractNostrUriReferences(): void
     {
         $content = EventContent::fromString('Check out nostr:npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz and nostr:note10123456789abcdef0123456789abcdef0123456789abcdef0123456abc');
@@ -20,15 +46,15 @@ final class ContentReferenceExtractorTest extends TestCase
         $bech32Encoder
             ->expects($this->exactly(2))
             ->method('decodeComplexEntity')
-            ->willReturnCallback(static function ($bech32) {
+            ->willReturnCallback(static function (string $bech32): ?DecodedNip19Entity {
                 if ('npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz' === $bech32) {
-                    return ['type' => 'npub', 'pubkey' => 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'];
+                    return self::decoded(DecodedNip19Entity::TYPE_PUBKEY, pubkeyHex: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210');
                 }
                 if ('note10123456789abcdef0123456789abcdef0123456789abcdef0123456abc' === $bech32) {
-                    return ['type' => 'note', 'event_id' => '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'];
+                    return self::decoded(DecodedNip19Entity::TYPE_EVENT, eventIdHex: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef');
                 }
 
-                return [];
+                return null;
             });
 
         $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content);
@@ -53,18 +79,18 @@ final class ContentReferenceExtractorTest extends TestCase
         $bech32Encoder
             ->expects($this->exactly(3))
             ->method('decodeComplexEntity')
-            ->willReturnCallback(static function ($bech32) {
+            ->willReturnCallback(static function (string $bech32): ?DecodedNip19Entity {
                 if ('npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz' === $bech32) {
-                    return ['type' => 'npub', 'pubkey' => 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'];
+                    return self::decoded(DecodedNip19Entity::TYPE_PUBKEY, pubkeyHex: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210');
                 }
                 if ('note10123456789abcdef0123456789abcdef0123456789abcdef0123456abc' === $bech32) {
-                    return ['type' => 'note', 'event_id' => '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'];
+                    return self::decoded(DecodedNip19Entity::TYPE_EVENT, eventIdHex: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef');
                 }
                 if ('nevent1qqstna2yrezu5wghjvswqqculvvwxsrcvu7uc0f78gan4xqhvz49d9spr3mhxue69uhkummnw3ez6un9d3shjtn4de6x2argwghx6egpr4mhxue69uhkummnw3ez6ur4vgh8wetvd3hhyer9wghxuet5nxnepm' === $bech32) {
-                    return ['type' => 'nevent', 'event_id' => 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890', 'relays' => ['wss://relay.com']];
+                    return self::decoded(DecodedNip19Entity::TYPE_EVENT, eventIdHex: 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890', relayUrls: ['wss://relay.com']);
                 }
 
-                return [];
+                return null;
             });
 
         $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content);
@@ -89,7 +115,7 @@ final class ContentReferenceExtractorTest extends TestCase
         $bech32Encoder
             ->expects($this->exactly(2))
             ->method('decodeComplexEntity')
-            ->willReturn(['type' => 'legacy']);
+            ->willReturn(self::decoded('legacy'));
 
         $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content);
 
@@ -130,12 +156,12 @@ final class ContentReferenceExtractorTest extends TestCase
             ->expects($this->once())
             ->method('decodeComplexEntity')
             ->with('nevent1test123')
-            ->willReturn([
-                'type' => 'event',
-                'event_id' => '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
-                'pubkey' => 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
-                'relays' => ['wss://relay1.com', 'wss://relay2.com'],
-            ]);
+            ->willReturn(self::decoded(
+                DecodedNip19Entity::TYPE_EVENT,
+                pubkeyHex: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
+                eventIdHex: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+                relayUrls: ['wss://relay1.com', 'wss://relay2.com'],
+            ));
 
         $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content);
 
@@ -162,12 +188,12 @@ final class ContentReferenceExtractorTest extends TestCase
             ->expects($this->once())
             ->method('decodeComplexEntity')
             ->with('nevent1test456')
-            ->willReturn([
-                'type' => 'event',
-                'event_id' => '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
-                'author' => 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
-                'relays' => ['wss://relay1.com'],
-            ]);
+            ->willReturn(self::decoded(
+                DecodedNip19Entity::TYPE_EVENT,
+                pubkeyHex: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
+                eventIdHex: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+                relayUrls: ['wss://relay1.com'],
+            ));
 
         $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content);
 
@@ -186,10 +212,10 @@ final class ContentReferenceExtractorTest extends TestCase
         $bech32Encoder
             ->expects($this->once())
             ->method('decodeComplexEntity')
-            ->willReturn([
-                'type' => 'nevent',
-                'relays' => ['wss://valid-relay.com', 'invalid-url', 'wss://another-valid.com'],
-            ]);
+            ->willReturn(self::decoded(
+                DecodedNip19Entity::TYPE_EVENT,
+                relayUrls: ['wss://valid-relay.com', 'invalid-url', 'wss://another-valid.com'],
+            ));
 
         $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content);
 
@@ -210,7 +236,7 @@ final class ContentReferenceExtractorTest extends TestCase
             ->expects($this->once())
             ->method('decodeComplexEntity')
             ->with('npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz')
-            ->willReturn(['type' => 'npub', 'pubkey' => 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210']);
+            ->willReturn(self::decoded(DecodedNip19Entity::TYPE_PUBKEY, pubkeyHex: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'));
 
         $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content);
 
@@ -240,15 +266,12 @@ final class ContentReferenceExtractorTest extends TestCase
         $bech32Encoder
             ->expects($this->exactly(2))
             ->method('decodeComplexEntity')
-            ->willReturnCallback(static function ($bech32) use ($bareNevent, $prefixedNevent) {
+            ->willReturnCallback(static function (string $bech32) use ($bareNevent, $prefixedNevent): ?DecodedNip19Entity {
                 if ($bech32 === $bareNevent || $bech32 === $prefixedNevent) {
-                    return [
-                        'type' => 'nevent',
-                        'event_id' => '5f5cb96cc6c499f5404e4799534d9ca39b9d9c471fe5dcfc58a4640ba4144f16',
-                    ];
+                    return self::decoded(DecodedNip19Entity::TYPE_EVENT, eventIdHex: '5f5cb96cc6c499f5404e4799534d9ca39b9d9c471fe5dcfc58a4640ba4144f16');
                 }
 
-                return [];
+                return null;
             });
 
         $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content);

@@ -34,13 +34,13 @@ final readonly class CommentMetadata
 
     public static function fromTagCollection(TagCollection $tags): ?self
     {
-        $rootKindValues = $tags->getValuesByType(TagType::rootKind());
-        if (empty($rootKindValues)) {
+        $rootKind = $tags->getFirstValueByType(TagType::rootKind());
+        if (null === $rootKind) {
             return null;
         }
 
-        $parentKindValues = $tags->getValuesByType(TagType::parentKind());
-        if (empty($parentKindValues)) {
+        $parentKind = $tags->getFirstValueByType(TagType::parentKind());
+        if (null === $parentKind) {
             return null;
         }
 
@@ -49,11 +49,7 @@ final readonly class CommentMetadata
             return null;
         }
 
-        return new self(
-            reset($rootKindValues),
-            reset($parentKindValues),
-            $rootScope
-        );
+        return new self($rootKind, $parentKind, $rootScope);
     }
 
     private static function determineRootScope(TagCollection $tags): ?CommentScope

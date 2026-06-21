@@ -15,6 +15,8 @@ final readonly class TagType implements Stringable
     public const string NONCE = 'nonce';
     public const string SUBJECT = 'subject';
     public const string REFERENCE = 'r';
+    public const string QUOTE = 'q';
+    public const string CHALLENGE = 'challenge';
     public const string TITLE = 'title';
     public const string HASHTAG = 't';
     public const string GEOHASH = 'g';

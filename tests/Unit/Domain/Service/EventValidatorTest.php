@@ -45,7 +45,7 @@ final class EventValidatorTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             $futureTimestamp,
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('Hello')
         );
@@ -63,7 +63,7 @@ final class EventValidatorTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString($longContent)
         );
@@ -84,7 +84,7 @@ final class EventValidatorTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection($tags),
             EventContent::fromString('Hello')
         );
@@ -124,7 +124,7 @@ final class EventValidatorTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             $futureTimestamp,
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('Hello')
         );
@@ -137,7 +137,7 @@ final class EventValidatorTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('Hello')
         );
@@ -176,7 +176,7 @@ final class EventValidatorTest extends TestCase
         $event = (new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString($maxLengthContent)
         ))->sign($this->keyPair, CryptoFixtures::signer());
@@ -195,7 +195,7 @@ final class EventValidatorTest extends TestCase
         $event = (new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection($tags),
             EventContent::fromString('Hello')
         ))->sign($this->keyPair, CryptoFixtures::signer());
@@ -209,7 +209,7 @@ final class EventValidatorTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('Hello Nostr!')
         );

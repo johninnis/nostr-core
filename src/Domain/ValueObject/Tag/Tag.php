@@ -86,7 +86,7 @@ final readonly class Tag
 
     public static function fromArray(array $data): self
     {
-        if (empty($data)) {
+        if ([] === $data) {
             throw new InvalidArgumentException('Tag array cannot be empty');
         }
 

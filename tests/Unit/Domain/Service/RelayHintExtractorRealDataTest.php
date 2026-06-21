@@ -10,6 +10,9 @@ use Innis\Nostr\Core\Domain\Service\RelayHintExtractor;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrlCollection;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\DecodedNip19Entity;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use PHPUnit\Framework\TestCase;
@@ -17,6 +20,19 @@ use RuntimeException;
 
 final class RelayHintExtractorRealDataTest extends TestCase
 {
+    private static function decoded(string ...$relayUrls): DecodedNip19Entity
+    {
+        $relays = [];
+        foreach ($relayUrls as $url) {
+            $relay = RelayUrl::fromString($url);
+            if (null !== $relay) {
+                $relays[] = $relay;
+            }
+        }
+
+        return new DecodedNip19Entity(DecodedNip19Entity::TYPE_EVENT, relays: new RelayUrlCollection($relays));
+    }
+
     public function testExtractRelayHintsFromSecondTestEventTags(): void
     {
         $tags = TagCollection::fromArray([
@@ -84,11 +100,7 @@ final class RelayHintExtractorRealDataTest extends TestCase
             ->expects($this->once())
             ->method('decodeComplexEntity')
             ->with('nevent1qvzqqqqqqypzqxh7p36w84mcf6af8f0rlf255mhtqxfg6ynnnt5t5jpj0p5q3cmdqqsdxkwnafkgnfg68g6xkqau25548fewg440x5s8r4uud0sednkewugdc6hft')
-            ->willReturn([
-                'decoded_type' => 'nevent',
-                'event_id' => 'd359d3ea6c89a51a3a346b03bc552953a72e456af352071d79c6be196ced9771',
-                'relays' => ['wss://relay.primal.net/', 'wss://nos.lol/'],
-            ]);
+            ->willReturn(self::decoded('wss://relay.primal.net/', 'wss://nos.lol/'));
 
         $relayHints = $this->makeExtractor($bech32Encoder)->extractRelayHintsFromContent($content);
 
@@ -129,10 +141,7 @@ final class RelayHintExtractorRealDataTest extends TestCase
         $bech32Encoder
             ->expects($this->once())
             ->method('decodeComplexEntity')
-            ->willReturn([
-                'decoded_type' => 'nevent',
-                'relays' => ['wss://relay.damus.io/'],
-            ]);
+            ->willReturn(self::decoded('wss://relay.damus.io/'));
 
         $relayHints = $this->makeExtractor($bech32Encoder)->extractRelayHints($event);
 

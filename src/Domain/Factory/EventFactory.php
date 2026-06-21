@@ -8,70 +8,16 @@ use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Content\FileMetadata;
+use Innis\Nostr\Core\Domain\ValueObject\Content\LongformMetadata;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 
 final class EventFactory
 {
-    public static function createTextNote(
-        PublicKey $pubkey,
-        string $content,
-        ?TagCollection $tags = null,
-    ): Event {
-        return new Event(
-            $pubkey,
-            Timestamp::now(),
-            EventKind::textNote(),
-            $tags ?? TagCollection::empty(),
-            EventContent::fromString($content)
-        );
-    }
-
-    public static function createMetadata(
-        PublicKey $pubkey,
-        string $metadata,
-        ?TagCollection $tags = null,
-    ): Event {
-        return new Event(
-            $pubkey,
-            Timestamp::now(),
-            EventKind::metadata(),
-            $tags ?? TagCollection::empty(),
-            EventContent::fromString($metadata)
-        );
-    }
-
-    public static function createEncryptedDirectMessage(
-        PublicKey $pubkey,
-        string $encryptedContent,
-        TagCollection $tags,
-    ): Event {
-        return new Event(
-            $pubkey,
-            Timestamp::now(),
-            EventKind::encryptedDirectMessage(),
-            $tags,
-            EventContent::fromString($encryptedContent)
-        );
-    }
-
-    public static function createEventDeletion(
-        PublicKey $pubkey,
-        TagCollection $tags,
-        string $reason = '',
-    ): Event {
-        return new Event(
-            $pubkey,
-            Timestamp::now(),
-            EventKind::eventDeletion(),
-            $tags,
-            EventContent::fromString($reason)
-        );
-    }
-
     public static function createCustomKind(
         PublicKey $pubkey,
         EventKind $kind,
@@ -84,8 +30,40 @@ final class EventFactory
             $createdAt ?? Timestamp::now(),
             $kind,
             $tags ?? TagCollection::empty(),
-            $content
+            $content,
         );
+    }
+
+    public static function createTextNote(
+        PublicKey $pubkey,
+        string $content,
+        ?TagCollection $tags = null,
+    ): Event {
+        return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::TEXT_NOTE), EventContent::fromString($content), $tags);
+    }
+
+    public static function createMetadata(
+        PublicKey $pubkey,
+        string $metadata,
+        ?TagCollection $tags = null,
+    ): Event {
+        return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::METADATA), EventContent::fromString($metadata), $tags);
+    }
+
+    public static function createEncryptedDirectMessage(
+        PublicKey $pubkey,
+        string $encryptedContent,
+        TagCollection $tags,
+    ): Event {
+        return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::ENCRYPTED_DIRECT_MESSAGE), EventContent::fromString($encryptedContent), $tags);
+    }
+
+    public static function createEventDeletion(
+        PublicKey $pubkey,
+        TagCollection $tags,
+        string $reason = '',
+    ): Event {
+        return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::EVENT_DELETION), EventContent::fromString($reason), $tags);
     }
 
     public static function createFileMetadata(
@@ -94,13 +72,7 @@ final class EventFactory
         string $caption = '',
         ?Timestamp $createdAt = null,
     ): Event {
-        return new Event(
-            $pubkey,
-            $createdAt ?? Timestamp::now(),
-            EventKind::fromInt(EventKind::FILE_METADATA),
-            $metadata->toTags(),
-            EventContent::fromString($caption),
-        );
+        return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::FILE_METADATA), EventContent::fromString($caption), $metadata->toTags(), $createdAt);
     }
 
     public static function createRepost(PublicKey $pubkey, Event $originalEvent): Event
@@ -110,13 +82,7 @@ final class EventFactory
             Tag::pubkey($originalEvent->getPubkey()->toHex()),
         ]);
 
-        return new Event(
-            $pubkey,
-            Timestamp::now(),
-            EventKind::repost(),
-            $tags,
-            EventContent::fromString('')
-        );
+        return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::REPOST), EventContent::fromString(''), $tags);
     }
 
     public static function createReaction(
@@ -129,46 +95,22 @@ final class EventFactory
             Tag::pubkey($targetEvent->getPubkey()->toHex()),
         ]);
 
-        return new Event(
-            $pubkey,
-            Timestamp::now(),
-            EventKind::reaction(),
-            $tags,
-            EventContent::fromString($reaction)
-        );
+        return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::REACTION), EventContent::fromString($reaction), $tags);
     }
 
     public static function createFollowList(PublicKey $pubkey, TagCollection $followTags): Event
     {
-        return new Event(
-            $pubkey,
-            Timestamp::now(),
-            EventKind::followList(),
-            $followTags,
-            EventContent::fromString('')
-        );
+        return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::FOLLOW_LIST), EventContent::fromString(''), $followTags);
     }
 
     public static function createRelayList(PublicKey $pubkey, TagCollection $relayTags): Event
     {
-        return new Event(
-            $pubkey,
-            Timestamp::now(),
-            EventKind::relayList(),
-            $relayTags,
-            EventContent::fromString('')
-        );
+        return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::RELAY_LIST), EventContent::fromString(''), $relayTags);
     }
 
     public static function createMuteList(PublicKey $pubkey, TagCollection $muteTags): Event
     {
-        return new Event(
-            $pubkey,
-            Timestamp::now(),
-            EventKind::muteList(),
-            $muteTags,
-            EventContent::fromString('')
-        );
+        return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::MUTE_LIST), EventContent::fromString(''), $muteTags);
     }
 
     public static function createAuth(
@@ -176,16 +118,12 @@ final class EventFactory
         RelayUrl $relayUrl,
         string $challenge,
     ): Event {
-        return new Event(
-            $pubkey,
-            Timestamp::now(),
-            EventKind::clientAuth(),
-            new TagCollection([
-                Tag::fromArray(['relay', (string) $relayUrl]),
-                Tag::fromArray(['challenge', $challenge]),
-            ]),
-            EventContent::fromString('')
-        );
+        $tags = new TagCollection([
+            Tag::fromArray([TagType::RELAY, (string) $relayUrl]),
+            Tag::fromArray([TagType::CHALLENGE, $challenge]),
+        ]);
+
+        return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::CLIENT_AUTH), EventContent::fromString(''), $tags);
     }
 
     public static function createHttpAuth(
@@ -196,20 +134,14 @@ final class EventFactory
     ): Event {
         $tags = [
             Tag::fromArray(['u', $url]),
-            Tag::fromArray(['method', $method]),
+            Tag::fromArray([TagType::METHOD, $method]),
         ];
 
         if (null !== $payloadHash) {
-            $tags[] = Tag::fromArray(['payload', $payloadHash]);
+            $tags[] = Tag::fromArray([TagType::PAYLOAD, $payloadHash]);
         }
 
-        return new Event(
-            $pubkey,
-            Timestamp::now(),
-            EventKind::httpAuth(),
-            new TagCollection($tags),
-            EventContent::fromString('')
-        );
+        return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::HTTP_AUTH), EventContent::fromString(''), new TagCollection($tags));
     }
 
     public static function createRumour(
@@ -217,67 +149,22 @@ final class EventFactory
         string $content,
         TagCollection $recipientTags,
     ): Event {
-        return new Event(
-            $pubkey,
-            Timestamp::now(),
-            EventKind::privateMessage(),
-            $recipientTags,
-            EventContent::fromString($content)
-        );
+        return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::PRIVATE_MESSAGE), EventContent::fromString($content), $recipientTags);
     }
 
     public static function createDmRelayList(
         PublicKey $pubkey,
         TagCollection $relayTags,
     ): Event {
-        return new Event(
-            $pubkey,
-            Timestamp::now(),
-            EventKind::dmRelayList(),
-            $relayTags,
-            EventContent::fromString('')
-        );
+        return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::DM_RELAY_LIST), EventContent::fromString(''), $relayTags);
     }
 
     public static function createLongformContent(
         PublicKey $pubkey,
         EventContent $content,
-        string $identifier,
-        ?string $title = null,
-        ?string $summary = null,
-        ?string $image = null,
-        ?Timestamp $publishedAt = null,
-        array $hashtags = [],
+        LongformMetadata $metadata,
         ?Timestamp $createdAt = null,
     ): Event {
-        $tags = [Tag::identifier($identifier)];
-
-        if (null !== $title) {
-            $tags[] = Tag::fromArray(['title', $title]);
-        }
-
-        if (null !== $summary) {
-            $tags[] = Tag::fromArray(['summary', $summary]);
-        }
-
-        if (null !== $image) {
-            $tags[] = Tag::fromArray(['image', $image]);
-        }
-
-        if (null !== $publishedAt) {
-            $tags[] = Tag::fromArray(['published_at', (string) $publishedAt->toInt()]);
-        }
-
-        foreach ($hashtags as $hashtag) {
-            $tags[] = Tag::hashtag($hashtag);
-        }
-
-        return new Event(
-            $pubkey,
-            $createdAt ?? Timestamp::now(),
-            EventKind::longformContent(),
-            new TagCollection($tags),
-            $content
-        );
+        return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::LONGFORM_CONTENT), $content, $metadata->toTags(), $createdAt);
     }
 }

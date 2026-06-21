@@ -31,7 +31,7 @@ final class NipComplianceTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('Hello Nostr!')
         );
@@ -54,7 +54,7 @@ final class NipComplianceTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::followList(),
+            EventKind::fromInt(EventKind::FOLLOW_LIST),
             $tags,
             EventContent::fromString('contact list')
         );
@@ -76,7 +76,7 @@ final class NipComplianceTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::encryptedDirectMessage(),
+            EventKind::fromInt(EventKind::ENCRYPTED_DIRECT_MESSAGE),
             $tags,
             EventContent::fromString('encrypted-content')
         );
@@ -99,7 +99,7 @@ final class NipComplianceTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::eventDeletion(),
+            EventKind::fromInt(EventKind::EVENT_DELETION),
             $tags,
             EventContent::fromString('spam')
         );
@@ -121,7 +121,7 @@ final class NipComplianceTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::eventDeletion(),
+            EventKind::fromInt(EventKind::EVENT_DELETION),
             $tags,
             EventContent::fromString('removing article')
         );
@@ -141,7 +141,7 @@ final class NipComplianceTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::eventDeletion(),
+            EventKind::fromInt(EventKind::EVENT_DELETION),
             $tags,
             EventContent::fromString('no targets')
         );
@@ -162,7 +162,7 @@ final class NipComplianceTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::eventDeletion(),
+            EventKind::fromInt(EventKind::EVENT_DELETION),
             $tags,
             EventContent::fromString('missing k tag')
         );
@@ -184,7 +184,7 @@ final class NipComplianceTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::eventDeletion(),
+            EventKind::fromInt(EventKind::EVENT_DELETION),
             $tags,
             EventContent::fromString('trying to delete a deletion')
         );
@@ -229,7 +229,7 @@ final class NipComplianceTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('test signature')
         );

@@ -9,10 +9,6 @@ use stdClass;
 
 final class FilterHasher
 {
-    // No JSON_UNESCAPED_UNICODE: non-ASCII is escaped as lowercase \uXXXX (astral chars as surrogate
-    // pairs), so the canonical form is pure ASCII and bytewise sorting agrees with the TS hashFilters.
-    private const int ENCODE_FLAGS = JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR;
-
     public static function hash(Filter ...$filters): string
     {
         $canonical = array_map(
@@ -45,6 +41,6 @@ final class FilterHasher
 
     private static function encode(mixed $value): string
     {
-        return json_encode($value, self::ENCODE_FLAGS);
+        return json_encode($value, JsonWireFormat::FILTER_HASH);
     }
 }

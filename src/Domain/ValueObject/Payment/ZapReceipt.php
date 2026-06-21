@@ -47,7 +47,7 @@ final readonly class ZapReceipt implements PaymentReceiptInterface
 
     public static function fromEvent(Event $event): ?self
     {
-        if (!$event->getKind()->equals(EventKind::zapReceipt())) {
+        if (!$event->getKind()->is(EventKind::ZAP_RECEIPT)) {
             return null;
         }
 

@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Domain\Entity;
 
 use Innis\Nostr\Core\Domain\Enum\Nip10Marker;
 use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
+use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
@@ -23,10 +24,6 @@ use Stringable;
 
 final readonly class Event implements Stringable
 {
-    // JSON_UNESCAPED_LINE_TERMINATORS: NIP-01 ids require U+2028/U+2029 emitted verbatim, which PHP
-    // escapes even under JSON_UNESCAPED_UNICODE — without it ids are irreproducible for such content.
-    private const int JSON_FLAGS = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_LINE_TERMINATORS;
-
     public function __construct(
         private PublicKey $pubkey,
         private Timestamp $createdAt,
@@ -73,7 +70,7 @@ final readonly class Event implements Stringable
             $this->kind->toInt(),
             $this->tags->toArray(),
             (string) $this->content,
-        ], self::JSON_FLAGS);
+        ], JsonWireFormat::EVENT);
 
         if (false === $serialised) {
             throw new InvalidEventException('Failed to serialise event for ID calculation');
@@ -155,7 +152,7 @@ final readonly class Event implements Stringable
 
     private function encodeJson(): string
     {
-        $json = json_encode($this->toArray(), self::JSON_FLAGS);
+        $json = json_encode($this->toArray(), JsonWireFormat::EVENT);
 
         if (false === $json) {
             throw new InvalidEventException('Failed to serialise event as JSON');
@@ -171,11 +168,11 @@ final readonly class Event implements Stringable
 
     public function isReply(): bool
     {
-        if ($this->kind->equals(EventKind::repost()) || $this->kind->equals(EventKind::genericRepost())) {
+        if ($this->kind->is(EventKind::REPOST) || $this->kind->is(EventKind::GENERIC_REPOST)) {
             return false;
         }
 
-        if ($this->kind->equals(EventKind::comment())) {
+        if ($this->kind->is(EventKind::COMMENT)) {
             return true;
         }
 
@@ -186,23 +183,19 @@ final readonly class Event implements Stringable
 
     public function isRepost(): bool
     {
-        return $this->kind->equals(EventKind::repost()) || $this->kind->equals(EventKind::genericRepost());
+        return $this->kind->is(EventKind::REPOST) || $this->kind->is(EventKind::GENERIC_REPOST);
     }
 
     public function isDeletion(): bool
     {
-        return $this->kind->equals(EventKind::eventDeletion());
+        return $this->kind->is(EventKind::EVENT_DELETION);
     }
 
     public function isExpired(): bool
     {
-        $values = $this->tags->getValuesByType(TagType::expiration());
+        $value = $this->tags->getFirstValueByType(TagType::expiration());
 
-        if (empty($values)) {
-            return false;
-        }
-
-        return Timestamp::fromInt((int) reset($values))->hasPassed();
+        return null !== $value && Timestamp::fromInt((int) $value)->hasPassed();
     }
 
     public function isProtected(): bool
@@ -212,13 +205,9 @@ final readonly class Event implements Stringable
 
     public function getPublishedAt(): ?Timestamp
     {
-        $values = $this->tags->getValuesByType(TagType::fromString('published_at'));
+        $value = $this->tags->getFirstValueByType(TagType::fromString('published_at'));
 
-        if (empty($values)) {
-            return null;
-        }
-
-        return Timestamp::fromInt((int) reset($values));
+        return null !== $value ? Timestamp::fromInt((int) $value) : null;
     }
 
     public function toArray(): array

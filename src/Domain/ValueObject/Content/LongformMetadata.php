@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Content;
 
+use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
@@ -52,33 +53,49 @@ final readonly class LongformMetadata
 
     public static function fromTagCollection(TagCollection $tags): ?self
     {
-        $identifierValues = $tags->getValuesByType(TagType::identifier());
-        if (empty($identifierValues)) {
+        $identifier = $tags->getFirstValueByType(TagType::identifier());
+        if (null === $identifier) {
             return null;
         }
 
-        $titleValues = $tags->getValuesByType(TagType::fromString('title'));
-        $summaryValues = $tags->getValuesByType(TagType::fromString('summary'));
-        $imageValues = $tags->getValuesByType(TagType::fromString('image'));
-        $publishedAtValues = $tags->getValuesByType(TagType::fromString('published_at'));
-        $topics = array_values($tags->getValuesByType(TagType::hashtag()));
-
-        $publishedAt = null;
-        if (!empty($publishedAtValues)) {
-            $value = (int) reset($publishedAtValues);
-            if ($value > 0) {
-                $publishedAt = Timestamp::fromInt($value);
-            }
-        }
+        $publishedAtValue = (int) ($tags->getFirstValueByType(TagType::fromString('published_at')) ?? '0');
+        $publishedAt = $publishedAtValue > 0 ? Timestamp::fromInt($publishedAtValue) : null;
 
         return new self(
-            reset($identifierValues),
-            !empty($titleValues) ? reset($titleValues) : null,
-            !empty($summaryValues) ? reset($summaryValues) : null,
-            !empty($imageValues) ? reset($imageValues) : null,
+            $identifier,
+            $tags->getFirstValueByType(TagType::fromString('title')),
+            $tags->getFirstValueByType(TagType::fromString('summary')),
+            $tags->getFirstValueByType(TagType::fromString('image')),
             $publishedAt,
-            $topics
+            array_values($tags->getValuesByType(TagType::hashtag())),
         );
+    }
+
+    public function toTags(): TagCollection
+    {
+        $tags = [Tag::identifier($this->identifier)];
+
+        if (null !== $this->title) {
+            $tags[] = Tag::fromArray([TagType::TITLE, $this->title]);
+        }
+
+        if (null !== $this->summary) {
+            $tags[] = Tag::fromArray(['summary', $this->summary]);
+        }
+
+        if (null !== $this->image) {
+            $tags[] = Tag::fromArray(['image', $this->image]);
+        }
+
+        if (null !== $this->publishedAt) {
+            $tags[] = Tag::fromArray(['published_at', (string) $this->publishedAt->toInt()]);
+        }
+
+        foreach ($this->topics as $topic) {
+            $tags[] = Tag::hashtag($topic);
+        }
+
+        return new TagCollection($tags);
     }
 
     public function toArray(): array

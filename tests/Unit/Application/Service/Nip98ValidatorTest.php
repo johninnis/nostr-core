@@ -49,7 +49,7 @@ final class Nip98ValidatorTest extends TestCase
 
     public function testRejectsWrongKind(): void
     {
-        $event = $this->createSignedEvent(EventKind::textNote());
+        $event = $this->createSignedEvent(EventKind::fromInt(EventKind::TEXT_NOTE));
 
         $this->assertSame(
             Nip98ValidationFailure::WrongKind,
@@ -504,7 +504,7 @@ final class Nip98ValidatorTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             $timestamp,
-            EventKind::httpAuth(),
+            EventKind::fromInt(EventKind::HTTP_AUTH),
             $tags,
             EventContent::empty()
         );
@@ -535,7 +535,7 @@ final class Nip98ValidatorTest extends TestCase
         $event = new Event(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::httpAuth(),
+            EventKind::fromInt(EventKind::HTTP_AUTH),
             $tags,
             EventContent::empty()
         );

@@ -271,7 +271,7 @@ final class ZapReceiptTest extends TestCase
         $event = new Event(
             PublicKey::fromHex(self::RECEIPT_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1700000000),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('hello'),
         );
@@ -318,7 +318,7 @@ final class ZapReceiptTest extends TestCase
         return new Event(
             PublicKey::fromHex(self::RECEIPT_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1700000000),
-            EventKind::zapReceipt(),
+            EventKind::fromInt(EventKind::ZAP_RECEIPT),
             TagCollection::fromArray($rawTags),
             EventContent::fromString(''),
         );

@@ -7,6 +7,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\Factory;
 use Innis\Nostr\Core\Domain\Factory\EventFactory;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
+use Innis\Nostr\Core\Domain\ValueObject\Content\LongformMetadata;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
@@ -32,7 +33,7 @@ final class EventFactoryTest extends TestCase
             'Hello Nostr!'
         );
 
-        $this->assertTrue($event->getKind()->equals(EventKind::textNote()));
+        $this->assertTrue($event->getKind()->is(EventKind::TEXT_NOTE));
         $this->assertSame('Hello Nostr!', (string) $event->getContent());
         $this->assertTrue($event->getTags()->isEmpty());
     }
@@ -45,7 +46,7 @@ final class EventFactoryTest extends TestCase
             $metadata
         );
 
-        $this->assertTrue($event->getKind()->equals(EventKind::metadata()));
+        $this->assertTrue($event->getKind()->is(EventKind::METADATA));
         $this->assertSame($metadata, (string) $event->getContent());
     }
 
@@ -57,7 +58,7 @@ final class EventFactoryTest extends TestCase
             $tags
         );
 
-        $this->assertTrue($event->getKind()->equals(EventKind::followList()));
+        $this->assertTrue($event->getKind()->is(EventKind::FOLLOW_LIST));
         $this->assertTrue($event->getTags()->equals($tags));
     }
 
@@ -72,7 +73,7 @@ final class EventFactoryTest extends TestCase
             $tags
         );
 
-        $this->assertTrue($event->getKind()->equals(EventKind::encryptedDirectMessage()));
+        $this->assertTrue($event->getKind()->is(EventKind::ENCRYPTED_DIRECT_MESSAGE));
         $this->assertSame($encryptedContent, (string) $event->getContent());
         $this->assertTrue($event->getTags()->equals($tags));
     }
@@ -88,7 +89,7 @@ final class EventFactoryTest extends TestCase
             $reason
         );
 
-        $this->assertTrue($event->getKind()->equals(EventKind::eventDeletion()));
+        $this->assertTrue($event->getKind()->is(EventKind::EVENT_DELETION));
         $this->assertSame($reason, (string) $event->getContent());
         $this->assertTrue($event->getTags()->equals($tags));
     }
@@ -145,7 +146,7 @@ final class EventFactoryTest extends TestCase
             $payloadHash
         );
 
-        $this->assertTrue($event->getKind()->equals(EventKind::httpAuth()));
+        $this->assertTrue($event->getKind()->is(EventKind::HTTP_AUTH));
         $this->assertSame('', (string) $event->getContent());
 
         $urlTags = $event->getTags()->findByType(TagType::fromString('u'));
@@ -168,7 +169,7 @@ final class EventFactoryTest extends TestCase
             'GET'
         );
 
-        $this->assertTrue($event->getKind()->equals(EventKind::httpAuth()));
+        $this->assertTrue($event->getKind()->is(EventKind::HTTP_AUTH));
         $this->assertFalse($event->getTags()->hasType(TagType::payload()));
     }
 
@@ -192,7 +193,7 @@ final class EventFactoryTest extends TestCase
         $repostingKeyPair = KeyPair::generate(CryptoFixtures::signer());
         $repost = EventFactory::createRepost($repostingKeyPair->getPublicKey(), $originalEvent);
 
-        $this->assertTrue($repost->getKind()->equals(EventKind::repost()));
+        $this->assertTrue($repost->getKind()->is(EventKind::REPOST));
         $this->assertSame('', (string) $repost->getContent());
 
         $eTags = $repost->getTags()->findByType(TagType::event());
@@ -214,7 +215,7 @@ final class EventFactoryTest extends TestCase
         $reactingKeyPair = KeyPair::generate(CryptoFixtures::signer());
         $reaction = EventFactory::createReaction($reactingKeyPair->getPublicKey(), $targetEvent);
 
-        $this->assertTrue($reaction->getKind()->equals(EventKind::reaction()));
+        $this->assertTrue($reaction->getKind()->is(EventKind::REACTION));
         $this->assertSame('+', (string) $reaction->getContent());
 
         $eTags = $reaction->getTags()->findByType(TagType::event());
@@ -247,7 +248,7 @@ final class EventFactoryTest extends TestCase
 
         $event = EventFactory::createRelayList($this->keyPair->getPublicKey(), $relayTags);
 
-        $this->assertTrue($event->getKind()->equals(EventKind::relayList()));
+        $this->assertTrue($event->getKind()->is(EventKind::RELAY_LIST));
         $this->assertSame('', (string) $event->getContent());
         $this->assertTrue($event->getTags()->equals($relayTags));
     }
@@ -261,7 +262,7 @@ final class EventFactoryTest extends TestCase
 
         $event = EventFactory::createMuteList($this->keyPair->getPublicKey(), $muteTags);
 
-        $this->assertTrue($event->getKind()->equals(EventKind::muteList()));
+        $this->assertTrue($event->getKind()->is(EventKind::MUTE_LIST));
         $this->assertSame('', (string) $event->getContent());
         $this->assertTrue($event->getTags()->equals($muteTags));
     }
@@ -277,7 +278,7 @@ final class EventFactoryTest extends TestCase
             $tags
         );
 
-        $this->assertTrue($event->getKind()->equals(EventKind::privateMessage()));
+        $this->assertTrue($event->getKind()->is(EventKind::PRIVATE_MESSAGE));
         $this->assertSame('Hello via NIP-17', (string) $event->getContent());
         $this->assertFalse($event->isSigned());
 
@@ -298,7 +299,7 @@ final class EventFactoryTest extends TestCase
             $relayTags
         );
 
-        $this->assertTrue($event->getKind()->equals(EventKind::dmRelayList()));
+        $this->assertTrue($event->getKind()->is(EventKind::DM_RELAY_LIST));
         $this->assertSame('', (string) $event->getContent());
         $this->assertTrue($event->getTags()->equals($relayTags));
     }
@@ -309,10 +310,10 @@ final class EventFactoryTest extends TestCase
         $event = EventFactory::createLongformContent(
             $this->keyPair->getPublicKey(),
             $content,
-            'my-article'
+            new LongformMetadata('my-article', null, null, null, null, []),
         );
 
-        $this->assertTrue($event->getKind()->equals(EventKind::longformContent()));
+        $this->assertTrue($event->getKind()->is(EventKind::LONGFORM_CONTENT));
         $this->assertTrue($event->getContent()->equals($content));
 
         $dTags = $event->getTags()->findByType(TagType::identifier());
@@ -329,16 +330,18 @@ final class EventFactoryTest extends TestCase
         $event = EventFactory::createLongformContent(
             $this->keyPair->getPublicKey(),
             $content,
-            'full-article',
-            'My Full Article',
-            'A summary of the article',
-            'https://example.com/image.jpg',
-            $publishedAt,
-            ['nostr', 'bitcoin'],
+            new LongformMetadata(
+                'full-article',
+                'My Full Article',
+                'A summary of the article',
+                'https://example.com/image.jpg',
+                $publishedAt,
+                ['nostr', 'bitcoin'],
+            ),
             $createdAt,
         );
 
-        $this->assertTrue($event->getKind()->equals(EventKind::longformContent()));
+        $this->assertTrue($event->getKind()->is(EventKind::LONGFORM_CONTENT));
         $this->assertSame(1700000100, $event->getCreatedAt()->toInt());
 
         $tags = $event->getTags();

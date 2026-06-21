@@ -28,7 +28,7 @@ final class ReplyChainAnalyserTest extends TestCase
             Tag::fromArray(['p', self::PARENT_AUTHOR]),
         ]);
 
-        $chain = ReplyChainAnalyser::analyse($tags, EventKind::textNote());
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::TEXT_NOTE));
 
         $this->assertTrue($chain->isReply());
         $this->assertFalse($chain->isRootPost());
@@ -46,7 +46,7 @@ final class ReplyChainAnalyserTest extends TestCase
             Tag::fromArray(['e', self::PARENT_ID]),
         ]);
 
-        $chain = ReplyChainAnalyser::analyse($tags, EventKind::textNote());
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::TEXT_NOTE));
 
         $this->assertSame(self::ROOT_ID, $chain->getRootEvent()?->getEventId()->toHex());
         $this->assertSame(self::PARENT_ID, $chain->getParentEvent()?->getEventId()->toHex());
@@ -59,7 +59,7 @@ final class ReplyChainAnalyserTest extends TestCase
             Tag::fromArray(['e', self::PARENT_ID]),
         ]);
 
-        $chain = ReplyChainAnalyser::analyse($tags, EventKind::textNote());
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::TEXT_NOTE));
 
         $this->assertFalse($chain->hasRoot());
         $this->assertSame(self::PARENT_ID, $chain->getParentEvent()?->getEventId()->toHex());
@@ -71,7 +71,7 @@ final class ReplyChainAnalyserTest extends TestCase
             Tag::fromArray(['p', self::PARENT_AUTHOR]),
         ]);
 
-        $chain = ReplyChainAnalyser::analyse($tags, EventKind::textNote());
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::TEXT_NOTE));
 
         $this->assertFalse($chain->isReply());
         $this->assertTrue($chain->isRootPost());
@@ -90,7 +90,7 @@ final class ReplyChainAnalyserTest extends TestCase
             Tag::fromArray(['p', self::PARENT_AUTHOR]),
         ]);
 
-        $chain = ReplyChainAnalyser::analyse($tags, EventKind::comment());
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::COMMENT));
 
         $rootEvent = $chain->getRootEvent();
         $parentEvent = $chain->getParentEvent();
@@ -119,7 +119,7 @@ final class ReplyChainAnalyserTest extends TestCase
             Tag::fromArray(['P', self::ROOT_AUTHOR]),
         ]);
 
-        $chain = ReplyChainAnalyser::analyse($tags, EventKind::comment());
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::COMMENT));
 
         $this->assertFalse($chain->hasRoot(), 'Known limitation: EventReference holds an EventId, so addressable (A) roots are not resolved');
         $this->assertFalse($chain->isReply());

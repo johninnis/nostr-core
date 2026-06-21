@@ -37,10 +37,10 @@ final class TagReferenceExtractor
             match ((string) $tag->getType()) {
                 TagType::EVENT => self::appendEvent($tag, $value, $events),
                 TagType::PUBKEY => self::appendPubkey($tag, $value, $pubkeys),
-                'q' => self::appendQuote($tag, $value, $addressable, $quotes),
+                TagType::QUOTE => self::appendQuote($tag, $value, $addressable, $quotes),
                 TagType::ADDRESSABLE => self::appendAddressable($tag, $value, $addressable),
-                'r' => self::appendRelay($value, $tag, $relays),
-                'challenge' => self::appendChallenge($value, $challenges),
+                TagType::REFERENCE => self::appendRelay($value, $tag, $relays),
+                TagType::CHALLENGE => self::appendChallenge($value, $challenges),
                 default => null,
             };
         }

@@ -51,24 +51,18 @@ final readonly class LiveEventMetadata
 
     public static function fromTagCollection(TagCollection $tags): ?self
     {
-        $identifierValues = $tags->getValuesByType(TagType::identifier());
-        if (empty($identifierValues)) {
+        $identifier = $tags->getFirstValueByType(TagType::identifier());
+        if (null === $identifier) {
             return null;
         }
 
-        $titleValues = $tags->getValuesByType(TagType::fromString('title'));
-        $summaryValues = $tags->getValuesByType(TagType::fromString('summary'));
-        $imageValues = $tags->getValuesByType(TagType::fromString('image'));
-        $statusValues = $tags->getValuesByType(TagType::fromString('status'));
-        $streamingValues = $tags->getValuesByType(TagType::fromString('streaming'));
-
         return new self(
-            reset($identifierValues),
-            !empty($titleValues) ? reset($titleValues) : null,
-            !empty($summaryValues) ? reset($summaryValues) : null,
-            !empty($imageValues) ? reset($imageValues) : null,
-            !empty($statusValues) ? reset($statusValues) : null,
-            !empty($streamingValues) ? reset($streamingValues) : null
+            $identifier,
+            $tags->getFirstValueByType(TagType::fromString('title')),
+            $tags->getFirstValueByType(TagType::fromString('summary')),
+            $tags->getFirstValueByType(TagType::fromString('image')),
+            $tags->getFirstValueByType(TagType::fromString('status')),
+            $tags->getFirstValueByType(TagType::fromString('streaming')),
         );
     }
 

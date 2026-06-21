@@ -4,15 +4,19 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Service;
 
+use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrlCollection;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\DecodedNip19Entity;
 use Override;
 
 final class Nip19Codec implements Nip19CodecInterface
 {
     #[Override]
-    public function decodeComplexEntity(string $bech32): ?array
+    public function decodeComplexEntity(string $bech32): ?DecodedNip19Entity
     {
         $decoded = Bech32Codec::decode($bech32);
         if (null === $decoded) {
@@ -22,14 +26,8 @@ final class Nip19Codec implements Nip19CodecInterface
         $data = $decoded['data'];
 
         return match ($decoded['hrp']) {
-            'npub' => [
-                'type' => 'pubkey',
-                'pubkey' => HexCodec::fromBytes($data),
-            ],
-            'note' => [
-                'type' => 'event',
-                'event_id' => HexCodec::fromBytes($data),
-            ],
+            'npub' => new DecodedNip19Entity(DecodedNip19Entity::TYPE_PUBKEY, publicKey: PublicKey::fromBytes($data)),
+            'note' => new DecodedNip19Entity(DecodedNip19Entity::TYPE_EVENT, eventId: EventId::fromBytes($data)),
             'nprofile' => $this->decodeProfile($data),
             'nevent' => $this->decodeEvent($data),
             'naddr' => $this->decodeAddress($data),
@@ -54,73 +52,105 @@ final class Nip19Codec implements Nip19CodecInterface
     public function parseEventReference(string $input): EventId|EventCoordinate|null
     {
         if (str_starts_with($input, 'naddr1')) {
-            $decoded = $this->decodeComplexEntity($input);
-
-            if (null === $decoded || !isset($decoded['kind'], $decoded['pubkey'], $decoded['identifier'])) {
-                return null;
-            }
-
-            return EventCoordinate::fromParts(
-                $decoded['kind'],
-                $decoded['pubkey'],
-                $decoded['identifier'],
-                $decoded['relays'][0] ?? null
-            );
+            return $this->parseAddressableReference($input);
         }
 
         if (str_starts_with($input, 'note1') || str_starts_with($input, 'nevent1')) {
-            $decoded = $this->decodeComplexEntity($input);
-
-            return isset($decoded['event_id']) ? EventId::fromHex($decoded['event_id']) : null;
+            return $this->decodeComplexEntity($input)?->getEventId();
         }
 
         return EventId::fromHex($input);
     }
 
-    private function decodeProfile(string $data): ?array
+    private function parseAddressableReference(string $input): ?EventCoordinate
     {
-        $tlv = self::parseTlv($data);
-        if (null === $tlv) {
+        $decoded = $this->decodeComplexEntity($input);
+        $kind = $decoded?->getKind();
+        $publicKey = $decoded?->getPublicKey();
+        $identifier = $decoded?->getIdentifier();
+
+        if (null === $kind || null === $publicKey || null === $identifier) {
             return null;
         }
 
-        return [
-            'type' => 'profile',
-            'pubkey' => isset($tlv[0][0]) ? HexCodec::fromBytes($tlv[0][0]) : '',
-            'relays' => self::extractRelays($tlv),
-        ];
+        $firstRelay = $decoded->getRelays()->toArray()[0] ?? null;
+
+        return EventCoordinate::fromParts(
+            $kind->toInt(),
+            $publicKey->toHex(),
+            $identifier,
+            null !== $firstRelay ? (string) $firstRelay : null,
+        );
     }
 
-    private function decodeEvent(string $data): ?array
+    private function decodeProfile(string $data): ?DecodedNip19Entity
     {
         $tlv = self::parseTlv($data);
         if (null === $tlv) {
             return null;
         }
 
-        return [
-            'type' => 'event',
-            'event_id' => isset($tlv[0][0]) ? HexCodec::fromBytes($tlv[0][0]) : '',
-            'relays' => self::extractRelays($tlv),
-            'author' => isset($tlv[2][0]) ? HexCodec::fromBytes($tlv[2][0]) : null,
-            'kind' => isset($tlv[3][0]) ? self::bytesToInteger($tlv[3][0]) : null,
-        ];
+        return new DecodedNip19Entity(
+            DecodedNip19Entity::TYPE_PROFILE,
+            publicKey: isset($tlv[0][0]) ? PublicKey::fromBytes($tlv[0][0]) : null,
+            relays: self::relayCollection($tlv),
+        );
     }
 
-    private function decodeAddress(string $data): ?array
+    private function decodeEvent(string $data): ?DecodedNip19Entity
     {
         $tlv = self::parseTlv($data);
         if (null === $tlv) {
             return null;
         }
 
-        return [
-            'type' => 'address',
-            'identifier' => $tlv[0][0] ?? '',
-            'pubkey' => isset($tlv[2][0]) ? HexCodec::fromBytes($tlv[2][0]) : '',
-            'kind' => isset($tlv[3][0]) ? self::bytesToInteger($tlv[3][0]) : null,
-            'relays' => self::extractRelays($tlv),
-        ];
+        return new DecodedNip19Entity(
+            DecodedNip19Entity::TYPE_EVENT,
+            publicKey: isset($tlv[2][0]) ? PublicKey::fromBytes($tlv[2][0]) : null,
+            eventId: isset($tlv[0][0]) ? EventId::fromBytes($tlv[0][0]) : null,
+            kind: self::decodeKind($tlv),
+            relays: self::relayCollection($tlv),
+        );
+    }
+
+    private function decodeAddress(string $data): ?DecodedNip19Entity
+    {
+        $tlv = self::parseTlv($data);
+        if (null === $tlv) {
+            return null;
+        }
+
+        return new DecodedNip19Entity(
+            DecodedNip19Entity::TYPE_ADDRESS,
+            publicKey: isset($tlv[2][0]) ? PublicKey::fromBytes($tlv[2][0]) : null,
+            identifier: $tlv[0][0] ?? null,
+            kind: self::decodeKind($tlv),
+            relays: self::relayCollection($tlv),
+        );
+    }
+
+    private static function decodeKind(array $tlv): ?EventKind
+    {
+        if (!isset($tlv[3][0])) {
+            return null;
+        }
+
+        $kind = self::bytesToInteger($tlv[3][0]);
+
+        return $kind >= 0 && $kind <= 65535 ? EventKind::fromInt($kind) : null;
+    }
+
+    private static function relayCollection(array $tlv): RelayUrlCollection
+    {
+        $relays = [];
+        foreach ($tlv[1] ?? [] as $relayString) {
+            $relay = RelayUrl::fromString($relayString);
+            if (null !== $relay) {
+                $relays[] = $relay;
+            }
+        }
+
+        return new RelayUrlCollection($relays);
     }
 
     private static function parseTlv(string $bytes): ?array
@@ -147,11 +177,6 @@ final class Nip19Codec implements Nip19CodecInterface
     private static function tlvEntry(int $type, string $value): string
     {
         return pack('CC', $type, strlen($value)).$value;
-    }
-
-    private static function extractRelays(array $tlv): array
-    {
-        return $tlv[1] ?? [];
     }
 
     private static function bytesToInteger(string $bytes): int

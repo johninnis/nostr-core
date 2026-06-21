@@ -14,6 +14,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReference;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReferenceCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\PubkeyReference;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\ReplyChain;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 
@@ -21,50 +22,33 @@ final class ReplyChainAnalyser
 {
     public static function analyse(TagCollection $tags, ?EventKind $kind = null): ReplyChain
     {
-        if (null !== $kind && $kind->equals(EventKind::comment())) {
-            return self::analyseCommentReplyChain($tags->toArray());
+        if (null !== $kind && $kind->is(EventKind::COMMENT)) {
+            return self::analyseCommentReplyChain($tags);
         }
 
         return self::analyseNip10ReplyChain($tags);
     }
 
-    private static function analyseCommentReplyChain(array $tagArrays): ReplyChain
+    private static function analyseCommentReplyChain(TagCollection $tags): ReplyChain
     {
         $rootEvent = null;
         $parentEvent = null;
         $conversationParticipants = [];
 
-        foreach ($tagArrays as $tagArray) {
-            if (!is_array($tagArray) || !isset($tagArray[1]) || !is_string($tagArray[1])) {
+        foreach ($tags as $tag) {
+            $value = $tag->getValue(0);
+            if (null === $value) {
                 continue;
             }
 
-            $marker = $tagArray[0] ?? null;
-            $relay = is_string($tagArray[2] ?? null) ? $tagArray[2] : null;
-            $author = is_string($tagArray[3] ?? null) ? $tagArray[3] : null;
+            $type = (string) $tag->getType();
 
-            if (TagType::ROOT_EVENT === $marker) {
-                $eventId = EventId::fromHex($tagArray[1]);
-                if (null !== $eventId) {
-                    $rootEvent = new EventReference(
-                        $eventId,
-                        RelayUrl::fromString($relay),
-                        null,
-                        (null !== $author && '' !== $author) ? PublicKey::fromHex($author) : null
-                    );
-                }
-            } elseif (TagType::EVENT === $marker) {
-                $eventId = EventId::fromHex($tagArray[1]);
-                if (null !== $eventId) {
-                    $parentEvent = new EventReference(
-                        $eventId,
-                        RelayUrl::fromString($relay),
-                        null,
-                        (null !== $author && '' !== $author) ? PublicKey::fromHex($author) : null
-                    );
-                }
-            } elseif (TagType::PUBKEY === $marker || TagType::SENDER_PUBKEY === $marker) {
-                $pubkey = PublicKey::fromHex($tagArray[1]);
+            if (TagType::ROOT_EVENT === $type) {
+                $rootEvent = self::commentEventReference($value, $tag) ?? $rootEvent;
+            } elseif (TagType::EVENT === $type) {
+                $parentEvent = self::commentEventReference($value, $tag) ?? $parentEvent;
+            } elseif (TagType::PUBKEY === $type || TagType::SENDER_PUBKEY === $type) {
+                $pubkey = PublicKey::fromHex($value);
                 if (null !== $pubkey) {
                     $conversationParticipants[] = $pubkey;
                 }
@@ -80,6 +64,23 @@ final class ReplyChainAnalyser
             $parentEvent,
             new PublicKeyCollection($conversationParticipants),
             EventReferenceCollection::empty()
+        );
+    }
+
+    private static function commentEventReference(string $eventIdHex, Tag $tag): ?EventReference
+    {
+        $eventId = EventId::fromHex($eventIdHex);
+        if (null === $eventId) {
+            return null;
+        }
+
+        $author = $tag->getValue(2);
+
+        return new EventReference(
+            $eventId,
+            RelayUrl::fromString($tag->getValue(1)),
+            null,
+            (null !== $author && '' !== $author) ? PublicKey::fromHex($author) : null,
         );
     }
 

@@ -48,113 +48,56 @@ final readonly class RelayUrl implements Stringable
             return null;
         }
 
-        $normalised = self::normalise($url);
-        if (null === $normalised) {
-            return null;
-        }
-
-        if (!self::isValidUrl($normalised)) {
-            return null;
-        }
-
-        $parsed = parse_url($normalised);
-
-        return new self(
-            $normalised,
-            $parsed['host'] ?? '',
-            $parsed['port'] ?? null,
-            $parsed['path'] ?? '/'
-        );
-    }
-
-    private static function normalise(string $url): ?string
-    {
         $trimmed = trim($url);
-
-        if (empty($trimmed)) {
-            return null;
-        }
-
-        $lowerUrl = strtolower($trimmed);
-        if (!str_starts_with($lowerUrl, 'ws://') && !str_starts_with($lowerUrl, 'wss://')) {
+        if ('' === $trimmed) {
             return null;
         }
 
         $parsed = parse_url($trimmed);
-        if (false === $parsed || !isset($parsed['scheme'], $parsed['host'])) {
-            return null;
-        }
-
-        if (isset($parsed['fragment'])) {
+        if (false === $parsed || isset($parsed['fragment']) || !isset($parsed['scheme'], $parsed['host'])) {
             return null;
         }
 
         $scheme = strtolower($parsed['scheme']);
-        $normalised = $scheme.'://'.strtolower($parsed['host']);
-
-        if (isset($parsed['port']) && !self::isDefaultPort($scheme, $parsed['port'])) {
-            $normalised .= ':'.$parsed['port'];
+        if (!in_array($scheme, ['ws', 'wss'], true)) {
+            return null;
         }
 
-        if (isset($parsed['path']) && '/' !== $parsed['path']) {
-            $cleanPath = rtrim($parsed['path'], ',.;!');
-            $cleanPath = rtrim($cleanPath, '/');
-            if (!empty($cleanPath) && '/' !== $cleanPath) {
-                $normalised .= $cleanPath;
-            }
+        $host = strtolower($parsed['host']);
+        if (!preg_match('/^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$/', $host)) {
+            return null;
         }
 
+        $port = $parsed['port'] ?? null;
+        if (null !== $port && ($port < 1 || $port > 65535)) {
+            return null;
+        }
+
+        $rawPath = $parsed['path'] ?? '';
+        if (str_contains($rawPath, '%20') || str_contains($rawPath, '//') || str_contains($rawPath, $host)) {
+            return null;
+        }
+
+        $cleanPath = rtrim(rtrim($rawPath, ',.;!'), '/');
+        $hasPath = '' !== $cleanPath && '/' !== $cleanPath;
+        $canonicalPort = null !== $port && !self::isDefaultPort($scheme, $port) ? $port : null;
+
+        $normalised = $scheme.'://'.$host;
+        if (null !== $canonicalPort) {
+            $normalised .= ':'.$canonicalPort;
+        }
+        if ($hasPath) {
+            $normalised .= $cleanPath;
+        }
         if (isset($parsed['query'])) {
             $normalised .= '?'.$parsed['query'];
         }
 
-        return $normalised;
-    }
-
-    private static function isValidUrl(string $url): bool
-    {
-        if (!str_starts_with($url, 'ws://') && !str_starts_with($url, 'wss://')) {
-            return false;
+        if (strlen($normalised) > 200) {
+            return null;
         }
 
-        if (strlen($url) > 200) {
-            return false;
-        }
-
-        $parsed = parse_url($url);
-
-        if (false === $parsed
-            || !isset($parsed['scheme'], $parsed['host'])
-            || !in_array($parsed['scheme'], ['ws', 'wss'], true)) {
-            return false;
-        }
-
-        $afterHost = substr($url, strpos($url, $parsed['host']) + strlen($parsed['host']));
-        if (preg_match('/wss?:\/\//', $afterHost)) {
-            return false;
-        }
-
-        if (isset($parsed['path']) && str_contains($parsed['path'], '%20')) {
-            return false;
-        }
-
-        if (!preg_match('/^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$/', $parsed['host'])) {
-            return false;
-        }
-
-        if (isset($parsed['port']) && ($parsed['port'] < 1 || $parsed['port'] > 65535)) {
-            return false;
-        }
-
-        if (isset($parsed['path']) && str_contains($parsed['path'], '//')) {
-            return false;
-        }
-
-        if (isset($parsed['path']) && str_contains($parsed['path'], $parsed['host'])) {
-            return false;
-        }
-
-        return true;
+        return new self($normalised, $host, $canonicalPort, $hasPath ? $cleanPath : '/');
     }
 
     private static function isDefaultPort(string $scheme, int $port): bool

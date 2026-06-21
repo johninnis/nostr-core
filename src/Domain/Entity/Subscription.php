@@ -7,7 +7,6 @@ namespace Innis\Nostr\Core\Domain\Entity;
 use Innis\Nostr\Core\Domain\Enum\SubscriptionState;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
-use InvalidArgumentException;
 
 final readonly class Subscription
 {
@@ -73,32 +72,50 @@ final readonly class Subscription
         ];
     }
 
-    public static function fromArray(array $data): self
+    public static function fromArray(array $data): ?self
     {
-        $requiredFields = ['id', 'filters', 'created_at'];
-        foreach ($requiredFields as $field) {
-            if (!array_key_exists($field, $data)) {
-                throw new InvalidArgumentException("Missing required field: {$field}");
-            }
+        if (!isset($data['id'], $data['filters'], $data['created_at'])) {
+            return null;
         }
 
-        $filters = new FilterCollection(
-            array_map(static fn (array $filterData) => Filter::fromArray($filterData), $data['filters'])
-        );
+        if (!is_string($data['id']) || !is_array($data['filters']) || !is_int($data['created_at'])) {
+            return null;
+        }
 
-        $state = isset($data['state'])
-            ? SubscriptionState::from($data['state'])
-            : SubscriptionState::PENDING;
-
-        $id = is_string($data['id']) ? SubscriptionId::fromString($data['id']) : null;
-
+        $id = SubscriptionId::fromString($data['id']);
         if (null === $id) {
-            throw new InvalidArgumentException('Invalid subscription ID');
+            return null;
+        }
+
+        $filters = [];
+        foreach ($data['filters'] as $filterData) {
+            if (!is_array($filterData)) {
+                return null;
+            }
+
+            $filter = Filter::fromArray($filterData);
+            if (null === $filter) {
+                return null;
+            }
+
+            $filters[] = $filter;
+        }
+
+        $state = SubscriptionState::PENDING;
+        if (isset($data['state'])) {
+            if (!is_string($data['state'])) {
+                return null;
+            }
+
+            $state = SubscriptionState::tryFrom($data['state']);
+            if (null === $state) {
+                return null;
+            }
         }
 
         return new self(
             $id,
-            $filters,
+            new FilterCollection($filters),
             Timestamp::fromInt($data['created_at']),
             $state,
         );

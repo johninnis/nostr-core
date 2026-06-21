@@ -505,7 +505,7 @@ final class TagCollectionTest extends TestCase
             ['k', '1111'],
         ]);
 
-        $replyChain = ReplyChainAnalyser::analyse($tags, EventKind::comment());
+        $replyChain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::COMMENT));
 
         $this->assertTrue($replyChain->isReply());
         $this->assertFalse($replyChain->isRootPost());
@@ -537,7 +537,7 @@ final class TagCollectionTest extends TestCase
             ['k', '1111'],
         ]);
 
-        $replyChain = ReplyChainAnalyser::analyse($tags, EventKind::comment());
+        $replyChain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::COMMENT));
 
         $this->assertTrue($replyChain->isReply());
         $this->assertFalse($replyChain->isRootPost());
@@ -557,7 +557,7 @@ final class TagCollectionTest extends TestCase
             ['I', 'https://example.com'],
         ]);
 
-        $replyChain = ReplyChainAnalyser::analyse($tags, EventKind::comment());
+        $replyChain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::COMMENT));
 
         $this->assertTrue($replyChain->isReply());
         $this->assertNull($replyChain->getRootEvent());
@@ -576,7 +576,7 @@ final class TagCollectionTest extends TestCase
             ['k', '1111'],
         ]);
 
-        $replyChain = ReplyChainAnalyser::analyse($tags, EventKind::comment());
+        $replyChain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::COMMENT));
 
         $parentEvent = $replyChain->getParentEvent();
         $this->assertNotNull($parentEvent);
@@ -595,7 +595,7 @@ final class TagCollectionTest extends TestCase
             ['k', '1111'],
         ]);
 
-        $replyChain = ReplyChainAnalyser::analyse($tags, EventKind::comment());
+        $replyChain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::COMMENT));
 
         $this->assertNull($replyChain->getRootEvent());
         $this->assertNotNull($replyChain->getParentEvent());
@@ -610,7 +610,7 @@ final class TagCollectionTest extends TestCase
             ['e', '2222222222222222222222222222222222222222222222222222222222222222', 'wss://relay.com', 'reply'],
         ]);
 
-        $replyChain = ReplyChainAnalyser::analyse($tags, EventKind::textNote());
+        $replyChain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::TEXT_NOTE));
 
         $this->assertTrue($replyChain->isReply());
         $this->assertNotNull($replyChain->getRootEvent());
@@ -631,7 +631,7 @@ final class TagCollectionTest extends TestCase
             ['k', '1111'],
         ]);
 
-        $replyChain = ReplyChainAnalyser::analyse($tags, EventKind::comment());
+        $replyChain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::COMMENT));
 
         $this->assertTrue($replyChain->isReply());
         $this->assertFalse($replyChain->isRootPost());
@@ -649,7 +649,7 @@ final class TagCollectionTest extends TestCase
             ['k', '1111'],
         ]);
 
-        $replyChain = ReplyChainAnalyser::analyse($tags, EventKind::comment());
+        $replyChain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::COMMENT));
 
         $this->assertFalse($replyChain->isReply());
         $this->assertTrue($replyChain->isRootPost());

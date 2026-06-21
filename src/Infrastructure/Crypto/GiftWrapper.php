@@ -50,7 +50,7 @@ final class GiftWrapper implements GiftWrapServiceInterface
             $rumour,
             $senderKeyPair,
             $recipientPublicKey,
-            EventKind::seal(),
+            EventKind::fromInt(EventKind::SEAL),
             TagCollection::empty(),
             $sealTimestamp
         );
@@ -63,7 +63,7 @@ final class GiftWrapper implements GiftWrapServiceInterface
                 $seal,
                 $ephemeral,
                 $recipientPublicKey,
-                EventKind::giftWrap(),
+                EventKind::fromInt(EventKind::GIFT_WRAP),
                 new TagCollection([Tag::pubkey($recipientPublicKey->toHex())]),
                 $wrapTimestamp
             );
@@ -140,7 +140,7 @@ final class GiftWrapper implements GiftWrapServiceInterface
 
     private function validateRumour(Event $rumour, PrivateKey $senderPrivateKey): void
     {
-        if (!$rumour->getKind()->equals(EventKind::privateMessage())) {
+        if (!$rumour->getKind()->is(EventKind::PRIVATE_MESSAGE)) {
             throw new GiftWrapException('Rumour must be kind 14 (private message)');
         }
 
@@ -155,7 +155,7 @@ final class GiftWrapper implements GiftWrapServiceInterface
 
     private function validateGiftWrap(Event $giftWrap): void
     {
-        if (!$giftWrap->getKind()->equals(EventKind::giftWrap())) {
+        if (!$giftWrap->getKind()->is(EventKind::GIFT_WRAP)) {
             throw new GiftWrapException('Event must be kind 1059 (gift wrap)');
         }
 
@@ -166,7 +166,7 @@ final class GiftWrapper implements GiftWrapServiceInterface
 
     private function validateSeal(Event $seal): void
     {
-        if (!$seal->getKind()->equals(EventKind::seal())) {
+        if (!$seal->getKind()->is(EventKind::SEAL)) {
             throw new GiftWrapException('Decrypted event is not a seal (kind 13)');
         }
 
@@ -177,7 +177,7 @@ final class GiftWrapper implements GiftWrapServiceInterface
 
     private function validateDecryptedRumour(Event $rumour, Event $seal): void
     {
-        if (!$rumour->getKind()->equals(EventKind::privateMessage())) {
+        if (!$rumour->getKind()->is(EventKind::PRIVATE_MESSAGE)) {
             throw new GiftWrapException('Decrypted event is not a rumour (kind 14)');
         }
 

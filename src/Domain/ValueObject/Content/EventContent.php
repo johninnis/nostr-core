@@ -42,13 +42,7 @@ final readonly class EventContent implements Stringable
     {
         preg_match_all('/(?<![&\w])#([a-zA-Z0-9_]+)/u', $this->content, $matches);
 
-        if (empty($matches[1])) {
-            return [];
-        }
-
-        $hashtags = array_map(strtolower(...), $matches[1]);
-
-        return array_values(array_unique($hashtags));
+        return array_values(array_unique(array_map(strtolower(...), $matches[1])));
     }
 
     #[Override]

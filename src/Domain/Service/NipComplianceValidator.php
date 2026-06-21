@@ -28,7 +28,7 @@ final class NipComplianceValidator implements NipComplianceValidatorInterface
     #[Override]
     public function validateNip02Compliance(Event $event): void
     {
-        if (!$event->getKind()->equals(EventKind::followList())) {
+        if (!$event->getKind()->is(EventKind::FOLLOW_LIST)) {
             throw new InvalidEventException('NIP-02 events must be kind 3');
         }
 
@@ -38,12 +38,12 @@ final class NipComplianceValidator implements NipComplianceValidatorInterface
     #[Override]
     public function validateNip04Compliance(Event $event): void
     {
-        if (!$event->getKind()->equals(EventKind::encryptedDirectMessage())) {
+        if (!$event->getKind()->is(EventKind::ENCRYPTED_DIRECT_MESSAGE)) {
             throw new InvalidEventException('NIP-04 events must be kind 4');
         }
 
         $pTags = $event->getTags()->findByType(TagType::pubkey());
-        if (empty($pTags)) {
+        if ([] === $pTags) {
             throw new InvalidEventException('NIP-04 events must have a p tag');
         }
 
@@ -53,20 +53,20 @@ final class NipComplianceValidator implements NipComplianceValidatorInterface
     #[Override]
     public function validateNip09Compliance(Event $event): void
     {
-        if (!$event->getKind()->equals(EventKind::eventDeletion())) {
+        if (!$event->getKind()->is(EventKind::EVENT_DELETION)) {
             throw new InvalidEventException('NIP-09 events must be kind 5');
         }
 
         $eTags = $event->getTags()->findByType(TagType::event());
         $aTags = $event->getTags()->findByType(TagType::addressable());
 
-        if (empty($eTags) && empty($aTags)) {
+        if ([] === $eTags && [] === $aTags) {
             throw new InvalidEventException('NIP-09 events must have at least one e or a tag');
         }
 
         $kTags = $event->getTags()->findByType(TagType::parentKind());
 
-        if (empty($kTags)) {
+        if ([] === $kTags) {
             throw new InvalidEventException('NIP-09 events must have at least one k tag');
         }
 

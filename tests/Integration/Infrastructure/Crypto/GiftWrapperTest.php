@@ -53,7 +53,7 @@ final class GiftWrapperTest extends TestCase
     {
         $giftWrap = $this->wrapRumour('Test');
 
-        $this->assertTrue($giftWrap->getKind()->equals(EventKind::giftWrap()));
+        $this->assertTrue($giftWrap->getKind()->is(EventKind::GIFT_WRAP));
     }
 
     public function testWrapProducesSignedGiftWrap(): void
@@ -104,7 +104,7 @@ final class GiftWrapperTest extends TestCase
 
         $rumour = $this->adapter->unwrap($giftWrap, $this->recipientKeyPair->getPrivateKey());
 
-        $this->assertTrue($rumour->getKind()->equals(EventKind::privateMessage()));
+        $this->assertTrue($rumour->getKind()->is(EventKind::PRIVATE_MESSAGE));
     }
 
     public function testUnwrapPreservesRumourTags(): void
@@ -157,7 +157,7 @@ final class GiftWrapperTest extends TestCase
         $textNote = new Event(
             $this->senderKeyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::textNote(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
             TagCollection::empty(),
             EventContent::fromString('Not a rumour')
         );
@@ -205,7 +205,7 @@ final class GiftWrapperTest extends TestCase
         $giftWrap = new Event(
             $this->senderKeyPair->getPublicKey(),
             Timestamp::now(),
-            EventKind::giftWrap(),
+            EventKind::fromInt(EventKind::GIFT_WRAP),
             TagCollection::empty(),
             EventContent::fromString('fake')
         );
