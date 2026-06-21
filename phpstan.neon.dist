@@ -15,7 +15,12 @@ parameters:
         # PHP cannot express generic type parameters natively (e.g. IteratorAggregate<int, Event>)
         -
             identifier: missingType.generics
-        # PHPStan infers port range from parse_url but the explicit bounds check is intentional defensive code
+        # DO NOT delete the port guard to clear this. Only the UPPER comparison ($port > 65535)
+        # is statically unreachable: parse_url returns false for ports > 65535, so PHPStan narrows
+        # the type to int<0, 65535> and flags just that one branch (hence count: 1). The LOWER half
+        # ($port < 1) is live and is the only check rejecting port 0, which parse_url DOES return
+        # (e.g. ws://host:0). The upper bound is kept deliberately as defence that does not depend on
+        # parse_url's undocumented out-of-range behaviour.
         -
             message: '#Comparison operation .* between int<1, 65535> and 65535 is always false#'
             path: src/Domain/ValueObject/Protocol/RelayUrl.php
