@@ -23,7 +23,6 @@ final class TagReferenceExtractor
 {
     public static function extract(TagCollection $tags): TagReferences
     {
-        $tagArrays = $tags->toArray();
         $events = [];
         $pubkeys = [];
         $quotes = [];
@@ -31,57 +30,51 @@ final class TagReferenceExtractor
         $relays = [];
         $challenges = [];
 
-        foreach ($tagArrays as $tagArray) {
-            if (empty($tagArray) || !is_array($tagArray)) {
-                continue;
-            }
+        foreach ($tags as $tag) {
+            $value = $tag->getValue(0);
 
-            $tagType = $tagArray[0] ?? '';
-
-            switch ($tagType) {
+            switch ((string) $tag->getType()) {
                 case TagType::EVENT:
-                    $eventId = (isset($tagArray[1]) && is_string($tagArray[1])) ? EventId::fromHex($tagArray[1]) : null;
+                    $eventId = null !== $value ? EventId::fromHex($value) : null;
                     if (null !== $eventId) {
-                        $relay = isset($tagArray[2]) && is_string($tagArray[2]) ? $tagArray[2] : null;
-                        $marker = isset($tagArray[3]) && is_string($tagArray[3]) ? $tagArray[3] : null;
+                        $author = $tag->getValue(3);
                         $events[] = new EventReference(
                             $eventId,
-                            RelayUrl::fromString($relay),
-                            $marker,
-                            (isset($tagArray[4]) && is_string($tagArray[4])) ? PublicKey::fromHex($tagArray[4]) : null
+                            RelayUrl::fromString($tag->getValue(1)),
+                            $tag->getValue(2),
+                            null !== $author ? PublicKey::fromHex($author) : null
                         );
                     }
                     break;
 
                 case TagType::PUBKEY:
-                    $pubkey = (isset($tagArray[1]) && is_string($tagArray[1])) ? PublicKey::fromHex($tagArray[1]) : null;
+                    $pubkey = null !== $value ? PublicKey::fromHex($value) : null;
                     if (null !== $pubkey) {
-                        $relay = isset($tagArray[2]) && is_string($tagArray[2]) ? $tagArray[2] : null;
-                        $petname = isset($tagArray[3]) && is_string($tagArray[3]) ? $tagArray[3] : null;
                         $pubkeys[] = new PubkeyReference(
                             $pubkey,
-                            RelayUrl::fromString($relay),
-                            $petname
+                            RelayUrl::fromString($tag->getValue(1)),
+                            $tag->getValue(2)
                         );
                     }
                     break;
 
                 case 'q':
-                    if (isset($tagArray[1]) && is_string($tagArray[1])) {
-                        $relayHint = isset($tagArray[2]) && is_string($tagArray[2]) ? $tagArray[2] : null;
-                        if (str_contains($tagArray[1], ':')) {
-                            $coordinate = EventCoordinate::fromString($tagArray[1], $relayHint);
+                    if (null !== $value) {
+                        $relayHint = $tag->getValue(1);
+                        if (str_contains($value, ':')) {
+                            $coordinate = EventCoordinate::fromString($value, $relayHint);
                             if (null !== $coordinate) {
                                 $addressable[] = $coordinate;
                             }
                         } else {
-                            $eventId = EventId::fromHex($tagArray[1]);
+                            $eventId = EventId::fromHex($value);
                             if (null !== $eventId) {
+                                $author = $tag->getValue(2);
                                 $quotes[] = new EventReference(
                                     $eventId,
                                     RelayUrl::fromString($relayHint),
                                     null,
-                                    (isset($tagArray[3]) && is_string($tagArray[3])) ? PublicKey::fromHex($tagArray[3]) : null
+                                    null !== $author ? PublicKey::fromHex($author) : null
                                 );
                             }
                         }
@@ -89,8 +82,8 @@ final class TagReferenceExtractor
                     break;
 
                 case TagType::ADDRESSABLE:
-                    if (isset($tagArray[1])) {
-                        $coordinate = EventCoordinate::fromATag($tagArray);
+                    if (null !== $value) {
+                        $coordinate = EventCoordinate::fromATag($tag->toArray());
                         if (null !== $coordinate) {
                             $addressable[] = $coordinate;
                         }
@@ -98,18 +91,17 @@ final class TagReferenceExtractor
                     break;
 
                 case 'r':
-                    if (isset($tagArray[1]) && is_string($tagArray[1])) {
-                        $relayUrl = RelayUrl::fromString($tagArray[1]);
+                    if (null !== $value) {
+                        $relayUrl = RelayUrl::fromString($value);
                         if (null !== $relayUrl) {
-                            $mode = isset($tagArray[2]) && is_string($tagArray[2]) ? $tagArray[2] : null;
-                            $relays[] = new RelayReference($relayUrl, $mode);
+                            $relays[] = new RelayReference($relayUrl, $tag->getValue(1));
                         }
                     }
                     break;
 
                 case 'challenge':
-                    if (isset($tagArray[1]) && is_string($tagArray[1])) {
-                        $challenges[] = $tagArray[1];
+                    if (null !== $value) {
+                        $challenges[] = $value;
                     }
                     break;
             }
