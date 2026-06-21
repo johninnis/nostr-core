@@ -40,6 +40,7 @@
             "@analyse"
         ],
         "test-unit": "phpunit --testsuite=Unit",
+        "test-compliance": "phpunit --testsuite=Compliance",
         "test-coverage": "XDEBUG_MODE=coverage phpunit --coverage-html var/tests/coverage/html --coverage-text --coverage-clover var/tests/coverage/clover.xml",
         "analyse": "phpstan analyse",
         "fix-style": "php-cs-fixer fix",
