@@ -125,13 +125,10 @@ final class TagCollection extends TypedCollection
             return false;
         }
 
-        foreach ($this->items as $index => $tag) {
-            if (!isset($other->items[$index]) || !$tag->equals($other->items[$index])) {
-                return false;
-            }
-        }
-
-        return true;
+        return array_all(
+            $this->items,
+            static fn (Tag $tag, int $index): bool => isset($other->items[$index]) && $tag->equals($other->items[$index]),
+        );
     }
 
     public static function fromArray(array $data): self

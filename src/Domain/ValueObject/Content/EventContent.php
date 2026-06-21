@@ -46,7 +46,7 @@ final readonly class EventContent implements Stringable
             return [];
         }
 
-        $hashtags = array_map('strtolower', $matches[1]);
+        $hashtags = array_map(strtolower(...), $matches[1]);
 
         return array_values(array_unique($hashtags));
     }
