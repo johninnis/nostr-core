@@ -247,6 +247,28 @@ This package follows Clean Architecture principles with strict layer separation:
 - **Application Layer**: Port interfaces for external service integration
 - **Infrastructure Layer**: Implementations of the domain and application interfaces, grouped by concern (`Crypto/`, `Encoding/`, `Http/`, `Reference/`)
 
+## Language and design decisions (PHP 8.4)
+
+The floor is PHP 8.4, and the guiding principle is that the type system is the cheapest test: prefer a construct a static analyser can enforce over one that relies on discipline. The whole library is checked at PHPStan level 9, and that bar drives most of the decisions below.
+
+### What the codebase leans on
+
+- **`final readonly class` value objects** with constructor property promotion — immutability by construction, no declare-then-assign boilerplate.
+- **Backed enums for closed sets** (for example `Bech32Variant`, `Nip98ValidationFailure`) rather than class-constant pseudo-enums.
+- **`match`, first-class callable syntax, and the functional array helpers** (`array_any` / `array_all` / `array_find`) over hand-rolled loops.
+- **`#[\Override]`** on every interface or parent implementation, **typed class constants**, **`json_validate()`** before decoding untrusted JSON, and **`#[\Deprecated]`** to mark a superseded API (NIP-04).
+- **Anticipated outcomes are returned; faults are thrown.** A parser of untrusted input (`Event::fromArray` / `fromJson`, `Filter::fromArray`, `JsonMessageDeserialiser`, `Nip98Validator`) puts its failure in the return type — `?T`, or a sealed `*Failure` value — instead of throwing. This is the most load-bearing analyser decision in the library: PHP has no checked exceptions, so a `throw` is invisible to PHPStan and a caller can silently forget to handle it, whereas a `?Event` return makes "you didn't handle the failure" a level-9 compile error. Exceptions are reserved for genuine faults: broken invariants, infrastructure failures, and mid-operation crypto or serialisation errors.
+
+### Why value objects use `getX()` methods, not public properties or hooks
+
+PHP 8.4 property hooks and asymmetric visibility (`public private(set)`) let a *property* carry the computation, validation, and write-control that previously needed a `getX()` / `setX()` method, so the idiomatic 8.4 move is usually to expose a property and drop the accessor. This library deliberately keeps `getX()` methods on its value objects, for three reasons:
+
+1. **`readonly` forbids hooks.** A property hook requires a non-readonly property, and a `readonly class` makes every property readonly — so inside these `final readonly` value objects a hook is not available at all. A value computed on read (the `?? calculateId()` fallback in `Event::getId()`, the type-guarded reads over `Nip11Info`'s raw payload) can therefore only be a method. The language gives an immutable object exactly one tool for a computed read, and it is a method.
+2. **A full migration is impossible, and a partial one is worse than none.** Because the computed, raw-array-backed, and interface-bound accessors (for example those satisfying `PaymentReceiptInterface`) must stay methods, converting only the trivial pass-throughs would split the public API into two access styles (`$event->pubkey` next to `$info->getName()`). A uniform `getX()` surface is the only internally consistent option.
+3. **No behavioural or type-safety gain.** Unlike the return-vs-throw decision above, getter-to-property is purely syntactic: it would rewrite many hundreds of call sites across the ecosystem for no change in behaviour or analyser coverage.
+
+Setters do not arise. Value objects are immutable and transform by returning a new instance (`withTags(...)`); the few entities with genuine lifecycle state (`Event`, `Subscription`) mutate only through named transformations.
+
 ## Dependencies
 
 | Package | Purpose |
