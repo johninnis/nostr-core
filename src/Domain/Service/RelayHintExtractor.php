@@ -32,10 +32,10 @@ final class RelayHintExtractor implements RelayHintExtractorInterface
         $relays = [];
 
         foreach ($tags as $tag) {
-            $type = (string) $tag->getType();
+            $type = $tag->getType();
             $relayValue = match (true) {
-                TagType::REFERENCE === $type => $tag->getValue(0),
-                TagType::EVENT === $type, TagType::PUBKEY === $type => $tag->getValue(1),
+                $type->is(TagType::REFERENCE) => $tag->getValue(0),
+                $type->is(TagType::EVENT), $type->is(TagType::PUBKEY) => $tag->getValue(1),
                 default => null,
             };
 

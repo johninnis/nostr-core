@@ -103,7 +103,7 @@ final readonly class FileMetadata
 
     public static function fromImetaTag(Tag $tag): ?self
     {
-        if (!$tag->getType()->equals(TagType::fromString(self::IMETA_TYPE))) {
+        if (!$tag->getType()->is(self::IMETA_TYPE)) {
             return null;
         }
 

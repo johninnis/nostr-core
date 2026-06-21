@@ -41,13 +41,13 @@ final class ReplyChainAnalyser
                 continue;
             }
 
-            $type = (string) $tag->getType();
+            $type = $tag->getType();
 
-            if (TagType::ROOT_EVENT === $type) {
+            if ($type->is(TagType::ROOT_EVENT)) {
                 $rootEvent = self::commentEventReference($value, $tag) ?? $rootEvent;
-            } elseif (TagType::EVENT === $type) {
+            } elseif ($type->is(TagType::EVENT)) {
                 $parentEvent = self::commentEventReference($value, $tag) ?? $parentEvent;
-            } elseif (TagType::PUBKEY === $type || TagType::SENDER_PUBKEY === $type) {
+            } elseif ($type->is(TagType::PUBKEY) || $type->is(TagType::SENDER_PUBKEY)) {
                 $pubkey = PublicKey::fromHex($value);
                 if (null !== $pubkey) {
                     $conversationParticipants[] = $pubkey;

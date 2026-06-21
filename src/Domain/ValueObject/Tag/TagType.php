@@ -53,6 +53,11 @@ final readonly class TagType implements Stringable
         return $this->type === $other->type;
     }
 
+    public function is(string $type): bool
+    {
+        return $this->type === $type;
+    }
+
     public static function event(): self
     {
         return new self(self::EVENT);
