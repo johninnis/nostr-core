@@ -11,13 +11,13 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
 use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
 use Innis\Nostr\Core\Infrastructure\Crypto\NativeRandomBytesGenerator;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Signer;
-use Innis\Nostr\Core\Tests\Fixtures\QueuedRandomBytesGenerator;
+use Innis\Nostr\Core\Tests\Fake\QueuedRandomBytesGenerator;
 use PHPUnit\Framework\TestCase;
 use Throwable;
 
 final class Bip340ComplianceTest extends TestCase
 {
-    private const VECTORS_PATH = __DIR__.'/../Fixtures/bip340-vectors.csv';
+    private const VECTORS_PATH = __DIR__.'/../Vectors/bip340-vectors.csv';
 
     public function testVerifyFfiMatchesExpectedAcrossAllVectors(): void
     {

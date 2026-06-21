@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Tests\Fixtures;
+namespace Innis\Nostr\Core\Tests\Fake;
 
 use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
 use RuntimeException;

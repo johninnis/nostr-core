@@ -9,7 +9,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Infrastructure\Crypto\Nip44Cipher;
-use Innis\Nostr\Core\Tests\Fixtures\QueuedRandomBytesGenerator;
+use Innis\Nostr\Core\Tests\Fake\QueuedRandomBytesGenerator;
 use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -143,7 +143,7 @@ final class Nip44EncryptionComplianceTest extends TestCase
 
     private static function loadVectors(): array
     {
-        $content = file_get_contents(__DIR__.'/../Fixtures/nip44.vectors.json');
+        $content = file_get_contents(__DIR__.'/../Vectors/nip44.vectors.json');
         assert(false !== $content);
 
         $decoded = json_decode($content, true);

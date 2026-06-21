@@ -8,7 +8,7 @@ use Innis\Nostr\Core\Domain\Exception\EncryptionException;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Infrastructure\Crypto\Nip44Cipher;
-use Innis\Nostr\Core\Tests\Fixtures\QueuedRandomBytesGenerator;
+use Innis\Nostr\Core\Tests\Fake\QueuedRandomBytesGenerator;
 use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
