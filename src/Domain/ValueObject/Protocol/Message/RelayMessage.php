@@ -12,4 +12,19 @@ abstract readonly class RelayMessage extends Message
 
         return $preSerialised ?? self::encode($this->toArray());
     }
+
+    final public static function fromJson(string $json): ?static
+    {
+        if (!json_validate($json)) {
+            return null;
+        }
+
+        $data = json_decode($json, true);
+
+        if (!is_array($data) || [] === $data) {
+            return null;
+        }
+
+        return static::fromArray($data);
+    }
 }

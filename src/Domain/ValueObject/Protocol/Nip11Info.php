@@ -6,6 +6,9 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Protocol;
 
 final readonly class Nip11Info
 {
+    /**
+     * @param array<string, mixed> $rawData
+     */
     public function __construct(
         private RelayUrl $relayUrl,
         private array $rawData = [],
