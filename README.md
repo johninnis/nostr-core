@@ -247,6 +247,16 @@ This package follows Clean Architecture principles with strict layer separation:
 - **Application Layer**: Port interfaces for external service integration
 - **Infrastructure Layer**: Implementations of the domain and application interfaces, grouped by concern (`Crypto/`, `Encoding/`, `Http/`, `Reference/`)
 
+## Error handling
+
+Failure is split into two kinds, each modelled the one correct way. **Anticipated outcomes** — a well-formed operation whose answer is "no", such as parsing untrusted wire input — are **returned** as a typed value (`?T`, or a sealed `*Failure` value object) and never thrown, so PHPStan level 9 forces every caller to handle the failure branch. **Faults** — broken invariants, infrastructure failures, and mid-operation crypto or serialisation errors — are **thrown** as exceptions.
+
+This package defines `NostrException` (abstract, extending `\Exception`), the root for every fault thrown by Nostr library code. Its final leaf exceptions extend it — for example `InvalidEventException`, `InvalidSignatureException`, `InvalidBech32Exception`, the crypto faults (`CryptoException`, `EcdhException`, `EncryptionException`, `GiftWrapException`), and the key-lifecycle and NIP-49 faults (`SecretKeyMaterialZeroedException`, `Nip49DecryptionFailedException`).
+
+- **Faults are rooted by whose code raises them, not by the dependency graph.** Nostr library code roots its faults at `NostrException`, defined here.
+- **A consumer or application roots its OWN faults at its own independent base.** Hubstr code, for instance, throws a `HubstrException` that extends `\Exception` directly and does NOT extend `NostrException`, even though it depends on the Nostr libraries.
+- **What decides the root is the authoring code, not what it imports.** Depending on nostr-core does not pull a consumer's exceptions under `NostrException`; only faults raised by Nostr library code belong there.
+
 ## Language and design decisions (PHP 8.4)
 
 The floor is PHP 8.4, and the guiding principle is that the type system is the cheapest test: prefer a construct a static analyser can enforce over one that relies on discipline. The whole library is checked at PHPStan level 9, and that bar drives most of the decisions below.
