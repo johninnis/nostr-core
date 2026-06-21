@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Infrastructure\Http;
 
 use Innis\Nostr\Core\Application\Port\HttpServiceInterface;
-use Innis\Nostr\Core\Domain\Failure\Nip05VerificationFailureReason;
+use Innis\Nostr\Core\Domain\Failure\Nip05VerificationFailure;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Nip05Identifier;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Infrastructure\Http\Nip05Verifier;
@@ -24,7 +24,7 @@ final class Nip05VerifierTest extends TestCase
         $result = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
 
         $this->assertFalse($result->isValid());
-        $this->assertSame(Nip05VerificationFailureReason::FetchFailed, $result->getFailureReason());
+        $this->assertSame(Nip05VerificationFailure::FetchFailed, $result->getFailureReason());
     }
 
     public function testReturnsFailureWhenResponseLacksNamesKey(): void
@@ -35,7 +35,7 @@ final class Nip05VerifierTest extends TestCase
         $result = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
 
         $this->assertFalse($result->isValid());
-        $this->assertSame(Nip05VerificationFailureReason::MissingNames, $result->getFailureReason());
+        $this->assertSame(Nip05VerificationFailure::MissingNames, $result->getFailureReason());
     }
 
     public function testReturnsFailureWhenLocalPartNotInNames(): void
@@ -50,7 +50,7 @@ final class Nip05VerifierTest extends TestCase
         $result = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
 
         $this->assertFalse($result->isValid());
-        $this->assertSame(Nip05VerificationFailureReason::NameNotFound, $result->getFailureReason());
+        $this->assertSame(Nip05VerificationFailure::NameNotFound, $result->getFailureReason());
     }
 
     public function testReturnsFailureWhenReturnedPubkeyDoesNotMatch(): void
@@ -66,7 +66,7 @@ final class Nip05VerifierTest extends TestCase
         $result = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
 
         $this->assertFalse($result->isValid());
-        $this->assertSame(Nip05VerificationFailureReason::PubkeyMismatch, $result->getFailureReason());
+        $this->assertSame(Nip05VerificationFailure::PubkeyMismatch, $result->getFailureReason());
     }
 
     public function testReturnsSuccessWhenNamesMatchExpectedPubkey(): void

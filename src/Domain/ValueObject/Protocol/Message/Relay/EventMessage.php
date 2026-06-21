@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
-use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\PreSerialisedMessage;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\PreSerialisedMessageInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
 use Override;
 
-final readonly class EventMessage extends RelayMessage implements PreSerialisedMessage
+final readonly class EventMessage extends RelayMessage implements PreSerialisedMessageInterface
 {
     public function __construct(
         private SubscriptionId $subscriptionId,

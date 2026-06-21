@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
-use Innis\Nostr\Core\Domain\Failure\Nip05VerificationFailureReason;
+use Innis\Nostr\Core\Domain\Failure\Nip05VerificationFailure;
 
 final readonly class Nip05VerificationResult
 {
     private function __construct(
         private Nip05Identifier $identifier,
         private PublicKey $pubkey,
-        private ?Nip05VerificationFailureReason $failureReason,
+        private ?Nip05VerificationFailure $failureReason,
     ) {
     }
 
@@ -23,7 +23,7 @@ final readonly class Nip05VerificationResult
     public static function failure(
         Nip05Identifier $identifier,
         PublicKey $pubkey,
-        Nip05VerificationFailureReason $reason,
+        Nip05VerificationFailure $reason,
     ): self {
         return new self($identifier, $pubkey, $reason);
     }
@@ -43,7 +43,7 @@ final readonly class Nip05VerificationResult
         return null === $this->failureReason;
     }
 
-    public function getFailureReason(): ?Nip05VerificationFailureReason
+    public function getFailureReason(): ?Nip05VerificationFailure
     {
         return $this->failureReason;
     }

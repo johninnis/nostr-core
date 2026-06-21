@@ -8,7 +8,7 @@ abstract readonly class RelayMessage extends Message
 {
     final public function toJson(): string
     {
-        $preSerialised = $this instanceof PreSerialisedMessage ? $this->preSerialisedJson() : null;
+        $preSerialised = $this instanceof PreSerialisedMessageInterface ? $this->preSerialisedJson() : null;
 
         return $preSerialised ?? self::encode($this->toArray());
     }

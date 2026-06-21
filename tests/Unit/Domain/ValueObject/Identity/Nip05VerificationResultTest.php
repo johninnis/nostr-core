@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Identity;
 
-use Innis\Nostr\Core\Domain\Failure\Nip05VerificationFailureReason;
+use Innis\Nostr\Core\Domain\Failure\Nip05VerificationFailure;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Nip05Identifier;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Nip05VerificationResult;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
@@ -33,10 +33,10 @@ final class Nip05VerificationResultTest extends TestCase
         $identifier = Nip05Identifier::fromString('bob@example.com') ?? throw new RuntimeException('Invalid test identifier');
         $pubkey = PublicKey::fromHex(self::VALID_PUBKEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
 
-        $result = Nip05VerificationResult::failure($identifier, $pubkey, Nip05VerificationFailureReason::PubkeyMismatch);
+        $result = Nip05VerificationResult::failure($identifier, $pubkey, Nip05VerificationFailure::PubkeyMismatch);
 
         $this->assertFalse($result->isValid());
-        $this->assertSame(Nip05VerificationFailureReason::PubkeyMismatch, $result->getFailureReason());
+        $this->assertSame(Nip05VerificationFailure::PubkeyMismatch, $result->getFailureReason());
         $this->assertSame($identifier, $result->getIdentifier());
         $this->assertSame($pubkey, $result->getPubkey());
     }

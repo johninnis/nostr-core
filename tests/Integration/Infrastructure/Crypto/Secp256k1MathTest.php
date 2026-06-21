@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Tests\Unit\Infrastructure\Crypto;
+namespace Innis\Nostr\Core\Tests\Integration\Infrastructure\Crypto;
 
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Math;
 use Mdanter\Ecc\EccFactory;

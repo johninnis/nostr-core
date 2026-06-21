@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Failure;
 
-enum Nip05VerificationFailureReason: string
+enum Nip05VerificationFailure: string
 {
     case FetchFailed = 'fetch_failed';
     case MissingNames = 'missing_names';
