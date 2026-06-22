@@ -272,6 +272,7 @@ Design rationale lives in [`docs/adr/`](docs/adr/) as immutable Architecture Dec
 | [0015](docs/adr/0015-zero-is-a-contract-not-a-guarantee-via-destruction.md) | `zero()` is a contract, not a guarantee via destruction |
 | [0016](docs/adr/0016-message-hierarchy-uses-inheritance-for-a-sum-type.md) | The protocol message hierarchy uses inheritance for a discriminated union |
 | [0017](docs/adr/0017-eventvalidator-and-nipcompliancevalidator-keep-separate-signature-gates.md) | `EventValidator` and `NipComplianceValidator` keep separate signature and timestamp gates |
+| [0018](docs/adr/0018-randomness-read-directly-in-named-constructors-port-injected-where-output-is-under-test.md) | Randomness is read directly in named constructors; `RandomBytesGeneratorInterface` is injected only where the random output is under test |
 
 ## Dependencies
 
