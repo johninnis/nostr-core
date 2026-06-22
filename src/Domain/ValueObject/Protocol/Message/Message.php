@@ -14,6 +14,17 @@ abstract readonly class Message
 
     abstract public static function fromArray(array $data): ?static;
 
+    final public static function fromJson(string $json): ?static
+    {
+        $data = JsonWireFormat::decodeArray($json);
+
+        if (null === $data || [] === $data) {
+            return null;
+        }
+
+        return static::fromArray($data);
+    }
+
     final protected static function encode(mixed $value): string
     {
         return json_encode($value, JsonWireFormat::MESSAGE);

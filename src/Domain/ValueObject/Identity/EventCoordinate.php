@@ -130,8 +130,8 @@ final readonly class EventCoordinate implements Stringable
 
     public function equals(self $other, bool $includeRelayHint = false): bool
     {
-        $baseEquals = $this->kind->toInt() === $other->kind->toInt()
-            && $this->pubkey->toHex() === $other->pubkey->toHex()
+        $baseEquals = $this->kind->equals($other->kind)
+            && $this->pubkey->equals($other->pubkey)
             && $this->identifier === $other->identifier;
 
         if (!$includeRelayHint) {

@@ -13,6 +13,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrlCollection;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\ContentReferenceCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\DecodedNip19Entity;
 use PHPUnit\Framework\TestCase;
 
@@ -57,7 +58,7 @@ final class ContentReferenceExtractorTest extends TestCase
                 return null;
             });
 
-        $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content);
+        $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content)->toArray();
 
         $this->assertCount(2, $references);
 
@@ -92,7 +93,7 @@ final class ContentReferenceExtractorTest extends TestCase
                 return null;
             });
 
-        $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content);
+        $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content)->toArray();
 
         $this->assertCount(3, $references);
 
@@ -115,7 +116,7 @@ final class ContentReferenceExtractorTest extends TestCase
             ->method('decodeComplexEntity')
             ->willReturn(self::decoded(Nip19EntityType::Event));
 
-        $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content);
+        $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content)->toArray();
 
         $this->assertCount(2, $references);
 
@@ -137,7 +138,7 @@ final class ContentReferenceExtractorTest extends TestCase
             ->method('decodeComplexEntity')
             ->willReturn(null);
 
-        $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content);
+        $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content)->toArray();
 
         $this->assertCount(1, $references);
         $this->assertEquals('unknown', $references[0]->getDecodedType());
@@ -157,7 +158,7 @@ final class ContentReferenceExtractorTest extends TestCase
                 relayUrls: ['wss://relay1.com', 'wss://relay2.com'],
             ));
 
-        $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content);
+        $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content)->toArray();
 
         $this->assertCount(1, $references);
         $reference = $references[0];
@@ -187,7 +188,7 @@ final class ContentReferenceExtractorTest extends TestCase
                 relayUrls: ['wss://relay1.com'],
             ));
 
-        $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content);
+        $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content)->toArray();
 
         $this->assertCount(1, $references);
         $reference = $references[0];
@@ -208,7 +209,7 @@ final class ContentReferenceExtractorTest extends TestCase
                 relayUrls: ['wss://valid-relay.com', 'invalid-url', 'wss://another-valid.com'],
             ));
 
-        $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content);
+        $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content)->toArray();
 
         $this->assertCount(1, $references);
         $relayUrls = $references[0]->getRelays()->toArray();
@@ -227,7 +228,7 @@ final class ContentReferenceExtractorTest extends TestCase
             ->method('decodeComplexEntity')
             ->willReturn(self::decoded(Nip19EntityType::Pubkey, pubkeyHex: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'));
 
-        $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content);
+        $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content)->toArray();
 
         $this->assertCount(1, $references);
         $this->assertEquals('npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz', $references[0]->getIdentifier());
@@ -241,7 +242,15 @@ final class ContentReferenceExtractorTest extends TestCase
             $this->createStub(Nip19CodecInterface::class)
         );
 
-        $this->assertEmpty($extractor->extractContentReferences($content));
+        $this->assertEmpty($extractor->extractContentReferences($content)->toArray());
+    }
+
+    public function testReturnsContentReferenceCollection(): void
+    {
+        $references = (new ContentReferenceExtractor($this->createStub(Nip19CodecInterface::class)))
+            ->extractContentReferences(EventContent::fromString('plain text'));
+
+        $this->assertInstanceOf(ContentReferenceCollection::class, $references);
     }
 
     public function testExtractsConcatenatedReferencesWithoutSeparator(): void
@@ -262,7 +271,7 @@ final class ContentReferenceExtractorTest extends TestCase
                 return null;
             });
 
-        $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content);
+        $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content)->toArray();
 
         $this->assertCount(2, $references);
 

@@ -145,6 +145,21 @@ final class OkMessageTest extends TestCase
         $this->assertSame($original->getMessage(), $restored->getMessage());
     }
 
+    public function testFromJsonParsesAKnownMessageType(): void
+    {
+        $message = OkMessage::fromJson('["OK","'.self::VALID_EVENT_ID_HEX.'",false,"blocked: spam"]')
+            ?? throw new RuntimeException('Expected a valid message');
+
+        $this->assertSame(self::VALID_EVENT_ID_HEX, $message->getEventId()->toHex());
+        $this->assertFalse($message->isAccepted());
+        $this->assertSame('blocked: spam', $message->getMessage());
+    }
+
+    public function testFromJsonReturnsNullOnMalformedJson(): void
+    {
+        $this->assertNull(OkMessage::fromJson('not json'));
+    }
+
     private static function createEventId(): EventId
     {
         return EventId::fromHex(self::VALID_EVENT_ID_HEX) ?? throw new RuntimeException('Invalid test event ID');

@@ -270,6 +270,7 @@ Design rationale lives in [`docs/adr/`](docs/adr/) as immutable Architecture Dec
 | [0013](docs/adr/0013-secp256k1signer-sign-rejects-non-32-byte-messages.md) | `Secp256k1Signer::sign` rejects any message that is not exactly 32 bytes |
 | [0014](docs/adr/0014-nip44cipher-has-no-public-encryptwithnonce.md) | `Nip44Cipher` has no public `encryptWithNonce`; nonce stays behind a port |
 | [0015](docs/adr/0015-zero-is-a-contract-not-a-guarantee-via-destruction.md) | `zero()` is a contract, not a guarantee via destruction |
+| [0016](docs/adr/0016-message-hierarchy-uses-inheritance-for-a-sum-type.md) | The protocol message hierarchy uses inheritance for a discriminated union |
 
 ## Dependencies
 

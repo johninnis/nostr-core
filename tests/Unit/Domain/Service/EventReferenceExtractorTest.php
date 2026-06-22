@@ -10,6 +10,7 @@ use Innis\Nostr\Core\Domain\Service\EventReferenceExtractor;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\ContentReferenceCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReferences;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
@@ -24,7 +25,7 @@ final class EventReferenceExtractorTest extends TestCase
         $contentExtractor = $this->createStub(ContentReferenceExtractorInterface::class);
         $contentExtractor
             ->method('extractContentReferences')
-            ->willReturn([]);
+            ->willReturn(new ContentReferenceCollection([]));
 
         $service = new EventReferenceExtractor($contentExtractor);
 
@@ -55,7 +56,7 @@ final class EventReferenceExtractorTest extends TestCase
         );
 
         $contentExtractor = $this->createStub(ContentReferenceExtractorInterface::class);
-        $contentExtractor->method('extractContentReferences')->willReturn([]);
+        $contentExtractor->method('extractContentReferences')->willReturn(new ContentReferenceCollection([]));
 
         $service = new EventReferenceExtractor($contentExtractor);
 
@@ -91,7 +92,7 @@ final class EventReferenceExtractorTest extends TestCase
         );
 
         $contentExtractor = $this->createStub(ContentReferenceExtractorInterface::class);
-        $contentExtractor->method('extractContentReferences')->willReturn([]);
+        $contentExtractor->method('extractContentReferences')->willReturn(new ContentReferenceCollection([]));
 
         $service = new EventReferenceExtractor($contentExtractor);
 

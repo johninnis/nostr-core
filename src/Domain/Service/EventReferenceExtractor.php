@@ -41,7 +41,7 @@ final class EventReferenceExtractor implements EventReferenceExtractorInterface
 
         return new EventReferences(
             $tagReferences,
-            new ContentReferenceCollection($contentReferences),
+            $contentReferences,
             $replyChain,
             $quoteAnalysis,
             new EventIdCollection($allEventIds)->unique(),
@@ -49,7 +49,7 @@ final class EventReferenceExtractor implements EventReferenceExtractorInterface
         );
     }
 
-    private static function analyseQuote(Event $event, array $contentReferences): QuoteAnalysis
+    private static function analyseQuote(Event $event, ContentReferenceCollection $contentReferences): QuoteAnalysis
     {
         $isRepost = $event->getKind()->is(EventKind::REPOST);
 
@@ -59,7 +59,7 @@ final class EventReferenceExtractor implements EventReferenceExtractorInterface
         );
 
         $hasEventInContent = array_any(
-            $contentReferences,
+            $contentReferences->toArray(),
             static fn (ContentReference $ref): bool => ContentReferenceType::NostrUri === $ref->getType() && $ref->isEventReference(),
         );
 
@@ -75,7 +75,7 @@ final class EventReferenceExtractor implements EventReferenceExtractorInterface
 
     private static function mergeAllReferences(
         TagReferences $tagReferences,
-        array $contentReferences,
+        ContentReferenceCollection $contentReferences,
         ReplyChain $replyChain,
     ): array {
         $eventIds = [];

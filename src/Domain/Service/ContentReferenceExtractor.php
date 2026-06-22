@@ -7,6 +7,7 @@ namespace Innis\Nostr\Core\Domain\Service;
 use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\ContentReference;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\ContentReferenceCollection;
 use Override;
 
 final class ContentReferenceExtractor implements ContentReferenceExtractorInterface
@@ -17,7 +18,7 @@ final class ContentReferenceExtractor implements ContentReferenceExtractorInterf
     }
 
     #[Override]
-    public function extractContentReferences(EventContent $content): array
+    public function extractContentReferences(EventContent $content): ContentReferenceCollection
     {
         $references = [];
         $usedPositions = [];
@@ -64,6 +65,6 @@ final class ContentReferenceExtractor implements ContentReferenceExtractorInterf
 
         usort($references, static fn (ContentReference $a, ContentReference $b): int => $a->getPosition() <=> $b->getPosition());
 
-        return $references;
+        return new ContentReferenceCollection($references);
     }
 }

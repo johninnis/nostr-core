@@ -51,7 +51,7 @@ final class RelayHintExtractorRealDataTest extends TestCase
             ['r', 'wss://nostr-pub.wellorder.net/'],
         ]));
 
-        $relayHints = $this->makeExtractor()->extractRelayHints($event);
+        $relayHints = $this->makeExtractor()->extractRelayHints($event)->toArray();
 
         $relayStrings = array_map(static fn ($relay) => (string) $relay, $relayHints);
 
@@ -80,7 +80,7 @@ final class RelayHintExtractorRealDataTest extends TestCase
             ['r', 'wss://relay.snort.social/'],
         ]));
 
-        $relayHints = $this->makeExtractor()->extractRelayHints($event);
+        $relayHints = $this->makeExtractor()->extractRelayHints($event)->toArray();
 
         $relayStrings = array_map(static fn ($relay) => (string) $relay, $relayHints);
 
@@ -103,7 +103,7 @@ final class RelayHintExtractorRealDataTest extends TestCase
             ->method('decodeComplexEntity')
             ->willReturn(self::decoded('wss://relay.primal.net/', 'wss://nos.lol/'));
 
-        $relayHints = $this->makeExtractor($bech32Encoder)->extractRelayHints($this->makeEvent(TagCollection::empty(), $content));
+        $relayHints = $this->makeExtractor($bech32Encoder)->extractRelayHints($this->makeEvent(TagCollection::empty(), $content))->toArray();
 
         $this->assertCount(1, $relayHints);
         $this->assertEquals('wss://relay.primal.net', (string) $relayHints[0]);
@@ -113,14 +113,14 @@ final class RelayHintExtractorRealDataTest extends TestCase
     {
         $content = "Do not be shocked if the oft talked about theory of a gold-backed BRICS currency becomes a reality this Fall.\n\nnostr:naddr1qvzqqqr4gupzq3e0gs8jnmued6f2rp4c6vs07xqvs4vs8zpwt82smcdch4txjvq7qys8wumn8ghj7cnfw33k76twd4shs6tdv9kxjum5wvhx7mnvd9hx2tcpzemhxue69uhk2er9dchxummnw3ezumrpdejz7qqlvd5xjmnp945hxttswfjhqurfdenj6en0wgkhxmmdv46xs6twvuk7xtlq";
 
-        $this->assertEmpty($this->makeExtractor()->extractRelayHints($this->makeEvent(TagCollection::empty(), $content)));
+        $this->assertEmpty($this->makeExtractor()->extractRelayHints($this->makeEvent(TagCollection::empty(), $content))->toArray());
     }
 
     public function testExtractRelayHintsFromFirstTestEvent(): void
     {
         $content = "open source software is powerful because anyone can verify, modify, distribute, and use without permission\n\na robust open source ecosystem empowers all of us to take agency over our lives\n\nfighting with people over what software they run is mostly unproductive, run what you want, thats the whole point";
 
-        $this->assertEmpty($this->makeExtractor()->extractRelayHints($this->makeEvent(TagCollection::empty(), $content)));
+        $this->assertEmpty($this->makeExtractor()->extractRelayHints($this->makeEvent(TagCollection::empty(), $content))->toArray());
     }
 
     public function testExtractRelayHintsFromFullSecondTestEvent(): void
@@ -143,7 +143,7 @@ final class RelayHintExtractorRealDataTest extends TestCase
             ->method('decodeComplexEntity')
             ->willReturn(self::decoded('wss://relay.damus.io/'));
 
-        $relayHints = $this->makeExtractor($bech32Encoder)->extractRelayHints($event);
+        $relayHints = $this->makeExtractor($bech32Encoder)->extractRelayHints($event)->toArray();
 
         $relayStrings = array_map(static fn ($relay) => (string) $relay, $relayHints);
 

@@ -19,14 +19,14 @@ final class RelayHintExtractor implements RelayHintExtractorInterface
     }
 
     #[Override]
-    public function extractRelayHints(Event $event): array
+    public function extractRelayHints(Event $event): RelayUrlCollection
     {
         $relays = [
             ...$this->extractFromTags($event->getTags()),
             ...$this->extractFromContent((string) $event->getContent()),
         ];
 
-        return new RelayUrlCollection($relays)->unique()->toArray();
+        return new RelayUrlCollection($relays)->unique();
     }
 
     private function extractFromTags(TagCollection $tags): array
