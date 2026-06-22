@@ -26,13 +26,13 @@ Only the latest tagged release is supported. Older releases do not receive backp
 
 ### What this library provides
 
-- **BIP-340 Schnorr signing and verification** via `Secp256k1Signer`. The FFI path uses the system `libsecp256k1` C library when available; the pure-PHP path uses `paragonie/ecc` as a fallback. Both paths produce byte-identical signatures under identical `aux_rand`, validated against the BIP-340 specification vectors for Nostr's 32-byte event-id messages and a 100-iteration cross-engine property sweep. Signing rejects any message that is not exactly 32 bytes (`InvalidArgumentException`): every Nostr signature is over a `SHA-256` event id, so a wrong-length message is a programmer error rather than a request to sign arbitrary data.
+- **BIP-340 Schnorr signing and verification** via `Secp256k1Signer`. The FFI path uses the system `libsecp256k1` C library when available; the pure-PHP path uses `paragonie/ecc` as a fallback. Both paths produce byte-identical signatures under identical `aux_rand`, validated against the BIP-340 specification vectors for Nostr's 32-byte event-id messages and a 100-iteration cross-engine property sweep. Signing rejects any message that is not exactly 32 bytes (`InvalidArgumentException`): every Nostr signature is over a `SHA-256` event id, so a wrong-length message is a programmer error rather than a request to sign arbitrary data. See [ADR 0013](docs/adr/0013-secp256k1signer-sign-rejects-non-32-byte-messages.md).
 
 - **NIP-44 v2 authenticated encryption.** `Nip44Cipher` implements the official NIP-44 v2 spec: ChaCha20 with HMAC-SHA256 MAC; MAC verification happens before unpadding (no padding oracle); nonces come from an injected `RandomBytesGeneratorInterface`. Covered by the official NIP-44 test vectors and a 200-iteration property fuzz that includes ciphertext-tamper and MAC-tamper rejection.
 
 - **NIP-44 ECDH with libsecp256k1 acceleration.** `Secp256k1Ecdh` mirrors the signature service: FFI when available, pure-PHP fallback otherwise. FFI and pure-PHP paths produce byte-identical shared-X values, validated by a 100-iteration parity sweep.
 
-- **NIP-49 password-encrypted private keys.** `Nip49Cipher` uses scrypt + XChaCha20-Poly1305, NFKC password normalisation per spec, and treats the password as a `Closure(): string` so the plaintext does not persist in caller scope. Spec vectors verified.
+- **NIP-49 password-encrypted private keys.** `Nip49Cipher` uses scrypt + XChaCha20-Poly1305, NFKC password normalisation per spec, and treats the password as a `Closure(): string` so the plaintext does not persist in caller scope. Spec vectors verified. Rejecting a tampered key-security byte rather than mapping it to `Unknown` is what makes the AEAD's associated-data authentication detect tampering; see [ADR 0009](docs/adr/0009-keysecuritybyte-frombyte-throws-on-unknown.md).
 
 - **NIP-59 gift-wrap.** `GiftWrapper` validates both outer and inner signatures before trusting any content, zeroes ephemeral keys it generates, and passes all `ConversationKey` material through the `expose(Closure)` lifecycle so derived secrets do not escape their use-site scope.
 
@@ -78,7 +78,7 @@ Consumer code should use `Secp256k1Signer::create()` and `Secp256k1Ecdh::create(
 
 ### `zero()` is a contract, not a destructor guarantee
 
-`SecretKeyMaterial` exposes `zero()` as the deterministic erasure primitive. After `zero()`, every subsequent method call on the material (or on the `PrivateKey` / `ConversationKey` wrapping it) throws `SecretKeyMaterialZeroedException`. The destructor also calls `zero()` as defence in depth, but PHP's garbage collector does not run on scope exit. It runs on refcount zero, which may never happen for captured references. Callers requiring deterministic key erasure (session-scoped signers, bunker-style holders) must call `$key->zero()` explicitly at the end of the lifetime.
+`SecretKeyMaterial` exposes `zero()` as the deterministic erasure primitive. After `zero()`, every subsequent method call on the material (or on the `PrivateKey` / `ConversationKey` wrapping it) throws `SecretKeyMaterialZeroedException`. The destructor also calls `zero()` as defence in depth, but PHP's garbage collector does not run on scope exit. It runs on refcount zero, which may never happen for captured references. Callers requiring deterministic key erasure (session-scoped signers, bunker-style holders) must call `$key->zero()` explicitly at the end of the lifetime. See [ADR 0015](docs/adr/0015-zero-is-a-contract-not-a-guarantee-via-destruction.md).
 
 ### NIP-49 password as `Closure(): string`
 
@@ -92,7 +92,7 @@ Consumer code should use `Secp256k1Signer::create()` and `Secp256k1Ecdh::create(
 
 `Nip44Cipher` has no public `encryptWithNonce` method. Test determinism is achieved by injecting a `QueuedRandomBytesGenerator` through the `RandomBytesGeneratorInterface` port; production uses the default `NativeRandomBytesGenerator`. The alternative, a public method that accepts a caller-supplied nonce, is a nonce-reuse footgun that breaks ChaCha20 confidentiality catastrophically. Keeping nonce generation behind DI lets tests produce byte-identical vectors while preventing misuse in production.
 
-The same pattern applies to `Nip49Cipher`'s salt and nonce generation.
+The same pattern applies to `Nip49Cipher`'s salt and nonce generation. See [ADR 0014](docs/adr/0014-nip44cipher-has-no-public-encryptwithnonce.md).
 
 ### `SecretKeyMaterial::fromBytes` is not public
 
