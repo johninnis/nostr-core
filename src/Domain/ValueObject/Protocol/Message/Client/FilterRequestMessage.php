@@ -59,7 +59,7 @@ abstract readonly class FilterRequestMessage extends ClientMessage
     #[Override]
     final public static function fromArray(array $data): ?static
     {
-        if (count($data) < 3 || static::TYPE !== $data[0] || !is_string($data[1])) {
+        if (count($data) < 3 || static::TYPE !== $data[0]) {
             return null;
         }
 
@@ -67,7 +67,7 @@ abstract readonly class FilterRequestMessage extends ClientMessage
             return null;
         }
 
-        $subscriptionId = SubscriptionId::fromString($data[1]);
+        $subscriptionId = SubscriptionId::fromWire($data[1]);
         if (null === $subscriptionId) {
             return null;
         }

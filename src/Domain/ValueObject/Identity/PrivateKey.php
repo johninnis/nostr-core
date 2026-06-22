@@ -24,12 +24,9 @@ final readonly class PrivateKey
 
     public static function fromBech32(string $bech32): ?self
     {
-        $decoded = Bech32Codec::decode($bech32);
-        if (null === $decoded || 'nsec' !== $decoded['hrp']) {
-            return null;
-        }
+        $bytes = Bech32Codec::decodeWithHrp($bech32, 'nsec');
 
-        return self::fromBytes($decoded['data']);
+        return null === $bytes ? null : self::fromBytes($bytes);
     }
 
     public static function fromBytes(string $bytes): ?self

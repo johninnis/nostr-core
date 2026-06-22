@@ -78,11 +78,11 @@ final readonly class Subscription
             return null;
         }
 
-        if (!is_string($data['id']) || !is_array($data['filters']) || !is_int($data['created_at'])) {
+        if (!is_array($data['filters']) || !is_int($data['created_at'])) {
             return null;
         }
 
-        $id = SubscriptionId::fromString($data['id']);
+        $id = SubscriptionId::fromWire($data['id']);
         if (null === $id) {
             return null;
         }

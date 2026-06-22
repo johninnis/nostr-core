@@ -38,6 +38,9 @@ final class Bech32Codec
         return $encoded;
     }
 
+    /**
+     * @return array{hrp: string, data: string}|null
+     */
     public static function decode(string $bech32, Bech32Variant $variant = Bech32Variant::Bech32): ?array
     {
         $length = strlen($bech32);
@@ -105,6 +108,13 @@ final class Bech32Codec
             'hrp' => $hrp,
             'data' => pack('C*', ...$payload),
         ];
+    }
+
+    public static function decodeWithHrp(string $bech32, string $expectedHrp, Bech32Variant $variant = Bech32Variant::Bech32): ?string
+    {
+        $decoded = self::decode($bech32, $variant);
+
+        return null !== $decoded && $expectedHrp === $decoded['hrp'] ? $decoded['data'] : null;
     }
 
     private static function convertBits(array $data, int $fromBits, int $toBits, bool $pad): array

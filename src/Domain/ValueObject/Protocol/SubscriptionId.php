@@ -38,6 +38,11 @@ final readonly class SubscriptionId implements Stringable
         return new self($id);
     }
 
+    public static function fromWire(mixed $value): ?self
+    {
+        return is_string($value) ? self::fromString($value) : null;
+    }
+
     public static function generate(): self
     {
         return new self(bin2hex(random_bytes(16)));

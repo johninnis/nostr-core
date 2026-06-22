@@ -34,12 +34,10 @@ final readonly class Ncryptsec implements Stringable
 
     public static function fromString(string $bech32): ?self
     {
-        $decoded = Bech32Codec::decode($bech32);
-        if (null === $decoded || self::HRP !== $decoded['hrp']) {
+        $payload = Bech32Codec::decodeWithHrp($bech32, self::HRP);
+        if (null === $payload) {
             return null;
         }
-
-        $payload = $decoded['data'];
 
         if (self::PAYLOAD_LENGTH !== strlen($payload)) {
             return null;

@@ -57,12 +57,9 @@ final readonly class PublicKey implements Stringable
 
     public static function fromBech32(string $bech32): ?self
     {
-        $decoded = Bech32Codec::decode($bech32);
-        if (null === $decoded || 'npub' !== $decoded['hrp']) {
-            return null;
-        }
+        $bytes = Bech32Codec::decodeWithHrp($bech32, 'npub');
 
-        return self::fromBytes($decoded['data']);
+        return null === $bytes ? null : self::fromBytes($bytes);
     }
 
     public static function fromNpubOrHex(string $value): ?self

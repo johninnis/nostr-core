@@ -34,11 +34,11 @@ final readonly class CloseMessage extends ClientMessage
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (2 !== count($data) || 'CLOSE' !== $data[0] || !is_string($data[1])) {
+        if (2 !== count($data) || 'CLOSE' !== $data[0]) {
             return null;
         }
 
-        $subscriptionId = SubscriptionId::fromString($data[1]);
+        $subscriptionId = SubscriptionId::fromWire($data[1]);
 
         if (null === $subscriptionId) {
             return null;

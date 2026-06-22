@@ -45,16 +45,12 @@ final readonly class ClosedMessage extends RelayMessage
             return null;
         }
 
-        if (!is_string($data[1])) {
-            return null;
-        }
-
         $message = $data[2] ?? '';
         if (!is_string($message)) {
             return null;
         }
 
-        $subscriptionId = SubscriptionId::fromString($data[1]);
+        $subscriptionId = SubscriptionId::fromWire($data[1]);
 
         if (null === $subscriptionId) {
             return null;

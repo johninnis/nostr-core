@@ -57,11 +57,11 @@ final readonly class EventMessage extends RelayMessage implements PreSerialisedM
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (3 !== count($data) || 'EVENT' !== $data[0] || !is_string($data[1])) {
+        if (3 !== count($data) || 'EVENT' !== $data[0]) {
             return null;
         }
 
-        $subscriptionId = SubscriptionId::fromString($data[1]);
+        $subscriptionId = SubscriptionId::fromWire($data[1]);
 
         if (null === $subscriptionId) {
             return null;
