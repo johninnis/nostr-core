@@ -40,19 +40,18 @@ final class Secp256k1Ecdh implements EcdhServiceInterface
         }
 
         if (null !== $this->ffi) {
-            return $this->computeSharedXFfi($privateKey, $pubkeyHex);
+            return $this->computeSharedXFfi($privateKey, $publicKey);
         }
 
         return $this->computeSharedXPurePhp($privateKey, $pubkeyHex);
     }
 
-    private function computeSharedXFfi(PrivateKey $privateKey, string $pubkeyHex): string
+    private function computeSharedXFfi(PrivateKey $privateKey, PublicKey $publicKey): string
     {
         $ffi = $this->ffi;
         assert(null !== $ffi);
 
-        $pubkeyBytes = hex2bin($pubkeyHex);
-        assert(false !== $pubkeyBytes);
+        $pubkeyBytes = $publicKey->toBytes();
 
         return $privateKey->expose(static fn (string $privkeyBytes): string => $ffi->computeSharedX($privkeyBytes, $pubkeyBytes));
     }

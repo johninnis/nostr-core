@@ -44,7 +44,7 @@ final class Secp256k1Signer implements SignatureServiceInterface
             if (null !== $this->ffi) {
                 $auxRand = $this->randomBytes->bytes(self::AUX_RAND_LENGTH);
 
-                return Signature::fromHex(bin2hex($this->ffi->sign($message, $privkeyBytes, $auxRand)))
+                return Signature::fromBytes($this->ffi->sign($message, $privkeyBytes, $auxRand))
                     ?? throw new CryptoException('FFI signing produced invalid signature');
             }
 
@@ -55,19 +55,11 @@ final class Secp256k1Signer implements SignatureServiceInterface
     #[Override]
     public function verify(PublicKey $publicKey, string $message, Signature $signature): bool
     {
-        $signatureHex = $signature->toHex();
-
         if (null !== $this->ffi) {
-            $sigBytes = hex2bin($signatureHex);
-            $pubkeyBytes = hex2bin($publicKey->toHex());
-            if (false === $sigBytes || false === $pubkeyBytes) {
-                return false;
-            }
-
-            return $this->ffi->verify($sigBytes, $message, $pubkeyBytes);
+            return $this->ffi->verify($signature->toBytes(), $message, $publicKey->toBytes());
         }
 
-        return $this->verifyPurePhp($message, $signatureHex, $publicKey->toHex());
+        return $this->verifyPurePhp($message, $signature->toHex(), $publicKey->toHex());
     }
 
     #[Override]
@@ -75,7 +67,7 @@ final class Secp256k1Signer implements SignatureServiceInterface
     {
         $publicKey = $privateKey->expose(function (string $privkeyBytes): PublicKey {
             if (null !== $this->ffi) {
-                return PublicKey::fromHex(bin2hex($this->ffi->derivePublicKey($privkeyBytes)))
+                return PublicKey::fromBytes($this->ffi->derivePublicKey($privkeyBytes))
                     ?? throw new CryptoException('Key derivation produced invalid public key');
             }
 
