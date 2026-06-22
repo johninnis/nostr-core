@@ -271,6 +271,7 @@ Design rationale lives in [`docs/adr/`](docs/adr/) as immutable Architecture Dec
 | [0014](docs/adr/0014-nip44cipher-has-no-public-encryptwithnonce.md) | `Nip44Cipher` has no public `encryptWithNonce`; nonce stays behind a port |
 | [0015](docs/adr/0015-zero-is-a-contract-not-a-guarantee-via-destruction.md) | `zero()` is a contract, not a guarantee via destruction |
 | [0016](docs/adr/0016-message-hierarchy-uses-inheritance-for-a-sum-type.md) | The protocol message hierarchy uses inheritance for a discriminated union |
+| [0017](docs/adr/0017-eventvalidator-and-nipcompliancevalidator-keep-separate-signature-gates.md) | `EventValidator` and `NipComplianceValidator` keep separate signature and timestamp gates |
 
 ## Dependencies
 
