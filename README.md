@@ -4,16 +4,7 @@
 
 A PHP library implementing core domain entities and services for the Nostr protocol, built with Clean Architecture principles.
 
-## Why this library?
-
-Existing PHP Nostr libraries (nostriphant, swentel/nostr-php) are organised around individual NIPs, mixing protocol concerns, infrastructure, and application logic together. This makes them difficult to integrate into projects that follow clean architecture or domain-driven design.
-
-This library takes a different approach:
-
-- **Domain-first, not NIP-first.** Code is organised around domain concepts (events, identities, tags, messages) rather than NIP numbers. A single `Event` entity handles creation, signing, and verification regardless of which NIP defines the event kind.
-- **Clean Architecture with strict layer separation.** Domain entities and value objects have no framework dependencies. The only external library in the domain layer is cryptographic (secp256k1 elliptic curve math), which is intrinsic to Nostr identity. Bech32 encoding, JSON serialisation, and other infrastructure concerns live behind interfaces or in infrastructure adapters.
-- **Immutable value objects and pure functions.** Events, tags, timestamps, and identities are all immutable. Factory methods are static. Services are stateless. No hidden side effects.
-- **Designed for composition.** This is a core library, not an application. It provides the building blocks for relays, clients, and web applications without imposing architectural decisions on consumers.
+Code is organised around domain concepts (events, identities, tags, messages) rather than NIP numbers: a single `Event` entity handles creation, signing, and verification regardless of which NIP defines the event kind. Domain entities and value objects are immutable, services are stateless, and the package provides building blocks for relays, clients, and web applications without imposing architectural decisions on consumers. See [ADR-0019](docs/adr/0019-domain-first-organisation-cryptography-only-domain-dependency.md) for the organising rationale.
 
 ## Features
 
@@ -22,12 +13,14 @@ This library takes a different approach:
 - Domain-driven design with pure business logic
 - Comprehensive cryptographic support using secp256k1
 - Native libsecp256k1 FFI acceleration covering BIP340 sign/verify, x-only
-  pubkey derivation, NIP-44 ECDH, and group-law primitives (compressed
-  scalar-base-mul, point-mul, point-add) — automatic pure-PHP fallback
+  pubkey derivation, and NIP-44 ECDH — automatic pure-PHP fallback
   when the C library is unavailable
 - Bech32 *and* bech32m encoding/decoding via a single `Bech32Codec`
-  (NIP-19 prefixes plus BIP-350 variants used by FROSTR and other
-  bech32m-prefixed consumers)
+  (NIP-19 prefixes plus BIP-350 bech32m variants), selected through the
+  `Bech32Variant` enum
+- Content-reference extraction (event, pubkey, relay and quote references
+  from tags and content) and reply-chain analysis
+- Typed, immutable domain collections and a subscription model
 - Full NIP compliance validation
 - Type-safe message handling with domain objects at all boundaries
 - Optimised tag lookups via lazy indexing
@@ -48,13 +41,11 @@ Declared under `suggest` in `composer.json` (used by optional code paths that th
 - `ext-gmp` is needed by the pure-PHP signing and ECDH fallback (the documented path when `libsecp256k1` is unavailable). If you know you always have `libsecp256k1` installed and never invoke the pure-PHP path, this extension is not touched.
 - `ext-mbstring` is needed by the search-filter matcher, `EventContent::getLength`, and the bech32 TLV decoder. Most consumers will hit one of these.
 - `ext-ffi` is needed by NIP-49 (unconditionally) and by the `Secp256k1Signer::create()` / `Secp256k1Ecdh::create()` factories (for the `libsecp256k1` probe). Consumers who do not use NIP-49 and who construct the adapters directly with `new Secp256k1Signer(null, ...)` / `new Secp256k1Ecdh()` can run without `ext-ffi` at all and stay on the pure-PHP path.
-- `libsodium` system library, reachable via FFI, is required for NIP-49 scrypt. Typically already installed wherever `ext-sodium` is installed.
 
-### Optional (recommended)
+### Optional system libraries
 
-- `libsecp256k1` system library
-
-When present, Schnorr signing, verification, public-key derivation, and NIP-44 ECDH use the native C library for significantly faster performance. Without it, the library falls back to a pure-PHP implementation via `paragonie/ecc` automatically.
+- `libsecp256k1` — when present, Schnorr signing, verification, public-key derivation, and NIP-44 ECDH use the native C library (reached via `ext-ffi`) for significantly faster performance. Without it, the library falls back to a pure-PHP implementation via `paragonie/ecc` automatically.
+- `libsodium` — required by NIP-49 scrypt derivation, which calls `crypto_pwhash_scryptsalsa208sha256_ll` through `ext-ffi`. Typically already installed wherever `ext-sodium` is.
 
 ## Installation
 
@@ -204,6 +195,8 @@ $signatureService->sign($privateKey, $message); // throws SecretKeyMaterialZeroe
 | [NIP-70](https://github.com/nostr-protocol/nips/blob/master/70.md) | Protected events | Protected event detection via `isProtected()` |
 | [NIP-98](https://github.com/nostr-protocol/nips/blob/master/98.md) | HTTP auth | Kind 27235 validation: signature, URL, method, payload hash, timestamp tolerance |
 
+Beyond the NIPs listed above, `EventKind` carries named constants for a broad range of registered kinds (metadata, channels, MLS messaging, polls, cashu wallet events, live events, web pages, and more) together with the replaceable / ephemeral / parameterised-replaceable range boundaries, so consumers can classify kinds the library does not otherwise model.
+
 ## Performance
 
 ### Native FFI Acceleration
@@ -211,22 +204,14 @@ $signatureService->sign($privateKey, $message); // throws SecretKeyMaterialZeroe
 The library can use the system's native `libsecp256k1` C library via PHP's
 FFI extension for cryptographic operations. This provides significant
 performance gains for applications performing bulk signature verification
-(relays, indexers) or threshold-signature math (FROSTR signers).
+(relays, indexers).
 
 Operations routed through `LibSecp256k1Ffi` when the library is loaded:
 
 - `sign` — BIP340 Schnorr sign
 - `verify` — BIP340 Schnorr verify
 - `derivePublicKey` — secret to 32-byte x-only pubkey
-- `derivePublicKeyCompressed` — secret to 33-byte compressed pubkey (parity-aware)
 - `computeSharedX` — x-only ECDH for NIP-44 conversation keys
-- `pointMulCompressed` — arbitrary-base scalar multiplication on a compressed point
-- `pointAddCompressed` — group addition of two compressed points
-
-The last three primitives are what threshold-signature consumers like
-[`innis/frostr-core`](https://github.com/innis-xyz/frostr-core) need for
-FROST partial signing, partial ECDH and dealer setup. With FFI loaded,
-those operations run roughly 60× faster than the pure-PHP fallback.
 
 To install the native library:
 
@@ -255,24 +240,28 @@ Design rationale lives in [`docs/adr/`](docs/adr/) as immutable Architecture Dec
 
 | ADR | Decision |
 |-----|----------|
-| [0001](docs/adr/0001-anticipated-outcomes-returned-faults-thrown.md) | Anticipated outcomes are returned (`?T` / `*Failure`); faults are thrown |
+| [0000](docs/adr/0000-record-architecture-decisions.md) | Record architecture decisions |
+| [0001](docs/adr/0001-value-objects-keep-getter-methods-not-property-hooks.md) | Value objects expose state through `getX()` accessors, not public properties or hooks |
 | [0002](docs/adr/0002-nostrexception-roots-nostr-faults-only.md) | `NostrException` roots Nostr faults; consumers root their own |
-| [0003](docs/adr/0003-value-objects-keep-getter-methods-not-property-hooks.md) | Value objects keep `getX()` methods, not property hooks |
-| [0004](docs/adr/0004-publickey-eventid-signature-stay-separate.md) | `PublicKey`, `EventId`, and `Signature` stay separate types |
-| [0005](docs/adr/0005-timestamp-now-direct-clockinterface-when-time-under-test.md) | `Timestamp::now()` reads the clock; `ClockInterface` is injected only where elapsed time is under test |
-| [0006](docs/adr/0006-tagtype-is-a-value-object-not-a-backed-enum.md) | `TagType` is a value object, not a backed `enum` (open vocabulary) |
+| [0003](docs/adr/0003-anticipated-outcomes-returned-faults-thrown.md) | Anticipated outcomes are returned; faults are thrown |
+| [0004](docs/adr/0004-publickey-eventid-signature-stay-separate.md) | `PublicKey`, `EventId`, and `Signature` stay separate types, not a shared base |
+| [0005](docs/adr/0005-timestamp-now-direct-clockinterface-when-time-under-test.md) | `Timestamp::now()` reads the clock directly; `ClockInterface` is injected only where elapsed time is under test |
+| [0006](docs/adr/0006-tagtype-is-a-value-object-not-a-backed-enum.md) | `TagType` is a value object, not a backed `enum` |
 | [0007](docs/adr/0007-subscriptioncollection-does-not-extend-typedcollection.md) | `SubscriptionCollection` does not extend `TypedCollection` |
-| [0008](docs/adr/0008-domain-services-static-when-pure-injected-when-collaborator.md) | Domain services are `static` when pure, injected when they have a collaborator |
+| [0008](docs/adr/0008-domain-services-static-when-pure-injected-when-collaborator.md) | Domain services are `static` when pure, injected interfaces when they have a collaborator |
 | [0009](docs/adr/0009-keysecuritybyte-frombyte-throws-on-unknown.md) | `KeySecurityByte::fromByte` throws on an unrecognised byte |
-| [0010](docs/adr/0010-relayurl-fromstring-rejects-more-than-malformed-syntax.md) | `RelayUrl::fromString` rejects more than malformed syntax |
-| [0011](docs/adr/0011-contentreferencetagbuilder-emits-q-tag-only-for-quotes.md) | `ContentReferenceTagBuilder` emits a `q` tag only for a quoted event (no `e` mention) |
+| [0010](docs/adr/0010-relayurl-fromstring-rejects-more-than-malformed-syntax.md) | `RelayUrl::fromString` canonicalises, and rejects what it cannot canonicalise |
+| [0011](docs/adr/0011-contentreferencetagbuilder-emits-q-tag-only-for-quotes.md) | `ContentReferenceTagBuilder` emits a `q` tag only for a quoted event |
 | [0012](docs/adr/0012-event-does-not-cache-its-computed-id.md) | `Event` does not cache its computed id |
 | [0013](docs/adr/0013-secp256k1signer-sign-rejects-non-32-byte-messages.md) | `Secp256k1Signer::sign` rejects any message that is not exactly 32 bytes |
-| [0014](docs/adr/0014-nip44cipher-has-no-public-encryptwithnonce.md) | `Nip44Cipher` has no public `encryptWithNonce`; nonce stays behind a port |
+| [0014](docs/adr/0014-nip44cipher-has-no-public-encryptwithnonce.md) | `Nip44Cipher` has no public `encryptWithNonce`; nonce generation stays behind a port |
 | [0015](docs/adr/0015-zero-is-a-contract-not-a-guarantee-via-destruction.md) | `zero()` is a contract, not a guarantee via destruction |
 | [0016](docs/adr/0016-message-hierarchy-uses-inheritance-for-a-sum-type.md) | The protocol message hierarchy uses inheritance for a discriminated union |
 | [0017](docs/adr/0017-eventvalidator-and-nipcompliancevalidator-keep-separate-signature-gates.md) | `EventValidator` and `NipComplianceValidator` keep separate signature and timestamp gates |
-| [0018](docs/adr/0018-randomness-read-directly-in-named-constructors-port-injected-where-output-is-under-test.md) | Randomness is read directly in named constructors; `RandomBytesGeneratorInterface` is injected only where the random output is under test |
+| [0018](docs/adr/0018-randomness-read-directly-in-named-constructors-port-injected-where-output-is-under-test.md) | Random generation reads the entropy source directly in named constructors; `RandomBytesGeneratorInterface` is injected where the random output is under test |
+| [0019](docs/adr/0019-domain-first-organisation-cryptography-only-domain-dependency.md) | Code is organised domain-first, and cryptography is the only external dependency in the domain layer |
+| [0020](docs/adr/0020-filterhasher-canonicalises-to-ascii-safe-json-for-cross-language-parity.md) | `FilterHasher` canonicalises to ASCII-safe JSON for byte-identical cross-language hashes |
+| [0021](docs/adr/0021-single-bech32codec-covers-bech32-and-bech32m.md) | A single `Bech32Codec` covers both bech32 and bech32m |
 
 ## Dependencies
 
@@ -313,7 +302,7 @@ Because object keys, array elements, and the filters themselves are all sorted, 
 
 ### Cross-language parity
 
-The two implementations are **byte-for-byte identical for every input**, including non-ASCII `search` strings and tag-filter values. Making the canonical form ASCII-safe (step 3) is the mechanism: with no raw non-ASCII bytes, bytewise / UTF-8-byte / UTF-16-code-unit / code-point collation all coincide, so both runtimes sort and encode identically — closing both the `json_encode`-vs-`JSON.stringify` escaping gap (`U+2028` / `U+2029`) and the UTF-8-vs-UTF-16 sort gap (astral characters such as emoji).
+The two implementations are **byte-for-byte identical for every input**, including non-ASCII `search` strings and tag-filter values. The ASCII-safe canonical form (step 3) is what makes this hold; see [ADR-0020](docs/adr/0020-filterhasher-canonicalises-to-ascii-safe-json-for-cross-language-parity.md).
 
 Parity is locked by shared conformance anchors asserted in both test suites — equivalent inputs must hash to the same digest in both:
 
