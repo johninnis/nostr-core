@@ -8,11 +8,16 @@ use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 
 abstract readonly class Message
 {
-    abstract public function getType(): string;
+    protected const string TYPE = '';
 
     abstract public function toArray(): array;
 
     abstract public static function fromArray(array $data): ?static;
+
+    final public function getType(): string
+    {
+        return static::TYPE;
+    }
 
     final public static function fromJson(string $json): ?static
     {

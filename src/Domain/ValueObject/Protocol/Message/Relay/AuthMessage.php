@@ -10,17 +10,13 @@ use Override;
 
 final readonly class AuthMessage extends RelayMessage
 {
+    protected const string TYPE = 'AUTH';
+
     public function __construct(private string $challenge)
     {
         if ('' === $this->challenge) {
             throw new InvalidArgumentException('AUTH challenge cannot be empty');
         }
-    }
-
-    #[Override]
-    public function getType(): string
-    {
-        return 'AUTH';
     }
 
     public function getChallenge(): string
@@ -31,13 +27,13 @@ final readonly class AuthMessage extends RelayMessage
     #[Override]
     public function toArray(): array
     {
-        return ['AUTH', $this->challenge];
+        return [self::TYPE, $this->challenge];
     }
 
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (2 !== count($data) || 'AUTH' !== $data[0]) {
+        if (2 !== count($data) || self::TYPE !== $data[0]) {
             return null;
         }
 

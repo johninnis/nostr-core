@@ -5,15 +5,12 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
-use Innis\Nostr\Core\Domain\Enum\Nip19EntityType;
-use Innis\Nostr\Core\Domain\Service\Nip19CodecInterface;
+use Innis\Nostr\Core\Domain\Service\ContentReferenceExtractor;
+use Innis\Nostr\Core\Domain\Service\Nip19Codec;
 use Innis\Nostr\Core\Domain\Service\RelayHintExtractor;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
-use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
-use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrlCollection;
-use Innis\Nostr\Core\Domain\ValueObject\Reference\DecodedNip19Entity;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Tests\Support\TagCollectionMother;
@@ -23,19 +20,6 @@ use RuntimeException;
 final class RelayHintExtractorRealDataTest extends TestCase
 {
     private const string TEST_PUBKEY = '7b3f7803750746f455413a221f80965eecb69ef308f2ead1da89cc2c8912e968';
-
-    private static function decoded(string ...$relayUrls): DecodedNip19Entity
-    {
-        $relays = [];
-        foreach ($relayUrls as $url) {
-            $relay = RelayUrl::fromString($url);
-            if (null !== $relay) {
-                $relays[] = $relay;
-            }
-        }
-
-        return new DecodedNip19Entity(Nip19EntityType::Event, relays: new RelayUrlCollection($relays));
-    }
 
     public function testExtractRelayHintsFromSecondTestEventTags(): void
     {
@@ -95,26 +79,24 @@ final class RelayHintExtractorRealDataTest extends TestCase
         $this->assertContains('wss://relay.snort.social', $relayStrings);
     }
 
-    public function testExtractRelayHintsFromSecondTestEventContent(): void
+    public function testNeventInContentWithoutRelaysYieldsNoHints(): void
     {
         $content = "Getting married and having kids will make you level up as a man faster and further than anything else.\n\nnostr:nevent1qvzqqqqqqypzqxh7p36w84mcf6af8f0rlf255mhtqxfg6ynnnt5t5jpj0p5q3cmdqqsdxkwnafkgnfg68g6xkqau25548fewg440x5s8r4uud0sednkewugdc6hft ";
 
-        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
-        $bech32Encoder
-            ->method('decodeComplexEntity')
-            ->willReturn(self::decoded('wss://relay.primal.net/', 'wss://nos.lol/'));
-
-        $relayHints = $this->makeExtractor($bech32Encoder)->extractRelayHints($this->makeEvent(TagCollection::empty(), $content))->toArray();
-
-        $this->assertCount(1, $relayHints);
-        $this->assertEquals('wss://relay.primal.net', (string) $relayHints[0]);
+        $this->assertEmpty($this->makeExtractor()->extractRelayHints($this->makeEvent(TagCollection::empty(), $content))->toArray());
     }
 
-    public function testExtractRelayHintsFromThirdTestEventContent(): void
+    public function testExtractRelayHintsFromNaddrInContent(): void
     {
         $content = "Do not be shocked if the oft talked about theory of a gold-backed BRICS currency becomes a reality this Fall.\n\nnostr:naddr1qvzqqqr4gupzq3e0gs8jnmued6f2rp4c6vs07xqvs4vs8zpwt82smcdch4txjvq7qys8wumn8ghj7cnfw33k76twd4shs6tdv9kxjum5wvhx7mnvd9hx2tcpzemhxue69uhk2er9dchxummnw3ezumrpdejz7qqlvd5xjmnp945hxttswfjhqurfdenj6en0wgkhxmmdv46xs6twvuk7xtlq";
 
-        $this->assertEmpty($this->makeExtractor()->extractRelayHints($this->makeEvent(TagCollection::empty(), $content))->toArray());
+        $relayHints = $this->makeExtractor()->extractRelayHints($this->makeEvent(TagCollection::empty(), $content))->toArray();
+
+        $relayStrings = array_map(static fn ($relay) => (string) $relay, $relayHints);
+
+        $this->assertCount(2, $relayHints);
+        $this->assertContains('wss://bitcoinmaximalists.online', $relayStrings);
+        $this->assertContains('wss://eden.nostr.land', $relayStrings);
     }
 
     public function testExtractRelayHintsFromFirstTestEvent(): void
@@ -139,27 +121,19 @@ final class RelayHintExtractorRealDataTest extends TestCase
             EventContent::fromString("Getting married and having kids will make you level up as a man faster and further than anything else.\n\nnostr:nevent1qvzqqqqqqypzqxh7p36w84mcf6af8f0rlf255mhtqxfg6ynnnt5t5jpj0p5q3cmdqqsdxkwnafkgnfg68g6xkqau25548fewg440x5s8r4uud0sednkewugdc6hft ")
         );
 
-        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
-        $bech32Encoder
-            ->method('decodeComplexEntity')
-            ->willReturn(self::decoded('wss://relay.damus.io/'));
-
-        $relayHints = $this->makeExtractor($bech32Encoder)->extractRelayHints($event)->toArray();
+        $relayHints = $this->makeExtractor()->extractRelayHints($event)->toArray();
 
         $relayStrings = array_map(static fn ($relay) => (string) $relay, $relayHints);
 
-        $this->assertCount(4, $relayHints);
+        $this->assertCount(3, $relayHints);
         $this->assertContains('wss://nos.lol', $relayStrings);
         $this->assertContains('wss://relay.primal.net', $relayStrings);
         $this->assertContains('wss://nostr.mom', $relayStrings);
-        $this->assertContains('wss://relay.damus.io', $relayStrings);
     }
 
-    private function makeExtractor(?Nip19CodecInterface $bech32Encoder = null): RelayHintExtractor
+    private function makeExtractor(): RelayHintExtractor
     {
-        return new RelayHintExtractor(
-            $bech32Encoder ?? $this->createStub(Nip19CodecInterface::class),
-        );
+        return new RelayHintExtractor(new ContentReferenceExtractor(new Nip19Codec()));
     }
 
     private function makeEvent(TagCollection $tags, string $content = ''): Event

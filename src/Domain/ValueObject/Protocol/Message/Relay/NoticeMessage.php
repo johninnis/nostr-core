@@ -10,17 +10,13 @@ use Override;
 
 final readonly class NoticeMessage extends RelayMessage
 {
+    protected const string TYPE = 'NOTICE';
+
     public function __construct(private string $message)
     {
         if ('' === $this->message) {
             throw new InvalidArgumentException('Notice message cannot be empty');
         }
-    }
-
-    #[Override]
-    public function getType(): string
-    {
-        return 'NOTICE';
     }
 
     public function getMessage(): string
@@ -31,13 +27,13 @@ final readonly class NoticeMessage extends RelayMessage
     #[Override]
     public function toArray(): array
     {
-        return ['NOTICE', $this->message];
+        return [self::TYPE, $this->message];
     }
 
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (2 !== count($data) || 'NOTICE' !== $data[0]) {
+        if (2 !== count($data) || self::TYPE !== $data[0]) {
             return null;
         }
 

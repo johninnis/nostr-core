@@ -10,17 +10,13 @@ use Override;
 
 final readonly class OkMessage extends RelayMessage
 {
+    protected const string TYPE = 'OK';
+
     public function __construct(
         private EventId $eventId,
         private bool $accepted,
         private string $message = '',
     ) {
-    }
-
-    #[Override]
-    public function getType(): string
-    {
-        return 'OK';
     }
 
     public function getEventId(): EventId
@@ -46,13 +42,13 @@ final readonly class OkMessage extends RelayMessage
     #[Override]
     public function toArray(): array
     {
-        return ['OK', $this->eventId->toHex(), $this->accepted, $this->message];
+        return [self::TYPE, $this->eventId->toHex(), $this->accepted, $this->message];
     }
 
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (count($data) < 3 || 'OK' !== $data[0]) {
+        if (count($data) < 3 || self::TYPE !== $data[0]) {
             return null;
         }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Infrastructure\Crypto;
 
+use Exception;
 use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
 use Innis\Nostr\Core\Domain\Exception\CryptoException;
 use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
@@ -150,8 +151,10 @@ final class Secp256k1Signer implements SignatureServiceInterface
         $n = $generator->getOrder();
 
         $P_x = gmp_init($publicKeyHex, 16);
-        $P = Secp256k1Math::liftX($P_x, $curve, $p);
-        if (null === $P) {
+
+        try {
+            $P = $curve->getPoint($P_x, $curve->recoverYfromX(false, $P_x));
+        } catch (Exception) {
             return false;
         }
 

@@ -70,17 +70,24 @@ final class LibSecp256k1Ffi
     public function sign(string $messageBytes, string $privkeyBytes, string $auxRand32): string
     {
         $keypair = $this->ffi->new('secp256k1_keypair');
-        if (1 !== $this->ffi->secp256k1_keypair_create($this->context, FFI::addr($keypair), FfiLibraryLoader::toBuffer($this->ffi, $privkeyBytes))) {
-            throw new CryptoException('Failed to create keypair from private key');
+        $privkeyBuffer = FfiLibraryLoader::toBuffer($this->ffi, $privkeyBytes);
+
+        try {
+            if (1 !== $this->ffi->secp256k1_keypair_create($this->context, FFI::addr($keypair), $privkeyBuffer)) {
+                throw new CryptoException('Failed to create keypair from private key');
+            }
+
+            $sig = $this->ffi->new('unsigned char[64]');
+
+            if (1 !== $this->ffi->secp256k1_schnorrsig_sign32($this->context, $sig, FfiLibraryLoader::toBuffer($this->ffi, $messageBytes), FFI::addr($keypair), FfiLibraryLoader::toBuffer($this->ffi, $auxRand32))) {
+                throw new CryptoException('Schnorr signing failed');
+            }
+
+            return FFI::string($sig, 64);
+        } finally {
+            FFI::memset($privkeyBuffer, 0, strlen($privkeyBytes));
+            FFI::memset(FFI::addr($keypair), 0, FFI::sizeof($keypair));
         }
-
-        $sig = $this->ffi->new('unsigned char[64]');
-
-        if (1 !== $this->ffi->secp256k1_schnorrsig_sign32($this->context, $sig, FfiLibraryLoader::toBuffer($this->ffi, $messageBytes), FFI::addr($keypair), FfiLibraryLoader::toBuffer($this->ffi, $auxRand32))) {
-            throw new CryptoException('Schnorr signing failed');
-        }
-
-        return FFI::string($sig, 64);
     }
 
     public function verify(string $sigBytes, string $messageBytes, string $pubkeyBytes): bool
@@ -102,21 +109,28 @@ final class LibSecp256k1Ffi
     public function derivePublicKey(string $privkeyBytes): string
     {
         $keypair = $this->ffi->new('secp256k1_keypair');
-        if (1 !== $this->ffi->secp256k1_keypair_create($this->context, FFI::addr($keypair), FfiLibraryLoader::toBuffer($this->ffi, $privkeyBytes))) {
-            throw new CryptoException('Failed to create keypair from private key');
-        }
+        $privkeyBuffer = FfiLibraryLoader::toBuffer($this->ffi, $privkeyBytes);
 
-        $pubkey = $this->ffi->new('secp256k1_xonly_pubkey');
-        if (1 !== $this->ffi->secp256k1_keypair_xonly_pub($this->context, FFI::addr($pubkey), null, FFI::addr($keypair))) {
-            throw new CryptoException('Failed to derive x-only public key from keypair');
-        }
+        try {
+            if (1 !== $this->ffi->secp256k1_keypair_create($this->context, FFI::addr($keypair), $privkeyBuffer)) {
+                throw new CryptoException('Failed to create keypair from private key');
+            }
 
-        $output = $this->ffi->new('unsigned char[32]');
-        if (1 !== $this->ffi->secp256k1_xonly_pubkey_serialize($this->context, $output, FFI::addr($pubkey))) {
-            throw new CryptoException('Failed to serialise x-only public key');
-        }
+            $pubkey = $this->ffi->new('secp256k1_xonly_pubkey');
+            if (1 !== $this->ffi->secp256k1_keypair_xonly_pub($this->context, FFI::addr($pubkey), null, FFI::addr($keypair))) {
+                throw new CryptoException('Failed to derive x-only public key from keypair');
+            }
 
-        return FFI::string($output, 32);
+            $output = $this->ffi->new('unsigned char[32]');
+            if (1 !== $this->ffi->secp256k1_xonly_pubkey_serialize($this->context, $output, FFI::addr($pubkey))) {
+                throw new CryptoException('Failed to serialise x-only public key');
+            }
+
+            return FFI::string($output, 32);
+        } finally {
+            FFI::memset($privkeyBuffer, 0, strlen($privkeyBytes));
+            FFI::memset(FFI::addr($keypair), 0, FFI::sizeof($keypair));
+        }
     }
 
     public function computeSharedX(string $privkeyBytes, string $peerXOnlyPubkeyBytes): string
@@ -133,29 +147,33 @@ final class LibSecp256k1Ffi
             throw new EcdhException('ECDH public key is not a valid curve point');
         }
 
-        if (1 !== $this->ffi->secp256k1_ec_pubkey_tweak_mul(
-            $this->context,
-            FFI::addr($pubkey),
-            FfiLibraryLoader::toBuffer($this->ffi, $privkeyBytes),
-        )) {
-            throw new EcdhException('ECDH shared point is the identity');
-        }
-
+        $privkeyBuffer = FfiLibraryLoader::toBuffer($this->ffi, $privkeyBytes);
         $output = $this->ffi->new('unsigned char['.self::COMPRESSED_PUBKEY_LENGTH.']');
-        $outputLen = $this->ffi->new('size_t');
-        $outputLen->cdata = self::COMPRESSED_PUBKEY_LENGTH;
 
-        if (1 !== $this->ffi->secp256k1_ec_pubkey_serialize(
-            $this->context,
-            $output,
-            FFI::addr($outputLen),
-            FFI::addr($pubkey),
-            self::EC_COMPRESSED_FLAG,
-        )) {
-            throw new EcdhException('ECDH failed to serialise shared point');
+        try {
+            if (1 !== $this->ffi->secp256k1_ec_pubkey_tweak_mul($this->context, FFI::addr($pubkey), $privkeyBuffer)) {
+                throw new EcdhException('ECDH shared point is the identity');
+            }
+
+            $outputLen = $this->ffi->new('size_t');
+            $outputLen->cdata = self::COMPRESSED_PUBKEY_LENGTH;
+
+            if (1 !== $this->ffi->secp256k1_ec_pubkey_serialize(
+                $this->context,
+                $output,
+                FFI::addr($outputLen),
+                FFI::addr($pubkey),
+                self::EC_COMPRESSED_FLAG,
+            )) {
+                throw new EcdhException('ECDH failed to serialise shared point');
+            }
+
+            return substr(FFI::string($output, self::COMPRESSED_PUBKEY_LENGTH), 1, self::XONLY_PUBKEY_LENGTH);
+        } finally {
+            FFI::memset($privkeyBuffer, 0, strlen($privkeyBytes));
+            FFI::memset($output, 0, self::COMPRESSED_PUBKEY_LENGTH);
+            FFI::memset(FFI::addr($pubkey), 0, FFI::sizeof($pubkey));
         }
-
-        return substr(FFI::string($output, self::COMPRESSED_PUBKEY_LENGTH), 1, self::XONLY_PUBKEY_LENGTH);
     }
 
     public function __destruct()

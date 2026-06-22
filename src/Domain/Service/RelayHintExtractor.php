@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrlCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
@@ -14,7 +15,7 @@ use Override;
 final class RelayHintExtractor implements RelayHintExtractorInterface
 {
     public function __construct(
-        private Nip19CodecInterface $nip19Codec,
+        private ContentReferenceExtractorInterface $contentReferenceExtractor,
     ) {
     }
 
@@ -23,7 +24,7 @@ final class RelayHintExtractor implements RelayHintExtractorInterface
     {
         $relays = [
             ...$this->extractFromTags($event->getTags()),
-            ...$this->extractFromContent((string) $event->getContent()),
+            ...$this->extractFromContent($event->getContent()),
         ];
 
         return new RelayUrlCollection($relays)->unique();
@@ -50,24 +51,16 @@ final class RelayHintExtractor implements RelayHintExtractorInterface
         return $relays;
     }
 
-    private function extractFromContent(string $content): array
+    private function extractFromContent(EventContent $content): array
     {
         $relays = [];
 
-        if (preg_match_all('/nevent1[a-z0-9]+/', $content, $matches)) {
-            foreach ($matches[0] as $nevent) {
-                $relay = $this->extractFromNevent($nevent);
-                if (null !== $relay) {
-                    $relays[] = $relay;
-                }
+        foreach ($this->contentReferenceExtractor->extractContentReferences($content) as $reference) {
+            foreach ($reference->getRelays() as $relay) {
+                $relays[] = $relay;
             }
         }
 
         return $relays;
-    }
-
-    private function extractFromNevent(string $nevent): ?RelayUrl
-    {
-        return $this->nip19Codec->decodeComplexEntity($nevent)?->getRelays()->toArray()[0] ?? null;
     }
 }

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Reference;
 
-use Innis\Nostr\Core\Domain\Exception\InvalidReferenceException;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\RelayReference;
 use PHPUnit\Framework\TestCase;
@@ -61,6 +60,7 @@ final class RelayReferenceTest extends TestCase
 
         $ref = RelayReference::fromArray($data);
 
+        $this->assertNotNull($ref);
         $this->assertSame(self::VALID_RELAY, (string) $ref->getRelayUrl());
         $this->assertSame('read', $ref->getMode());
     }
@@ -71,15 +71,14 @@ final class RelayReferenceTest extends TestCase
 
         $ref = RelayReference::fromArray($data);
 
+        $this->assertNotNull($ref);
         $this->assertSame(self::VALID_RELAY, (string) $ref->getRelayUrl());
         $this->assertNull($ref->getMode());
     }
 
-    public function testFromArrayThrowsForInvalidUrl(): void
+    public function testFromArrayReturnsNullForInvalidUrl(): void
     {
-        $this->expectException(InvalidReferenceException::class);
-
-        RelayReference::fromArray(['url' => 'not-a-valid-url']);
+        $this->assertNull(RelayReference::fromArray(['url' => 'not-a-valid-url']));
     }
 
     public function testRoundTripThroughArray(): void
@@ -89,6 +88,7 @@ final class RelayReferenceTest extends TestCase
 
         $recreated = RelayReference::fromArray($original->toArray());
 
+        $this->assertNotNull($recreated);
         $this->assertSame((string) $original->getRelayUrl(), (string) $recreated->getRelayUrl());
         $this->assertSame($original->getMode(), $recreated->getMode());
     }

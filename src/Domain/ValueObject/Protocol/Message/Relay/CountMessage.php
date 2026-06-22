@@ -11,6 +11,8 @@ use Override;
 
 final readonly class CountMessage extends RelayMessage
 {
+    protected const string TYPE = 'COUNT';
+
     public function __construct(
         private SubscriptionId $subscriptionId,
         private int $count,
@@ -18,12 +20,6 @@ final readonly class CountMessage extends RelayMessage
         if ($this->count < 0) {
             throw new InvalidArgumentException('Count cannot be negative');
         }
-    }
-
-    #[Override]
-    public function getType(): string
-    {
-        return 'COUNT';
     }
 
     public function getSubscriptionId(): SubscriptionId
@@ -39,13 +35,13 @@ final readonly class CountMessage extends RelayMessage
     #[Override]
     public function toArray(): array
     {
-        return ['COUNT', (string) $this->subscriptionId, ['count' => $this->count]];
+        return [self::TYPE, (string) $this->subscriptionId, ['count' => $this->count]];
     }
 
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (3 !== count($data) || 'COUNT' !== $data[0]) {
+        if (3 !== count($data) || self::TYPE !== $data[0]) {
             return null;
         }
 

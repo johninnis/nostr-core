@@ -85,29 +85,40 @@ final readonly class TagReferences
 
     public static function fromArray(array $data): self
     {
+        $challenges = is_array($data['challenges'] ?? null) ? $data['challenges'] : [];
+
         return new self(
-            new EventReferenceCollection(array_map(
-                static fn (array $ref) => EventReference::fromArray($ref),
-                $data['events'] ?? []
-            )),
-            new PubkeyReferenceCollection(array_map(
-                static fn (array $ref) => PubkeyReference::fromArray($ref),
-                $data['pubkeys'] ?? []
-            )),
-            new EventReferenceCollection(array_map(
-                static fn (array $ref) => EventReference::fromArray($ref),
-                $data['quotes'] ?? []
-            )),
-            new EventCoordinateCollection(array_values(array_filter(array_map(
-                static fn (array $ref) => EventCoordinate::fromArray($ref),
-                $data['addressable'] ?? []
+            new EventReferenceCollection(self::parseEventReferences($data['events'] ?? null)),
+            new PubkeyReferenceCollection(array_values(array_filter(array_map(
+                static fn (mixed $ref) => is_array($ref) ? PubkeyReference::fromArray($ref) : null,
+                is_array($data['pubkeys'] ?? null) ? $data['pubkeys'] : [],
             )))),
-            new RelayReferenceCollection(array_map(
-                static fn (array $ref) => RelayReference::fromArray($ref),
-                $data['relays'] ?? []
-            )),
-            $data['challenges'] ?? []
+            new EventReferenceCollection(self::parseEventReferences($data['quotes'] ?? null)),
+            new EventCoordinateCollection(array_values(array_filter(array_map(
+                static fn (mixed $ref) => is_array($ref) ? EventCoordinate::fromArray($ref) : null,
+                is_array($data['addressable'] ?? null) ? $data['addressable'] : [],
+            )))),
+            new RelayReferenceCollection(array_values(array_filter(array_map(
+                static fn (mixed $ref) => is_array($ref) ? RelayReference::fromArray($ref) : null,
+                is_array($data['relays'] ?? null) ? $data['relays'] : [],
+            )))),
+            array_values(array_filter($challenges, static fn (mixed $challenge): bool => is_string($challenge))),
         );
+    }
+
+    /**
+     * @return list<EventReference>
+     */
+    private static function parseEventReferences(mixed $references): array
+    {
+        if (!is_array($references)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            static fn (mixed $ref) => is_array($ref) ? EventReference::fromArray($ref) : null,
+            $references,
+        )));
     }
 
     public static function empty(): self

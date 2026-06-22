@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Integration\Infrastructure\Crypto;
 
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
 use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
 use Innis\Nostr\Core\Infrastructure\Crypto\NativeRandomBytesGenerator;
@@ -107,6 +108,17 @@ final class Secp256k1SignerTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
         $service->sign($privateKey, 'short message');
+    }
+
+    public function testVerifyRejectsOffCurvePublicKeyViaPurePhp(): void
+    {
+        $offCurvePublicKey = PublicKey::fromHex('eefdea4cdb677750a420fee807eacf21eb9898ae79b9768766e4faa04a2d4a34')
+            ?? throw new RuntimeException('test setup: off-curve x not accepted by PublicKey::fromHex');
+
+        $signature = Signature::fromHex(str_repeat('a', 128))
+            ?? throw new RuntimeException('test setup: valid-length hex not accepted by Signature::fromHex');
+
+        $this->assertFalse($this->purePhpService()->verify($offCurvePublicKey, str_repeat("\x00", 32), $signature));
     }
 
     private function assertVerifyRejectsTamperedMessage(Secp256k1Signer $service): void

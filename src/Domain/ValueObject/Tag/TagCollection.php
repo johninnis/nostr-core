@@ -13,8 +13,6 @@ use Override;
  */
 final class TagCollection extends TypedCollection
 {
-    private ?array $tagIndex = null;
-
     #[Override]
     protected function elementType(): string
     {
@@ -58,7 +56,10 @@ final class TagCollection extends TypedCollection
 
     public function findByName(string $name): array
     {
-        return $this->getTagIndex()[$name] ?? [];
+        return array_values(array_filter(
+            $this->items,
+            static fn (Tag $tag): bool => (string) $tag->getType() === $name,
+        ));
     }
 
     public function hasType(TagType $type): bool
@@ -103,18 +104,6 @@ final class TagCollection extends TypedCollection
         }
 
         return null;
-    }
-
-    private function getTagIndex(): array
-    {
-        if (null === $this->tagIndex) {
-            $this->tagIndex = [];
-            foreach ($this->items as $tag) {
-                $this->tagIndex[(string) $tag->getType()][] = $tag;
-            }
-        }
-
-        return $this->tagIndex;
     }
 
     public function toJsonArray(): array

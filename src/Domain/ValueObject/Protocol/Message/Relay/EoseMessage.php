@@ -10,14 +10,10 @@ use Override;
 
 final readonly class EoseMessage extends RelayMessage
 {
+    protected const string TYPE = 'EOSE';
+
     public function __construct(private SubscriptionId $subscriptionId)
     {
-    }
-
-    #[Override]
-    public function getType(): string
-    {
-        return 'EOSE';
     }
 
     public function getSubscriptionId(): SubscriptionId
@@ -28,13 +24,13 @@ final readonly class EoseMessage extends RelayMessage
     #[Override]
     public function toArray(): array
     {
-        return ['EOSE', (string) $this->subscriptionId];
+        return [self::TYPE, (string) $this->subscriptionId];
     }
 
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (2 !== count($data) || 'EOSE' !== $data[0]) {
+        if (2 !== count($data) || self::TYPE !== $data[0]) {
             return null;
         }
 

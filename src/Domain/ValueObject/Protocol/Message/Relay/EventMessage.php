@@ -12,16 +12,12 @@ use Override;
 
 final readonly class EventMessage extends RelayMessage implements PreSerialisedMessageInterface
 {
+    protected const string TYPE = 'EVENT';
+
     public function __construct(
         private SubscriptionId $subscriptionId,
         private Event $event,
     ) {
-    }
-
-    #[Override]
-    public function getType(): string
-    {
-        return 'EVENT';
     }
 
     public function getSubscriptionId(): SubscriptionId
@@ -37,7 +33,7 @@ final readonly class EventMessage extends RelayMessage implements PreSerialisedM
     #[Override]
     public function toArray(): array
     {
-        return ['EVENT', (string) $this->subscriptionId, $this->event->toArray()];
+        return [self::TYPE, (string) $this->subscriptionId, $this->event->toArray()];
     }
 
     #[Override]
@@ -51,13 +47,13 @@ final readonly class EventMessage extends RelayMessage implements PreSerialisedM
 
         $subscriptionId = self::encode((string) $this->subscriptionId);
 
-        return '["EVENT",'.$subscriptionId.','.$rawJson.']';
+        return '["'.self::TYPE.'",'.$subscriptionId.','.$rawJson.']';
     }
 
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (3 !== count($data) || 'EVENT' !== $data[0]) {
+        if (3 !== count($data) || self::TYPE !== $data[0]) {
             return null;
         }
 

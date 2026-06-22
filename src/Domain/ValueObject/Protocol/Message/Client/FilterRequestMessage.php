@@ -15,8 +15,6 @@ abstract readonly class FilterRequestMessage extends ClientMessage
 {
     public const int MAX_FILTERS = 20;
 
-    protected const string TYPE = '';
-
     final public function __construct(
         private SubscriptionId $subscriptionId,
         private FilterCollection $filters,
@@ -28,12 +26,6 @@ abstract readonly class FilterRequestMessage extends ClientMessage
         if (count($this->filters) > self::MAX_FILTERS) {
             throw new InvalidArgumentException(sprintf('%s message may contain at most %d filters', static::TYPE, self::MAX_FILTERS));
         }
-    }
-
-    #[Override]
-    final public function getType(): string
-    {
-        return static::TYPE;
     }
 
     final public function getSubscriptionId(): SubscriptionId

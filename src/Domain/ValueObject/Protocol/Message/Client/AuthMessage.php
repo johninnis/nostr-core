@@ -12,17 +12,13 @@ use Override;
 
 final readonly class AuthMessage extends ClientMessage
 {
+    protected const string TYPE = 'AUTH';
+
     public function __construct(private Event $event)
     {
         if (!$this->event->getKind()->is(EventKind::CLIENT_AUTH)) {
             throw new InvalidArgumentException('AUTH message must contain a kind 22242 event');
         }
-    }
-
-    #[Override]
-    public function getType(): string
-    {
-        return 'AUTH';
     }
 
     public function getEvent(): Event
@@ -33,13 +29,13 @@ final readonly class AuthMessage extends ClientMessage
     #[Override]
     public function toArray(): array
     {
-        return ['AUTH', $this->event->toArray()];
+        return [self::TYPE, $this->event->toArray()];
     }
 
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (2 !== count($data) || 'AUTH' !== $data[0]) {
+        if (2 !== count($data) || self::TYPE !== $data[0]) {
             return null;
         }
 

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Reference;
 
-use Innis\Nostr\Core\Domain\Exception\InvalidReferenceException;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 
 final readonly class RelayReference
@@ -33,11 +32,21 @@ final readonly class RelayReference
         ];
     }
 
-    public static function fromArray(array $data): self
+    public static function fromArray(array $data): ?self
     {
+        $url = $data['url'] ?? null;
+        if (!is_string($url)) {
+            return null;
+        }
+
+        $relayUrl = RelayUrl::fromString($url);
+        if (null === $relayUrl) {
+            return null;
+        }
+
         return new self(
-            RelayUrl::fromString($data['url']) ?? throw new InvalidReferenceException('Corrupt URL in serialised RelayReference'),
-            $data['mode'] ?? null
+            $relayUrl,
+            isset($data['mode']) && is_string($data['mode']) ? $data['mode'] : null,
         );
     }
 }

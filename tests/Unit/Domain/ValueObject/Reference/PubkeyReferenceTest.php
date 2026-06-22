@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Reference;
 
-use Innis\Nostr\Core\Domain\Exception\InvalidReferenceException;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\PubkeyReference;
@@ -70,6 +69,7 @@ final class PubkeyReferenceTest extends TestCase
 
         $ref = PubkeyReference::fromArray($data);
 
+        $this->assertNotNull($ref);
         $this->assertSame(self::VALID_PUBKEY, $ref->getPubkey()->toHex());
         $this->assertNotNull($ref->getRelayUrl());
         $this->assertSame(self::VALID_RELAY, (string) $ref->getRelayUrl());
@@ -82,16 +82,15 @@ final class PubkeyReferenceTest extends TestCase
 
         $ref = PubkeyReference::fromArray($data);
 
+        $this->assertNotNull($ref);
         $this->assertSame(self::VALID_PUBKEY, $ref->getPubkey()->toHex());
         $this->assertNull($ref->getRelayUrl());
         $this->assertNull($ref->getPetname());
     }
 
-    public function testFromArrayThrowsForInvalidPubkey(): void
+    public function testFromArrayReturnsNullForInvalidPubkey(): void
     {
-        $this->expectException(InvalidReferenceException::class);
-
-        PubkeyReference::fromArray(['pubkey' => 'invalid']);
+        $this->assertNull(PubkeyReference::fromArray(['pubkey' => 'invalid']));
     }
 
     public function testRoundTripThroughArray(): void
@@ -102,6 +101,7 @@ final class PubkeyReferenceTest extends TestCase
 
         $recreated = PubkeyReference::fromArray($original->toArray());
 
+        $this->assertNotNull($recreated);
         $this->assertSame($original->getPubkey()->toHex(), $recreated->getPubkey()->toHex());
         $this->assertSame((string) $original->getRelayUrl(), (string) $recreated->getRelayUrl());
         $this->assertSame($original->getPetname(), $recreated->getPetname());

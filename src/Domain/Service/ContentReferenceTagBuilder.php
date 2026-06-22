@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\Service;
 
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
@@ -35,11 +36,12 @@ final class ContentReferenceTagBuilder implements ContentReferenceTagBuilderInte
                 $tags = $tags->add(Tag::create(TagType::QUOTE, $eventId->toHex(), '', $authorHex));
             }
 
-            if ($ref->isAddressableReference()) {
-                $kind = $ref->getKind();
-                if (null !== $pubkey && null !== $kind) {
-                    $coordinate = $kind->toInt().':'.$pubkey->toHex().':'.$ref->getAddressableIdentifier();
-                    $tags = $tags->add(Tag::create(TagType::ADDRESSABLE, $coordinate));
+            $kind = $ref->getKind();
+            $addressableIdentifier = $ref->getAddressableIdentifier();
+            if (null !== $pubkey && null !== $kind && null !== $addressableIdentifier) {
+                $coordinate = EventCoordinate::fromParts($kind->toInt(), $pubkey->toHex(), $addressableIdentifier);
+                if (null !== $coordinate) {
+                    $tags = $tags->add(Tag::create(TagType::ADDRESSABLE, (string) $coordinate));
                 }
             }
         }

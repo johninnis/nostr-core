@@ -10,14 +10,10 @@ use Override;
 
 final readonly class EventMessage extends ClientMessage
 {
+    protected const string TYPE = 'EVENT';
+
     public function __construct(private Event $event)
     {
-    }
-
-    #[Override]
-    public function getType(): string
-    {
-        return 'EVENT';
     }
 
     public function getEvent(): Event
@@ -28,13 +24,13 @@ final readonly class EventMessage extends ClientMessage
     #[Override]
     public function toArray(): array
     {
-        return ['EVENT', $this->event->toArray()];
+        return [self::TYPE, $this->event->toArray()];
     }
 
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (2 !== count($data) || 'EVENT' !== $data[0]) {
+        if (2 !== count($data) || self::TYPE !== $data[0]) {
             return null;
         }
 

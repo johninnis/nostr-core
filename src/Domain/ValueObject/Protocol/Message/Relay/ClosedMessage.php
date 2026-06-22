@@ -10,16 +10,12 @@ use Override;
 
 final readonly class ClosedMessage extends RelayMessage
 {
+    protected const string TYPE = 'CLOSED';
+
     public function __construct(
         private SubscriptionId $subscriptionId,
         private string $message,
     ) {
-    }
-
-    #[Override]
-    public function getType(): string
-    {
-        return 'CLOSED';
     }
 
     public function getSubscriptionId(): SubscriptionId
@@ -35,13 +31,13 @@ final readonly class ClosedMessage extends RelayMessage
     #[Override]
     public function toArray(): array
     {
-        return ['CLOSED', (string) $this->subscriptionId, $this->message];
+        return [self::TYPE, (string) $this->subscriptionId, $this->message];
     }
 
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (count($data) < 2 || 'CLOSED' !== $data[0]) {
+        if (count($data) < 2 || self::TYPE !== $data[0]) {
             return null;
         }
 

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Reference;
 
 use Innis\Nostr\Core\Domain\Enum\Nip10Marker;
-use Innis\Nostr\Core\Domain\Exception\InvalidReferenceException;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
@@ -75,13 +74,23 @@ final readonly class EventReference
         ];
     }
 
-    public static function fromArray(array $data): self
+    public static function fromArray(array $data): ?self
     {
+        $eventIdHex = $data['event_id'] ?? null;
+        if (!is_string($eventIdHex)) {
+            return null;
+        }
+
+        $eventId = EventId::fromHex($eventIdHex);
+        if (null === $eventId) {
+            return null;
+        }
+
         return new self(
-            EventId::fromHex($data['event_id']) ?? throw new InvalidReferenceException('Corrupt event_id in serialised EventReference'),
-            isset($data['relay_url']) ? RelayUrl::fromString($data['relay_url']) : null,
-            $data['marker'] ?? null,
-            isset($data['author']) ? PublicKey::fromHex($data['author']) : null
+            $eventId,
+            isset($data['relay_url']) && is_string($data['relay_url']) ? RelayUrl::fromString($data['relay_url']) : null,
+            isset($data['marker']) && is_string($data['marker']) ? $data['marker'] : null,
+            isset($data['author']) && is_string($data['author']) ? PublicKey::fromHex($data['author']) : null,
         );
     }
 }

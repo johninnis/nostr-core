@@ -108,8 +108,17 @@ final readonly class ContentReference
         ];
     }
 
-    public static function fromArray(array $data): self
+    public static function fromArray(array $data): ?self
     {
+        $type = ContentReferenceType::tryFrom(is_string($data['type'] ?? null) ? $data['type'] : '');
+        $rawText = $data['raw_text'] ?? null;
+        $identifier = $data['identifier'] ?? null;
+        $position = $data['position'] ?? null;
+
+        if (null === $type || !is_string($rawText) || !is_string($identifier) || !is_int($position) || $position < 0) {
+            return null;
+        }
+
         $relays = [];
         if (isset($data['relays']) && is_array($data['relays'])) {
             $relays = array_values(array_filter(array_map(
@@ -124,19 +133,13 @@ final readonly class ContentReference
 
         $decoded = null === $decodedType ? null : new DecodedNip19Entity(
             $decodedType,
-            isset($data['public_key']) ? PublicKey::fromHex($data['public_key']) : null,
-            isset($data['event_id']) ? EventId::fromHex($data['event_id']) : null,
+            isset($data['public_key']) && is_string($data['public_key']) ? PublicKey::fromHex($data['public_key']) : null,
+            isset($data['event_id']) && is_string($data['event_id']) ? EventId::fromHex($data['event_id']) : null,
             is_string($addressableIdentifier) ? $addressableIdentifier : null,
             isset($data['kind']) && is_int($data['kind']) ? EventKind::tryFromInt($data['kind']) : null,
             new RelayUrlCollection($relays),
         );
 
-        return new self(
-            ContentReferenceType::from($data['type']),
-            $data['raw_text'],
-            $data['identifier'],
-            $data['position'],
-            $decoded,
-        );
+        return new self($type, $rawText, $identifier, $position, $decoded);
     }
 }
