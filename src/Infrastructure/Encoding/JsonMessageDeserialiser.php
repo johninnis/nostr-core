@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Infrastructure\Encoding;
 
+use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 use Innis\Nostr\Core\Domain\Service\MessageDeserialiserInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client\AuthMessage as ClientAuthMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client\CloseMessage;
@@ -26,13 +27,9 @@ final class JsonMessageDeserialiser implements MessageDeserialiserInterface
     #[Override]
     public function deserialiseClientMessage(string $json): ?ClientMessage
     {
-        if (!json_validate($json)) {
-            return null;
-        }
+        $data = JsonWireFormat::decodeArray($json);
 
-        $data = json_decode($json, true);
-
-        if (!is_array($data) || [] === $data) {
+        if (null === $data || [] === $data) {
             return null;
         }
 
@@ -51,13 +48,9 @@ final class JsonMessageDeserialiser implements MessageDeserialiserInterface
     #[Override]
     public function deserialiseRelayMessage(string $json): ?RelayMessage
     {
-        if (!json_validate($json)) {
-            return null;
-        }
+        $data = JsonWireFormat::decodeArray($json);
 
-        $data = json_decode($json, true);
-
-        if (!is_array($data) || [] === $data) {
+        if (null === $data || [] === $data) {
             return null;
         }
 

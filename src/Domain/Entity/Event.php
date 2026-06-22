@@ -228,13 +228,9 @@ final readonly class Event implements Stringable
 
     public static function fromJson(string $json): ?self
     {
-        if (!json_validate($json)) {
-            return null;
-        }
+        $data = JsonWireFormat::decodeArray($json);
 
-        $data = json_decode($json, true);
-
-        if (!is_array($data)) {
+        if (null === $data) {
             return null;
         }
 

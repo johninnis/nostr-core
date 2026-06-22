@@ -128,10 +128,10 @@ final readonly class EventReferences
         }
 
         return new self(
-            TagReferences::fromArray($data['tag_references'] ?? []),
+            TagReferences::fromArray(isset($data['tag_references']) && is_array($data['tag_references']) ? $data['tag_references'] : []),
             new ContentReferenceCollection($contentReferences),
-            ReplyChain::fromArray($data['reply_chain']),
-            QuoteAnalysis::fromArray($data['quote_analysis']),
+            ReplyChain::fromArray(isset($data['reply_chain']) && is_array($data['reply_chain']) ? $data['reply_chain'] : []),
+            QuoteAnalysis::fromArray(isset($data['quote_analysis']) && is_array($data['quote_analysis']) ? $data['quote_analysis'] : []),
             new EventIdCollection($eventIds),
             new PublicKeyCollection($publicKeys)
         );

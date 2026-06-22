@@ -10,6 +10,7 @@ use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
+use InvalidArgumentException;
 use Override;
 
 final class Secp256k1Signer implements SignatureServiceInterface
@@ -35,8 +36,12 @@ final class Secp256k1Signer implements SignatureServiceInterface
     #[Override]
     public function sign(PrivateKey $privateKey, string $message): Signature
     {
-        $signature = $privateKey->expose(function (string $privkeyBytes) use ($message): Signature {
-            if (null !== $this->ffi && self::SCHNORR_MESSAGE_LENGTH === strlen($message)) {
+        if (self::SCHNORR_MESSAGE_LENGTH !== strlen($message)) {
+            throw new InvalidArgumentException(sprintf('Nostr signs a 32-byte event id; got %d bytes', strlen($message)));
+        }
+
+        return $privateKey->expose(function (string $privkeyBytes) use ($message): Signature {
+            if (null !== $this->ffi) {
                 $auxRand = $this->randomBytes->bytes(self::AUX_RAND_LENGTH);
 
                 return Signature::fromHex(bin2hex($this->ffi->sign($message, $privkeyBytes, $auxRand)))
@@ -45,8 +50,6 @@ final class Secp256k1Signer implements SignatureServiceInterface
 
             return $this->signPurePhp($privkeyBytes, $message);
         });
-
-        return $signature;
     }
 
     #[Override]

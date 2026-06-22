@@ -26,15 +26,15 @@ Only the latest tagged release is supported. Older releases do not receive backp
 
 ### What this library provides
 
-- **BIP-340 Schnorr signing and verification** via `Secp256k1Signer`. The FFI path uses the system `libsecp256k1` C library when available; the pure-PHP path uses `paragonie/ecc` as a fallback. Both paths produce byte-identical signatures under identical `aux_rand`, validated against every BIP-340 specification vector and a 100-iteration cross-engine property sweep.
+- **BIP-340 Schnorr signing and verification** via `Secp256k1Signer`. The FFI path uses the system `libsecp256k1` C library when available; the pure-PHP path uses `paragonie/ecc` as a fallback. Both paths produce byte-identical signatures under identical `aux_rand`, validated against the BIP-340 specification vectors for Nostr's 32-byte event-id messages and a 100-iteration cross-engine property sweep. Signing rejects any message that is not exactly 32 bytes (`InvalidArgumentException`): every Nostr signature is over a `SHA-256` event id, so a wrong-length message is a programmer error rather than a request to sign arbitrary data.
 
-- **NIP-44 v2 authenticated encryption.** `Nip44EncryptionAdapter` implements the official NIP-44 v2 spec: ChaCha20 with HMAC-SHA256 MAC; MAC verification happens before unpadding (no padding oracle); nonces come from an injected `RandomBytesGeneratorInterface`. Covered by the official NIP-44 test vectors and a 200-iteration property fuzz that includes ciphertext-tamper and MAC-tamper rejection.
+- **NIP-44 v2 authenticated encryption.** `Nip44Cipher` implements the official NIP-44 v2 spec: ChaCha20 with HMAC-SHA256 MAC; MAC verification happens before unpadding (no padding oracle); nonces come from an injected `RandomBytesGeneratorInterface`. Covered by the official NIP-44 test vectors and a 200-iteration property fuzz that includes ciphertext-tamper and MAC-tamper rejection.
 
 - **NIP-44 ECDH with libsecp256k1 acceleration.** `Secp256k1Ecdh` mirrors the signature service: FFI when available, pure-PHP fallback otherwise. FFI and pure-PHP paths produce byte-identical shared-X values, validated by a 100-iteration parity sweep.
 
-- **NIP-49 password-encrypted private keys.** `Nip49EncryptionAdapter` uses scrypt + XChaCha20-Poly1305, NFKC password normalisation per spec, and treats the password as a `Closure(): string` so the plaintext does not persist in caller scope. Spec vectors verified.
+- **NIP-49 password-encrypted private keys.** `Nip49Cipher` uses scrypt + XChaCha20-Poly1305, NFKC password normalisation per spec, and treats the password as a `Closure(): string` so the plaintext does not persist in caller scope. Spec vectors verified.
 
-- **NIP-59 gift-wrap.** `GiftWrapAdapter` validates both outer and inner signatures before trusting any content, zeroes ephemeral keys it generates, and passes all `ConversationKey` material through the `expose(Closure)` lifecycle so derived secrets do not escape their use-site scope.
+- **NIP-59 gift-wrap.** `GiftWrapper` validates both outer and inner signatures before trusting any content, zeroes ephemeral keys it generates, and passes all `ConversationKey` material through the `expose(Closure)` lifecycle so derived secrets do not escape their use-site scope.
 
 - **ECDH input validation.** Every `ConversationKey::derive(...)` call validates the peer public key's x-coordinate lies in `(0, p)` and rejects a shared point that computes to the identity before deriving the conversation key.
 
@@ -66,7 +66,7 @@ These are load-bearing consumer responsibilities. The library deliberately does 
 
 - **Safety of PHP's native `unserialize()` on library types.** Value objects in this library are not designed to round-trip through PHP's native `serialize()` / `unserialize()` functions. `unserialize` bypasses constructor validation and can instantiate library types in states the normal constructors would reject. Do not pass untrusted data through `unserialize()` into any library type. Parsing incoming relay JSON via `json_decode` and feeding the result into `Event::fromArray`, `Filter::fromArray`, or the message-layer factories is the intended flow, and those factories perform their own type validation.
 
-- **Transport-layer limits.** `JsonMessageSerialiser` uses `json_decode` with PHP's default depth limit (512) and no explicit input-size cap. WebSocket-frame size limits belong in the transport layer, outside this library.
+- **Transport-layer limits.** `JsonMessageDeserialiser` uses `json_decode` with PHP's default depth limit (512) and no explicit input-size cap. WebSocket-frame size limits belong in the transport layer, outside this library.
 
 ## Design decisions
 
@@ -90,9 +90,9 @@ Consumer code should use `Secp256k1Signer::create()` and `Secp256k1Ecdh::create(
 
 ### NIP-44 nonce injection via `RandomBytesGeneratorInterface`
 
-`Nip44EncryptionAdapter` has no public `encryptWithNonce` method. Test determinism is achieved by injecting a `QueuedRandomBytesGenerator` through the `RandomBytesGeneratorInterface` port; production uses the default `NativeRandomBytesGeneratorAdapter`. The alternative, a public method that accepts a caller-supplied nonce, is a nonce-reuse footgun that breaks ChaCha20 confidentiality catastrophically. Keeping nonce generation behind DI lets tests produce byte-identical vectors while preventing misuse in production.
+`Nip44Cipher` has no public `encryptWithNonce` method. Test determinism is achieved by injecting a `QueuedRandomBytesGenerator` through the `RandomBytesGeneratorInterface` port; production uses the default `NativeRandomBytesGenerator`. The alternative, a public method that accepts a caller-supplied nonce, is a nonce-reuse footgun that breaks ChaCha20 confidentiality catastrophically. Keeping nonce generation behind DI lets tests produce byte-identical vectors while preventing misuse in production.
 
-The same pattern applies to `Nip49EncryptionAdapter`'s salt and nonce generation.
+The same pattern applies to `Nip49Cipher`'s salt and nonce generation.
 
 ### `SecretKeyMaterial::fromBytes` is not public
 
@@ -100,7 +100,7 @@ Construction of `SecretKeyMaterial` goes through its constructor, which validate
 
 ### Gift-wrap outer signature verified, not merely present
 
-`GiftWrapAdapter::validateGiftWrap` calls `$giftWrap->verify($signatureService)`, not just `isSigned()`. NIP-44's AEAD MAC catches ciphertext tampering on its own, but a malicious relay or man-in-the-middle could still modify the outer wrap's non-content fields (tags, `created_at`, claimed pubkey) without the MAC firing. The outer `verify()` closes that gap.
+`GiftWrapper::validateGiftWrap` calls `$giftWrap->verify($signatureService)`, not just `isSigned()`. NIP-44's AEAD MAC catches ciphertext tampering on its own, but a malicious relay or man-in-the-middle could still modify the outer wrap's non-content fields (tags, `created_at`, claimed pubkey) without the MAC firing. The outer `verify()` closes that gap.
 
 ### NIP-05 domain charset rejects IP literals
 

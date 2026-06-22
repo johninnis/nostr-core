@@ -47,10 +47,10 @@ final readonly class QuoteAnalysis
     public static function fromArray(array $data): self
     {
         return new self(
-            $data['has_quote_tag'],
-            $data['has_event_in_content'],
-            $data['is_repost'],
-            $data['is_quote']
+            (bool) ($data['has_quote_tag'] ?? false),
+            (bool) ($data['has_event_in_content'] ?? false),
+            (bool) ($data['is_repost'] ?? false),
+            (bool) ($data['is_quote'] ?? false)
         );
     }
 }

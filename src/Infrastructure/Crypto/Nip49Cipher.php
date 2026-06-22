@@ -46,13 +46,13 @@ final class Nip49Cipher implements Nip49EncryptionInterface
     #[Override]
     public function decrypt(Ncryptsec $ncryptsec, Closure $passwordProvider): PrivateKey
     {
-        $logN = $ncryptsec->logN();
+        $logN = $ncryptsec->getLogN();
         if ($logN < self::LOG_N_MIN || $logN > self::LOG_N_MAX) {
             throw new Nip49DecryptionFailedException();
         }
 
         try {
-            $keySecurity = KeySecurityByte::fromByte($ncryptsec->keySecurityByteRaw());
+            $keySecurity = KeySecurityByte::fromByte($ncryptsec->getKeySecurityByteRaw());
         } catch (InvalidArgumentException) {
             throw new Nip49DecryptionFailedException();
         }
@@ -66,13 +66,13 @@ final class Nip49Cipher implements Nip49EncryptionInterface
             }
 
             try {
-                $derivedKey = $this->scrypt->derive($normalised, $ncryptsec->salt(), $logN);
+                $derivedKey = $this->scrypt->derive($normalised, $ncryptsec->getSalt(), $logN);
 
                 try {
                     $plaintext = sodium_crypto_aead_xchacha20poly1305_ietf_decrypt(
-                        $ncryptsec->aeadCiphertextAndTag(),
+                        $ncryptsec->getAeadCiphertextAndTag(),
                         chr($keySecurity->value),
-                        $ncryptsec->nonce(),
+                        $ncryptsec->getNonce(),
                         $derivedKey,
                     );
                 } finally {

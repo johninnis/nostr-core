@@ -8,6 +8,7 @@ use Innis\Nostr\Core\Domain\Enum\Nip10Marker;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Override;
 
 final class ContentReferenceTagBuilder implements ContentReferenceTagBuilderInterface
@@ -32,16 +33,15 @@ final class ContentReferenceTagBuilder implements ContentReferenceTagBuilderInte
             $eventId = $ref->getEventId();
             if (null !== $eventId) {
                 $authorHex = $pubkey?->toHex() ?? '';
-                $tags = $tags->add(Tag::fromArray(['q', $eventId->toHex(), '', $authorHex]));
+                $tags = $tags->add(Tag::fromArray([TagType::QUOTE, $eventId->toHex(), '', $authorHex]));
                 $tags = $tags->add(Tag::event($eventId->toHex(), null, Nip10Marker::Mention->value));
             }
 
             if ($ref->isAddressableReference()) {
-                $refPubkey = $ref->getPublicKey();
                 $kind = $ref->getKind();
-                if (null !== $refPubkey && null !== $kind) {
-                    $coordinate = $kind->toInt().':'.$refPubkey->toHex().':'.$ref->getAddressableIdentifier();
-                    $tags = $tags->add(Tag::fromArray(['a', $coordinate]));
+                if (null !== $pubkey && null !== $kind) {
+                    $coordinate = $kind->toInt().':'.$pubkey->toHex().':'.$ref->getAddressableIdentifier();
+                    $tags = $tags->add(Tag::fromArray([TagType::ADDRESSABLE, $coordinate]));
                 }
             }
         }

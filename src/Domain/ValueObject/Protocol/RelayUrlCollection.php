@@ -17,4 +17,9 @@ final class RelayUrlCollection extends TypedCollection
     {
         return RelayUrl::class;
     }
+
+    public function unique(): self
+    {
+        return new self($this->deduplicate(static fn (RelayUrl $relayUrl): string => (string) $relayUrl));
+    }
 }

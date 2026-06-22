@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\Enum\Nip19EntityType;
 use Innis\Nostr\Core\Domain\Service\Nip19CodecInterface;
 use Innis\Nostr\Core\Domain\Service\RelayHintExtractor;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
@@ -20,6 +21,8 @@ use RuntimeException;
 
 final class RelayHintExtractorRealDataTest extends TestCase
 {
+    private const string TEST_PUBKEY = '7b3f7803750746f455413a221f80965eecb69ef308f2ead1da89cc2c8912e968';
+
     private static function decoded(string ...$relayUrls): DecodedNip19Entity
     {
         $relays = [];
@@ -30,12 +33,12 @@ final class RelayHintExtractorRealDataTest extends TestCase
             }
         }
 
-        return new DecodedNip19Entity(DecodedNip19Entity::TYPE_EVENT, relays: new RelayUrlCollection($relays));
+        return new DecodedNip19Entity(Nip19EntityType::Event, relays: new RelayUrlCollection($relays));
     }
 
     public function testExtractRelayHintsFromSecondTestEventTags(): void
     {
-        $tags = TagCollection::fromArray([
+        $event = $this->makeEvent(TagCollection::fromArray([
             ['e', 'd359d3ea6c89a51a3a346b03bc552953a72e456af352071d79c6be196ced9771', '', 'mention'],
             ['r', 'wss://nos.lol/'],
             ['r', 'wss://relay.primal.net/'],
@@ -46,9 +49,9 @@ final class RelayHintExtractorRealDataTest extends TestCase
             ['r', 'wss://nostr.bitcoiner.social/'],
             ['r', 'wss://relay.noderunners.network/'],
             ['r', 'wss://nostr-pub.wellorder.net/'],
-        ]);
+        ]));
 
-        $relayHints = $this->makeExtractor()->extractRelayHintsFromTags($tags);
+        $relayHints = $this->makeExtractor()->extractRelayHints($event);
 
         $relayStrings = array_map(static fn ($relay) => (string) $relay, $relayHints);
 
@@ -66,7 +69,7 @@ final class RelayHintExtractorRealDataTest extends TestCase
 
     public function testExtractRelayHintsFromThirdTestEventTags(): void
     {
-        $tags = TagCollection::fromArray([
+        $event = $this->makeEvent(TagCollection::fromArray([
             ['a', '30023:472f440f29ef996e92a186b8d320ff180c855903882e59d50de1b8bd5669301e:china-is-prepping-for-something', 'wss://bitcoinmaximalists.online/', 'mention'],
             ['r', 'wss://bitcoinmaximalists.online/'],
             ['r', 'wss://eden.nostr.land/'],
@@ -75,9 +78,9 @@ final class RelayHintExtractorRealDataTest extends TestCase
             ['r', 'wss://relay.bitcoinpark.com/'],
             ['r', 'wss://relay.damus.io/'],
             ['r', 'wss://relay.snort.social/'],
-        ]);
+        ]));
 
-        $relayHints = $this->makeExtractor()->extractRelayHintsFromTags($tags);
+        $relayHints = $this->makeExtractor()->extractRelayHints($event);
 
         $relayStrings = array_map(static fn ($relay) => (string) $relay, $relayHints);
 
@@ -100,7 +103,7 @@ final class RelayHintExtractorRealDataTest extends TestCase
             ->method('decodeComplexEntity')
             ->willReturn(self::decoded('wss://relay.primal.net/', 'wss://nos.lol/'));
 
-        $relayHints = $this->makeExtractor($bech32Encoder)->extractRelayHintsFromContent($content);
+        $relayHints = $this->makeExtractor($bech32Encoder)->extractRelayHints($this->makeEvent(TagCollection::empty(), $content));
 
         $this->assertCount(1, $relayHints);
         $this->assertEquals('wss://relay.primal.net', (string) $relayHints[0]);
@@ -110,20 +113,20 @@ final class RelayHintExtractorRealDataTest extends TestCase
     {
         $content = "Do not be shocked if the oft talked about theory of a gold-backed BRICS currency becomes a reality this Fall.\n\nnostr:naddr1qvzqqqr4gupzq3e0gs8jnmued6f2rp4c6vs07xqvs4vs8zpwt82smcdch4txjvq7qys8wumn8ghj7cnfw33k76twd4shs6tdv9kxjum5wvhx7mnvd9hx2tcpzemhxue69uhk2er9dchxummnw3ezumrpdejz7qqlvd5xjmnp945hxttswfjhqurfdenj6en0wgkhxmmdv46xs6twvuk7xtlq";
 
-        $this->assertEmpty($this->makeExtractor()->extractRelayHintsFromContent($content));
+        $this->assertEmpty($this->makeExtractor()->extractRelayHints($this->makeEvent(TagCollection::empty(), $content)));
     }
 
     public function testExtractRelayHintsFromFirstTestEvent(): void
     {
         $content = "open source software is powerful because anyone can verify, modify, distribute, and use without permission\n\na robust open source ecosystem empowers all of us to take agency over our lives\n\nfighting with people over what software they run is mostly unproductive, run what you want, thats the whole point";
 
-        $this->assertEmpty($this->makeExtractor()->extractRelayHintsFromContent($content));
+        $this->assertEmpty($this->makeExtractor()->extractRelayHints($this->makeEvent(TagCollection::empty(), $content)));
     }
 
     public function testExtractRelayHintsFromFullSecondTestEvent(): void
     {
         $event = new Event(
-            PublicKey::fromHex('7b3f7803750746f455413a221f80965eecb69ef308f2ead1da89cc2c8912e968') ?? throw new RuntimeException('Invalid test pubkey'),
+            PublicKey::fromHex(self::TEST_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1756903083),
             EventKind::fromInt(1),
             TagCollection::fromArray([
@@ -155,6 +158,17 @@ final class RelayHintExtractorRealDataTest extends TestCase
     {
         return new RelayHintExtractor(
             $bech32Encoder ?? $this->createStub(Nip19CodecInterface::class),
+        );
+    }
+
+    private function makeEvent(TagCollection $tags, string $content = ''): Event
+    {
+        return new Event(
+            PublicKey::fromHex(self::TEST_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
+            Timestamp::fromInt(1756903083),
+            EventKind::fromInt(1),
+            $tags,
+            EventContent::fromString($content)
         );
     }
 }

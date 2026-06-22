@@ -7,7 +7,7 @@ namespace Innis\Nostr\Core\Application\Port;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Nip11Info;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 
-interface Nip11ServiceInterface
+interface Nip11FetcherInterface
 {
     public function fetchNip11Info(RelayUrl $relayUrl): ?Nip11Info;
 }

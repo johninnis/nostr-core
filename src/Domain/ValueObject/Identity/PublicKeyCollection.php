@@ -17,4 +17,9 @@ final class PublicKeyCollection extends TypedCollection
     {
         return PublicKey::class;
     }
+
+    public function unique(): self
+    {
+        return new self($this->deduplicate(static fn (PublicKey $publicKey): string => $publicKey->toHex()));
+    }
 }

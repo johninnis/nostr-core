@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
+use Innis\Nostr\Core\Domain\Enum\Nip19EntityType;
 use Innis\Nostr\Core\Domain\Service\ContentReferenceExtractor;
 use Innis\Nostr\Core\Domain\Service\Nip19CodecInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
@@ -14,7 +15,7 @@ use PHPUnit\Framework\TestCase;
 
 final class ContentReferenceExtractorRealDataTest extends TestCase
 {
-    private static function decoded(string $type, string $eventIdHex): DecodedNip19Entity
+    private static function decoded(Nip19EntityType $type, string $eventIdHex): DecodedNip19Entity
     {
         return new DecodedNip19Entity($type, eventId: EventId::fromHex($eventIdHex));
     }
@@ -26,7 +27,7 @@ final class ContentReferenceExtractorRealDataTest extends TestCase
         $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
             ->method('decodeComplexEntity')
-            ->willReturn(self::decoded(DecodedNip19Entity::TYPE_EVENT, 'd359d3ea6c89a51a3a346b03bc552953a72e456af352071d79c6be196ced9771'));
+            ->willReturn(self::decoded(Nip19EntityType::Event, 'd359d3ea6c89a51a3a346b03bc552953a72e456af352071d79c6be196ced9771'));
 
         $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content);
 
@@ -44,7 +45,7 @@ final class ContentReferenceExtractorRealDataTest extends TestCase
         $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
             ->method('decodeComplexEntity')
-            ->willReturn(self::decoded(DecodedNip19Entity::TYPE_ADDRESS, '5570e03f9a762570a1668508895316500b38ae3f9b311871dbb637f2844d0c67'));
+            ->willReturn(self::decoded(Nip19EntityType::Address, '5570e03f9a762570a1668508895316500b38ae3f9b311871dbb637f2844d0c67'));
 
         $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content);
 

@@ -9,6 +9,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
 use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
 use Innis\Nostr\Core\Infrastructure\Crypto\NativeRandomBytesGenerator;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Signer;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -99,15 +100,13 @@ final class Secp256k1SignerTest extends TestCase
         $this->assertFalse($service->verify($publicKey, random_bytes(32), $invalidSignature));
     }
 
-    public function testSignPurePhpAcceptsNonThirtyTwoByteMessage(): void
+    public function testSignRejectsNonThirtyTwoByteMessage(): void
     {
         $service = $this->purePhpService();
         $privateKey = PrivateKey::generate();
 
-        $signature = $service->sign($privateKey, 'short message');
-        $publicKey = $service->derivePublicKey($privateKey);
-
-        $this->assertTrue($service->verify($publicKey, 'short message', $signature));
+        $this->expectException(InvalidArgumentException::class);
+        $service->sign($privateKey, 'short message');
     }
 
     private function assertVerifyRejectsTamperedMessage(Secp256k1Signer $service): void

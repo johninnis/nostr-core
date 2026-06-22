@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Content;
 
+use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
+
 final readonly class ProfileMetadata
 {
     public function __construct(
@@ -20,13 +22,9 @@ final readonly class ProfileMetadata
 
     public static function fromJsonString(string $json): self
     {
-        if (!json_validate($json)) {
-            return new self(null, null, null, null, null, null, null, null);
-        }
+        $data = JsonWireFormat::decodeArray($json);
 
-        $data = json_decode($json, true);
-
-        if (!is_array($data)) {
+        if (null === $data) {
             return new self(null, null, null, null, null, null, null, null);
         }
 

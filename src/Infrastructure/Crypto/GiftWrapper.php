@@ -9,6 +9,7 @@ use Innis\Nostr\Core\Domain\Exception\GiftWrapException;
 use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 use Innis\Nostr\Core\Domain\Service\EcdhServiceInterface;
 use Innis\Nostr\Core\Domain\Service\GiftWrapServiceInterface;
+use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 use Innis\Nostr\Core\Domain\Service\Nip44EncryptionInterface;
 use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
@@ -197,13 +198,9 @@ final class GiftWrapper implements GiftWrapServiceInterface
 
     private function deserialiseEvent(string $json): Event
     {
-        if (!json_validate($json)) {
-            throw new GiftWrapException('Failed to deserialise event JSON');
-        }
+        $data = JsonWireFormat::decodeArray($json);
 
-        $data = json_decode($json, true);
-
-        if (!is_array($data)) {
+        if (null === $data) {
             throw new GiftWrapException('Failed to deserialise event JSON');
         }
 

@@ -15,6 +15,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReferences;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\QuoteAnalysis;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\ReplyChain;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\TagReferences;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Override;
 
 final class EventReferenceExtractor implements EventReferenceExtractorInterface
@@ -32,7 +33,7 @@ final class EventReferenceExtractor implements EventReferenceExtractorInterface
         $replyChain = ReplyChainAnalyser::analyse($event->getTags(), $event->getKind());
         $quoteAnalysis = self::analyseQuote($event, $contentReferences);
 
-        [$allEventIds, $allPublicKeys] = $this->mergeAllReferences(
+        [$allEventIds, $allPublicKeys] = self::mergeAllReferences(
             $tagReferences,
             $contentReferences,
             $replyChain
@@ -43,8 +44,8 @@ final class EventReferenceExtractor implements EventReferenceExtractorInterface
             new ContentReferenceCollection($contentReferences),
             $replyChain,
             $quoteAnalysis,
-            new EventIdCollection($allEventIds),
-            new PublicKeyCollection($allPublicKeys)
+            new EventIdCollection($allEventIds)->unique(),
+            new PublicKeyCollection($allPublicKeys)->unique()
         );
     }
 
@@ -54,7 +55,7 @@ final class EventReferenceExtractor implements EventReferenceExtractorInterface
 
         $hasQuoteTag = array_any(
             $event->getTags()->toJsonArray(),
-            static fn (array $tagArray): bool => 'q' === $tagArray[0],
+            static fn (array $tagArray): bool => TagType::QUOTE === $tagArray[0],
         );
 
         $hasEventInContent = array_any(
@@ -72,7 +73,7 @@ final class EventReferenceExtractor implements EventReferenceExtractorInterface
         );
     }
 
-    private function mergeAllReferences(
+    private static function mergeAllReferences(
         TagReferences $tagReferences,
         array $contentReferences,
         ReplyChain $replyChain,
@@ -120,20 +121,6 @@ final class EventReferenceExtractor implements EventReferenceExtractorInterface
             $publicKeys[] = $participant;
         }
 
-        $uniqueEventIds = $this->deduplicateByHex($eventIds);
-        $uniquePublicKeys = $this->deduplicateByHex($publicKeys);
-
-        return [$uniqueEventIds, $uniquePublicKeys];
-    }
-
-    private function deduplicateByHex(array $items): array
-    {
-        $unique = [];
-
-        foreach ($items as $item) {
-            $unique[$item->toHex()] ??= $item;
-        }
-
-        return array_values($unique);
+        return [$eventIds, $publicKeys];
     }
 }

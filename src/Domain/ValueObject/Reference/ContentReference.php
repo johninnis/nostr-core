@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Reference;
 
 use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
+use Innis\Nostr\Core\Domain\Enum\Nip19EntityType;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
@@ -48,7 +49,7 @@ final readonly class ContentReference
 
     public function getDecodedType(): string
     {
-        return $this->decoded?->getType() ?? 'unknown';
+        return $this->decoded?->getType()->value ?? 'unknown';
     }
 
     public function getEventId(): ?EventId
@@ -119,8 +120,10 @@ final readonly class ContentReference
 
         $addressableIdentifier = $data['addressable_identifier'] ?? null;
 
-        $decoded = new DecodedNip19Entity(
-            $data['decoded_type'] ?? 'unknown',
+        $decodedType = Nip19EntityType::tryFrom(is_string($data['decoded_type'] ?? null) ? $data['decoded_type'] : '');
+
+        $decoded = null === $decodedType ? null : new DecodedNip19Entity(
+            $decodedType,
             isset($data['public_key']) ? PublicKey::fromHex($data['public_key']) : null,
             isset($data['event_id']) ? EventId::fromHex($data['event_id']) : null,
             is_string($addressableIdentifier) ? $addressableIdentifier : null,

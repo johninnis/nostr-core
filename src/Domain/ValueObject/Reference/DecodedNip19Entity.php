@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Reference;
 
+use Innis\Nostr\Core\Domain\Enum\Nip19EntityType;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
@@ -11,13 +12,8 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrlCollection;
 
 final readonly class DecodedNip19Entity
 {
-    public const string TYPE_PUBKEY = 'pubkey';
-    public const string TYPE_EVENT = 'event';
-    public const string TYPE_PROFILE = 'profile';
-    public const string TYPE_ADDRESS = 'address';
-
     public function __construct(
-        private string $type,
+        private Nip19EntityType $type,
         private ?PublicKey $publicKey = null,
         private ?EventId $eventId = null,
         private ?string $identifier = null,
@@ -26,7 +22,7 @@ final readonly class DecodedNip19Entity
     ) {
     }
 
-    public function getType(): string
+    public function getType(): Nip19EntityType
     {
         return $this->type;
     }

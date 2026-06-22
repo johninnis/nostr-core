@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Infrastructure\Http;
 
 use Innis\Nostr\Core\Application\Port\HttpServiceInterface;
-use Innis\Nostr\Core\Application\Port\Nip05VerificationServiceInterface;
+use Innis\Nostr\Core\Application\Port\Nip05VerifierInterface;
 use Innis\Nostr\Core\Domain\Failure\Nip05VerificationFailure;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Nip05Identifier;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Nip05VerificationResult;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Override;
 
-final class Nip05Verifier implements Nip05VerificationServiceInterface
+final class Nip05Verifier implements Nip05VerifierInterface
 {
     public function __construct(
         private readonly HttpServiceInterface $httpService,
@@ -26,7 +26,7 @@ final class Nip05Verifier implements Nip05VerificationServiceInterface
 
         $data = $this->httpService->getJson($wellKnownUrl, [
             'Accept' => 'application/json',
-            'User-Agent' => 'Nostr-PHP/1.0',
+            'User-Agent' => UserAgent::DEFAULT,
         ]);
 
         if (null === $data) {

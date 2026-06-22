@@ -40,8 +40,10 @@ Declared in `composer.json`:
 - PHP 8.4 or higher
 - `ext-intl` (NFKC password normalisation in NIP-49)
 - `ext-sodium` (NIP-44 and NIP-49 AEAD, `sodium_memzero`)
+- `paragonie/ecc` (pure-PHP secp256k1 fallback)
+- `paragonie/sodium_compat` (raw ChaCha20 keystream with explicit block counter for NIP-44, which `ext-sodium` does not expose)
 
-Used by the library but not declared as hard requirements, because several code paths are optional and the recommended typical usage will load them anyway:
+Declared under `suggest` in `composer.json` (used by optional code paths that the recommended typical usage will load anyway):
 
 - `ext-gmp` is needed by the pure-PHP signing and ECDH fallback (the documented path when `libsecp256k1` is unavailable). If you know you always have `libsecp256k1` installed and never invoke the pure-PHP path, this extension is not touched.
 - `ext-mbstring` is needed by the search-filter matcher, `EventContent::getLength`, and the bech32 TLV decoder. Most consumers will hit one of these.
@@ -120,15 +122,15 @@ Always construct the adapters through their `::create()` factories. Direct insta
 ### Message Handling
 
 ```php
-use Innis\Nostr\Core\Infrastructure\Encoding\JsonMessageSerialiser;
+use Innis\Nostr\Core\Infrastructure\Encoding\JsonMessageDeserialiser;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client\EventMessage;
 
-$serialiser = new JsonMessageSerialiser();
+$deserialiser = new JsonMessageDeserialiser();
 
 $eventMessage = new EventMessage($signedEvent);
 $json = $eventMessage->toJson();
 
-$deserialised = $serialiser->deserialiseClientMessage($json);
+$deserialised = $deserialiser->deserialiseClientMessage($json);
 ```
 
 ### Password-Encrypted Private Keys (NIP-49)
@@ -313,11 +315,14 @@ A few choices look like duplication or an anti-pattern at a glance and have been
 
 - **`Event` does not cache its computed id.** `Event` is a `final readonly class`, so a lazy memoisation field is not available; `getId()` recomputes the SHA-256 only when the event is unsigned (a signed event already carries its id). The hash is cheap, and dropping the class-level `readonly` to add a cache would cost more in immutability guarantees than it saves.
 
+- **`Secp256k1Signer::sign` rejects any message that is not exactly 32 bytes.** General BIP-340 signs an arbitrary-length message, but every Nostr signature is over the 32-byte event id (`SHA-256` of the serialised event) — the variable-length message has already been hashed to a fixed digest before it reaches the signer. Enforcing 32 bytes makes a wrong-length argument a fail-fast programmer error (`InvalidArgumentException`) rather than silently routing it down the slower pure-PHP path (libsecp256k1's FFI binding exposes the 32-byte `schnorrsig_sign32` only). `verify` stays length-agnostic — it is a pure query with no such divergence.
+
 ## Dependencies
 
 | Package | Purpose |
 |---------|---------|
 | `paragonie/ecc` | Pure-PHP secp256k1 elliptic curve operations (fallback when FFI unavailable) |
+| `paragonie/sodium_compat` | Raw ChaCha20 keystream with an explicit block counter for NIP-44 (not exposed by `ext-sodium`) |
 
 ## Testing
 

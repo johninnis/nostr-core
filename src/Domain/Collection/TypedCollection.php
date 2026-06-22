@@ -68,4 +68,20 @@ abstract class TypedCollection implements IteratorAggregate, Countable
     {
         return $this->items;
     }
+
+    /**
+     * @param callable(T): string $keyOf
+     *
+     * @return list<T>
+     */
+    final protected function deduplicate(callable $keyOf): array
+    {
+        $unique = [];
+
+        foreach ($this->items as $item) {
+            $unique[$keyOf($item)] ??= $item;
+        }
+
+        return array_values($unique);
+    }
 }

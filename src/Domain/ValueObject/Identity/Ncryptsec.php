@@ -85,27 +85,27 @@ final readonly class Ncryptsec implements Stringable
         return new self(Bech32Codec::encode(self::HRP, $payload), $payload);
     }
 
-    public function logN(): int
+    public function getLogN(): int
     {
         return ord($this->payload[self::LOG_N_OFFSET]);
     }
 
-    public function salt(): string
+    public function getSalt(): string
     {
         return substr($this->payload, self::SALT_OFFSET, self::SALT_LENGTH);
     }
 
-    public function nonce(): string
+    public function getNonce(): string
     {
         return substr($this->payload, self::NONCE_OFFSET, self::NONCE_LENGTH);
     }
 
-    public function keySecurityByteRaw(): int
+    public function getKeySecurityByteRaw(): int
     {
         return ord($this->payload[self::KEY_SECURITY_OFFSET]);
     }
 
-    public function aeadCiphertextAndTag(): string
+    public function getAeadCiphertextAndTag(): string
     {
         return substr($this->payload, self::CIPHERTEXT_OFFSET, self::AEAD_OUTPUT_LENGTH);
     }

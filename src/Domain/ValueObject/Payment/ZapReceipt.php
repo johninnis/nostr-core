@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Payment;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
@@ -77,12 +78,8 @@ final readonly class ZapReceipt implements PaymentReceiptInterface
         $values = $tags->getValuesByType(TagType::description());
 
         foreach ($values as $value) {
-            if (!json_validate($value)) {
-                continue;
-            }
-
-            $decoded = json_decode($value, true);
-            if (is_array($decoded)) {
+            $decoded = JsonWireFormat::decodeArray($value);
+            if (null !== $decoded) {
                 return $decoded;
             }
         }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Payment;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
@@ -77,12 +78,8 @@ final readonly class Nutzap implements PaymentReceiptInterface
         $amounts = [];
 
         foreach ($tags->getValuesByType(TagType::proof()) as $proofJson) {
-            if (!json_validate($proofJson)) {
-                continue;
-            }
-
-            $decoded = json_decode($proofJson, true);
-            if (is_array($decoded) && isset($decoded['amount']) && is_numeric($decoded['amount'])) {
+            $decoded = JsonWireFormat::decodeArray($proofJson);
+            if (null !== $decoded && isset($decoded['amount']) && is_numeric($decoded['amount'])) {
                 $amounts[] = (int) $decoded['amount'];
             }
         }

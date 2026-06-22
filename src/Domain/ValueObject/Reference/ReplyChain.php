@@ -106,10 +106,10 @@ final readonly class ReplyChain
         }
 
         return new self(
-            $data['is_reply'],
-            $data['is_root_post'],
-            isset($data['root_event']) ? EventReference::fromArray($data['root_event']) : null,
-            isset($data['parent_event']) ? EventReference::fromArray($data['parent_event']) : null,
+            (bool) ($data['is_reply'] ?? false),
+            (bool) ($data['is_root_post'] ?? false),
+            isset($data['root_event']) && is_array($data['root_event']) ? EventReference::fromArray($data['root_event']) : null,
+            isset($data['parent_event']) && is_array($data['parent_event']) ? EventReference::fromArray($data['parent_event']) : null,
             new PublicKeyCollection($participants),
             new EventReferenceCollection($mentionedEvents)
         );

@@ -16,4 +16,18 @@ final class JsonWireFormat
     // pairs), so the canonical form is pure ASCII and bytewise sorting agrees with the TypeScript
     // hashFilters implementation byte-for-byte.
     public const int FILTER_HASH = JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR;
+
+    /**
+     * @return array<mixed>|null
+     */
+    public static function decodeArray(string $json): ?array
+    {
+        if (!json_validate($json)) {
+            return null;
+        }
+
+        $decoded = json_decode($json, true);
+
+        return is_array($decoded) ? $decoded : null;
+    }
 }

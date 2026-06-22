@@ -8,7 +8,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\Nip05Identifier;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Nip05VerificationResult;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 
-interface Nip05VerificationServiceInterface
+interface Nip05VerifierInterface
 {
     public function verify(Nip05Identifier $identifier, PublicKey $expectedPubkey): Nip05VerificationResult;
 }

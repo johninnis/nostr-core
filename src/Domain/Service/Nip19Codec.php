@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Service;
 
+use Innis\Nostr\Core\Domain\Enum\Nip19EntityType;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
@@ -26,8 +27,8 @@ final class Nip19Codec implements Nip19CodecInterface
         $data = $decoded['data'];
 
         return match ($decoded['hrp']) {
-            'npub' => new DecodedNip19Entity(DecodedNip19Entity::TYPE_PUBKEY, publicKey: PublicKey::fromBytes($data)),
-            'note' => new DecodedNip19Entity(DecodedNip19Entity::TYPE_EVENT, eventId: EventId::fromBytes($data)),
+            'npub' => new DecodedNip19Entity(Nip19EntityType::Pubkey, publicKey: PublicKey::fromBytes($data)),
+            'note' => new DecodedNip19Entity(Nip19EntityType::Event, eventId: EventId::fromBytes($data)),
             'nprofile' => $this->decodeProfile($data),
             'nevent' => $this->decodeEvent($data),
             'naddr' => $this->decodeAddress($data),
@@ -91,7 +92,7 @@ final class Nip19Codec implements Nip19CodecInterface
         }
 
         return new DecodedNip19Entity(
-            DecodedNip19Entity::TYPE_PROFILE,
+            Nip19EntityType::Profile,
             publicKey: isset($tlv[0][0]) ? PublicKey::fromBytes($tlv[0][0]) : null,
             relays: self::relayCollection($tlv),
         );
@@ -105,7 +106,7 @@ final class Nip19Codec implements Nip19CodecInterface
         }
 
         return new DecodedNip19Entity(
-            DecodedNip19Entity::TYPE_EVENT,
+            Nip19EntityType::Event,
             publicKey: isset($tlv[2][0]) ? PublicKey::fromBytes($tlv[2][0]) : null,
             eventId: isset($tlv[0][0]) ? EventId::fromBytes($tlv[0][0]) : null,
             kind: self::decodeKind($tlv),
@@ -121,7 +122,7 @@ final class Nip19Codec implements Nip19CodecInterface
         }
 
         return new DecodedNip19Entity(
-            DecodedNip19Entity::TYPE_ADDRESS,
+            Nip19EntityType::Address,
             publicKey: isset($tlv[2][0]) ? PublicKey::fromBytes($tlv[2][0]) : null,
             identifier: $tlv[0][0] ?? null,
             kind: self::decodeKind($tlv),

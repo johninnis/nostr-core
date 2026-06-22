@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\Enum\Nip19EntityType;
 use Innis\Nostr\Core\Domain\Service\Nip19CodecInterface;
 use Innis\Nostr\Core\Domain\Service\RelayHintExtractor;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
@@ -31,18 +32,18 @@ final class RelayHintExtractorTest extends TestCase
             }
         }
 
-        return new DecodedNip19Entity(DecodedNip19Entity::TYPE_EVENT, relays: new RelayUrlCollection($relays));
+        return new DecodedNip19Entity(Nip19EntityType::Event, relays: new RelayUrlCollection($relays));
     }
 
     public function testExtractRelayHintsFromRTags(): void
     {
-        $tags = TagCollection::fromArray([
+        $event = $this->makeEvent([
             ['r', 'wss://relay.example.com'],
             ['r', 'wss://nostr.example.org'],
             ['p', 'pubkey123', 'wss://third.com'],
         ]);
 
-        $relays = $this->makeExtractor()->extractRelayHintsFromTags($tags);
+        $relays = $this->makeExtractor()->extractRelayHints($event);
 
         $this->assertCount(3, $relays);
         $this->assertEquals('wss://relay.example.com', (string) $relays[0]);
@@ -52,59 +53,54 @@ final class RelayHintExtractorTest extends TestCase
 
     public function testExtractRelayHintsFromEventAndPubkeyTags(): void
     {
-        $tags = TagCollection::fromArray([
+        $event = $this->makeEvent([
             ['e', 'event123', 'wss://relay1.com'],
             ['p', 'pubkey456', 'wss://relay2.com', 'petname'],
             ['e', 'event789'],
         ]);
 
-        $relays = $this->makeExtractor()->extractRelayHintsFromTags($tags);
+        $relays = $this->makeExtractor()->extractRelayHints($event);
 
         $this->assertCount(2, $relays);
         $this->assertEquals('wss://relay1.com', (string) $relays[0]);
         $this->assertEquals('wss://relay2.com', (string) $relays[1]);
     }
 
-    public function testExtractRelayHintFromNevent(): void
+    public function testExtractRelayHintFromNeventInContent(): void
     {
-        $nevent = 'nevent1abc123';
         $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
             ->method('decodeComplexEntity')
             ->willReturn(self::decoded('wss://decoded-relay.com'));
 
-        $relay = $this->makeExtractor($bech32Encoder)->extractRelayHintFromNevent($nevent);
+        $relays = $this->makeExtractor($bech32Encoder)->extractRelayHints($this->makeEvent([], 'nevent1abc123'));
 
-        $this->assertNotNull($relay);
-        $this->assertEquals('wss://decoded-relay.com', (string) $relay);
+        $this->assertCount(1, $relays);
+        $this->assertEquals('wss://decoded-relay.com', (string) $relays[0]);
     }
 
-    public function testExtractRelayHintFromNeventReturnsNullWhenNoRelays(): void
+    public function testNeventWithoutRelaysYieldsNoHints(): void
     {
-        $nevent = 'nevent1abc123';
         $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
             ->method('decodeComplexEntity')
             ->willReturn(self::decoded());
 
-        $this->assertNull($this->makeExtractor($bech32Encoder)->extractRelayHintFromNevent($nevent));
+        $this->assertEmpty($this->makeExtractor($bech32Encoder)->extractRelayHints($this->makeEvent([], 'nevent1abc123')));
     }
 
-    public function testExtractRelayHintFromNeventReturnsNullForUndecodableEntity(): void
+    public function testUndecodableNeventYieldsNoHints(): void
     {
-        $nevent = 'nevent1invalid';
         $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
             ->method('decodeComplexEntity')
             ->willReturn(null);
 
-        $this->assertNull($this->makeExtractor($bech32Encoder)->extractRelayHintFromNevent($nevent));
+        $this->assertEmpty($this->makeExtractor($bech32Encoder)->extractRelayHints($this->makeEvent([], 'nevent1invalid')));
     }
 
     public function testExtractRelayHintsFromContentWithNevent(): void
     {
-        $content = 'Check out this event: nevent1abc123 and this one nevent1def456';
-
         $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
             ->method('decodeComplexEntity')
@@ -113,7 +109,9 @@ final class RelayHintExtractorTest extends TestCase
                 ['nevent1def456', self::decoded('wss://relay2.com')],
             ]);
 
-        $relays = $this->makeExtractor($bech32Encoder)->extractRelayHintsFromContent($content);
+        $event = $this->makeEvent([], 'Check out this event: nevent1abc123 and this one nevent1def456');
+
+        $relays = $this->makeExtractor($bech32Encoder)->extractRelayHints($event);
 
         $this->assertCount(2, $relays);
         $this->assertEquals('wss://relay1.com', (string) $relays[0]);
@@ -122,10 +120,10 @@ final class RelayHintExtractorTest extends TestCase
 
     public function testExtractRelayHintsFromKind6RepostEvent(): void
     {
-        $event = $this->createRepostEvent([
+        $event = $this->makeEvent([
             ['e', 'event123', 'wss://repost-relay.com'],
             ['p', 'author456'],
-        ]);
+        ], '', 6);
 
         $relays = $this->makeExtractor()->extractRelayHints($event);
 
@@ -135,14 +133,14 @@ final class RelayHintExtractorTest extends TestCase
 
     public function testExtractRelayHintsDeduplicates(): void
     {
-        $tags = TagCollection::fromArray([
+        $event = $this->makeEvent([
             ['r', 'wss://relay.com'],
             ['r', 'wss://relay.com'],
             ['e', 'event123', 'wss://relay.com'],
             ['p', 'pubkey456', 'wss://different.com'],
         ]);
 
-        $relays = $this->makeExtractor()->extractRelayHintsFromTags($tags);
+        $relays = $this->makeExtractor()->extractRelayHints($event);
 
         $this->assertCount(2, $relays);
         $relayUrls = array_map(static fn ($relay) => (string) $relay, $relays);
@@ -152,13 +150,13 @@ final class RelayHintExtractorTest extends TestCase
 
     public function testExtractRelayHintsSkipsInvalidUrls(): void
     {
-        $tags = TagCollection::fromArray([
+        $event = $this->makeEvent([
             ['r', 'invalid-url'],
             ['r', 'wss://valid-relay.com'],
             ['e', 'event123', 'not-a-url'],
         ]);
 
-        $relays = $this->makeExtractor()->extractRelayHintsFromTags($tags);
+        $relays = $this->makeExtractor()->extractRelayHints($event);
 
         $this->assertCount(1, $relays);
         $this->assertEquals('wss://valid-relay.com', (string) $relays[0]);
@@ -171,7 +169,7 @@ final class RelayHintExtractorTest extends TestCase
         );
     }
 
-    private function createRepostEvent(array $tagArrays): Event
+    private function makeEvent(array $tagArrays, string $content = '', int $kind = 1): Event
     {
         $tags = [];
         foreach ($tagArrays as $tagArray) {
@@ -181,9 +179,9 @@ final class RelayHintExtractorTest extends TestCase
         return new Event(
             PublicKey::fromHex('fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210') ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1234567890),
-            EventKind::fromInt(6),
+            EventKind::fromInt($kind),
             new TagCollection($tags),
-            EventContent::fromString('')
+            EventContent::fromString($content)
         );
     }
 }

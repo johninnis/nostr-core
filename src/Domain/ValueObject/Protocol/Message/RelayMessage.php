@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message;
 
+use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
+
 abstract readonly class RelayMessage extends Message
 {
     final public function toJson(): string
@@ -15,13 +17,9 @@ abstract readonly class RelayMessage extends Message
 
     final public static function fromJson(string $json): ?static
     {
-        if (!json_validate($json)) {
-            return null;
-        }
+        $data = JsonWireFormat::decodeArray($json);
 
-        $data = json_decode($json, true);
-
-        if (!is_array($data) || [] === $data) {
+        if (null === $data || [] === $data) {
             return null;
         }
 

@@ -17,4 +17,9 @@ final class EventIdCollection extends TypedCollection
     {
         return EventId::class;
     }
+
+    public function unique(): self
+    {
+        return new self($this->deduplicate(static fn (EventId $eventId): string => $eventId->toHex()));
+    }
 }
