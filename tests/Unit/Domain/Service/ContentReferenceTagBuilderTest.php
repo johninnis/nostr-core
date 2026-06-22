@@ -47,7 +47,6 @@ final class ContentReferenceTagBuilderTest extends TestCase
         $qTags = array_filter($tagArrays, static fn (array $t) => 'q' === $t[0]);
 
         $pTagValues = array_map(static fn (array $t) => $t[1], $pTags);
-        $eTagValues = array_map(static fn (array $t) => $t[1], $eTags);
         $qTagValues = array_map(static fn (array $t) => $t[1], $qTags);
 
         $this->assertContains($nprofilePubkey, $pTagValues, 'nprofile should produce a p tag');
@@ -55,13 +54,7 @@ final class ContentReferenceTagBuilderTest extends TestCase
         $this->assertContains($neventTwoAuthor, $pTagValues, 'nevent with author should produce a p tag');
         $this->assertCount(3, $pTags, 'should have exactly 3 p tags');
 
-        $this->assertContains($noteId, $eTagValues, 'note should produce an e tag');
-        $this->assertContains($neventOneId, $eTagValues, 'nevent without author should produce an e tag');
-        $this->assertContains($neventTwoId, $eTagValues, 'nevent with author should produce an e tag');
-        $this->assertCount(3, $eTags, 'should have exactly 3 e tags');
-
-        $noteETag = array_values(array_filter($tagArrays, static fn (array $t) => 'e' === $t[0] && $t[1] === $noteId));
-        $this->assertSame('mention', $noteETag[0][3], 'note e tag should have mention marker');
+        $this->assertCount(0, $eTags, 'quoted events are q-only per NIP-18; no e mention tag is emitted');
 
         $this->assertContains($noteId, $qTagValues, 'note should produce a q tag');
         $this->assertContains($neventOneId, $qTagValues, 'nevent without author should produce a q tag');
