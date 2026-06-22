@@ -115,7 +115,7 @@ $ciphertext = $encryption->encrypt('Hello in private', $conversationKey);
 $plaintext = $encryption->decrypt($ciphertext, $conversationKey);
 ```
 
-Nonce generation is injected. `Nip44Cipher` accepts an optional `RandomBytesGeneratorInterface` and defaults to `NativeRandomBytesGenerator` (PHP's `random_bytes`) when none is supplied — that is the production path. Test suites inject a deterministic generator to reproduce the official NIP-44 vectors byte-for-byte. The adapter deliberately has no public `encryptWithNonce` method, because a caller-supplied nonce is a reuse footgun that catastrophically breaks ChaCha20 confidentiality; keeping nonce generation behind a port makes tests deterministic without giving production code a way to misuse it.
+Nonce generation is injected. `Nip44Cipher` accepts an optional `RandomBytesGeneratorInterface` and defaults to `NativeRandomBytesGenerator` (PHP's `random_bytes`) when none is supplied — that is the production path. Test suites inject a deterministic generator to reproduce the official NIP-44 vectors byte-for-byte. There is deliberately no public `encryptWithNonce` method; see [ADR-0014](docs/adr/0014-nip44cipher-has-no-public-encryptwithnonce.md).
 
 Always construct the adapters through their `::create()` factories. Direct instantiation via `new Secp256k1Signer(null, ...)` or `new Secp256k1Ecdh()` exists for dependency injection and testing but stays on the pure-PHP path regardless of whether `libsecp256k1` is installed.
 
@@ -172,7 +172,7 @@ $privateKey->zero();
 $signatureService->sign($privateKey, $message); // throws SecretKeyMaterialZeroedException
 ```
 
-**`zero()` is a contract, not a guarantee via destruction.** `SecretKeyMaterial`'s destructor does call `zero()` as defence-in-depth, but PHP's garbage collector runs on refcount-zero, which may never happen for keys captured in long-lived closures, static state, exception trace frames, or cyclic references. Applications that require bounded key-material lifetimes — session-scoped bunker signers, for example — must call `$privateKey->zero()` explicitly at the end of the session. Treat the destructor as cleanup-of-last-resort, not as the primary wipe mechanism.
+`zero()` is a contract a caller invokes explicitly, not a guarantee delivered by the destructor. Applications that require bounded key-material lifetimes — session-scoped bunker signers, for example — must call `$privateKey->zero()` explicitly at the end of the session rather than relying on garbage collection. See [ADR-0015](docs/adr/0015-zero-is-a-contract-not-a-guarantee-via-destruction.md).
 
 ## Supported NIPs
 
@@ -249,73 +249,27 @@ This package follows Clean Architecture principles with strict layer separation:
 - **Application Layer**: Port interfaces for external service integration
 - **Infrastructure Layer**: Implementations of the domain and application interfaces, grouped by concern (`Crypto/`, `Encoding/`, `Http/`, `Reference/`)
 
-## Error handling
+## Architecture decisions
 
-Failure is split into two kinds, each modelled the one correct way. **Anticipated outcomes** — a well-formed operation whose answer is "no", such as parsing untrusted wire input — are **returned** as a typed value (`?T`, or a sealed `*Failure` value object) and never thrown, so PHPStan level 9 forces every caller to handle the failure branch. **Faults** — broken invariants, infrastructure failures, and mid-operation crypto or serialisation errors — are **thrown** as exceptions.
+Design rationale lives in [`docs/adr/`](docs/adr/) as immutable Architecture Decision Records — read these before "correcting" a choice that reads like a smell. Each record states the context, the decision, and what it forbids.
 
-This package defines `NostrException` (abstract, extending `\Exception`), the root for every fault thrown by Nostr library code. Its final leaf exceptions extend it — for example `InvalidEventException`, `InvalidSignatureException`, `InvalidBech32Exception`, the crypto faults (`CryptoException`, `EcdhException`, `EncryptionException`, `GiftWrapException`), and the key-lifecycle and NIP-49 faults (`SecretKeyMaterialZeroedException`, `Nip49DecryptionFailedException`).
-
-- **Faults are rooted by whose code raises them, not by the dependency graph.** Nostr library code roots its faults at `NostrException`, defined here.
-- **A consumer or application roots its OWN faults at its own independent base.** Hubstr code, for instance, throws a `HubstrException` that extends `\Exception` directly and does NOT extend `NostrException`, even though it depends on the Nostr libraries.
-- **What decides the root is the authoring code, not what it imports.** Depending on nostr-core does not pull a consumer's exceptions under `NostrException`; only faults raised by Nostr library code belong there.
-
-## Language and design decisions (PHP 8.4)
-
-The floor is PHP 8.4, and the guiding principle is that the type system is the cheapest test: prefer a construct a static analyser can enforce over one that relies on discipline. The whole library is checked at PHPStan level 9, and that bar drives most of the decisions below.
-
-### What the codebase leans on
-
-- **`final readonly class` value objects** with constructor property promotion — immutability by construction, no declare-then-assign boilerplate.
-- **Backed enums for closed sets** (for example `Bech32Variant`, `Nip98ValidationFailure`) rather than class-constant pseudo-enums.
-- **`match`, first-class callable syntax, and the functional array helpers** (`array_any` / `array_all` / `array_find`) over hand-rolled loops.
-- **`#[\Override]`** on every interface or parent implementation, **typed class constants**, **`json_validate()`** before decoding untrusted JSON, and **`#[\Deprecated]`** to mark a superseded API (NIP-04).
-- **Anticipated outcomes are returned; faults are thrown.** A parser of untrusted input (`Event::fromArray` / `fromJson`, `Filter::fromArray`, `JsonMessageDeserialiser`, `Nip98Validator`) puts its failure in the return type — `?T`, or a sealed `*Failure` value — instead of throwing. This is the most load-bearing analyser decision in the library: PHP has no checked exceptions, so a `throw` is invisible to PHPStan and a caller can silently forget to handle it, whereas a `?Event` return makes "you didn't handle the failure" a level-9 compile error. Exceptions are reserved for genuine faults: broken invariants, infrastructure failures, and mid-operation crypto or serialisation errors.
-
-### Why value objects use `getX()` methods, not public properties or hooks
-
-PHP 8.4 property hooks and asymmetric visibility (`public private(set)`) let a *property* carry the computation, validation, and write-control that previously needed a `getX()` / `setX()` method, so the idiomatic 8.4 move is usually to expose a property and drop the accessor. This library deliberately keeps `getX()` methods on its value objects, for three reasons:
-
-1. **`readonly` forbids hooks.** A property hook requires a non-readonly property, and a `readonly class` makes every property readonly — so inside these `final readonly` value objects a hook is not available at all. A value computed on read (the `?? calculateId()` fallback in `Event::getId()`, the type-guarded reads over `Nip11Info`'s raw payload) can therefore only be a method. The language gives an immutable object exactly one tool for a computed read, and it is a method.
-2. **A full migration is impossible, and a partial one is worse than none.** Because the computed, raw-array-backed, and interface-bound accessors (for example those satisfying `PaymentReceiptInterface`) must stay methods, converting only the trivial pass-throughs would split the public API into two access styles (`$event->pubkey` next to `$info->getName()`). A uniform `getX()` surface is the only internally consistent option.
-3. **No behavioural or type-safety gain.** Unlike the return-vs-throw decision above, getter-to-property is purely syntactic: it would rewrite many hundreds of call sites across the ecosystem for no change in behaviour or analyser coverage.
-
-Setters do not arise. Value objects are immutable and transform by returning a new instance (`withTags(...)`); the few entities with genuine lifecycle state (`Event`, `Subscription`) mutate only through named transformations.
-
-### Why `PublicKey`, `EventId`, and `Signature` are separate types, not a shared base
-
-These three look alike — each wraps a fixed-length binary string and exposes `toHex` / `fromHex` / `equals` — so it is tempting to collapse them onto one `abstract readonly` base. The library keeps them as three independent `final` types deliberately:
-
-1. **A shared base forfeits the type safety on `equals()`.** Pulled onto a base, `equals()` has to accept the base type (`equals(self $other)`), which makes `$publicKey->equals($eventId)` pass at PHPStan level 9 — exactly the identity confusion a crypto library must never allow silently. PHP's parameter contravariance then forbids narrowing that parameter back to the concrete type in each leaf, so `equals` must be redeclared per type anyway: the base saves nothing where it matters and removes a guarantee the analyser gives today.
-2. **The shared logic is already factored out — into a collaborator, not a parent.** Hex validation and conversion live once in `HexCodec`, bech32 once in `Bech32Codec`, and every identity type routes through them. What is left in each class is a thin, type-specific surface, not duplicated logic. Sharing through a collaborator is composition; a base class here would be inheritance for incidental syntactic resemblance.
-3. **They are not the same concept.** `PublicKey` and `EventId` are 32-byte, bech32-encodable identities; `Signature` is a 64-byte opaque blob with no bech32 form. The resemblance is a coincidence of width, not a shared abstraction.
-
-Where logic reuse is genuine it goes through a collaborator, not a parent: `PrivateKey` and `ConversationKey` both compose a `SecretKeyMaterial` value object, which is the single home for secret-key validation and memory zeroing.
-
-### Why `Timestamp::now()` reads the clock directly, but `Nip98Validator` takes a `ClockInterface`
-
-The library reads wall-clock time in exactly one place — `Timestamp::now()` — and everything that needs the current instant goes through it, so there is a single obvious source of "now" rather than scattered `time()` calls. `Timestamp` is a value object and `now()` is simply its named constructor for the present instant; the comparisons it backs are available in a pure form that takes the reference instant as an argument (`isReasonableAt(self $reference)`, `isAfter`, `isBefore`, `differenceInSeconds`), so the time-dependent logic itself stays a pure function of its inputs.
-
-Where the passage of time is part of the behaviour under test, the present instant is injected as an `ClockInterface` port instead of read directly. `Nip98Validator` is the example: its whole job is to accept or reject an event against a timestamp-tolerance window, so it takes a `ClockInterface` and a test can freeze time to exercise the boundaries deterministically. The rule of thumb is to read `Timestamp::now()` directly in construction and glue code, and to inject `ClockInterface` wherever elapsed time is the thing being decided.
-
-### Deliberate designs that read like smells
-
-A few choices look like duplication or an anti-pattern at a glance and have been "corrected" before to the codebase's detriment. They are intentional, and each is held in place by a test that fails if it is undone — so the justification matters more than the appearance.
-
-- **`TagType` is a value object, not a backed `enum`.** NIP-01 tag names are an *open* set: any string is a valid tag name, and `Tag::fromArray` builds a `TagType` from whatever arrives on the wire. A backed enum models a *closed* set — its `tryFrom` returns `null` for an unrecognised case, so a relay or client could no longer round-trip a tag it does not know. The class keeps typed constants for the well-known names plus a `fromString` constructor for the rest, which is the correct shape for an open vocabulary. (The "backed enums for closed sets" rule above still holds; this set is not closed.)
-
-- **`SubscriptionCollection` does not extend `TypedCollection`.** It is a string-keyed map — `add`/`get`/`remove` work by subscription id and iteration yields the id as the key — whereas `TypedCollection` models an ordered `list<T>`. Forcing the map onto the list base would break its public contract (`toArray()` returning a keyed array, `foreach` exposing ids), which its tests assert. A keyed registry is a genuinely different data structure, not a fork of the list collection.
-
-- **Some domain services are `static`, others are injected interfaces.** The split is by dependency, not by accident. A pure, dependency-free transformation (`TagReferenceExtractor`, `ReplyChainAnalyser`, `ReplyTagBuilder`, `EmbeddedEventExtractor`) is a `static` function: there is nothing to inject and nothing to mock, so a unit test feeds it real input and asserts the output. A service that needs a collaborator — the ones taking a `Nip19CodecInterface` — is an injected interface so the collaborator can be a test double. Making the pure functions injectable too would add wiring and a seam that buys nothing.
-
-- **`KeySecurityByte::fromByte` throws on an unrecognised byte instead of falling back to `Unknown`.** Under NIP-49 the key-security byte is authenticated as associated data by the AEAD, and `fromByte` is only ever called mid-decrypt. Throwing on an out-of-range byte is precisely what rejects a *tampered* `ncryptsec`: if the byte were silently mapped to `Unknown` (`0x02`), flipping the stored byte to any other value would still yield the same associated data and the tampered payload would decrypt. `Unknown` is a valid spec value, distinct from a corrupt one — they must not be conflated. This regressed once; `Nip49CipherTest::testDecryptRejectsUnknownKeySecurityByte` guards it.
-
-- **`RelayUrl::fromString` rejects more than malformed syntax.** It also returns `null` for a path that repeats the host, a doubled slash, a percent-encoded space, and an out-of-range port — normalisation strictness aimed at the duplicated-authority and mangled URLs that show up in real relay lists. These are deliberate, tested rejections, not oversights.
-
-- **`ContentReferenceTagBuilder` emits both a `q` tag and an `e` mention for a quoted event.** This is deliberate interoperability: NIP-18 quote reposts carry a `q` tag, while older clients only read the NIP-10 `e` mention. Emitting both maximises the set of clients that resolve the quote.
-
-- **`Event` does not cache its computed id.** `Event` is a `final readonly class`, so a lazy memoisation field is not available; `getId()` recomputes the SHA-256 only when the event is unsigned (a signed event already carries its id). The hash is cheap, and dropping the class-level `readonly` to add a cache would cost more in immutability guarantees than it saves.
-
-- **`Secp256k1Signer::sign` rejects any message that is not exactly 32 bytes.** General BIP-340 signs an arbitrary-length message, but every Nostr signature is over the 32-byte event id (`SHA-256` of the serialised event) — the variable-length message has already been hashed to a fixed digest before it reaches the signer. Enforcing 32 bytes makes a wrong-length argument a fail-fast programmer error (`InvalidArgumentException`) rather than silently routing it down the slower pure-PHP path (libsecp256k1's FFI binding exposes the 32-byte `schnorrsig_sign32` only). `verify` stays length-agnostic — it is a pure query with no such divergence.
+| ADR | Decision |
+|-----|----------|
+| [0001](docs/adr/0001-anticipated-outcomes-returned-faults-thrown.md) | Anticipated outcomes are returned (`?T` / `*Failure`); faults are thrown |
+| [0002](docs/adr/0002-nostrexception-roots-nostr-faults-only.md) | `NostrException` roots Nostr faults; consumers root their own |
+| [0003](docs/adr/0003-value-objects-keep-getter-methods-not-property-hooks.md) | Value objects keep `getX()` methods, not property hooks |
+| [0004](docs/adr/0004-publickey-eventid-signature-stay-separate.md) | `PublicKey`, `EventId`, and `Signature` stay separate types |
+| [0005](docs/adr/0005-timestamp-now-direct-clockinterface-when-time-under-test.md) | `Timestamp::now()` reads the clock; `ClockInterface` is injected only where elapsed time is under test |
+| [0006](docs/adr/0006-tagtype-is-a-value-object-not-a-backed-enum.md) | `TagType` is a value object, not a backed `enum` (open vocabulary) |
+| [0007](docs/adr/0007-subscriptioncollection-does-not-extend-typedcollection.md) | `SubscriptionCollection` does not extend `TypedCollection` |
+| [0008](docs/adr/0008-domain-services-static-when-pure-injected-when-collaborator.md) | Domain services are `static` when pure, injected when they have a collaborator |
+| [0009](docs/adr/0009-keysecuritybyte-frombyte-throws-on-unknown.md) | `KeySecurityByte::fromByte` throws on an unrecognised byte |
+| [0010](docs/adr/0010-relayurl-fromstring-rejects-more-than-malformed-syntax.md) | `RelayUrl::fromString` rejects more than malformed syntax |
+| [0011](docs/adr/0011-contentreferencetagbuilder-emits-q-tag-only-for-quotes.md) | `ContentReferenceTagBuilder` emits a `q` tag only for a quoted event (no `e` mention) |
+| [0012](docs/adr/0012-event-does-not-cache-its-computed-id.md) | `Event` does not cache its computed id |
+| [0013](docs/adr/0013-secp256k1signer-sign-rejects-non-32-byte-messages.md) | `Secp256k1Signer::sign` rejects any message that is not exactly 32 bytes |
+| [0014](docs/adr/0014-nip44cipher-has-no-public-encryptwithnonce.md) | `Nip44Cipher` has no public `encryptWithNonce`; nonce stays behind a port |
+| [0015](docs/adr/0015-zero-is-a-contract-not-a-guarantee-via-destruction.md) | `zero()` is a contract, not a guarantee via destruction |
 
 ## Dependencies
 
