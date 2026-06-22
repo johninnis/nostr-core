@@ -33,6 +33,7 @@ final class ContentReferenceTagBuilder implements ContentReferenceTagBuilderInte
             $eventId = $ref->getEventId();
             if (null !== $eventId) {
                 $authorHex = $pubkey?->toHex() ?? '';
+                // Deliberate: a quoted event emits a q tag only, no e mention, so it is not pulled into a thread as a reply — see ADR-0011
                 $tags = $tags->add(Tag::create(TagType::QUOTE, $eventId->toHex(), '', $authorHex));
             }
 

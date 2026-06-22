@@ -12,6 +12,7 @@ enum KeySecurityByte: int
     case UsableUntrusted = 0x01;
     case Unknown = 0x02;
 
+    // Deliberate: throws on an out-of-range byte rather than mapping to Unknown, so a tampered ncryptsec is rejected at decrypt — see ADR-0009
     public static function fromByte(int $byte): self
     {
         return self::tryFrom($byte)

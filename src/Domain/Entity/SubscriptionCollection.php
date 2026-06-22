@@ -12,6 +12,7 @@ use InvalidArgumentException;
 use IteratorAggregate;
 use Override;
 
+// Deliberate: a keyed-map registry, not a list, so it does not extend TypedCollection's ordered-list mechanism — see ADR-0007
 final class SubscriptionCollection implements IteratorAggregate, Countable
 {
     private array $subscriptions;

@@ -37,6 +37,7 @@ final class Secp256k1Signer implements SignatureServiceInterface
     #[Override]
     public function sign(PrivateKey $privateKey, string $message): Signature
     {
+        // Deliberate: rejects non-32-byte messages so a wrong-length argument fails fast rather than diverging code paths — see ADR-0013
         if (self::SCHNORR_MESSAGE_LENGTH !== strlen($message)) {
             throw new InvalidArgumentException(sprintf('Nostr signs a 32-byte event id; got %d bytes', strlen($message)));
         }

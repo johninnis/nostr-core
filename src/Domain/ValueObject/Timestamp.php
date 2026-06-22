@@ -72,11 +72,13 @@ final readonly class Timestamp implements Stringable
         return !self::now()->isBefore($this);
     }
 
+    // Deliberate: reads time() directly rather than through an injected clock; no elapsed-time behaviour under test here — see ADR-0005
     public static function now(): self
     {
         return new self(time());
     }
 
+    // Deliberate: reads the entropy source directly, not via an injected port; no random-dependent output under test — see ADR-0018
     public static function randomised(int $maxSecondsAgo = 172800): self
     {
         return new self(self::now()->toInt() - random_int(0, $maxSecondsAgo));

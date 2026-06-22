@@ -80,6 +80,7 @@ final readonly class Event implements Stringable
             ?? throw new InvalidEventException('Hashed event ID was not a valid 32-byte value');
     }
 
+    // Deliberate: does not memoise the computed id, preserving the class-level readonly immutability guarantee — see ADR-0012
     public function getId(): EventId
     {
         return $this->id ?? $this->calculateId();

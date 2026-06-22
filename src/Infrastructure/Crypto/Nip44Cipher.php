@@ -78,6 +78,7 @@ final class Nip44Cipher implements Nip44EncryptionInterface
         return $plaintext;
     }
 
+    // Deliberate: kept private, not public, so production code cannot supply a reusable nonce — see ADR-0014
     private function encryptWithNonce(string $plaintext, ConversationKey $conversationKey, string $nonce): string
     {
         $plaintextLength = strlen($plaintext);

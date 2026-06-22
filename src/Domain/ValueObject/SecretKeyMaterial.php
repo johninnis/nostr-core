@@ -9,6 +9,7 @@ use Innis\Nostr\Core\Domain\Exception\SecretKeyMaterialZeroedException;
 use Innis\Nostr\Core\Domain\Service\HexCodec;
 use InvalidArgumentException;
 
+// Deliberate: a plain final class, not final readonly, so zero() can null the bytes field to wipe the secret — see ADR-0015
 final class SecretKeyMaterial
 {
     public const int BYTE_LENGTH = 32;
@@ -24,6 +25,7 @@ final class SecretKeyMaterial
         $this->bytes = $bytes;
     }
 
+    // Deliberate: reads random_bytes directly, not via an injected port; no random-dependent output under test — see ADR-0018
     public static function random(): self
     {
         return new self(random_bytes(self::BYTE_LENGTH));

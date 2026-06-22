@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message;
 
 use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 
+// Deliberate: an abstract base with final leaves expresses a closed sum type PHP cannot name, sharing the self-typed fromJson — see ADR-0016
 abstract readonly class Message
 {
     protected const string TYPE = '';
