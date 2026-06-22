@@ -23,8 +23,8 @@ final readonly class EventCoordinate implements Stringable
 
     public static function fromParts(int $kind, string $pubkeyHex, string $identifier, ?string $relayHint = null): ?self
     {
-        $eventKind = EventKind::fromInt($kind);
-        if (!$eventKind->isParameterisedReplaceable()) {
+        $eventKind = EventKind::tryFromInt($kind);
+        if (null === $eventKind || !$eventKind->isParameterisedReplaceable()) {
             return null;
         }
 

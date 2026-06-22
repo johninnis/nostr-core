@@ -32,14 +32,14 @@ final class ContentReferenceTagBuilder implements ContentReferenceTagBuilderInte
             $eventId = $ref->getEventId();
             if (null !== $eventId) {
                 $authorHex = $pubkey?->toHex() ?? '';
-                $tags = $tags->add(Tag::fromArray([TagType::QUOTE, $eventId->toHex(), '', $authorHex]));
+                $tags = $tags->add(Tag::create(TagType::QUOTE, $eventId->toHex(), '', $authorHex));
             }
 
             if ($ref->isAddressableReference()) {
                 $kind = $ref->getKind();
                 if (null !== $pubkey && null !== $kind) {
                     $coordinate = $kind->toInt().':'.$pubkey->toHex().':'.$ref->getAddressableIdentifier();
-                    $tags = $tags->add(Tag::fromArray([TagType::ADDRESSABLE, $coordinate]));
+                    $tags = $tags->add(Tag::create(TagType::ADDRESSABLE, $coordinate));
                 }
             }
         }

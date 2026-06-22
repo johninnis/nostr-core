@@ -93,7 +93,7 @@ final class NipComplianceTest extends TestCase
     {
         $tags = new TagCollection([
             Tag::event('event-to-delete-id'),
-            Tag::fromArray(['k', '1']),
+            Tag::create('k', '1'),
         ]);
 
         $event = new Event(
@@ -114,8 +114,8 @@ final class NipComplianceTest extends TestCase
     public function testNip09EventDeletionWithATagCompliance(): void
     {
         $tags = new TagCollection([
-            Tag::fromArray(['a', '30023:'.str_repeat('a', 64).':my-article']),
-            Tag::fromArray(['k', '30023']),
+            Tag::create('a', '30023:'.str_repeat('a', 64).':my-article'),
+            Tag::create('k', '30023'),
         ]);
 
         $event = new Event(
@@ -135,7 +135,7 @@ final class NipComplianceTest extends TestCase
     public function testNip09EventDeletionRequiresEOrATag(): void
     {
         $tags = new TagCollection([
-            Tag::fromArray(['k', '1']),
+            Tag::create('k', '1'),
         ]);
 
         $event = new Event(
@@ -178,7 +178,7 @@ final class NipComplianceTest extends TestCase
     {
         $tags = new TagCollection([
             Tag::event('event-to-delete-id'),
-            Tag::fromArray(['k', '5']),
+            Tag::create('k', '5'),
         ]);
 
         $event = new Event(

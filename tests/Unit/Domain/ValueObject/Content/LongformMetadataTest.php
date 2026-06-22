@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Content;
 
 use Innis\Nostr\Core\Domain\ValueObject\Content\LongformMetadata;
-use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use Innis\Nostr\Core\Tests\Support\TagCollectionMother;
 use PHPUnit\Framework\TestCase;
 
 final class LongformMetadataTest extends TestCase
 {
     public function testFromTagCollectionWithAllFields(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['d', 'my-article-slug'],
             ['title', 'My Article Title'],
             ['summary', 'A brief summary of the article'],
@@ -37,7 +37,7 @@ final class LongformMetadataTest extends TestCase
 
     public function testFromTagCollectionWithOnlyIdentifier(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['d', 'minimal-article'],
         ]);
 
@@ -54,7 +54,7 @@ final class LongformMetadataTest extends TestCase
 
     public function testReturnsNullWhenIdentifierMissing(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['title', 'No Identifier Article'],
             ['t', 'nostr'],
         ]);

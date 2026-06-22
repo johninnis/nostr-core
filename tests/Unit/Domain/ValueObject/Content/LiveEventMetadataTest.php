@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Content;
 
 use Innis\Nostr\Core\Domain\ValueObject\Content\LiveEventMetadata;
-use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
+use Innis\Nostr\Core\Tests\Support\TagCollectionMother;
 use PHPUnit\Framework\TestCase;
 
 final class LiveEventMetadataTest extends TestCase
 {
     public function testFromTagCollectionWithAllFields(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['d', 'my-live-stream'],
             ['title', 'Live Coding Session'],
             ['summary', 'Building a Nostr client from scratch'],
@@ -34,7 +34,7 @@ final class LiveEventMetadataTest extends TestCase
 
     public function testFromTagCollectionWithOnlyIdentifier(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['d', 'minimal-stream'],
         ]);
 
@@ -51,7 +51,7 @@ final class LiveEventMetadataTest extends TestCase
 
     public function testReturnsNullWhenIdentifierMissing(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['title', 'No Identifier Stream'],
             ['status', 'live'],
         ]);

@@ -254,6 +254,21 @@ final readonly class Event implements Stringable
             return null;
         }
 
+        $createdAt = Timestamp::tryFromInt($data['created_at']);
+        if (null === $createdAt) {
+            return null;
+        }
+
+        $kind = EventKind::tryFromInt($data['kind']);
+        if (null === $kind) {
+            return null;
+        }
+
+        $tags = TagCollection::fromArray($data['tags']);
+        if (null === $tags) {
+            return null;
+        }
+
         $content = $data['content'];
         if (!is_string($content)) {
             $content = json_encode($content, JSON_UNESCAPED_SLASHES);
@@ -284,20 +299,16 @@ final readonly class Event implements Stringable
             }
         }
 
-        try {
-            return new self(
-                $pubkey,
-                Timestamp::fromInt($data['created_at']),
-                EventKind::fromInt($data['kind']),
-                TagCollection::fromArray($data['tags']),
-                EventContent::fromString($content),
-                $id,
-                $signature,
-                $rawJson,
-            );
-        } catch (InvalidArgumentException) {
-            return null;
-        }
+        return new self(
+            $pubkey,
+            $createdAt,
+            $kind,
+            $tags,
+            EventContent::fromString($content),
+            $id,
+            $signature,
+            $rawJson,
+        );
     }
 
     #[Override]

@@ -116,16 +116,19 @@ final class TagTest extends TestCase
         $data = ['e', 'event-id', 'relay-url'];
         $tag = Tag::fromArray($data);
 
+        $this->assertNotNull($tag);
         $this->assertTrue($tag->getType()->equals(TagType::event()));
         $this->assertSame('event-id', $tag->getValue(0));
         $this->assertSame('relay-url', $tag->getValue(1));
     }
 
-    public function testFromArrayThrowsExceptionForEmptyArray(): void
+    public function testFromArrayReturnsNullForEmptyArray(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Tag array cannot be empty');
+        $this->assertNull(Tag::fromArray([]));
+    }
 
-        Tag::fromArray([]);
+    public function testFromArrayReturnsNullForNonStringValues(): void
+    {
+        $this->assertNull(Tag::fromArray(['e', 123]));
     }
 }

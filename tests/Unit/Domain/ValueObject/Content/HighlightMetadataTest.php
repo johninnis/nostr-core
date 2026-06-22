@@ -6,13 +6,14 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Content;
 
 use Innis\Nostr\Core\Domain\ValueObject\Content\HighlightMetadata;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
+use Innis\Nostr\Core\Tests\Support\TagCollectionMother;
 use PHPUnit\Framework\TestCase;
 
 final class HighlightMetadataTest extends TestCase
 {
     public function testFromTagCollectionWithAllFields(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['context', 'The surrounding paragraph text'],
             ['comment', 'This is an insightful passage'],
             ['r', 'https://example.com/article'],
@@ -38,7 +39,7 @@ final class HighlightMetadataTest extends TestCase
 
     public function testWssRelayUrlsIgnored(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['r', 'wss://relay.example.com'],
             ['r', 'wss://another-relay.com'],
         ]);
@@ -50,7 +51,7 @@ final class HighlightMetadataTest extends TestCase
 
     public function testHttpUrlExtractedOverWssUrl(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['r', 'wss://relay.example.com'],
             ['r', 'https://example.com/article'],
             ['r', 'wss://another-relay.com'],
@@ -63,7 +64,7 @@ final class HighlightMetadataTest extends TestCase
 
     public function testHttpUrlExtracted(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['r', 'http://example.com/article'],
         ]);
 

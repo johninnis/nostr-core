@@ -11,6 +11,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Payment\Nutzap;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use Innis\Nostr\Core\Tests\Support\TagCollectionMother;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -196,7 +197,7 @@ final class NutzapTest extends TestCase
             PublicKey::fromHex(self::SENDER_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1700000000),
             EventKind::fromInt(EventKind::NUTZAP),
-            TagCollection::fromArray($rawTags),
+            TagCollectionMother::fromRaw($rawTags),
             EventContent::fromString($content),
         );
     }

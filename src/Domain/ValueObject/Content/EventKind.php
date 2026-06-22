@@ -138,9 +138,14 @@ final readonly class EventKind implements Stringable
 
     public function __construct(private int $kind)
     {
-        if ($this->kind < 0 || $this->kind > 65535) {
+        if (!self::isValid($kind)) {
             throw new InvalidArgumentException('Event kind must be between 0 and 65535');
         }
+    }
+
+    private static function isValid(int $kind): bool
+    {
+        return $kind >= 0 && $kind <= 65535;
     }
 
     public function toInt(): int
@@ -185,6 +190,11 @@ final readonly class EventKind implements Stringable
     public static function fromInt(int $kind): self
     {
         return new self($kind);
+    }
+
+    public static function tryFromInt(int $kind): ?self
+    {
+        return self::isValid($kind) ? new self($kind) : null;
     }
 
     #[Override]

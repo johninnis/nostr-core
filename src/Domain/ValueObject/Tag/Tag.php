@@ -84,14 +84,22 @@ final readonly class Tag
         return new self(TagType::identifier(), [$identifier]);
     }
 
-    public static function fromArray(array $data): self
+    public static function create(string $type, string ...$values): self
     {
-        if ([] === $data) {
-            throw new InvalidArgumentException('Tag array cannot be empty');
+        return new self(TagType::fromString($type), $values);
+    }
+
+    public static function fromArray(array $data): ?self
+    {
+        if ([] === $data || !array_all($data, static fn (mixed $value): bool => is_string($value))) {
+            return null;
         }
 
-        $type = TagType::fromString((string) array_shift($data));
+        $name = array_shift($data);
+        if ('' === $name) {
+            return null;
+        }
 
-        return new self($type, $data);
+        return new self(TagType::fromString((string) $name), $data);
     }
 }

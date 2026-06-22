@@ -13,6 +13,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Reference\RelayReference;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
+use Innis\Nostr\Core\Tests\Support\TagCollectionMother;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
@@ -145,14 +146,25 @@ final class TagCollectionTest extends TestCase
 
         $collection = TagCollection::fromArray($data);
 
+        $this->assertNotNull($collection);
         $this->assertSame(2, $collection->count());
         $this->assertTrue($collection->hasType(TagType::event()));
         $this->assertTrue($collection->hasType(TagType::pubkey()));
     }
 
+    public function testFromArrayReturnsNullWhenAnElementIsNotAnArray(): void
+    {
+        $this->assertNull(TagCollection::fromArray([['e', 'event-id'], 'not-an-array']));
+    }
+
+    public function testFromArrayReturnsNullWhenATagIsMalformed(): void
+    {
+        $this->assertNull(TagCollection::fromArray([[]]));
+    }
+
     public function testExtractReferencesExtractsEventTags(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['e', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'wss://relay.com', 'reply', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'],
             ['e', 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc', '', 'root'],
         ]);
@@ -175,7 +187,7 @@ final class TagCollectionTest extends TestCase
 
     public function testExtractReferencesExtractsPubkeyTags(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['p', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'wss://relay.com', 'alice'],
             ['p', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'],
         ]);
@@ -195,7 +207,7 @@ final class TagCollectionTest extends TestCase
 
     public function testExtractReferencesExtractsQuoteTags(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['q', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'wss://relay.com', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'],
             ['q', 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'],
         ]);
@@ -219,7 +231,7 @@ final class TagCollectionTest extends TestCase
         $pubkey1 = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
         $pubkey2 = 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210';
 
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['a', "30023:{$pubkey1}:my-article", 'wss://relay.com'],
             ['a', "30001:{$pubkey2}:bookmark-list"],
         ]);
@@ -240,7 +252,7 @@ final class TagCollectionTest extends TestCase
 
     public function testExtractReferencesIgnoresInvalidEventIds(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['e', 'invalid_hex'],
             ['p', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
         ]);
@@ -255,7 +267,7 @@ final class TagCollectionTest extends TestCase
     {
         $validPubkey = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['a', 'invalid_format'],
             ['a', 'only_one_part'],
             ['a', '1:invalidpubkey:identifier'],
@@ -273,7 +285,7 @@ final class TagCollectionTest extends TestCase
 
     public function testExtractReferencesReturnsEmptyForUnknownTags(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['unknown', 'tag'],
             ['other', 'value'],
         ]);
@@ -290,7 +302,7 @@ final class TagCollectionTest extends TestCase
 
     public function testExtractReferencesExtractsRelayTags(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['r', 'wss://relay.com', 'read'],
             ['r', 'wss://other.com'],
         ]);
@@ -308,7 +320,7 @@ final class TagCollectionTest extends TestCase
 
     public function testExtractReferencesExtractsChallengeTags(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['challenge', 'abc123'],
         ]);
 
@@ -320,7 +332,7 @@ final class TagCollectionTest extends TestCase
 
     public function testAnalyseReplyChainForRootPost(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['p', 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'],
             ['subject', 'Hello World'],
         ]);
@@ -337,7 +349,7 @@ final class TagCollectionTest extends TestCase
 
     public function testAnalyseReplyChainWithMarkers(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['e', '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', 'wss://relay.com', 'root'],
             ['e', 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210', 'wss://relay.com', 'reply'],
             ['p', 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890'],
@@ -359,7 +371,7 @@ final class TagCollectionTest extends TestCase
 
     public function testAnalyseReplyChainSingleEventReply(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['e', '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', 'wss://relay.com'],
             ['p', 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'],
         ]);
@@ -375,7 +387,7 @@ final class TagCollectionTest extends TestCase
 
     public function testAnalyseReplyChainMultipleEventsWithoutMarkers(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['e', '1111111111111111111111111111111111111111111111111111111111111111', 'wss://relay1.com'],
             ['e', '2222222222222222222222222222222222222222222222222222222222222222', 'wss://relay2.com'],
             ['e', '3333333333333333333333333333333333333333333333333333333333333333', 'wss://relay3.com'],
@@ -397,7 +409,7 @@ final class TagCollectionTest extends TestCase
 
     public function testAnalyseReplyChainWithMentions(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['e', '1111111111111111111111111111111111111111111111111111111111111111', '', 'root'],
             ['e', '2222222222222222222222222222222222222222222222222222222222222222', '', 'mention'],
             ['e', '3333333333333333333333333333333333333333333333333333333333333333'],
@@ -417,7 +429,7 @@ final class TagCollectionTest extends TestCase
 
     public function testAnalyseReplyChainWithAuthor(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['e', '1111111111111111111111111111111111111111111111111111111111111111', 'wss://relay.com', 'reply', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
             ['p', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'],
         ]);
@@ -435,7 +447,7 @@ final class TagCollectionTest extends TestCase
 
     public function testAnalyseReplyChainSkipsInvalidEventIds(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['e', 'invalid_hex', 'wss://relay.com'],
             ['p', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
         ]);
@@ -449,7 +461,7 @@ final class TagCollectionTest extends TestCase
 
     public function testAnalyseReplyChainHandlesInvalidPubkeys(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['e', '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'],
             ['p', 'invalid_pubkey_format'],
         ]);
@@ -462,7 +474,7 @@ final class TagCollectionTest extends TestCase
 
     public function testAnalyseReplyChainHandlesInvalidRelayUrls(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['e', '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', 'invalid-url'],
         ]);
 
@@ -475,7 +487,7 @@ final class TagCollectionTest extends TestCase
 
     public function testAnalyseReplyChainNullKindUsesNip10Logic(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['e', '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', 'wss://relay.com', 'root'],
             ['e', 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210', 'wss://relay.com', 'reply'],
         ]);
@@ -497,7 +509,7 @@ final class TagCollectionTest extends TestCase
         $parentAuthor = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
         $participant = 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc';
 
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['E', $rootId, 'wss://relay.com', $rootAuthor],
             ['e', $parentId, 'wss://relay.com', $parentAuthor],
             ['p', $participant],
@@ -531,7 +543,7 @@ final class TagCollectionTest extends TestCase
         $rootId = '1111111111111111111111111111111111111111111111111111111111111111';
         $rootAuthor = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['E', $rootId, 'wss://relay.com', $rootAuthor],
             ['K', '1'],
             ['k', '1111'],
@@ -550,7 +562,7 @@ final class TagCollectionTest extends TestCase
         $parentId = '2222222222222222222222222222222222222222222222222222222222222222';
         $parentAuthor = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
 
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['e', $parentId, 'wss://relay.com', $parentAuthor],
             ['K', 'web'],
             ['k', '1111'],
@@ -570,7 +582,7 @@ final class TagCollectionTest extends TestCase
         $eventId = '1111111111111111111111111111111111111111111111111111111111111111';
         $authorPubkey = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['e', $eventId, 'wss://relay.com', $authorPubkey],
             ['K', '1'],
             ['k', '1111'],
@@ -587,7 +599,7 @@ final class TagCollectionTest extends TestCase
 
     public function testAnalyseReplyChainCommentGracefullySkipsInvalidIds(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['E', 'invalid_hex', 'wss://relay.com', 'also_invalid'],
             ['e', '2222222222222222222222222222222222222222222222222222222222222222', 'wss://relay.com', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'],
             ['p', 'invalid_pubkey'],
@@ -605,7 +617,7 @@ final class TagCollectionTest extends TestCase
 
     public function testAnalyseReplyChainKind1StillUsesNip10Logic(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['e', '1111111111111111111111111111111111111111111111111111111111111111', 'wss://relay.com', 'root'],
             ['e', '2222222222222222222222222222222222222222222222222222222222222222', 'wss://relay.com', 'reply'],
         ]);
@@ -624,7 +636,7 @@ final class TagCollectionTest extends TestCase
         $rootId = '1111111111111111111111111111111111111111111111111111111111111111';
         $rootAuthor = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['E', $rootId, 'wss://relay.com', $rootAuthor],
             ['p', $rootAuthor],
             ['K', '1'],
@@ -643,7 +655,7 @@ final class TagCollectionTest extends TestCase
 
     public function testAnalyseReplyChainCommentWithNoEventTagsIsRootPost(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['I', 'https://example.com'],
             ['K', 'web'],
             ['k', '1111'],

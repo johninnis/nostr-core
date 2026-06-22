@@ -17,6 +17,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Tests\Fake\FakeSignatureService;
 use Innis\Nostr\Core\Tests\Support\KeyMother;
+use Innis\Nostr\Core\Tests\Support\TagCollectionMother;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -367,7 +368,7 @@ final class EventTest extends TestCase
     public function testIsReplyReturnsTrueForEventWithEventTagsNoMarker(): void
     {
         // Deprecated positional scheme - no marker means it's a reply
-        $tags = TagCollection::fromArray([['e', '1234567890abcdef']]);
+        $tags = TagCollectionMother::fromRaw([['e', '1234567890abcdef']]);
 
         $event = new Event(
             $this->keyPair->getPublicKey(),
@@ -382,7 +383,7 @@ final class EventTest extends TestCase
 
     public function testIsReplyReturnsTrueForEventWithRootMarker(): void
     {
-        $tags = TagCollection::fromArray([['e', '1234567890abcdef', '', 'root']]);
+        $tags = TagCollectionMother::fromRaw([['e', '1234567890abcdef', '', 'root']]);
 
         $event = new Event(
             $this->keyPair->getPublicKey(),
@@ -397,7 +398,7 @@ final class EventTest extends TestCase
 
     public function testIsReplyReturnsTrueForEventWithReplyMarker(): void
     {
-        $tags = TagCollection::fromArray([['e', '1234567890abcdef', '', 'reply']]);
+        $tags = TagCollectionMother::fromRaw([['e', '1234567890abcdef', '', 'reply']]);
 
         $event = new Event(
             $this->keyPair->getPublicKey(),
@@ -413,7 +414,7 @@ final class EventTest extends TestCase
     public function testIsReplyReturnsFalseForEventWithOnlyMentionMarker(): void
     {
         // Per NIP-10: "mention" marker means inline reference, NOT a reply
-        $tags = TagCollection::fromArray([['e', '1234567890abcdef', '', 'mention']]);
+        $tags = TagCollectionMother::fromRaw([['e', '1234567890abcdef', '', 'mention']]);
 
         $event = new Event(
             $this->keyPair->getPublicKey(),
@@ -429,7 +430,7 @@ final class EventTest extends TestCase
     public function testIsReplyReturnsFalseForEventWithMultipleMentionMarkers(): void
     {
         // Multiple mention markers still not a reply
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['e', '1234567890abcdef', '', 'mention'],
             ['e', 'fedcba0987654321', '', 'mention'],
         ]);
@@ -448,7 +449,7 @@ final class EventTest extends TestCase
     public function testIsReplyReturnsTrueForMixedMentionAndRootMarkers(): void
     {
         // If there's at least one root/reply marker, it's a reply
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['e', '1234567890abcdef', '', 'root'],
             ['e', 'fedcba0987654321', '', 'mention'],
         ]);
@@ -467,7 +468,7 @@ final class EventTest extends TestCase
     public function testIsReplyReturnsTrueForEventWithEmptyMarker(): void
     {
         // Empty string marker = deprecated scheme = reply
-        $tags = TagCollection::fromArray([['e', '1234567890abcdef', 'wss://relay.example.com', '']]);
+        $tags = TagCollectionMother::fromRaw([['e', '1234567890abcdef', 'wss://relay.example.com', '']]);
 
         $event = new Event(
             $this->keyPair->getPublicKey(),

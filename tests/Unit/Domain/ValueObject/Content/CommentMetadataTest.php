@@ -6,14 +6,14 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Content;
 
 use Innis\Nostr\Core\Domain\Enum\CommentScope;
 use Innis\Nostr\Core\Domain\ValueObject\Content\CommentMetadata;
-use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
+use Innis\Nostr\Core\Tests\Support\TagCollectionMother;
 use PHPUnit\Framework\TestCase;
 
 final class CommentMetadataTest extends TestCase
 {
     public function testEventScopeWhenRootEventTagPresent(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['K', '1'],
             ['k', '1111'],
             ['E', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'wss://relay.com', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'],
@@ -30,7 +30,7 @@ final class CommentMetadataTest extends TestCase
 
     public function testAddressScopeWhenNoRootEventTag(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['K', '30023'],
             ['k', '1111'],
             ['A', '30023:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:my-article', 'wss://relay.com'],
@@ -44,7 +44,7 @@ final class CommentMetadataTest extends TestCase
 
     public function testExternalScopeWhenNoEventOrAddressTag(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['K', 'web'],
             ['k', '1111'],
             ['I', 'https://example.com/article'],
@@ -58,7 +58,7 @@ final class CommentMetadataTest extends TestCase
 
     public function testEventTakesPriorityOverAddress(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['K', '1'],
             ['k', '1111'],
             ['E', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
@@ -73,7 +73,7 @@ final class CommentMetadataTest extends TestCase
 
     public function testReturnsNullWhenRootKindMissing(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['k', '1111'],
             ['E', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
         ]);
@@ -83,7 +83,7 @@ final class CommentMetadataTest extends TestCase
 
     public function testReturnsNullWhenParentKindMissing(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['K', '1'],
             ['E', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
         ]);
@@ -93,7 +93,7 @@ final class CommentMetadataTest extends TestCase
 
     public function testReturnsNullWhenScopeTagMissing(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['K', '1'],
             ['k', '1111'],
         ]);
@@ -103,7 +103,7 @@ final class CommentMetadataTest extends TestCase
 
     public function testNonNumericKindValues(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['K', 'web'],
             ['k', 'podcast:item:guid'],
             ['I', 'https://example.com/podcast/episode-1'],

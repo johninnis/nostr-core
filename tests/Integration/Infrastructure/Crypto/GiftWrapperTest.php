@@ -112,7 +112,7 @@ final class GiftWrapperTest extends TestCase
         $recipientPubkey = $this->recipientKeyPair->getPublicKey()->toHex();
         $tags = new TagCollection([
             Tag::pubkey($recipientPubkey),
-            Tag::fromArray(['subject', 'Test conversation']),
+            Tag::create('subject', 'Test conversation'),
         ]);
 
         $rumour = EventFactory::createRumour(

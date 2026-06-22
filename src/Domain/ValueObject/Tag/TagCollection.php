@@ -6,7 +6,6 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Tag;
 
 use Innis\Nostr\Core\Domain\Collection\TypedCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
-use InvalidArgumentException;
 use Override;
 
 /**
@@ -135,15 +134,20 @@ final class TagCollection extends TypedCollection
         );
     }
 
-    public static function fromArray(array $data): self
+    public static function fromArray(array $data): ?self
     {
         $tags = [];
         foreach ($data as $tagData) {
             if (!is_array($tagData)) {
-                throw new InvalidArgumentException('Each tag must be an array');
+                return null;
             }
 
-            $tags[] = Tag::fromArray($tagData);
+            $tag = Tag::fromArray($tagData);
+            if (null === $tag) {
+                return null;
+            }
+
+            $tags[] = $tag;
         }
 
         return new self($tags);

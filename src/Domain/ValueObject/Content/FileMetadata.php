@@ -127,7 +127,7 @@ final readonly class FileMetadata
     public function toTags(): TagCollection
     {
         return new TagCollection(array_map(
-            static fn (array $field): Tag => Tag::fromArray($field),
+            static fn (array $field): Tag => new Tag(TagType::fromString((string) $field[0]), array_slice($field, 1)),
             $this->fields(),
         ));
     }

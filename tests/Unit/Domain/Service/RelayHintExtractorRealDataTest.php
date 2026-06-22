@@ -16,6 +16,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrlCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\DecodedNip19Entity;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use Innis\Nostr\Core\Tests\Support\TagCollectionMother;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -38,7 +39,7 @@ final class RelayHintExtractorRealDataTest extends TestCase
 
     public function testExtractRelayHintsFromSecondTestEventTags(): void
     {
-        $event = $this->makeEvent(TagCollection::fromArray([
+        $event = $this->makeEvent(TagCollectionMother::fromRaw([
             ['e', 'd359d3ea6c89a51a3a346b03bc552953a72e456af352071d79c6be196ced9771', '', 'mention'],
             ['r', 'wss://nos.lol/'],
             ['r', 'wss://relay.primal.net/'],
@@ -69,7 +70,7 @@ final class RelayHintExtractorRealDataTest extends TestCase
 
     public function testExtractRelayHintsFromThirdTestEventTags(): void
     {
-        $event = $this->makeEvent(TagCollection::fromArray([
+        $event = $this->makeEvent(TagCollectionMother::fromRaw([
             ['a', '30023:472f440f29ef996e92a186b8d320ff180c855903882e59d50de1b8bd5669301e:china-is-prepping-for-something', 'wss://bitcoinmaximalists.online/', 'mention'],
             ['r', 'wss://bitcoinmaximalists.online/'],
             ['r', 'wss://eden.nostr.land/'],
@@ -129,7 +130,7 @@ final class RelayHintExtractorRealDataTest extends TestCase
             PublicKey::fromHex(self::TEST_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1756903083),
             EventKind::fromInt(1),
-            TagCollection::fromArray([
+            TagCollectionMother::fromRaw([
                 ['e', 'd359d3ea6c89a51a3a346b03bc552953a72e456af352071d79c6be196ced9771', '', 'mention'],
                 ['r', 'wss://nos.lol/'],
                 ['r', 'wss://relay.primal.net/'],

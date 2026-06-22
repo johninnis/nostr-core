@@ -6,15 +6,15 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Content;
 
 use Innis\Nostr\Core\Domain\ValueObject\Content\FileMetadata;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
-use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
+use Innis\Nostr\Core\Tests\Support\TagCollectionMother;
 use PHPUnit\Framework\TestCase;
 
 final class FileMetadataTest extends TestCase
 {
     public function testFromTagCollectionWithAllFields(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['url', 'https://cdn.example.com/abc.png'],
             ['m', 'image/png'],
             ['x', str_repeat('a', 64)],
@@ -52,14 +52,14 @@ final class FileMetadataTest extends TestCase
 
     public function testFromTagCollectionReturnsNullWithoutUrl(): void
     {
-        $tags = TagCollection::fromArray([['m', 'image/png']]);
+        $tags = TagCollectionMother::fromRaw([['m', 'image/png']]);
 
         self::assertNull(FileMetadata::fromTagCollection($tags));
     }
 
     public function testFromTagCollectionIgnoresNonNumericSize(): void
     {
-        $tags = TagCollection::fromArray([
+        $tags = TagCollectionMother::fromRaw([
             ['url', 'https://cdn.example.com/abc.png'],
             ['size', 'not-a-number'],
         ]);

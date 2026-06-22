@@ -119,8 +119,8 @@ final class EventFactory
         string $challenge,
     ): Event {
         $tags = new TagCollection([
-            Tag::fromArray([TagType::RELAY, (string) $relayUrl]),
-            Tag::fromArray([TagType::CHALLENGE, $challenge]),
+            Tag::create(TagType::RELAY, (string) $relayUrl),
+            Tag::create(TagType::CHALLENGE, $challenge),
         ]);
 
         return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::CLIENT_AUTH), EventContent::fromString(''), $tags);
@@ -133,12 +133,12 @@ final class EventFactory
         ?string $payloadHash = null,
     ): Event {
         $tags = [
-            Tag::fromArray(['u', $url]),
-            Tag::fromArray([TagType::METHOD, $method]),
+            Tag::create(TagType::URL, $url),
+            Tag::create(TagType::METHOD, $method),
         ];
 
         if (null !== $payloadHash) {
-            $tags[] = Tag::fromArray([TagType::PAYLOAD, $payloadHash]);
+            $tags[] = Tag::create(TagType::PAYLOAD, $payloadHash);
         }
 
         return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::HTTP_AUTH), EventContent::fromString(''), new TagCollection($tags));

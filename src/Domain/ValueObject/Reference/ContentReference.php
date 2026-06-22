@@ -127,7 +127,7 @@ final readonly class ContentReference
             isset($data['public_key']) ? PublicKey::fromHex($data['public_key']) : null,
             isset($data['event_id']) ? EventId::fromHex($data['event_id']) : null,
             is_string($addressableIdentifier) ? $addressableIdentifier : null,
-            isset($data['kind']) && is_int($data['kind']) ? EventKind::fromInt($data['kind']) : null,
+            isset($data['kind']) && is_int($data['kind']) ? EventKind::tryFromInt($data['kind']) : null,
             new RelayUrlCollection($relays),
         );
 

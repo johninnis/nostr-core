@@ -138,7 +138,7 @@ final class Nip19Codec implements Nip19CodecInterface
 
         $kind = self::bytesToInteger($tlv[3][0]);
 
-        return $kind >= 0 && $kind <= 65535 ? EventKind::fromInt($kind) : null;
+        return EventKind::tryFromInt($kind);
     }
 
     private static function relayCollection(array $tlv): RelayUrlCollection

@@ -36,7 +36,7 @@ final readonly class Filter implements JsonSerializable, Stringable
     ) {
         $this->kinds = null !== $kinds ? self::normaliseKinds($kinds) : null;
 
-        if (null !== $this->limit && ($this->limit < 1 || $this->limit > 5000)) {
+        if (!self::isValidLimit($this->limit)) {
             throw new InvalidArgumentException('Limit must be between 1 and 5000');
         }
 
@@ -72,13 +72,19 @@ final readonly class Filter implements JsonSerializable, Stringable
 
     private static function assertFieldWithinCap(string $fieldName, ?array $values): void
     {
-        if (null === $values) {
-            return;
-        }
-
-        if (count($values) > self::MAX_VALUES_PER_FIELD) {
+        if (!self::isWithinCap($values)) {
             throw new InvalidArgumentException(sprintf('Filter field "%s" may contain at most %d values', $fieldName, self::MAX_VALUES_PER_FIELD));
         }
+    }
+
+    private static function isWithinCap(?array $values): bool
+    {
+        return null === $values || count($values) <= self::MAX_VALUES_PER_FIELD;
+    }
+
+    private static function isValidLimit(?int $limit): bool
+    {
+        return null === $limit || ($limit >= 1 && $limit <= 5000);
     }
 
     public function matches(Event $event): bool
@@ -302,24 +308,69 @@ final readonly class Filter implements JsonSerializable, Stringable
             return null;
         }
 
-        if (null !== $kinds && (!is_array($kinds) || !array_all($kinds, static fn (mixed $kind): bool => is_int($kind)))) {
+        if (null !== $kinds && !is_array($kinds)) {
             return null;
         }
 
-        try {
-            return new self(
-                $ids,
-                $authors,
-                $kinds,
-                [] === $tags ? null : $tags,
-                null !== $since ? Timestamp::fromInt($since) : null,
-                null !== $until ? Timestamp::fromInt($until) : null,
-                $limit,
-                $search
-            );
-        } catch (InvalidArgumentException) {
+        $kindObjects = null;
+        if (null !== $kinds) {
+            $kindObjects = [];
+            foreach ($kinds as $kind) {
+                if (!is_int($kind)) {
+                    return null;
+                }
+
+                $eventKind = EventKind::tryFromInt($kind);
+                if (null === $eventKind) {
+                    return null;
+                }
+
+                $kindObjects[] = $eventKind;
+            }
+        }
+
+        $sinceTimestamp = null;
+        if (null !== $since) {
+            $sinceTimestamp = Timestamp::tryFromInt($since);
+            if (null === $sinceTimestamp) {
+                return null;
+            }
+        }
+
+        $untilTimestamp = null;
+        if (null !== $until) {
+            $untilTimestamp = Timestamp::tryFromInt($until);
+            if (null === $untilTimestamp) {
+                return null;
+            }
+        }
+
+        if (null !== $sinceTimestamp && null !== $untilTimestamp && $sinceTimestamp->isAfter($untilTimestamp)) {
             return null;
         }
+
+        if (!self::isValidLimit($limit)
+            || !self::isWithinCap($ids)
+            || !self::isWithinCap($authors)
+            || !self::isWithinCap($kindObjects)
+        ) {
+            return null;
+        }
+
+        if (!array_all($tags, static fn (array $values): bool => self::isWithinCap($values))) {
+            return null;
+        }
+
+        return new self(
+            $ids,
+            $authors,
+            $kindObjects,
+            [] === $tags ? null : $tags,
+            $sinceTimestamp,
+            $untilTimestamp,
+            $limit,
+            $search
+        );
     }
 
     private function matchesTags(Event $event): bool

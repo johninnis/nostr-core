@@ -76,19 +76,19 @@ final readonly class LongformMetadata
         $tags = [Tag::identifier($this->identifier)];
 
         if (null !== $this->title) {
-            $tags[] = Tag::fromArray([TagType::TITLE, $this->title]);
+            $tags[] = Tag::create(TagType::TITLE, $this->title);
         }
 
         if (null !== $this->summary) {
-            $tags[] = Tag::fromArray([TagType::SUMMARY, $this->summary]);
+            $tags[] = Tag::create(TagType::SUMMARY, $this->summary);
         }
 
         if (null !== $this->image) {
-            $tags[] = Tag::fromArray([TagType::IMAGE, $this->image]);
+            $tags[] = Tag::create(TagType::IMAGE, $this->image);
         }
 
         if (null !== $this->publishedAt) {
-            $tags[] = Tag::fromArray([TagType::PUBLISHED_AT, (string) $this->publishedAt->toInt()]);
+            $tags[] = Tag::create(TagType::PUBLISHED_AT, (string) $this->publishedAt->toInt());
         }
 
         foreach ($this->topics as $topic) {
