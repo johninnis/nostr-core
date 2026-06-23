@@ -29,15 +29,15 @@ final class SubscriptionTest extends TestCase
 
         $this->assertTrue($id->equals($subscription->getId()));
         $this->assertSame($filters, $subscription->getFilters());
-        $this->assertSame(SubscriptionState::PENDING, $subscription->getState());
+        $this->assertSame(SubscriptionState::Pending, $subscription->getState());
         $this->assertSame(time(), $subscription->getCreatedAt()->toInt());
     }
 
     public function testCreateAcceptsExplicitState(): void
     {
-        $subscription = Subscription::create(SubscriptionId::generate(), new FilterCollection([new Filter()]), SubscriptionState::ACTIVE);
+        $subscription = Subscription::create(SubscriptionId::generate(), new FilterCollection([new Filter()]), SubscriptionState::Active);
 
-        $this->assertSame(SubscriptionState::ACTIVE, $subscription->getState());
+        $this->assertSame(SubscriptionState::Active, $subscription->getState());
     }
 
     public function testConstructorValidatesFilters(): void
@@ -50,10 +50,10 @@ final class SubscriptionTest extends TestCase
     public function testWithStateReturnsNewInstance(): void
     {
         $subscription = Subscription::create(SubscriptionId::generate(), new FilterCollection([new Filter()]));
-        $updated = $subscription->withState(SubscriptionState::ACTIVE);
+        $updated = $subscription->withState(SubscriptionState::Active);
 
-        $this->assertSame(SubscriptionState::PENDING, $subscription->getState());
-        $this->assertSame(SubscriptionState::ACTIVE, $updated->getState());
+        $this->assertSame(SubscriptionState::Pending, $subscription->getState());
+        $this->assertSame(SubscriptionState::Active, $updated->getState());
         $this->assertTrue($subscription->getId()->equals($updated->getId()));
         $this->assertTrue($subscription->getCreatedAt()->equals($updated->getCreatedAt()));
     }
@@ -63,10 +63,10 @@ final class SubscriptionTest extends TestCase
         $subscription = Subscription::create(SubscriptionId::generate(), new FilterCollection([new Filter()]));
 
         $this->assertTrue($subscription->isOpen());
-        $this->assertTrue($subscription->withState(SubscriptionState::ACTIVE)->isOpen());
-        $this->assertTrue($subscription->withState(SubscriptionState::LIVE)->isOpen());
-        $this->assertFalse($subscription->withState(SubscriptionState::CLOSED_BY_RELAY)->isOpen());
-        $this->assertFalse($subscription->withState(SubscriptionState::CLOSED_BY_CLIENT)->isOpen());
+        $this->assertTrue($subscription->withState(SubscriptionState::Active)->isOpen());
+        $this->assertTrue($subscription->withState(SubscriptionState::Live)->isOpen());
+        $this->assertFalse($subscription->withState(SubscriptionState::ClosedByRelay)->isOpen());
+        $this->assertFalse($subscription->withState(SubscriptionState::ClosedByClient)->isOpen());
     }
 
     public function testMatchesEventWhenReceivingEvents(): void
@@ -85,10 +85,10 @@ final class SubscriptionTest extends TestCase
 
         $this->assertFalse($subscription->matchesEvent($event));
 
-        $active = $subscription->withState(SubscriptionState::ACTIVE);
+        $active = $subscription->withState(SubscriptionState::Active);
         $this->assertTrue($active->matchesEvent($event));
 
-        $live = $subscription->withState(SubscriptionState::LIVE);
+        $live = $subscription->withState(SubscriptionState::Live);
         $this->assertTrue($live->matchesEvent($event));
     }
 
@@ -105,7 +105,7 @@ final class SubscriptionTest extends TestCase
 
         $filter = new Filter(kinds: [EventKind::TEXT_NOTE]);
         $closed = Subscription::create(SubscriptionId::generate(), new FilterCollection([$filter]))
-            ->withState(SubscriptionState::CLOSED_BY_CLIENT);
+            ->withState(SubscriptionState::ClosedByClient);
 
         $this->assertFalse($closed->matchesEvent($event));
     }
@@ -114,7 +114,7 @@ final class SubscriptionTest extends TestCase
     {
         $id = SubscriptionId::fromString('test-sub') ?? throw new RuntimeException('Expected a valid subscription ID');
         $filter = new Filter(kinds: [EventKind::TEXT_NOTE]);
-        $subscription = new Subscription($id, new FilterCollection([$filter]), Timestamp::fromInt(1700000000), SubscriptionState::LIVE);
+        $subscription = new Subscription($id, new FilterCollection([$filter]), Timestamp::fromInt(1700000000), SubscriptionState::Live);
 
         $array = $subscription->toArray();
 
@@ -137,7 +137,7 @@ final class SubscriptionTest extends TestCase
 
         $this->assertNotNull($subscription);
         $this->assertSame('test-sub', (string) $subscription->getId());
-        $this->assertSame(SubscriptionState::ACTIVE, $subscription->getState());
+        $this->assertSame(SubscriptionState::Active, $subscription->getState());
     }
 
     public function testFromArrayDefaultsToPendingWhenStateAbsent(): void
@@ -151,7 +151,7 @@ final class SubscriptionTest extends TestCase
         $subscription = Subscription::fromArray($data);
 
         $this->assertNotNull($subscription);
-        $this->assertSame(SubscriptionState::PENDING, $subscription->getState());
+        $this->assertSame(SubscriptionState::Pending, $subscription->getState());
     }
 
     public function testFromArrayReturnsNullWhenRequiredFieldMissing(): void

@@ -92,7 +92,7 @@ final class Bech32Codec
 
         $hrp = pack('C*', ...array_slice($chars, 0, $separatorPosition));
         $data = array_map(
-            static fn (int $char): int => ($char & 0x80) ? -1 : self::CHARKEY[$char],
+            static fn (int $char): int => self::CHARKEY[$char],
             array_slice($chars, $separatorPosition + 1)
         );
 

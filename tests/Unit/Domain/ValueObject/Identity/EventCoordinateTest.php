@@ -292,6 +292,48 @@ final class EventCoordinateTest extends TestCase
         ]));
     }
 
+    public function testFromArrayReturnsNullForNonStringPubkey(): void
+    {
+        $this->assertNull(EventCoordinate::fromArray([
+            'kind' => self::VALID_KIND,
+            'pubkey' => 12345,
+            'identifier' => self::VALID_IDENTIFIER,
+        ]));
+    }
+
+    public function testFromArrayReturnsNullForNonStringIdentifier(): void
+    {
+        $this->assertNull(EventCoordinate::fromArray([
+            'kind' => self::VALID_KIND,
+            'pubkey' => self::VALID_PUBKEY,
+            'identifier' => ['nested'],
+        ]));
+    }
+
+    public function testFromArrayReturnsNullForNonIntKind(): void
+    {
+        $this->assertNull(EventCoordinate::fromArray([
+            'kind' => '30023',
+            'pubkey' => self::VALID_PUBKEY,
+            'identifier' => self::VALID_IDENTIFIER,
+        ]));
+    }
+
+    public function testFromArrayReturnsNullForNonStringRelayHint(): void
+    {
+        $this->assertNull(EventCoordinate::fromArray([
+            'kind' => self::VALID_KIND,
+            'pubkey' => self::VALID_PUBKEY,
+            'identifier' => self::VALID_IDENTIFIER,
+            'relay_hint' => 42,
+        ]));
+    }
+
+    public function testFromATagReturnsNullForNonStringCoordinate(): void
+    {
+        $this->assertNull(EventCoordinate::fromATag(['a', 12345]));
+    }
+
     public function testRoundTripThroughArray(): void
     {
         $coordinate = $this->createCoordinate(self::VALID_RELAY);

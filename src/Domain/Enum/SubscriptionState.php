@@ -6,34 +6,34 @@ namespace Innis\Nostr\Core\Domain\Enum;
 
 enum SubscriptionState: string
 {
-    case PENDING = 'pending';
-    case ACTIVE = 'active';
-    case LIVE = 'live';
-    case CLOSED_BY_RELAY = 'closed_by_relay';
-    case CLOSED_BY_CLIENT = 'closed_by_client';
+    case Pending = 'pending';
+    case Active = 'active';
+    case Live = 'live';
+    case ClosedByRelay = 'closed_by_relay';
+    case ClosedByClient = 'closed_by_client';
 
     public function isPending(): bool
     {
-        return self::PENDING === $this;
+        return self::Pending === $this;
     }
 
     public function isOpen(): bool
     {
-        return in_array($this, [self::PENDING, self::ACTIVE, self::LIVE], true);
+        return in_array($this, [self::Pending, self::Active, self::Live], true);
     }
 
     public function isReceivingEvents(): bool
     {
-        return in_array($this, [self::ACTIVE, self::LIVE], true);
+        return in_array($this, [self::Active, self::Live], true);
     }
 
     public function isLive(): bool
     {
-        return self::LIVE === $this;
+        return self::Live === $this;
     }
 
     public function isTerminal(): bool
     {
-        return in_array($this, [self::CLOSED_BY_RELAY, self::CLOSED_BY_CLIENT], true);
+        return in_array($this, [self::ClosedByRelay, self::ClosedByClient], true);
     }
 }

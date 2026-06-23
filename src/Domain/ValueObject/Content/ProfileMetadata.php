@@ -22,22 +22,7 @@ final readonly class ProfileMetadata
 
     public static function fromJsonString(string $json): self
     {
-        $data = JsonWireFormat::decodeArray($json);
-
-        if (null === $data) {
-            return new self(null, null, null, null, null, null, null, null);
-        }
-
-        return new self(
-            self::extractString($data, 'name'),
-            self::extractString($data, 'display_name'),
-            self::extractString($data, 'about'),
-            self::extractString($data, 'picture'),
-            self::extractString($data, 'banner'),
-            self::extractString($data, 'website'),
-            self::extractString($data, 'nip05'),
-            self::extractString($data, 'lud16'),
-        );
+        return self::fromArray(JsonWireFormat::decodeArray($json) ?? []);
     }
 
     private static function extractString(array $data, string $key): ?string
@@ -104,14 +89,14 @@ final readonly class ProfileMetadata
     public static function fromArray(array $data): self
     {
         return new self(
-            $data['name'] ?? null,
-            $data['display_name'] ?? null,
-            $data['about'] ?? null,
-            $data['picture'] ?? null,
-            $data['banner'] ?? null,
-            $data['website'] ?? null,
-            $data['nip05'] ?? null,
-            $data['lud16'] ?? null,
+            self::extractString($data, 'name'),
+            self::extractString($data, 'display_name'),
+            self::extractString($data, 'about'),
+            self::extractString($data, 'picture'),
+            self::extractString($data, 'banner'),
+            self::extractString($data, 'website'),
+            self::extractString($data, 'nip05'),
+            self::extractString($data, 'lud16'),
         );
     }
 

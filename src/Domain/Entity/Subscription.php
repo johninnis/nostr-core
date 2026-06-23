@@ -14,11 +14,11 @@ final readonly class Subscription
         private SubscriptionId $id,
         private FilterCollection $filters,
         private Timestamp $createdAt,
-        private SubscriptionState $state = SubscriptionState::PENDING,
+        private SubscriptionState $state = SubscriptionState::Pending,
     ) {
     }
 
-    public static function create(SubscriptionId $id, FilterCollection $filters, SubscriptionState $state = SubscriptionState::PENDING, ?Timestamp $createdAt = null): self
+    public static function create(SubscriptionId $id, FilterCollection $filters, SubscriptionState $state = SubscriptionState::Pending, ?Timestamp $createdAt = null): self
     {
         return new self($id, $filters, $createdAt ?? Timestamp::now(), $state);
     }
@@ -101,7 +101,7 @@ final readonly class Subscription
             $filters[] = $filter;
         }
 
-        $state = SubscriptionState::PENDING;
+        $state = SubscriptionState::Pending;
         if (isset($data['state'])) {
             if (!is_string($data['state'])) {
                 return null;

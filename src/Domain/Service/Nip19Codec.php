@@ -27,8 +27,8 @@ final class Nip19Codec implements Nip19CodecInterface
         $data = $decoded['data'];
 
         return match ($decoded['hrp']) {
-            'npub' => new DecodedNip19Entity(Nip19EntityType::Pubkey, publicKey: PublicKey::fromBytes($data)),
-            'note' => new DecodedNip19Entity(Nip19EntityType::Event, eventId: EventId::fromBytes($data)),
+            'npub' => $this->decodePubkey($data),
+            'note' => $this->decodeNote($data),
             'nprofile' => $this->decodeProfile($data),
             'nevent' => $this->decodeEvent($data),
             'naddr' => $this->decodeAddress($data),
@@ -82,6 +82,20 @@ final class Nip19Codec implements Nip19CodecInterface
             $identifier,
             null !== $firstRelay ? (string) $firstRelay : null,
         );
+    }
+
+    private function decodePubkey(string $data): ?DecodedNip19Entity
+    {
+        $publicKey = PublicKey::fromBytes($data);
+
+        return null !== $publicKey ? new DecodedNip19Entity(Nip19EntityType::Pubkey, publicKey: $publicKey) : null;
+    }
+
+    private function decodeNote(string $data): ?DecodedNip19Entity
+    {
+        $eventId = EventId::fromBytes($data);
+
+        return null !== $eventId ? new DecodedNip19Entity(Nip19EntityType::Event, eventId: $eventId) : null;
     }
 
     private function decodeProfile(string $data): ?DecodedNip19Entity

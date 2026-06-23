@@ -108,16 +108,16 @@ final class SubscriptionCollectionTest extends TestCase
         $subscription = $this->createSubscription('sub-1');
         $collection = SubscriptionCollection::empty()->add($subscription);
 
-        $updated = $collection->withUpdatedState(self::subscriptionId('sub-1'), SubscriptionState::ACTIVE);
+        $updated = $collection->withUpdatedState(self::subscriptionId('sub-1'), SubscriptionState::Active);
 
-        $this->assertSame(SubscriptionState::PENDING, $collection->getState(self::subscriptionId('sub-1')));
-        $this->assertSame(SubscriptionState::ACTIVE, $updated->getState(self::subscriptionId('sub-1')));
+        $this->assertSame(SubscriptionState::Pending, $collection->getState(self::subscriptionId('sub-1')));
+        $this->assertSame(SubscriptionState::Active, $updated->getState(self::subscriptionId('sub-1')));
     }
 
     public function testWithUpdatedStateReturnsUnchangedForUnknown(): void
     {
         $collection = SubscriptionCollection::empty();
-        $updated = $collection->withUpdatedState(self::subscriptionId('unknown'), SubscriptionState::ACTIVE);
+        $updated = $collection->withUpdatedState(self::subscriptionId('unknown'), SubscriptionState::Active);
 
         $this->assertTrue($updated->isEmpty());
     }
@@ -129,10 +129,10 @@ final class SubscriptionCollectionTest extends TestCase
         $collection = SubscriptionCollection::empty()
             ->add($sub1)
             ->add($sub2)
-            ->withUpdatedState(self::subscriptionId('sub-1'), SubscriptionState::ACTIVE);
+            ->withUpdatedState(self::subscriptionId('sub-1'), SubscriptionState::Active);
 
         $active = $collection->filter(
-            static fn (Subscription $s) => SubscriptionState::ACTIVE === $s->getState()
+            static fn (Subscription $s) => SubscriptionState::Active === $s->getState()
         );
 
         $this->assertSame(1, $active->count());

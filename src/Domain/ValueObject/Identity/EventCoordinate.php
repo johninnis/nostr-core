@@ -62,7 +62,7 @@ final readonly class EventCoordinate implements Stringable
 
     public static function fromATag(array $tag): ?self
     {
-        if (!isset($tag[0]) || 'a' !== $tag[0] || !isset($tag[1])) {
+        if (!isset($tag[0]) || 'a' !== $tag[0] || !isset($tag[1]) || !is_string($tag[1])) {
             return null;
         }
 
@@ -168,11 +168,20 @@ final readonly class EventCoordinate implements Stringable
             return null;
         }
 
+        if (!is_int($data['kind']) || !is_string($data['pubkey']) || !is_string($data['identifier'])) {
+            return null;
+        }
+
+        $relayHint = $data['relay_hint'] ?? null;
+        if (null !== $relayHint && !is_string($relayHint)) {
+            return null;
+        }
+
         return self::fromParts(
-            (int) $data['kind'],
+            $data['kind'],
             $data['pubkey'],
             $data['identifier'],
-            $data['relay_hint'] ?? null
+            $relayHint,
         );
     }
 }

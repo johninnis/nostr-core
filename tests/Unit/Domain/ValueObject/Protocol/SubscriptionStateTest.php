@@ -11,7 +11,7 @@ final class SubscriptionStateTest extends TestCase
 {
     public function testPendingStatePredicates(): void
     {
-        $state = SubscriptionState::PENDING;
+        $state = SubscriptionState::Pending;
 
         $this->assertTrue($state->isPending());
         $this->assertTrue($state->isOpen());
@@ -22,7 +22,7 @@ final class SubscriptionStateTest extends TestCase
 
     public function testActiveStatePredicates(): void
     {
-        $state = SubscriptionState::ACTIVE;
+        $state = SubscriptionState::Active;
 
         $this->assertFalse($state->isPending());
         $this->assertTrue($state->isOpen());
@@ -33,7 +33,7 @@ final class SubscriptionStateTest extends TestCase
 
     public function testLiveStatePredicates(): void
     {
-        $state = SubscriptionState::LIVE;
+        $state = SubscriptionState::Live;
 
         $this->assertFalse($state->isPending());
         $this->assertTrue($state->isOpen());
@@ -44,7 +44,7 @@ final class SubscriptionStateTest extends TestCase
 
     public function testClosedByRelayStatePredicates(): void
     {
-        $state = SubscriptionState::CLOSED_BY_RELAY;
+        $state = SubscriptionState::ClosedByRelay;
 
         $this->assertFalse($state->isPending());
         $this->assertFalse($state->isOpen());
@@ -55,7 +55,7 @@ final class SubscriptionStateTest extends TestCase
 
     public function testClosedByClientStatePredicates(): void
     {
-        $state = SubscriptionState::CLOSED_BY_CLIENT;
+        $state = SubscriptionState::ClosedByClient;
 
         $this->assertFalse($state->isPending());
         $this->assertFalse($state->isOpen());
@@ -66,20 +66,20 @@ final class SubscriptionStateTest extends TestCase
 
     public function testBackedStringValues(): void
     {
-        $this->assertSame('pending', SubscriptionState::PENDING->value);
-        $this->assertSame('active', SubscriptionState::ACTIVE->value);
-        $this->assertSame('live', SubscriptionState::LIVE->value);
-        $this->assertSame('closed_by_relay', SubscriptionState::CLOSED_BY_RELAY->value);
-        $this->assertSame('closed_by_client', SubscriptionState::CLOSED_BY_CLIENT->value);
+        $this->assertSame('pending', SubscriptionState::Pending->value);
+        $this->assertSame('active', SubscriptionState::Active->value);
+        $this->assertSame('live', SubscriptionState::Live->value);
+        $this->assertSame('closed_by_relay', SubscriptionState::ClosedByRelay->value);
+        $this->assertSame('closed_by_client', SubscriptionState::ClosedByClient->value);
     }
 
     public function testFromStringValue(): void
     {
-        $this->assertSame(SubscriptionState::PENDING, SubscriptionState::from('pending'));
-        $this->assertSame(SubscriptionState::ACTIVE, SubscriptionState::from('active'));
-        $this->assertSame(SubscriptionState::LIVE, SubscriptionState::from('live'));
-        $this->assertSame(SubscriptionState::CLOSED_BY_RELAY, SubscriptionState::from('closed_by_relay'));
-        $this->assertSame(SubscriptionState::CLOSED_BY_CLIENT, SubscriptionState::from('closed_by_client'));
+        $this->assertSame(SubscriptionState::Pending, SubscriptionState::from('pending'));
+        $this->assertSame(SubscriptionState::Active, SubscriptionState::from('active'));
+        $this->assertSame(SubscriptionState::Live, SubscriptionState::from('live'));
+        $this->assertSame(SubscriptionState::ClosedByRelay, SubscriptionState::from('closed_by_relay'));
+        $this->assertSame(SubscriptionState::ClosedByClient, SubscriptionState::from('closed_by_client'));
     }
 
     public function testInvalidStringValueReturnsNull(): void
