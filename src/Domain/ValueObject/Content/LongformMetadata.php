@@ -11,6 +11,9 @@ use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 
 final readonly class LongformMetadata
 {
+    /**
+     * @param list<string> $topics
+     */
     public function __construct(
         private string $identifier,
         private ?string $title,
@@ -46,6 +49,9 @@ final readonly class LongformMetadata
         return $this->publishedAt;
     }
 
+    /**
+     * @return list<string>
+     */
     public function getTopics(): array
     {
         return $this->topics;
@@ -67,7 +73,7 @@ final readonly class LongformMetadata
             $tags->getFirstValueByType(TagType::fromString(TagType::SUMMARY)),
             $tags->getFirstValueByType(TagType::fromString(TagType::IMAGE)),
             $publishedAt,
-            array_values($tags->getValuesByType(TagType::hashtag())),
+            $tags->getValuesByType(TagType::hashtag()),
         );
     }
 

@@ -13,7 +13,7 @@ use IteratorAggregate;
 use Override;
 
 // Deliberate: a keyed-map registry, not a list, so it does not extend TypedCollection's ordered-list mechanism — see ADR-0007
-final class SubscriptionCollection implements IteratorAggregate, Countable
+final readonly class SubscriptionCollection implements IteratorAggregate, Countable
 {
     private array $subscriptions;
 
@@ -80,6 +80,9 @@ final class SubscriptionCollection implements IteratorAggregate, Countable
         return $this->get($subscriptionId)?->getState();
     }
 
+    /**
+     * @return list<string>
+     */
     public function keys(): array
     {
         return array_keys($this->subscriptions);

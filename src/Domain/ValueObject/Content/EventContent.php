@@ -38,6 +38,9 @@ final readonly class EventContent implements Stringable
         return new self('');
     }
 
+    /**
+     * @return list<string>
+     */
     public function extractHashtags(): array
     {
         preg_match_all('/(?<![&\w])#([a-zA-Z0-9_]+)/u', $this->content, $matches);

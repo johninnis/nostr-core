@@ -12,6 +12,9 @@ final readonly class FileMetadata
 {
     private const string IMETA_TYPE = 'imeta';
 
+    /**
+     * @param list<string> $fallbacks
+     */
     public function __construct(
         private string $url,
         private ?string $mimeType = null,
@@ -83,6 +86,9 @@ final readonly class FileMetadata
         return $this->alt;
     }
 
+    /**
+     * @return list<string>
+     */
     public function getFallbacks(): array
     {
         return $this->fallbacks;
@@ -236,6 +242,9 @@ final readonly class FileMetadata
         return is_string($value) ? $value : null;
     }
 
+    /**
+     * @return list<string>
+     */
     private static function stringList(array $fields, string $key): array
     {
         $values = $fields[$key] ?? null;

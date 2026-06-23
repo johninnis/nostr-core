@@ -18,7 +18,7 @@ use Override;
 abstract class TypedCollection implements IteratorAggregate, Countable
 {
     /** @var list<T> */
-    protected array $items;
+    protected readonly array $items;
 
     final public function __construct(array $items = [])
     {

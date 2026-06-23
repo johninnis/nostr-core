@@ -49,11 +49,17 @@ final class TagCollection extends TypedCollection
         )));
     }
 
+    /**
+     * @return list<Tag>
+     */
     public function findByType(TagType $type): array
     {
         return $this->findByName((string) $type);
     }
 
+    /**
+     * @return list<Tag>
+     */
     public function findByName(string $name): array
     {
         return array_values(array_filter(
@@ -67,6 +73,9 @@ final class TagCollection extends TypedCollection
         return [] !== $this->findByType($type);
     }
 
+    /**
+     * @return list<string>
+     */
     public function getValuesByType(TagType $type, int $valueIndex = 0): array
     {
         $tags = $this->findByType($type);
@@ -79,11 +88,17 @@ final class TagCollection extends TypedCollection
         ));
     }
 
+    /**
+     * @return list<string>
+     */
     public function getPubkeys(): array
     {
         return $this->getValuesByType(TagType::pubkey());
     }
 
+    /**
+     * @return list<string>
+     */
     public function getEventIds(): array
     {
         return $this->getValuesByType(TagType::event());

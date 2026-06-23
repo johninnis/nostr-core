@@ -39,7 +39,7 @@ Declared in `composer.json`:
 Declared under `suggest` in `composer.json` (used by optional code paths that the recommended typical usage will load anyway):
 
 - `ext-gmp` is needed by the pure-PHP signing and ECDH fallback (the documented path when `libsecp256k1` is unavailable). If you know you always have `libsecp256k1` installed and never invoke the pure-PHP path, this extension is not touched.
-- `ext-mbstring` is needed by the search-filter matcher, `EventContent::getLength`, and the bech32 TLV decoder. Most consumers will hit one of these.
+- `ext-mbstring` is needed by the search-filter matcher and `EventContent::getLength`. Most consumers will hit one of these.
 - `ext-ffi` is needed by NIP-49 (unconditionally) and by the `Secp256k1Signer::create()` / `Secp256k1Ecdh::create()` factories (for the `libsecp256k1` probe). Consumers who do not use NIP-49 and who construct the adapters directly with `new Secp256k1Signer(null, ...)` / `new Secp256k1Ecdh()` can run without `ext-ffi` at all and stay on the pure-PHP path.
 
 ### Optional system libraries
@@ -232,7 +232,7 @@ This package follows Clean Architecture principles with strict layer separation:
 
 - **Domain Layer**: Pure business logic, immutable entities and value objects (cryptographic library is the sole external dependency, used directly by identity value objects)
 - **Application Layer**: Port interfaces for external service integration
-- **Infrastructure Layer**: Implementations of the domain and application interfaces, grouped by concern (`Crypto/`, `Encoding/`, `Http/`, `Reference/`)
+- **Infrastructure Layer**: Implementations of the domain and application interfaces, grouped by concern (`Crypto/`, `Encoding/`, `Http/`, `Time/`)
 
 ## Architecture decisions
 

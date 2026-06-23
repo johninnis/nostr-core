@@ -102,6 +102,9 @@ final readonly class EventCoordinate implements Stringable
         return $this->kind->toInt().':'.$this->pubkey->toHex().':'.$this->identifier;
     }
 
+    /**
+     * @return list<string>
+     */
     public function toATag(): array
     {
         $tag = ['a', (string) $this];
