@@ -30,6 +30,9 @@ final class RelayHintExtractor implements RelayHintExtractorInterface
         return new RelayUrlCollection($relays)->unique();
     }
 
+    /**
+     * @return list<RelayUrl>
+     */
     private function extractFromTags(TagCollection $tags): array
     {
         $relays = [];
@@ -51,6 +54,9 @@ final class RelayHintExtractor implements RelayHintExtractorInterface
         return $relays;
     }
 
+    /**
+     * @return list<RelayUrl>
+     */
     private function extractFromContent(EventContent $content): array
     {
         $relays = [];

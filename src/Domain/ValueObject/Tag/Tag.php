@@ -8,13 +8,18 @@ use InvalidArgumentException;
 
 final readonly class Tag
 {
+    /** @var list<string> */
+    private array $values;
+
     public function __construct(
         private TagType $type,
-        private array $values,
+        array $values,
     ) {
-        if (!array_all($this->values, static fn (mixed $value): bool => is_string($value))) {
+        if (!array_all($values, static fn (mixed $value): bool => is_string($value))) {
             throw new InvalidArgumentException('All tag values must be strings');
         }
+
+        $this->values = array_values($values);
     }
 
     public function getType(): TagType
@@ -27,6 +32,9 @@ final readonly class Tag
         return $this->values[$index] ?? null;
     }
 
+    /**
+     * @return list<string>
+     */
     public function getValues(): array
     {
         return $this->values;

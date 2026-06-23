@@ -115,10 +115,6 @@ final readonly class FileMetadata
 
         $fields = [];
         foreach ($tag->getValues() as $entry) {
-            if (!is_string($entry)) {
-                continue;
-            }
-
             $boundary = strpos($entry, ' ');
             if (false === $boundary) {
                 continue;

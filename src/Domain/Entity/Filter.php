@@ -17,6 +17,7 @@ final readonly class Filter implements JsonSerializable, Stringable
 {
     public const int MAX_VALUES_PER_FIELD = 1000;
 
+    /** @var list<EventKind>|null */
     private ?array $kinds;
     private ?array $idSet;
     private ?array $authorSet;
@@ -140,6 +141,9 @@ final readonly class Filter implements JsonSerializable, Stringable
         return null !== $this->authors;
     }
 
+    /**
+     * @return list<EventKind>|null
+     */
     public function getKinds(): ?array
     {
         return $this->kinds;
@@ -213,12 +217,17 @@ final readonly class Filter implements JsonSerializable, Stringable
         );
     }
 
+    /**
+     * @param array<int|EventKind> $kinds
+     *
+     * @return list<EventKind>
+     */
     private static function normaliseKinds(array $kinds): array
     {
-        return array_map(
+        return array_values(array_map(
             static fn (int|EventKind $kind) => $kind instanceof EventKind ? $kind : EventKind::fromInt($kind),
             $kinds
-        );
+        ));
     }
 
     public function toArray(): array
