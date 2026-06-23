@@ -24,6 +24,10 @@ final class Bech32Codec
     private const int MAX_LENGTH = 5000;
     private const int CHECKSUM_LENGTH = 6;
 
+    private function __construct()
+    {
+    }
+
     public static function encode(string $hrp, string $bytes, Bech32Variant $variant = Bech32Variant::Bech32): string
     {
         $byteValues = '' === $bytes ? [] : array_values((array) unpack('C*', $bytes));

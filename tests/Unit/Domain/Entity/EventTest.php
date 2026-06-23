@@ -673,6 +673,22 @@ final class EventTest extends TestCase
         $this->assertSame('{"key":"value"}', (string) $event->getContent());
     }
 
+    public function testFromArrayCoercesNonStringContentWithCanonicalEventEncoding(): void
+    {
+        $array = [
+            'pubkey' => $this->keyPair->getPublicKey()->toHex(),
+            'created_at' => 1234567890,
+            'kind' => 0,
+            'tags' => [],
+            'content' => ['name' => 'café'],
+        ];
+
+        $event = Event::fromArray($array);
+
+        $this->assertNotNull($event);
+        $this->assertSame('{"name":"café"}', (string) $event->getContent());
+    }
+
     public function testFromArrayHandlesEmptySignature(): void
     {
         $array = [

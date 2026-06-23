@@ -12,6 +12,10 @@ use Mdanter\Ecc\Primitives\GeneratorPoint;
 
 final class Secp256k1Math
 {
+    private function __construct()
+    {
+    }
+
     public static function generator(): GeneratorPoint
     {
         return EccFactory::getSecgCurves()->generator256k1();

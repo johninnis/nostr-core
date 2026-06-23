@@ -17,6 +17,10 @@ final class JsonWireFormat
     // hashFilters implementation byte-for-byte.
     public const int FILTER_HASH = JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR;
 
+    private function __construct()
+    {
+    }
+
     /**
      * @return array<mixed>|null
      */

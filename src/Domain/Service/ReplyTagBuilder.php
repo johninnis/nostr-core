@@ -13,6 +13,10 @@ use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 
 final class ReplyTagBuilder
 {
+    private function __construct()
+    {
+    }
+
     public static function build(Event $replyTo, ?Event $root = null): TagCollection
     {
         return self::buildFromValues(

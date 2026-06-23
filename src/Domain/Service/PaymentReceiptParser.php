@@ -11,6 +11,10 @@ use Innis\Nostr\Core\Domain\ValueObject\Payment\ZapReceipt;
 
 final class PaymentReceiptParser
 {
+    private function __construct()
+    {
+    }
+
     public static function fromEvent(Event $event): ?PaymentReceiptInterface
     {
         return ZapReceipt::fromEvent($event) ?? Nutzap::fromEvent($event);

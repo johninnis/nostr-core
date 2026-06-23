@@ -272,7 +272,8 @@ final readonly class Event implements Stringable
 
         $content = $data['content'];
         if (!is_string($content)) {
-            $content = json_encode($content, JSON_UNESCAPED_SLASHES);
+            // Deliberate: coerces non-string content to the canonical event JSON string rather than rejecting it — see ADR-0022
+            $content = json_encode($content, JsonWireFormat::EVENT);
             if (false === $content) {
                 return null;
             }

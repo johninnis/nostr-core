@@ -20,6 +20,10 @@ use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 
 final class ReplyChainAnalyser
 {
+    private function __construct()
+    {
+    }
+
     public static function analyse(TagCollection $tags, ?EventKind $kind = null): ReplyChain
     {
         if (null !== $kind && $kind->is(EventKind::COMMENT)) {

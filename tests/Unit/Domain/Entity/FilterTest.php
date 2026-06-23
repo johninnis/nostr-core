@@ -756,6 +756,18 @@ final class FilterTest extends TestCase
         $this->assertSame('{"kinds":[1]}', json_encode((new Filter(kinds: [1]))->jsonSerialize(), JSON_THROW_ON_ERROR));
     }
 
+    public function testEmptyFilterCastsToStringAsAnObject(): void
+    {
+        $this->assertSame('{}', (string) new Filter());
+    }
+
+    public function testCastToStringAgreesWithJsonSerialisation(): void
+    {
+        $filter = new Filter(kinds: [1], authors: ['abc']);
+
+        $this->assertSame(json_encode($filter->jsonSerialize(), JSON_THROW_ON_ERROR), (string) $filter);
+    }
+
     public function testEmptyFilterRoundTripsThroughTheJsonForm(): void
     {
         $restored = Filter::fromArray((new Filter())->jsonSerialize());

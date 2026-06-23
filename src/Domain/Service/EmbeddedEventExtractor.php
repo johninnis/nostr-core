@@ -8,6 +8,10 @@ use Innis\Nostr\Core\Domain\Entity\Event;
 
 final class EmbeddedEventExtractor
 {
+    private function __construct()
+    {
+    }
+
     public static function extract(Event $event): ?Event
     {
         if (!$event->isRepost()) {

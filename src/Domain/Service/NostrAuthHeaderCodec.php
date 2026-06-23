@@ -14,6 +14,10 @@ final class NostrAuthHeaderCodec
     public const int MAX_HEADER_LENGTH = 4096;
     private const int JSON_MAX_DEPTH = 16;
 
+    private function __construct()
+    {
+    }
+
     public static function decode(string $authHeader): Event|AuthHeaderDecodeFailure
     {
         if (strlen($authHeader) > self::MAX_HEADER_LENGTH) {

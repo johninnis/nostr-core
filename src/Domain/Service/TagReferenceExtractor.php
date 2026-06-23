@@ -22,6 +22,10 @@ use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 
 final class TagReferenceExtractor
 {
+    private function __construct()
+    {
+    }
+
     public static function extract(TagCollection $tags): TagReferences
     {
         $events = [];

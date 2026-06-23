@@ -9,6 +9,10 @@ use stdClass;
 
 final class FilterHasher
 {
+    private function __construct()
+    {
+    }
+
     public static function hash(Filter ...$filters): string
     {
         $canonical = array_map(

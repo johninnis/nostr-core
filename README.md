@@ -23,7 +23,6 @@ Code is organised around domain concepts (events, identities, tags, messages) ra
 - Typed, immutable domain collections and a subscription model
 - Full NIP compliance validation
 - Type-safe message handling with domain objects at all boundaries
-- Optimised tag lookups via lazy indexing
 - Extensive test coverage with PHPStan level 9
 
 ## Requirements
@@ -262,6 +261,7 @@ Design rationale lives in [`docs/adr/`](docs/adr/) as immutable Architecture Dec
 | [0019](docs/adr/0019-domain-first-organisation-cryptography-only-domain-dependency.md) | Code is organised domain-first, and cryptography is the only external dependency in the domain layer |
 | [0020](docs/adr/0020-filterhasher-canonicalises-to-ascii-safe-json-for-cross-language-parity.md) | `FilterHasher` canonicalises to ASCII-safe JSON for byte-identical cross-language hashes |
 | [0021](docs/adr/0021-single-bech32codec-covers-bech32-and-bech32m.md) | A single `Bech32Codec` covers both bech32 and bech32m |
+| [0022](docs/adr/0022-event-fromarray-coerces-non-string-content.md) | `Event::fromArray` coerces non-string `content` to its JSON string rather than rejecting it |
 
 ## Dependencies
 
