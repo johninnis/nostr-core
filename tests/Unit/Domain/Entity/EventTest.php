@@ -619,6 +619,15 @@ final class EventTest extends TestCase
         $this->assertSame(1700000000, $publishedAt->toInt());
     }
 
+    public function testGetPublishedAtReturnsNullWhenTagValueNegative(): void
+    {
+        $event = $this->createEventWithKindAndContent(1, 'Test', [
+            ['published_at', '-1'],
+        ]);
+
+        $this->assertNull($event->getPublishedAt());
+    }
+
     public function testGetPublishedAtReturnsNullWhenNoTag(): void
     {
         $this->assertNull($this->event->getPublishedAt());
@@ -739,6 +748,15 @@ final class EventTest extends TestCase
     {
         $event = $this->createEventWithKindAndContent(1, 'test', [
             ['expiration', (string) (time() + 3600)],
+        ]);
+
+        $this->assertFalse($event->isExpired());
+    }
+
+    public function testIsExpiredReturnsFalseForNegativeExpirationValue(): void
+    {
+        $event = $this->createEventWithKindAndContent(1, 'test', [
+            ['expiration', '-1'],
         ]);
 
         $this->assertFalse($event->isExpired());

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Content;
 
+use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
@@ -116,15 +117,26 @@ final readonly class LongformMetadata
         ];
     }
 
-    public static function fromArray(array $data): self
+    public static function fromArray(array $data): ?self
     {
+        $identifier = JsonWireFormat::stringField($data, 'identifier');
+        if (null === $identifier) {
+            return null;
+        }
+
+        $publishedAtValue = JsonWireFormat::intField($data, 'published_at');
+        $publishedAt = null !== $publishedAtValue ? Timestamp::tryFromInt($publishedAtValue) : null;
+
+        $rawTopics = $data['topics'] ?? null;
+        $topics = is_array($rawTopics) ? array_values(array_filter($rawTopics, is_string(...))) : [];
+
         return new self(
-            $data['identifier'],
-            $data['title'] ?? null,
-            $data['summary'] ?? null,
-            $data['image'] ?? null,
-            isset($data['published_at']) ? Timestamp::fromInt($data['published_at']) : null,
-            $data['topics'] ?? []
+            $identifier,
+            JsonWireFormat::stringField($data, 'title'),
+            JsonWireFormat::stringField($data, 'summary'),
+            JsonWireFormat::stringField($data, 'image'),
+            $publishedAt,
+            $topics,
         );
     }
 

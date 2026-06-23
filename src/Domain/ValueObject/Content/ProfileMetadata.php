@@ -25,13 +25,6 @@ final readonly class ProfileMetadata
         return self::fromArray(JsonWireFormat::decodeArray($json) ?? []);
     }
 
-    private static function extractString(array $data, string $key): ?string
-    {
-        $value = $data[$key] ?? null;
-
-        return is_string($value) ? $value : null;
-    }
-
     public function getName(): ?string
     {
         return $this->name;
@@ -89,14 +82,14 @@ final readonly class ProfileMetadata
     public static function fromArray(array $data): self
     {
         return new self(
-            self::extractString($data, 'name'),
-            self::extractString($data, 'display_name'),
-            self::extractString($data, 'about'),
-            self::extractString($data, 'picture'),
-            self::extractString($data, 'banner'),
-            self::extractString($data, 'website'),
-            self::extractString($data, 'nip05'),
-            self::extractString($data, 'lud16'),
+            JsonWireFormat::stringField($data, 'name'),
+            JsonWireFormat::stringField($data, 'display_name'),
+            JsonWireFormat::stringField($data, 'about'),
+            JsonWireFormat::stringField($data, 'picture'),
+            JsonWireFormat::stringField($data, 'banner'),
+            JsonWireFormat::stringField($data, 'website'),
+            JsonWireFormat::stringField($data, 'nip05'),
+            JsonWireFormat::stringField($data, 'lud16'),
         );
     }
 

@@ -22,16 +22,38 @@ final class JsonWireFormat
     }
 
     /**
+     * @param positive-int $depth
+     *
      * @return array<mixed>|null
      */
-    public static function decodeArray(string $json): ?array
+    public static function decodeArray(string $json, int $depth = 512): ?array
     {
-        if (!json_validate($json)) {
+        if (!json_validate($json, $depth)) {
             return null;
         }
 
-        $decoded = json_decode($json, true);
+        $decoded = json_decode($json, true, $depth);
 
         return is_array($decoded) ? $decoded : null;
+    }
+
+    /**
+     * @param array<mixed> $data
+     */
+    public static function stringField(array $data, string $key): ?string
+    {
+        $value = $data[$key] ?? null;
+
+        return is_string($value) ? $value : null;
+    }
+
+    /**
+     * @param array<mixed> $data
+     */
+    public static function intField(array $data, string $key): ?int
+    {
+        $value = $data[$key] ?? null;
+
+        return is_int($value) ? $value : null;
     }
 }

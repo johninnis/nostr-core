@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Content;
 
+use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 
@@ -78,15 +79,20 @@ final readonly class LiveEventMetadata
         ];
     }
 
-    public static function fromArray(array $data): self
+    public static function fromArray(array $data): ?self
     {
+        $identifier = JsonWireFormat::stringField($data, 'identifier');
+        if (null === $identifier) {
+            return null;
+        }
+
         return new self(
-            $data['identifier'],
-            $data['title'] ?? null,
-            $data['summary'] ?? null,
-            $data['image'] ?? null,
-            $data['status'] ?? null,
-            $data['streaming'] ?? null
+            $identifier,
+            JsonWireFormat::stringField($data, 'title'),
+            JsonWireFormat::stringField($data, 'summary'),
+            JsonWireFormat::stringField($data, 'image'),
+            JsonWireFormat::stringField($data, 'status'),
+            JsonWireFormat::stringField($data, 'streaming'),
         );
     }
 

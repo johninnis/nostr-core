@@ -186,4 +186,13 @@ final class SubscriptionTest extends TestCase
             'created_at' => 'soon',
         ]));
     }
+
+    public function testFromArrayReturnsNullWhenCreatedAtNegative(): void
+    {
+        $this->assertNull(Subscription::fromArray([
+            'id' => 'test-sub',
+            'filters' => [['kinds' => [1]]],
+            'created_at' => -1,
+        ]));
+    }
 }

@@ -65,7 +65,7 @@ final readonly class ZapReceipt implements PaymentReceiptInterface
 
         $recipientPubkey = $tags->getFirstPubkeyByType(TagType::pubkey());
 
-        $message = $zapRequest['content'] ?? null;
+        $message = null !== $zapRequest ? JsonWireFormat::stringField($zapRequest, 'content') : null;
         if ('' === $message) {
             $message = null;
         }
@@ -89,11 +89,13 @@ final readonly class ZapReceipt implements PaymentReceiptInterface
 
     private static function extractPubkeyFromZapRequest(?array $zapRequest): ?PublicKey
     {
-        if (null === $zapRequest || !isset($zapRequest['pubkey'])) {
+        if (null === $zapRequest) {
             return null;
         }
 
-        return PublicKey::fromHex($zapRequest['pubkey']);
+        $pubkey = JsonWireFormat::stringField($zapRequest, 'pubkey');
+
+        return null !== $pubkey ? PublicKey::fromHex($pubkey) : null;
     }
 
     private static function resolveAmount(?array $zapRequest, TagCollection $tags): ?ZapAmount

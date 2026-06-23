@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Content;
 
 use Innis\Nostr\Core\Domain\Enum\CommentScope;
+use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 
@@ -78,13 +79,21 @@ final readonly class CommentMetadata
         ];
     }
 
-    public static function fromArray(array $data): self
+    public static function fromArray(array $data): ?self
     {
-        return new self(
-            $data['root_kind'],
-            $data['parent_kind'],
-            CommentScope::from($data['root_scope'])
-        );
+        $rootKind = JsonWireFormat::stringField($data, 'root_kind');
+        $parentKind = JsonWireFormat::stringField($data, 'parent_kind');
+        $rootScopeValue = JsonWireFormat::stringField($data, 'root_scope');
+        if (null === $rootKind || null === $parentKind || null === $rootScopeValue) {
+            return null;
+        }
+
+        $rootScope = CommentScope::tryFrom($rootScopeValue);
+        if (null === $rootScope) {
+            return null;
+        }
+
+        return new self($rootKind, $parentKind, $rootScope);
     }
 
     public function equals(self $other): bool

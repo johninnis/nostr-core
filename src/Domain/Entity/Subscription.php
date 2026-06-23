@@ -82,6 +82,11 @@ final readonly class Subscription
             return null;
         }
 
+        $createdAt = Timestamp::tryFromInt($data['created_at']);
+        if (null === $createdAt) {
+            return null;
+        }
+
         $id = SubscriptionId::fromWire($data['id']);
         if (null === $id) {
             return null;
@@ -116,7 +121,7 @@ final readonly class Subscription
         return new self(
             $id,
             new FilterCollection($filters),
-            Timestamp::fromInt($data['created_at']),
+            $createdAt,
             $state,
         );
     }

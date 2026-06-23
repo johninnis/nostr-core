@@ -193,8 +193,13 @@ final readonly class Event implements Stringable
     public function isExpired(): bool
     {
         $value = $this->tags->getFirstValueByType(TagType::expiration());
+        if (null === $value) {
+            return false;
+        }
 
-        return null !== $value && Timestamp::fromInt((int) $value)->hasPassed();
+        $expiry = Timestamp::tryFromInt((int) $value);
+
+        return null !== $expiry && $expiry->hasPassed();
     }
 
     public function isProtected(): bool
@@ -206,7 +211,7 @@ final readonly class Event implements Stringable
     {
         $value = $this->tags->getFirstValueByType(TagType::fromString(TagType::PUBLISHED_AT));
 
-        return null !== $value ? Timestamp::fromInt((int) $value) : null;
+        return null !== $value ? Timestamp::tryFromInt((int) $value) : null;
     }
 
     public function toArray(): array

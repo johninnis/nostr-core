@@ -73,6 +73,7 @@ final class LiveEventMetadataTest extends TestCase
         $array = $original->toArray();
         $restored = LiveEventMetadata::fromArray($array);
 
+        $this->assertNotNull($restored);
         $this->assertTrue($original->equals($restored));
     }
 
@@ -83,7 +84,18 @@ final class LiveEventMetadataTest extends TestCase
         $array = $original->toArray();
         $restored = LiveEventMetadata::fromArray($array);
 
+        $this->assertNotNull($restored);
         $this->assertTrue($original->equals($restored));
+    }
+
+    public function testFromArrayReturnsNullWhenIdentifierMissing(): void
+    {
+        $this->assertNull(LiveEventMetadata::fromArray(['title' => 'No identifier']));
+    }
+
+    public function testFromArrayReturnsNullWhenIdentifierNotString(): void
+    {
+        $this->assertNull(LiveEventMetadata::fromArray(['identifier' => 123]));
     }
 
     public function testEquals(): void

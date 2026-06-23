@@ -123,10 +123,25 @@ final class CommentMetadataTest extends TestCase
         $array = $original->toArray();
         $restored = CommentMetadata::fromArray($array);
 
+        $this->assertNotNull($restored);
         $this->assertTrue($original->equals($restored));
         $this->assertSame('1', $array['root_kind']);
         $this->assertSame('1111', $array['parent_kind']);
         $this->assertSame('event', $array['root_scope']);
+    }
+
+    public function testFromArrayReturnsNullWhenFieldMissing(): void
+    {
+        $this->assertNull(CommentMetadata::fromArray(['root_kind' => '1', 'parent_kind' => '1111']));
+    }
+
+    public function testFromArrayReturnsNullWhenScopeUnrecognised(): void
+    {
+        $this->assertNull(CommentMetadata::fromArray([
+            'root_kind' => '1',
+            'parent_kind' => '1111',
+            'root_scope' => 'bogus',
+        ]));
     }
 
     public function testEquals(): void

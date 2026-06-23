@@ -9,7 +9,7 @@ final readonly class Nip11Info
     /**
      * @param array<string, mixed> $rawData
      */
-    public function __construct(
+    private function __construct(
         private RelayUrl $relayUrl,
         private array $rawData = [],
     ) {
@@ -65,7 +65,10 @@ final readonly class Nip11Info
         return $this->stringOrNull('icon');
     }
 
-    public static function fromArray(RelayUrl $relayUrl, array $data): self
+    /**
+     * @param array<string, mixed> $data
+     */
+    public static function fromArray(RelayUrl $relayUrl, array $data = []): self
     {
         return new self($relayUrl, $data);
     }

@@ -76,7 +76,26 @@ final class LongformMetadataTest extends TestCase
         $array = $original->toArray();
         $restored = LongformMetadata::fromArray($array);
 
+        $this->assertNotNull($restored);
         $this->assertTrue($original->equals($restored));
+    }
+
+    public function testFromArrayReturnsNullWhenIdentifierMissing(): void
+    {
+        $this->assertNull(LongformMetadata::fromArray(['title' => 'No identifier']));
+    }
+
+    public function testFromArrayIgnoresMalformedPublishedAtAndTopics(): void
+    {
+        $restored = LongformMetadata::fromArray([
+            'identifier' => 'slug',
+            'published_at' => 'not-an-int',
+            'topics' => ['ok', 123, 'fine'],
+        ]);
+
+        $this->assertNotNull($restored);
+        $this->assertNull($restored->getPublishedAt());
+        $this->assertSame(['ok', 'fine'], $restored->getTopics());
     }
 
     public function testToArrayFromArrayRoundTripWithNulls(): void
@@ -86,6 +105,7 @@ final class LongformMetadataTest extends TestCase
         $array = $original->toArray();
         $restored = LongformMetadata::fromArray($array);
 
+        $this->assertNotNull($restored);
         $this->assertTrue($original->equals($restored));
     }
 

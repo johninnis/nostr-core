@@ -10,6 +10,7 @@ use Innis\Nostr\Core\Domain\Service\EcdhServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Override;
+use Throwable;
 
 final class Secp256k1Ecdh implements EcdhServiceInterface
 {
@@ -61,8 +62,13 @@ final class Secp256k1Ecdh implements EcdhServiceInterface
         $curve = Secp256k1Math::curve();
 
         $publicKeyX = gmp_init($pubkeyHex, 16);
-        $publicKeyY = $curve->recoverYfromX(false, $publicKeyX);
-        $publicKeyPoint = $curve->getPoint($publicKeyX, $publicKeyY);
+
+        try {
+            $publicKeyY = $curve->recoverYfromX(false, $publicKeyX);
+            $publicKeyPoint = $curve->getPoint($publicKeyX, $publicKeyY);
+        } catch (Throwable $exception) {
+            throw new EcdhException('ECDH public key is not a valid curve point', 0, $exception);
+        }
 
         return $privateKey->expose(static function (string $privkeyBytes) use ($publicKeyPoint): string {
             $privateKeyInt = Secp256k1Math::scalarFromBytes($privkeyBytes);

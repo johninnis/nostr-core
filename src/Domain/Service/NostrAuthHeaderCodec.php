@@ -6,7 +6,6 @@ namespace Innis\Nostr\Core\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Failure\AuthHeaderDecodeFailure;
-use JsonException;
 
 final class NostrAuthHeaderCodec
 {
@@ -33,13 +32,8 @@ final class NostrAuthHeaderCodec
             return AuthHeaderDecodeFailure::BadBase64;
         }
 
-        try {
-            $data = json_decode($json, true, self::JSON_MAX_DEPTH, JSON_THROW_ON_ERROR);
-        } catch (JsonException) {
-            return AuthHeaderDecodeFailure::BadJson;
-        }
-
-        if (!is_array($data)) {
+        $data = JsonWireFormat::decodeArray($json, self::JSON_MAX_DEPTH);
+        if (null === $data) {
             return AuthHeaderDecodeFailure::BadJson;
         }
 

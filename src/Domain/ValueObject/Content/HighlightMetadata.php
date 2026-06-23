@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Content;
 
+use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 
@@ -60,9 +61,9 @@ final readonly class HighlightMetadata
     public static function fromArray(array $data): self
     {
         return new self(
-            $data['context'] ?? null,
-            $data['comment'] ?? null,
-            $data['source_url'] ?? null
+            JsonWireFormat::stringField($data, 'context'),
+            JsonWireFormat::stringField($data, 'comment'),
+            JsonWireFormat::stringField($data, 'source_url'),
         );
     }
 

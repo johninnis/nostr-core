@@ -67,7 +67,7 @@ final class Secp256k1Signer implements SignatureServiceInterface
     #[Override]
     public function derivePublicKey(PrivateKey $privateKey): PublicKey
     {
-        $publicKey = $privateKey->expose(function (string $privkeyBytes): PublicKey {
+        return $privateKey->expose(function (string $privkeyBytes): PublicKey {
             if (null !== $this->ffi) {
                 return PublicKey::fromBytes($this->ffi->derivePublicKey($privkeyBytes))
                     ?? throw new CryptoException('Key derivation produced invalid public key');
@@ -75,8 +75,6 @@ final class Secp256k1Signer implements SignatureServiceInterface
 
             return $this->derivePublicKeyPurePhp($privkeyBytes);
         });
-
-        return $publicKey;
     }
 
     private function derivePublicKeyPurePhp(string $privkeyBytes): PublicKey

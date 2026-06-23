@@ -22,7 +22,7 @@ final class Nip11InfoTest extends TestCase
 
     public function testCanCreateWithMinimalData(): void
     {
-        $info = new Nip11Info($this->relayUrl);
+        $info = Nip11Info::fromArray($this->relayUrl);
 
         $this->assertTrue($info->getRelayUrl()->equals($this->relayUrl));
         $this->assertNull($info->getName());
@@ -106,7 +106,7 @@ final class Nip11InfoTest extends TestCase
 
     public function testToArrayReturnsRawDataPassedToConstructor(): void
     {
-        $info = new Nip11Info($this->relayUrl, [
+        $info = Nip11Info::fromArray($this->relayUrl, [
             'name' => 'Test Relay',
             'description' => 'A test relay',
         ]);
