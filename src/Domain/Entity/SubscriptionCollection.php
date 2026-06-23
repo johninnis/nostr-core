@@ -13,12 +13,18 @@ use IteratorAggregate;
 use Override;
 
 // Deliberate: a keyed-map registry, not a list, so it does not extend TypedCollection's ordered-list mechanism — see ADR-0007
+/**
+ * @implements IteratorAggregate<string, Subscription>
+ */
 final readonly class SubscriptionCollection implements IteratorAggregate, Countable
 {
+    /** @var array<string, Subscription> */
     private array $subscriptions;
 
     public function __construct(array $subscriptions = [])
     {
+        $validated = [];
+
         foreach ($subscriptions as $key => $subscription) {
             if (!is_string($key)) {
                 throw new InvalidArgumentException('All keys must be subscription ID strings');
@@ -26,8 +32,11 @@ final readonly class SubscriptionCollection implements IteratorAggregate, Counta
             if (!$subscription instanceof Subscription) {
                 throw new InvalidArgumentException('All items must be Subscription instances');
             }
+
+            $validated[$key] = $subscription;
         }
-        $this->subscriptions = $subscriptions;
+
+        $this->subscriptions = $validated;
     }
 
     public static function empty(): self
@@ -98,11 +107,17 @@ final readonly class SubscriptionCollection implements IteratorAggregate, Counta
         return [] === $this->subscriptions;
     }
 
+    /**
+     * @return array<string, Subscription>
+     */
     public function toArray(): array
     {
         return $this->subscriptions;
     }
 
+    /**
+     * @return ArrayIterator<string, Subscription>
+     */
     #[Override]
     public function getIterator(): ArrayIterator
     {

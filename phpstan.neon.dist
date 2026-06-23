@@ -12,9 +12,6 @@ parameters:
         # PHP cannot express an array's value type natively (e.g. list<string>)
         -
             identifier: missingType.iterableValue
-        # PHP cannot express generic type parameters natively (e.g. IteratorAggregate<int, Event>)
-        -
-            identifier: missingType.generics
         # DO NOT delete the port guard to clear this. Only the UPPER comparison ($port > 65535)
         # is statically unreachable: parse_url returns false for ports > 65535, so PHPStan narrows
         # the type to int<0, 65535> and flags just that one branch (hence count: 1). The LOWER half
