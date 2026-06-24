@@ -6,15 +6,12 @@ namespace Innis\Nostr\Core\Domain\Service;
 
 final class JsonWireFormat
 {
-    // NIP-01 ids require U+2028/U+2029 emitted verbatim, which PHP escapes even under
-    // JSON_UNESCAPED_UNICODE; without JSON_UNESCAPED_LINE_TERMINATORS ids are irreproducible.
+    // Deliberate: emits U+2028/U+2029 verbatim so event ids are reproducible; do not drop a flag to align with FILTER_HASH — see ADR-0020
     public const int EVENT = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_LINE_TERMINATORS;
 
     public const int MESSAGE = JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
 
-    // No JSON_UNESCAPED_UNICODE: non-ASCII is escaped as lowercase \uXXXX (astral chars as surrogate
-    // pairs), so the canonical form is pure ASCII and bytewise sorting agrees with the TypeScript
-    // hashFilters implementation byte-for-byte.
+    // Deliberate: omits JSON_UNESCAPED_UNICODE so the canonical form is pure ASCII and hashes byte-for-byte with the TypeScript side — see ADR-0020
     public const int FILTER_HASH = JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR;
 
     private function __construct()
