@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Reference;
 
+use Innis\Nostr\Core\Domain\Collection\RelayUrlCollection;
 use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
 use Innis\Nostr\Core\Domain\Enum\Nip19EntityType;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
-use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrlCollection;
 use InvalidArgumentException;
 
 final readonly class ContentReference
@@ -132,12 +132,12 @@ final readonly class ContentReference
         $decodedType = Nip19EntityType::tryFrom(is_string($data['decoded_type'] ?? null) ? $data['decoded_type'] : '');
 
         $decoded = null === $decodedType ? null : new DecodedNip19Entity(
-            $decodedType,
-            isset($data['public_key']) && is_string($data['public_key']) ? PublicKey::fromHex($data['public_key']) : null,
-            isset($data['event_id']) && is_string($data['event_id']) ? EventId::fromHex($data['event_id']) : null,
-            is_string($addressableIdentifier) ? $addressableIdentifier : null,
-            isset($data['kind']) && is_int($data['kind']) ? EventKind::tryFromInt($data['kind']) : null,
-            new RelayUrlCollection($relays),
+            type: $decodedType,
+            publicKey: isset($data['public_key']) && is_string($data['public_key']) ? PublicKey::fromHex($data['public_key']) : null,
+            eventId: isset($data['event_id']) && is_string($data['event_id']) ? EventId::fromHex($data['event_id']) : null,
+            identifier: is_string($addressableIdentifier) ? $addressableIdentifier : null,
+            kind: isset($data['kind']) && is_int($data['kind']) ? EventKind::tryFromInt($data['kind']) : null,
+            relays: new RelayUrlCollection($relays),
         );
 
         return new self($type, $rawText, $identifier, $position, $decoded);

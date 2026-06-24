@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Service;
 
+use Innis\Nostr\Core\Domain\Collection\ContentReferenceCollection;
 use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\ContentReference;
-use Innis\Nostr\Core\Domain\ValueObject\Reference\ContentReferenceCollection;
 use Override;
 
 final class ContentReferenceExtractor implements ContentReferenceExtractorInterface
@@ -25,17 +25,18 @@ final class ContentReferenceExtractor implements ContentReferenceExtractorInterf
 
         $contentString = (string) $content;
 
+        /** @var list<array{ContentReferenceType, string}> $patterns */
         $patterns = [
-            ContentReferenceType::NostrUri->value => '/nostr:(npub1[a-z0-9]{58}|nprofile1[a-z0-9]+|note1[a-z0-9]{58}|nevent1[a-z0-9]+|naddr1[a-z0-9]+)/i',
-            ContentReferenceType::BareNpub->value => '/(?<![a-z0-9])npub1[a-z0-9]{58}(?=nostr:|[^a-z0-9]|$)/i',
-            ContentReferenceType::BareNote->value => '/(?<![a-z0-9])note1[a-z0-9]{58}(?=nostr:|[^a-z0-9]|$)/i',
-            ContentReferenceType::BareNevent->value => '/(?<![a-z0-9])nevent1(?:(?!nostr:)[a-z0-9])+(?=nostr:|[^a-z0-9]|$)/i',
-            ContentReferenceType::BareNprofile->value => '/(?<![a-z0-9])nprofile1(?:(?!nostr:)[a-z0-9])+(?=nostr:|[^a-z0-9]|$)/i',
-            ContentReferenceType::BareNaddr->value => '/(?<![a-z0-9])naddr1(?:(?!nostr:)[a-z0-9])+(?=nostr:|[^a-z0-9]|$)/i',
-            ContentReferenceType::LegacyRef->value => '/#\[(\d+)\]/',
+            [ContentReferenceType::NostrUri, '/nostr:(npub1[a-z0-9]{58}|nprofile1[a-z0-9]+|note1[a-z0-9]{58}|nevent1[a-z0-9]+|naddr1[a-z0-9]+)/i'],
+            [ContentReferenceType::BareNpub, '/(?<![a-z0-9])npub1[a-z0-9]{58}(?=nostr:|[^a-z0-9]|$)/i'],
+            [ContentReferenceType::BareNote, '/(?<![a-z0-9])note1[a-z0-9]{58}(?=nostr:|[^a-z0-9]|$)/i'],
+            [ContentReferenceType::BareNevent, '/(?<![a-z0-9])nevent1(?:(?!nostr:)[a-z0-9])+(?=nostr:|[^a-z0-9]|$)/i'],
+            [ContentReferenceType::BareNprofile, '/(?<![a-z0-9])nprofile1(?:(?!nostr:)[a-z0-9])+(?=nostr:|[^a-z0-9]|$)/i'],
+            [ContentReferenceType::BareNaddr, '/(?<![a-z0-9])naddr1(?:(?!nostr:)[a-z0-9])+(?=nostr:|[^a-z0-9]|$)/i'],
+            [ContentReferenceType::LegacyRef, '/#\[(\d+)\]/'],
         ];
 
-        foreach ($patterns as $typeValue => $pattern) {
+        foreach ($patterns as [$type, $pattern]) {
             if (preg_match_all($pattern, $contentString, $matches, PREG_OFFSET_CAPTURE)) {
                 foreach ($matches[0] as $match) {
                     $position = $match[1];
@@ -50,7 +51,7 @@ final class ContentReferenceExtractor implements ContentReferenceExtractorInterf
                         $cleanRef = str_replace('nostr:', '', $match[0]);
 
                         $references[] = new ContentReference(
-                            ContentReferenceType::from($typeValue),
+                            $type,
                             $match[0],
                             $cleanRef,
                             $match[1],

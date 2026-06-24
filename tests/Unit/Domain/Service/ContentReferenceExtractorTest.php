@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
+use Innis\Nostr\Core\Domain\Collection\ContentReferenceCollection;
+use Innis\Nostr\Core\Domain\Collection\RelayUrlCollection;
 use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
 use Innis\Nostr\Core\Domain\Enum\Nip19EntityType;
 use Innis\Nostr\Core\Domain\Service\ContentReferenceExtractor;
@@ -12,8 +14,6 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
-use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrlCollection;
-use Innis\Nostr\Core\Domain\ValueObject\Reference\ContentReferenceCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\DecodedNip19Entity;
 use PHPUnit\Framework\TestCase;
 

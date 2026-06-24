@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Domain\ValueObject\Tag;
+namespace Innis\Nostr\Core\Domain\Collection;
 
-use Innis\Nostr\Core\Domain\Collection\TypedCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Override;
 
 /**

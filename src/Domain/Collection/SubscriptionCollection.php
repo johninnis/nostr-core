@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Domain\Entity;
+namespace Innis\Nostr\Core\Domain\Collection;
 
 use ArrayIterator;
 use Countable;
+use Innis\Nostr\Core\Domain\Entity\Subscription;
 use Innis\Nostr\Core\Domain\Enum\SubscriptionState;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
 use InvalidArgumentException;

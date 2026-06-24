@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Domain\ValueObject\Reference;
+namespace Innis\Nostr\Core\Domain\Collection;
 
-use Innis\Nostr\Core\Domain\Collection\TypedCollection;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\RelayReference;
 use Override;
 
 /**

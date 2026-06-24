@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Reference;
 
+use Innis\Nostr\Core\Domain\Collection\EventCoordinateCollection;
+use Innis\Nostr\Core\Domain\Collection\EventReferenceCollection;
+use Innis\Nostr\Core\Domain\Collection\PubkeyReferenceCollection;
+use Innis\Nostr\Core\Domain\Collection\RelayReferenceCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinateCollection;
 use InvalidArgumentException;
 
 final readonly class TagReferences

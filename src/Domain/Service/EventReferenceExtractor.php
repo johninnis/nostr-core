@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Service;
 
+use Innis\Nostr\Core\Domain\Collection\ContentReferenceCollection;
+use Innis\Nostr\Core\Domain\Collection\EventIdCollection;
+use Innis\Nostr\Core\Domain\Collection\PublicKeyCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\EventIdCollection;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKeyCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\ContentReference;
-use Innis\Nostr\Core\Domain\ValueObject\Reference\ContentReferenceCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReferences;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\QuoteAnalysis;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\ReplyChain;

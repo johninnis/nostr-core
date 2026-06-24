@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Support;
 
-use Innis\Nostr\Core\Domain\ValueObject\Tag\TagCollection;
+use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use RuntimeException;
 
 final class TagCollectionMother
