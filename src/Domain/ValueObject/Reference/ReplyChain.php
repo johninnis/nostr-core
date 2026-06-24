@@ -77,14 +77,8 @@ final readonly class ReplyChain
             'is_root_post' => $this->isRootPost,
             'root_event' => $this->rootEvent?->toArray(),
             'parent_event' => $this->parentEvent?->toArray(),
-            'conversation_participants' => array_map(
-                static fn (PublicKey $key) => $key->toHex(),
-                $this->conversationParticipants->toArray()
-            ),
-            'mentioned_events' => array_map(
-                static fn (EventReference $ref) => $ref->toArray(),
-                $this->mentionedEvents->toArray()
-            ),
+            'conversation_participants' => $this->conversationParticipants->toHexes(),
+            'mentioned_events' => $this->mentionedEvents->toJsonArray(),
         ];
     }
 

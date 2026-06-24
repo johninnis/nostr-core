@@ -27,4 +27,27 @@ final class PublicKeyCollection extends TypedCollection
     {
         return new self($this->deduplicate(static fn (PublicKey $publicKey): string => $publicKey->toHex()));
     }
+
+    /**
+     * @return list<string>
+     */
+    public function toHexes(): array
+    {
+        return array_map(static fn (PublicKey $publicKey): string => $publicKey->toHex(), $this->items);
+    }
+
+    public function contains(PublicKey $publicKey): bool
+    {
+        return array_any($this->items, static fn (PublicKey $candidate): bool => $candidate->equals($publicKey));
+    }
+
+    public function intersect(self $other): self
+    {
+        return new self($this->retainByKey($other, static fn (PublicKey $publicKey): string => $publicKey->toHex(), true));
+    }
+
+    public function diff(self $other): self
+    {
+        return new self($this->retainByKey($other, static fn (PublicKey $publicKey): string => $publicKey->toHex(), false));
+    }
 }

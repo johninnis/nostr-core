@@ -63,7 +63,7 @@ final readonly class EventMessage extends RelayMessage implements PreSerialisedM
             return null;
         }
 
-        $event = Event::fromArray($data[2]);
+        $event = Event::fromWire($data[2]);
 
         if (null === $event) {
             return null;

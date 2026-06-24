@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\Entity;
 
 use Innis\Nostr\Core\Domain\Collection\EventIdCollection;
+use Innis\Nostr\Core\Domain\Collection\EventKindCollection;
 use Innis\Nostr\Core\Domain\Collection\PublicKeyCollection;
 use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
@@ -27,6 +28,9 @@ final readonly class Filter implements JsonSerializable, Stringable
     private ?array $tagValueSets;
     private ?array $searchTerms;
 
+    /**
+     * @param array<string, list<string>>|null $tags
+     */
     public function __construct(
         private ?array $ids = null,
         private ?array $authors = null,
@@ -60,7 +64,7 @@ final readonly class Filter implements JsonSerializable, Stringable
         $this->idSet = null !== $this->ids ? self::flipStrings($this->ids) : null;
         $this->authorSet = null !== $this->authors ? self::flipStrings($this->authors) : null;
         $this->kindSet = null !== $this->kinds
-            ? array_flip(array_map(static fn (EventKind $kind) => $kind->toInt(), $this->kinds))
+            ? array_flip(new EventKindCollection($this->kinds)->toInts())
             : null;
         $this->tagValueSets = null !== $this->tags ? array_map(self::flipStrings(...), $this->tags) : null;
         $this->searchTerms = null !== $this->search
@@ -143,12 +147,9 @@ final readonly class Filter implements JsonSerializable, Stringable
         return null !== $this->authors;
     }
 
-    /**
-     * @return list<EventKind>|null
-     */
-    public function getKinds(): ?array
+    public function getKinds(): ?EventKindCollection
     {
-        return $this->kinds;
+        return null === $this->kinds ? null : new EventKindCollection($this->kinds);
     }
 
     public function hasKinds(): bool
@@ -156,6 +157,9 @@ final readonly class Filter implements JsonSerializable, Stringable
         return null !== $this->kinds;
     }
 
+    /**
+     * @return array<string, list<string>>|null
+     */
     public function getTags(): ?array
     {
         return $this->tags;
@@ -245,10 +249,7 @@ final readonly class Filter implements JsonSerializable, Stringable
         }
 
         if (null !== $this->kinds) {
-            $filter['kinds'] = array_map(
-                static fn (EventKind $kind) => $kind->toInt(),
-                $this->kinds
-            );
+            $filter['kinds'] = new EventKindCollection($this->kinds)->toInts();
         }
 
         if (null !== $this->tags) {
@@ -282,6 +283,11 @@ final readonly class Filter implements JsonSerializable, Stringable
         return $this->toArray() ?: new stdClass();
     }
 
+    public static function fromWire(mixed $value): ?self
+    {
+        return is_array($value) || $value instanceof stdClass ? self::fromArray($value) : null;
+    }
+
     public static function fromArray(array|stdClass $data): ?self
     {
         $data = (array) $data;
@@ -297,7 +303,7 @@ final readonly class Filter implements JsonSerializable, Stringable
                 return null;
             }
 
-            $tags[$tagName] = $value;
+            $tags[$tagName] = array_values(array_filter($value, is_string(...)));
             unset($data[$key]);
         }
 

@@ -66,11 +66,7 @@ abstract readonly class FilterRequestMessage extends ClientMessage
 
         $filters = [];
         foreach (array_slice($data, 2) as $filterData) {
-            if (!is_array($filterData)) {
-                return null;
-            }
-
-            $filter = Filter::fromArray($filterData);
+            $filter = Filter::fromWire($filterData);
             if (null === $filter) {
                 return null;
             }

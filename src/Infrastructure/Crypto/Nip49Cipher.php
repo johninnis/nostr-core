@@ -89,10 +89,11 @@ final class Nip49Cipher implements Nip49EncryptionInterface
             throw new Nip49DecryptionFailedException();
         }
 
-        $privateKey = PrivateKey::fromBytes($plaintext) ?? throw new Nip49DecryptionFailedException();
-        sodium_memzero($plaintext);
-
-        return $privateKey;
+        try {
+            return PrivateKey::fromBytes($plaintext) ?? throw new Nip49DecryptionFailedException();
+        } finally {
+            sodium_memzero($plaintext);
+        }
     }
 
     private function encryptWithSaltAndNonce(

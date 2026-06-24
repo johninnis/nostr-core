@@ -62,26 +62,11 @@ final readonly class TagReferences
     public function toArray(): array
     {
         return [
-            'events' => array_map(
-                static fn (EventReference $ref) => $ref->toArray(),
-                $this->events->toArray()
-            ),
-            'pubkeys' => array_map(
-                static fn (PubkeyReference $ref) => $ref->toArray(),
-                $this->pubkeys->toArray()
-            ),
-            'quotes' => array_map(
-                static fn (EventReference $ref) => $ref->toArray(),
-                $this->quotes->toArray()
-            ),
-            'addressable' => array_map(
-                static fn (EventCoordinate $coord) => $coord->toArray(),
-                $this->addressable->toArray()
-            ),
-            'relays' => array_map(
-                static fn (RelayReference $ref) => $ref->toArray(),
-                $this->relays->toArray()
-            ),
+            'events' => $this->events->toJsonArray(),
+            'pubkeys' => $this->pubkeys->toJsonArray(),
+            'quotes' => $this->quotes->toJsonArray(),
+            'addressable' => $this->addressable->toJsonArray(),
+            'relays' => $this->relays->toJsonArray(),
             'challenges' => $this->challenges,
         ];
     }

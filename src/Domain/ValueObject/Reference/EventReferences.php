@@ -7,8 +7,6 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Reference;
 use Innis\Nostr\Core\Domain\Collection\ContentReferenceCollection;
 use Innis\Nostr\Core\Domain\Collection\EventIdCollection;
 use Innis\Nostr\Core\Domain\Collection\PublicKeyCollection;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 
 final readonly class EventReferences
 {
@@ -85,20 +83,11 @@ final readonly class EventReferences
     {
         return [
             'tag_references' => $this->tagReferences->toArray(),
-            'content_references' => array_map(
-                static fn (ContentReference $ref) => $ref->toArray(),
-                $this->contentReferences->toArray()
-            ),
+            'content_references' => $this->contentReferences->toJsonArray(),
             'reply_chain' => $this->replyChain->toArray(),
             'quote_analysis' => $this->quoteAnalysis->toArray(),
-            'all_event_ids' => array_map(
-                static fn (EventId $id) => $id->toHex(),
-                $this->allEventIds->toArray()
-            ),
-            'all_public_keys' => array_map(
-                static fn (PublicKey $key) => $key->toHex(),
-                $this->allPublicKeys->toArray()
-            ),
+            'all_event_ids' => $this->allEventIds->toHexes(),
+            'all_public_keys' => $this->allPublicKeys->toHexes(),
         ];
     }
 

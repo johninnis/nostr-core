@@ -17,4 +17,9 @@ final class ContentReferenceCollection extends TypedCollection
     {
         return ContentReference::class;
     }
+
+    public function toJsonArray(): array
+    {
+        return array_map(static fn (ContentReference $reference) => $reference->toArray(), $this->items);
+    }
 }

@@ -22,4 +22,9 @@ final class PubkeyReferenceCollection extends TypedCollection
     {
         return new self();
     }
+
+    public function toJsonArray(): array
+    {
+        return array_map(static fn (PubkeyReference $reference) => $reference->toArray(), $this->items);
+    }
 }

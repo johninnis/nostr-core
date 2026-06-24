@@ -215,6 +215,21 @@ final class JsonMessageDeserialiserTest extends TestCase
         $this->assertNull($this->deserialiser->deserialiseRelayMessage('"just a string"'));
     }
 
+    public function testDeserialiseClientEventMessageReturnsNullOnNonArrayEventPayload(): void
+    {
+        $this->assertNull($this->deserialiser->deserialiseClientMessage('["EVENT","not-an-event-object"]'));
+    }
+
+    public function testDeserialiseClientAuthMessageReturnsNullOnNonArrayEventPayload(): void
+    {
+        $this->assertNull($this->deserialiser->deserialiseClientMessage('["AUTH","not-an-event-object"]'));
+    }
+
+    public function testDeserialiseRelayEventMessageReturnsNullOnNonArrayEventPayload(): void
+    {
+        $this->assertNull($this->deserialiser->deserialiseRelayMessage('["EVENT","sub-1","not-an-event-object"]'));
+    }
+
     private static function createPublicKey(): PublicKey
     {
         return PublicKey::fromHex(str_repeat('ab', 32)) ?? throw new RuntimeException('Invalid test public key');

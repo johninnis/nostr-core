@@ -22,4 +22,12 @@ final class RelayUrlCollection extends TypedCollection
     {
         return new self($this->deduplicate(static fn (RelayUrl $relayUrl): string => (string) $relayUrl));
     }
+
+    /**
+     * @return list<string>
+     */
+    public function toStrings(): array
+    {
+        return array_map(static fn (RelayUrl $relayUrl): string => (string) $relayUrl, $this->items);
+    }
 }

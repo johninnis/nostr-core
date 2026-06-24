@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Entity;
 
 use Innis\Nostr\Core\Domain\Collection\EventIdCollection;
+use Innis\Nostr\Core\Domain\Collection\EventKindCollection;
 use Innis\Nostr\Core\Domain\Collection\PublicKeyCollection;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Entity\Filter;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
@@ -508,6 +508,28 @@ final class FilterTest extends TestCase
         $this->assertNull($filter->getTags());
     }
 
+    public function testFromWireParsesAnArrayPayload(): void
+    {
+        $this->assertEquals(Filter::fromArray(['kinds' => [1]]), Filter::fromWire(['kinds' => [1]]));
+    }
+
+    #[DataProvider('nonArrayWireValues')]
+    public function testFromWireReturnsNullForNonArrayPayload(mixed $value): void
+    {
+        $this->assertNull(Filter::fromWire($value));
+    }
+
+    /**
+     * @return iterable<string, array{mixed}>
+     */
+    public static function nonArrayWireValues(): iterable
+    {
+        yield 'string' => ['not-a-filter'];
+        yield 'int' => [42];
+        yield 'bool' => [true];
+        yield 'null' => [null];
+    }
+
     /**
      * @return iterable<string, array{array<string, mixed>}>
      */
@@ -690,13 +712,10 @@ final class FilterTest extends TestCase
         $this->assertSame('nostr', $newFilter->getSearch());
     }
 
-    private function assertKinds(array $expectedInts, ?array $actualKinds): void
+    private function assertKinds(array $expectedInts, ?EventKindCollection $actualKinds): void
     {
         $this->assertNotNull($actualKinds);
-        $this->assertSame(
-            $expectedInts,
-            array_map(static fn (EventKind $k) => $k->toInt(), $actualKinds)
-        );
+        $this->assertSame($expectedInts, $actualKinds->toInts());
     }
 
     /**
@@ -705,10 +724,7 @@ final class FilterTest extends TestCase
     private function assertIdHexes(array $expectedHexes, ?EventIdCollection $actual): void
     {
         $this->assertNotNull($actual);
-        $this->assertSame(
-            $expectedHexes,
-            array_map(static fn (EventId $id): string => $id->toHex(), $actual->toArray())
-        );
+        $this->assertSame($expectedHexes, $actual->toHexes());
     }
 
     /**
@@ -717,10 +733,7 @@ final class FilterTest extends TestCase
     private function assertAuthorHexes(array $expectedHexes, ?PublicKeyCollection $actual): void
     {
         $this->assertNotNull($actual);
-        $this->assertSame(
-            $expectedHexes,
-            array_map(static fn (PublicKey $pk): string => $pk->toHex(), $actual->toArray())
-        );
+        $this->assertSame($expectedHexes, $actual->toHexes());
     }
 
     public function testConstructorRejectsIdsExceedingMaxValues(): void

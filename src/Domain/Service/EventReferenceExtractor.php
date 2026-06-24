@@ -51,7 +51,7 @@ final readonly class EventReferenceExtractor implements EventReferenceExtractorI
 
     private static function analyseQuote(Event $event, ContentReferenceCollection $contentReferences): QuoteAnalysis
     {
-        $isRepost = $event->getKind()->is(EventKind::REPOST);
+        $isRepost = $event->isRepost();
 
         $hasQuoteTag = array_any(
             $event->getTags()->toJsonArray(),

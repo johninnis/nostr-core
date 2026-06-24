@@ -22,4 +22,9 @@ final class EventCoordinateCollection extends TypedCollection
     {
         return new self();
     }
+
+    public function toJsonArray(): array
+    {
+        return array_map(static fn (EventCoordinate $coordinate) => $coordinate->toArray(), $this->items);
+    }
 }

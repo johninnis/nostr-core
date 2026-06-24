@@ -102,7 +102,7 @@ final readonly class ContentReference
             'decoded_type' => $this->getDecodedType(),
             'event_id' => $this->getEventId()?->toHex(),
             'public_key' => $this->getPublicKey()?->toHex(),
-            'relays' => array_map(static fn (RelayUrl $relay) => (string) $relay, $this->getRelays()->toArray()),
+            'relays' => $this->getRelays()->toStrings(),
             'addressable_identifier' => $this->getAddressableIdentifier(),
             'kind' => $this->getKind()?->toInt(),
         ];

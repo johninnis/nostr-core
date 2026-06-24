@@ -19,6 +19,7 @@ use Innis\Nostr\Core\Tests\Fake\FakeSignatureService;
 use Innis\Nostr\Core\Tests\Support\KeyMother;
 use Innis\Nostr\Core\Tests\Support\TagCollectionMother;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -184,6 +185,36 @@ final class EventTest extends TestCase
         $this->assertNotNull($event);
         $this->assertFalse($event->isSigned());
         $this->assertNull($event->getSignature());
+    }
+
+    public function testFromWireParsesAnArrayPayload(): void
+    {
+        $array = [
+            'pubkey' => $this->keyPair->getPublicKey()->toHex(),
+            'created_at' => time(),
+            'kind' => 1,
+            'tags' => [],
+            'content' => 'Hello',
+        ];
+
+        $this->assertEquals(Event::fromArray($array), Event::fromWire($array));
+    }
+
+    #[DataProvider('nonArrayWireValues')]
+    public function testFromWireReturnsNullForNonArrayPayload(mixed $value): void
+    {
+        $this->assertNull(Event::fromWire($value));
+    }
+
+    /**
+     * @return iterable<string, array{mixed}>
+     */
+    public static function nonArrayWireValues(): iterable
+    {
+        yield 'string' => ['not-an-event'];
+        yield 'int' => [42];
+        yield 'bool' => [true];
+        yield 'null' => [null];
     }
 
     public function testFromArrayCanCreateSignedEvent(): void

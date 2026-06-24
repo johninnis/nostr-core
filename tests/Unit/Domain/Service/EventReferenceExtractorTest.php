@@ -65,8 +65,8 @@ final class EventReferenceExtractorTest extends TestCase
         $allEventIds = $result->getAllEventIds();
         $allPublicKeys = $result->getAllPublicKeys();
 
-        $eventIdHexes = array_map(static fn ($id) => $id->toHex(), $allEventIds->toArray());
-        $pubkeyHexes = array_map(static fn ($key) => $key->toHex(), $allPublicKeys->toArray());
+        $eventIdHexes = $allEventIds->toHexes();
+        $pubkeyHexes = $allPublicKeys->toHexes();
 
         $this->assertContains('1111111111111111111111111111111111111111111111111111111111111111', $eventIdHexes);
         $this->assertContains('3333333333333333333333333333333333333333333333333333333333333333', $eventIdHexes);
@@ -103,6 +103,24 @@ final class EventReferenceExtractorTest extends TestCase
 
         $this->assertEquals('1111111111111111111111111111111111111111111111111111111111111111', $result->getAllEventIds()->toArray()[0]->toHex());
         $this->assertEquals('2222222222222222222222222222222222222222222222222222222222222222', $result->getAllPublicKeys()->toArray()[0]->toHex());
+    }
+
+    public function testGenericRepostKind16IsReportedAsRepost(): void
+    {
+        $event = new Event(
+            PublicKey::fromHex('1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef') ?? throw new RuntimeException('Invalid test pubkey'),
+            Timestamp::fromInt(1234567890),
+            EventKind::fromInt(EventKind::GENERIC_REPOST),
+            TagCollection::empty(),
+            EventContent::fromString('Test content')
+        );
+
+        $contentExtractor = $this->createStub(ContentReferenceExtractorInterface::class);
+        $contentExtractor->method('extractContentReferences')->willReturn(new ContentReferenceCollection([]));
+
+        $result = new EventReferenceExtractor($contentExtractor)->extractReferences($event);
+
+        $this->assertTrue($result->getQuoteAnalysis()->isRepost());
     }
 
     private function createTestEvent(): Event

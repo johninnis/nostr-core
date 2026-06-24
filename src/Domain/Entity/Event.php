@@ -232,6 +232,11 @@ final readonly class Event implements Stringable
         return self::build($data, null);
     }
 
+    public static function fromWire(mixed $value): ?self
+    {
+        return is_array($value) ? self::fromArray($value) : null;
+    }
+
     public static function fromJson(string $json): ?self
     {
         $data = JsonWireFormat::decodeArray($json);

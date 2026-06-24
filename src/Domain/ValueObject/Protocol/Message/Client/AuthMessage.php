@@ -39,7 +39,7 @@ final readonly class AuthMessage extends ClientMessage
             return null;
         }
 
-        $event = Event::fromArray($data[1]);
+        $event = Event::fromWire($data[1]);
 
         if (null === $event) {
             return null;

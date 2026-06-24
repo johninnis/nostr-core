@@ -86,6 +86,22 @@ abstract class TypedCollection implements IteratorAggregate, Countable
     }
 
     /**
+     * @param self<T>             $other
+     * @param callable(T): string $keyOf
+     *
+     * @return list<T>
+     */
+    final protected function retainByKey(self $other, callable $keyOf, bool $present): array
+    {
+        $otherKeys = array_fill_keys(array_map($keyOf, $other->items), true);
+
+        return array_values(array_filter(
+            $this->items,
+            static fn (object $item): bool => isset($otherKeys[$keyOf($item)]) === $present,
+        ));
+    }
+
+    /**
      * @param callable(string): (T|null) $parse
      *
      * @return list<T>

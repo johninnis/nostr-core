@@ -27,4 +27,12 @@ final class EventIdCollection extends TypedCollection
     {
         return new self($this->deduplicate(static fn (EventId $eventId): string => $eventId->toHex()));
     }
+
+    /**
+     * @return list<string>
+     */
+    public function toHexes(): array
+    {
+        return array_map(static fn (EventId $eventId): string => $eventId->toHex(), $this->items);
+    }
 }

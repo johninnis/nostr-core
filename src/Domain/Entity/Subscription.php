@@ -67,7 +67,7 @@ final readonly class Subscription
     {
         return [
             'id' => (string) $this->id,
-            'filters' => array_map(static fn (Filter $filter) => $filter->toArray(), $this->filters->toArray()),
+            'filters' => $this->filters->toJsonArray(),
             'created_at' => $this->createdAt->toInt(),
             'state' => $this->state->value,
         ];

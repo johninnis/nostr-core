@@ -289,32 +289,13 @@ composer fix-style
 
 ## Filter-set hash
 
-`FilterHasher::hash` (PHP `@innis/nostr-core`) and `hashFilters` (TypeScript `@innis/nostr-core`) compute a stable identity for a NIP-01 `REQ` filter set, suitable as a subscription dedup key. Both follow the same canonicalisation spec:
+`FilterHasher::hash` computes a stable, order-independent identity for a NIP-01 `REQ` filter set, suitable as a subscription dedup key. Two filter sets that select the same events hash to the same digest regardless of input ordering, and the digest is byte-for-byte identical to the TypeScript sibling's `hashFilters` for every input — including non-ASCII `search` strings and tag-filter values.
 
-1. Represent the filter set as an ordered list of filters in wire form (PHP: `Filter::toArray()`; TS: `NostrFilter` objects).
-2. Canonicalise recursively:
-   - **object / map** — sort keys ascending (bytewise), then canonicalise each value;
-   - **array / list** — canonicalise each element, then sort the elements ascending (bytewise) by their canonical encoding;
-   - **scalar** — left unchanged.
-3. Encode the canonicalised structure as **ASCII-safe JSON**: compact (no inserted whitespace), `/` left unescaped (`JSON_UNESCAPED_SLASHES`), and every non-ASCII code unit escaped as a lowercase `\uXXXX` (astral characters as UTF-16 surrogate pairs) — i.e. `json_encode` *without* `JSON_UNESCAPED_UNICODE`. The TS side post-escapes `JSON.stringify` to match.
-4. The hash is the lowercase-hex **SHA-256** of that canonical string.
+```php
+$key = FilterHasher::hash(...$filters); // lowercase-hex SHA-256
+```
 
-Because object keys, array elements, and the filters themselves are all sorted, two filter sets that select the same events produce the same digest regardless of how they were ordered on input.
-
-### Cross-language parity
-
-The two implementations are **byte-for-byte identical for every input**, including non-ASCII `search` strings and tag-filter values. The ASCII-safe canonical form (step 3) is what makes this hold; see [ADR-0020](docs/adr/0020-filterhasher-canonicalises-to-ascii-safe-json-for-cross-language-parity.md).
-
-Parity is locked by shared conformance anchors asserted in both test suites — equivalent inputs must hash to the same digest in both:
-
-| Input | SHA-256 digest |
-|---|---|
-| `[]` (empty set) | `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945` |
-| `[{}]` (one empty filter) | `e10808d43975dc400731053386849f864f297e6c4f7519c380f3dbaf7067a840` |
-| `[{ "kinds": [2,1], "limit": 5 }]` | `a34519033f2032b87a019ef94f4be40fc1ab6a621d2b66c55b0d386c3e576587` |
-| `[{ "search": "U+2028" }]` | `aee96085e5802e7b70a145ffdf6aa7e2335469aa223be66c79c9ad1699ecd7f2` |
-| `[{ "search": "U+1F600" }]` (astral) | `ac283a84cb87cd19a956f552a82cb9155fc1a980d576356c4d987e71710a4dd3` |
-| `[{ "#t": ["U+1F600","U+1F4A9"] }]` (astral sort) | `a47382ebe89a655c3d9d1e27a1e5e445ca0dd4f5348e72f518b2a98b6f77f92b` |
+The canonicalisation contract and the cross-language parity rationale are recorded in [ADR-0020](docs/adr/0020-filterhasher-canonicalises-to-ascii-safe-json-for-cross-language-parity.md); the conformance anchors that lock the two runtimes together are asserted in both packages' test suites.
 
 ## License
 

@@ -22,4 +22,9 @@ final class FilterCollection extends TypedCollection
     {
         return new self();
     }
+
+    public function toJsonArray(): array
+    {
+        return array_map(static fn (Filter $filter) => $filter->toArray(), $this->items);
+    }
 }
