@@ -67,6 +67,7 @@ final readonly class TagType implements Stringable
         return $this->type === $type;
     }
 
+    // Deliberate: convenience factories for commonly-built tags, alongside constants and fromString; do not collapse onto fromString — see ADR-0024
     public static function event(): self
     {
         return new self(self::EVENT);
