@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Entity;
 
+use Innis\Nostr\Core\Domain\Collection\EventIdCollection;
+use Innis\Nostr\Core\Domain\Collection\PublicKeyCollection;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Entity\Filter;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
@@ -24,8 +27,8 @@ final class FilterTest extends TestCase
     public function testCanCreateFilter(): void
     {
         $filter = new Filter(
-            ids: ['event-id'],
-            authors: ['author-pubkey'],
+            ids: [str_repeat('a', 64)],
+            authors: [str_repeat('b', 64)],
             kinds: [1, 2],
             tags: ['t' => ['nostr']],
             since: Timestamp::fromInt(1234567890),
@@ -33,8 +36,8 @@ final class FilterTest extends TestCase
             limit: 10
         );
 
-        $this->assertSame(['event-id'], $filter->getIds());
-        $this->assertSame(['author-pubkey'], $filter->getAuthors());
+        $this->assertIdHexes([str_repeat('a', 64)], $filter->getIds());
+        $this->assertAuthorHexes([str_repeat('b', 64)], $filter->getAuthors());
         $this->assertKinds([1, 2], $filter->getKinds());
         $this->assertSame(['t' => ['nostr']], $filter->getTags());
         $since = $filter->getSince();
@@ -248,8 +251,8 @@ final class FilterTest extends TestCase
     public function testCanCreateFromArray(): void
     {
         $data = [
-            'ids' => ['event-id'],
-            'authors' => ['author-pubkey'],
+            'ids' => [str_repeat('a', 64)],
+            'authors' => [str_repeat('b', 64)],
             'kinds' => [1],
             '#t' => ['nostr'],
             'since' => 1234567890,
@@ -260,8 +263,8 @@ final class FilterTest extends TestCase
         $filter = Filter::fromArray($data);
 
         $this->assertNotNull($filter);
-        $this->assertSame(['event-id'], $filter->getIds());
-        $this->assertSame(['author-pubkey'], $filter->getAuthors());
+        $this->assertIdHexes([str_repeat('a', 64)], $filter->getIds());
+        $this->assertAuthorHexes([str_repeat('b', 64)], $filter->getAuthors());
         $this->assertKinds([1], $filter->getKinds());
         $this->assertSame(['t' => ['nostr']], $filter->getTags());
         $since = $filter->getSince();
@@ -332,17 +335,17 @@ final class FilterTest extends TestCase
     public function testWithAuthorsReturnsNewFilterWithUpdatedAuthors(): void
     {
         $filter = new Filter(
-            ids: ['event-id'],
-            authors: ['original-author'],
+            ids: [str_repeat('a', 64)],
+            authors: [str_repeat('c', 64)],
             kinds: [1],
             limit: 10
         );
 
-        $newFilter = $filter->withAuthors(['new-author-1', 'new-author-2']);
+        $newFilter = $filter->withAuthors([str_repeat('d', 64), str_repeat('e', 64)]);
 
-        $this->assertSame(['original-author'], $filter->getAuthors());
-        $this->assertSame(['new-author-1', 'new-author-2'], $newFilter->getAuthors());
-        $this->assertSame(['event-id'], $newFilter->getIds());
+        $this->assertAuthorHexes([str_repeat('c', 64)], $filter->getAuthors());
+        $this->assertAuthorHexes([str_repeat('d', 64), str_repeat('e', 64)], $newFilter->getAuthors());
+        $this->assertIdHexes([str_repeat('a', 64)], $newFilter->getIds());
         $this->assertKinds([1], $newFilter->getKinds());
         $this->assertSame(10, $newFilter->getLimit());
     }
@@ -350,7 +353,7 @@ final class FilterTest extends TestCase
     public function testWithKindsReturnsNewFilterWithReplacedKinds(): void
     {
         $filter = new Filter(
-            authors: ['author-1'],
+            authors: [str_repeat('f', 64)],
             kinds: [1, 2],
             limit: 10
         );
@@ -359,7 +362,7 @@ final class FilterTest extends TestCase
 
         $this->assertKinds([1, 2], $filter->getKinds());
         $this->assertKinds([0, 7, 30023], $newFilter->getKinds());
-        $this->assertSame(['author-1'], $newFilter->getAuthors());
+        $this->assertAuthorHexes([str_repeat('f', 64)], $newFilter->getAuthors());
         $this->assertSame(10, $newFilter->getLimit());
     }
 
@@ -693,6 +696,30 @@ final class FilterTest extends TestCase
         $this->assertSame(
             $expectedInts,
             array_map(static fn (EventKind $k) => $k->toInt(), $actualKinds)
+        );
+    }
+
+    /**
+     * @param list<string> $expectedHexes
+     */
+    private function assertIdHexes(array $expectedHexes, ?EventIdCollection $actual): void
+    {
+        $this->assertNotNull($actual);
+        $this->assertSame(
+            $expectedHexes,
+            array_map(static fn (EventId $id): string => $id->toHex(), $actual->toArray())
+        );
+    }
+
+    /**
+     * @param list<string> $expectedHexes
+     */
+    private function assertAuthorHexes(array $expectedHexes, ?PublicKeyCollection $actual): void
+    {
+        $this->assertNotNull($actual);
+        $this->assertSame(
+            $expectedHexes,
+            array_map(static fn (PublicKey $pk): string => $pk->toHex(), $actual->toArray())
         );
     }
 

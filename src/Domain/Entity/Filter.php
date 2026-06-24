@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Entity;
 
+use Innis\Nostr\Core\Domain\Collection\EventIdCollection;
+use Innis\Nostr\Core\Domain\Collection\PublicKeyCollection;
 use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use InvalidArgumentException;
 use JsonSerializable;
@@ -121,9 +125,15 @@ final readonly class Filter implements JsonSerializable, Stringable
         return true;
     }
 
-    public function getIds(): ?array
+    public function getIds(): ?EventIdCollection
     {
-        return $this->ids;
+        if (null === $this->ids) {
+            return null;
+        }
+
+        return new EventIdCollection(array_values(array_filter(
+            array_map(EventId::fromHex(...), array_filter($this->ids, is_string(...))),
+        )));
     }
 
     public function hasIds(): bool
@@ -131,9 +141,15 @@ final readonly class Filter implements JsonSerializable, Stringable
         return null !== $this->ids;
     }
 
-    public function getAuthors(): ?array
+    public function getAuthors(): ?PublicKeyCollection
     {
-        return $this->authors;
+        if (null === $this->authors) {
+            return null;
+        }
+
+        return new PublicKeyCollection(array_values(array_filter(
+            array_map(PublicKey::fromHex(...), array_filter($this->authors, is_string(...))),
+        )));
     }
 
     public function hasAuthors(): bool
