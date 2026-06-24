@@ -44,6 +44,24 @@ final class Secp256k1Math
         return hash('sha256', $tagHash.$tagHash.$msg, true);
     }
 
+    public static function reduceToScalar(string $bytes): GMP
+    {
+        $hex = bin2hex($bytes);
+
+        try {
+            return gmp_mod(gmp_init($hex, 16), self::generator()->getOrder());
+        } finally {
+            sodium_memzero($hex);
+        }
+    }
+
+    public static function challenge(GMP $signatureX, GMP $publicKeyX, string $message): GMP
+    {
+        $input = self::gmpToBytes($signatureX, 32).self::gmpToBytes($publicKeyX, 32).$message;
+
+        return self::reduceToScalar(self::taggedHash('BIP0340/challenge', $input));
+    }
+
     public static function gmpToHex(GMP $value, int $byteLength): string
     {
         return str_pad(gmp_strval($value, 16), $byteLength * 2, '0', STR_PAD_LEFT);

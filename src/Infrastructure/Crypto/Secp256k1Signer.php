@@ -113,13 +113,8 @@ final class Secp256k1Signer implements SignatureServiceInterface
         sodium_memzero($t);
         sodium_memzero($randInput);
 
-        $randHex = bin2hex($rand);
+        $kPrime = Secp256k1Math::reduceToScalar($rand);
         sodium_memzero($rand);
-        try {
-            $kPrime = gmp_mod(gmp_init($randHex, 16), $n);
-        } finally {
-            sodium_memzero($randHex);
-        }
 
         if (0 === gmp_cmp($kPrime, 0)) {
             throw new CryptoException('BIP-340 nonce generation produced zero value');
@@ -128,9 +123,7 @@ final class Secp256k1Signer implements SignatureServiceInterface
         $R = $generator->mul($kPrime);
         $k = 0 === gmp_cmp(gmp_mod($R->getY(), 2), 0) ? $kPrime : gmp_sub($n, $kPrime);
 
-        $eInput = Secp256k1Math::gmpToBytes($R->getX(), 32).Secp256k1Math::gmpToBytes($P->getX(), 32).$message;
-        $eHash = Secp256k1Math::taggedHash('BIP0340/challenge', $eInput);
-        $e = gmp_mod(gmp_init(bin2hex($eHash), 16), $n);
+        $e = Secp256k1Math::challenge($R->getX(), $P->getX(), $message);
 
         $s = gmp_mod(gmp_add($k, gmp_mul($e, $d)), $n);
 
@@ -164,9 +157,7 @@ final class Secp256k1Signer implements SignatureServiceInterface
             return false;
         }
 
-        $eInput = Secp256k1Math::gmpToBytes($r, 32).Secp256k1Math::gmpToBytes($P_x, 32).$message;
-        $eHash = Secp256k1Math::taggedHash('BIP0340/challenge', $eInput);
-        $e = gmp_mod(gmp_init(bin2hex($eHash), 16), $n);
+        $e = Secp256k1Math::challenge($r, $P_x, $message);
 
         $sG = $generator->mul($s);
         $eP = $P->mul($e);
