@@ -262,7 +262,7 @@ Design rationale lives in [`docs/adr/`](docs/adr/) as immutable Architecture Dec
 | [0020](docs/adr/0020-filterhasher-canonicalises-to-ascii-safe-json-for-cross-language-parity.md) | `FilterHasher` canonicalises to ASCII-safe JSON for byte-identical cross-language hashes |
 | [0021](docs/adr/0021-single-bech32codec-covers-bech32-and-bech32m.md) | A single `Bech32Codec` covers both bech32 and bech32m |
 | [0022](docs/adr/0022-event-fromarray-coerces-non-string-content.md) | `Event::fromArray` coerces non-string `content` to its JSON string rather than rejecting it |
-| [0023](docs/adr/0023-collections-grouped-by-structural-kind-in-one-directory.md) | Typed collections live in one `Collection/` directory, grouped by structural kind |
+| [0023](docs/adr/0023-tagtype-keeps-named-constructors-alongside-fromstring.md) | `TagType` keeps convenience named constructors alongside `fromString` and constants |
 
 ## Dependencies
 

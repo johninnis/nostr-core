@@ -1,4 +1,4 @@
-# 24. `TagType` keeps convenience named constructors alongside `fromString` and constants
+# 23. `TagType` keeps convenience named constructors alongside `fromString` and constants
 
 ## Status
 
