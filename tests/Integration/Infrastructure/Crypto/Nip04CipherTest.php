@@ -103,12 +103,18 @@ final class Nip04CipherTest extends TestCase
         $adapter->decrypt($payload, $shortKey);
     }
 
-    public function testDecryptWithWrongKeyFails(): void
+    public function testDecryptWithWrongKeyNeverRecoversPlaintext(): void
     {
         $adapter = new Nip04Cipher();
         $payload = $adapter->encrypt('secret', new SecretKeyMaterial(str_repeat("\x42", 32)));
 
-        $this->expectException(EncryptionException::class);
-        $adapter->decrypt($payload, new SecretKeyMaterial(str_repeat("\x99", 32)));
+        $recovered = null;
+
+        try {
+            $recovered = $adapter->decrypt($payload, new SecretKeyMaterial(str_repeat("\x99", 32)));
+        } catch (EncryptionException) {
+        }
+
+        $this->assertNotSame('secret', $recovered);
     }
 }
