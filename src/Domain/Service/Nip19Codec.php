@@ -16,6 +16,11 @@ use Override;
 
 final class Nip19Codec implements Nip19CodecInterface
 {
+    private const int TLV_SPECIAL = 0;
+    private const int TLV_RELAY = 1;
+    private const int TLV_AUTHOR = 2;
+    private const int TLV_KIND = 3;
+
     #[Override]
     public function decodeComplexEntity(string $bech32): ?DecodedNip19Entity
     {
@@ -39,12 +44,12 @@ final class Nip19Codec implements Nip19CodecInterface
     #[Override]
     public function encodeAddressableEvent(string $identifier, PublicKey $pubkey, int $kind, array $relays = []): string
     {
-        $bytes = self::tlvEntry(0, $identifier);
+        $bytes = self::tlvEntry(self::TLV_SPECIAL, $identifier);
         foreach ($relays as $relay) {
-            $bytes .= self::tlvEntry(1, (string) $relay);
+            $bytes .= self::tlvEntry(self::TLV_RELAY, (string) $relay);
         }
-        $bytes .= self::tlvEntry(2, $pubkey->toBytes());
-        $bytes .= self::tlvEntry(3, self::integerToBytes($kind));
+        $bytes .= self::tlvEntry(self::TLV_AUTHOR, $pubkey->toBytes());
+        $bytes .= self::tlvEntry(self::TLV_KIND, self::integerToBytes($kind));
 
         return Bech32Codec::encode('naddr', $bytes);
     }
@@ -107,7 +112,7 @@ final class Nip19Codec implements Nip19CodecInterface
 
         return new DecodedNip19Entity(
             Nip19EntityType::Profile,
-            publicKey: isset($tlv[0][0]) ? PublicKey::fromBytes($tlv[0][0]) : null,
+            publicKey: isset($tlv[self::TLV_SPECIAL][0]) ? PublicKey::fromBytes($tlv[self::TLV_SPECIAL][0]) : null,
             relays: self::relayCollection($tlv),
         );
     }
@@ -121,8 +126,8 @@ final class Nip19Codec implements Nip19CodecInterface
 
         return new DecodedNip19Entity(
             Nip19EntityType::Event,
-            publicKey: isset($tlv[2][0]) ? PublicKey::fromBytes($tlv[2][0]) : null,
-            eventId: isset($tlv[0][0]) ? EventId::fromBytes($tlv[0][0]) : null,
+            publicKey: isset($tlv[self::TLV_AUTHOR][0]) ? PublicKey::fromBytes($tlv[self::TLV_AUTHOR][0]) : null,
+            eventId: isset($tlv[self::TLV_SPECIAL][0]) ? EventId::fromBytes($tlv[self::TLV_SPECIAL][0]) : null,
             kind: self::decodeKind($tlv),
             relays: self::relayCollection($tlv),
         );
@@ -137,8 +142,8 @@ final class Nip19Codec implements Nip19CodecInterface
 
         return new DecodedNip19Entity(
             Nip19EntityType::Address,
-            publicKey: isset($tlv[2][0]) ? PublicKey::fromBytes($tlv[2][0]) : null,
-            identifier: $tlv[0][0] ?? null,
+            publicKey: isset($tlv[self::TLV_AUTHOR][0]) ? PublicKey::fromBytes($tlv[self::TLV_AUTHOR][0]) : null,
+            identifier: $tlv[self::TLV_SPECIAL][0] ?? null,
             kind: self::decodeKind($tlv),
             relays: self::relayCollection($tlv),
         );
@@ -146,11 +151,11 @@ final class Nip19Codec implements Nip19CodecInterface
 
     private static function decodeKind(array $tlv): ?EventKind
     {
-        if (!isset($tlv[3][0])) {
+        if (!isset($tlv[self::TLV_KIND][0])) {
             return null;
         }
 
-        $kind = self::bytesToInteger($tlv[3][0]);
+        $kind = self::bytesToInteger($tlv[self::TLV_KIND][0]);
 
         return EventKind::tryFromInt($kind);
     }
@@ -158,7 +163,7 @@ final class Nip19Codec implements Nip19CodecInterface
     private static function relayCollection(array $tlv): RelayUrlCollection
     {
         $relays = [];
-        foreach ($tlv[1] ?? [] as $relayString) {
+        foreach ($tlv[self::TLV_RELAY] ?? [] as $relayString) {
             $relay = RelayUrl::fromString($relayString);
             if (null !== $relay) {
                 $relays[] = $relay;
