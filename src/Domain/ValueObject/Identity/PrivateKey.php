@@ -7,7 +7,6 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 use Closure;
 use Innis\Nostr\Core\Domain\Service\Bech32Codec;
 use Innis\Nostr\Core\Domain\Service\HexCodec;
-use Innis\Nostr\Core\Domain\ValueObject\SecretKeyMaterial;
 
 final readonly class PrivateKey
 {

@@ -6,7 +6,6 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
 use Closure;
 use Innis\Nostr\Core\Domain\Service\EcdhServiceInterface;
-use Innis\Nostr\Core\Domain\ValueObject\SecretKeyMaterial;
 
 final readonly class ConversationKey
 {

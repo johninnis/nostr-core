@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject;
+namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Identity;
 
 use Innis\Nostr\Core\Domain\Exception\SecretKeyMaterialZeroedException;
-use Innis\Nostr\Core\Domain\ValueObject\SecretKeyMaterial;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\SecretKeyMaterial;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 

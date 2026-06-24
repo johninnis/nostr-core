@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Domain\ValueObject;
+namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
 use Closure;
 use Innis\Nostr\Core\Domain\Exception\SecretKeyMaterialZeroedException;

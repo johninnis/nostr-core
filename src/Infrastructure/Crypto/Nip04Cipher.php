@@ -8,7 +8,7 @@ use Deprecated;
 use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
 use Innis\Nostr\Core\Domain\Exception\EncryptionException;
 use Innis\Nostr\Core\Domain\Service\Nip04EncryptionInterface;
-use Innis\Nostr\Core\Domain\ValueObject\SecretKeyMaterial;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\SecretKeyMaterial;
 use Override;
 
 final class Nip04Cipher implements Nip04EncryptionInterface
