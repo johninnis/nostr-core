@@ -225,6 +225,14 @@ brew install libsecp256k1
 No code changes are required. The library detects and uses the native
 implementation automatically, falling back to pure PHP when unavailable.
 
+## Security
+
+See [SECURITY.md](SECURITY.md) for the library's security properties, the
+responsibilities it leaves to the consumer, and the reasoning behind the
+non-obvious cryptographic decisions. In particular, the pure-PHP cryptography
+fallback is **not constant-time**, so any server-side or long-lived signer
+should ensure the native `libsecp256k1` (FFI) path is active.
+
 ## Architecture
 
 This package follows Clean Architecture principles with strict layer separation:
@@ -264,6 +272,9 @@ Design rationale lives in [`docs/adr/`](docs/adr/) as immutable Architecture Dec
 | [0022](docs/adr/0022-event-fromarray-coerces-non-string-content.md) | `Event::fromArray` coerces non-string `content` to its JSON string rather than rejecting it |
 | [0023](docs/adr/0023-tagtype-keeps-named-constructors-alongside-fromstring.md) | `TagType` keeps convenience named constructors alongside `fromString` and constants |
 | [0024](docs/adr/0024-typed-collections-memoise-a-membership-index.md) | Typed collections memoise a membership index |
+| [0025](docs/adr/0025-secp256k1-keeps-a-native-ffi-path-and-a-pure-php-fallback.md) | secp256k1 signing and ECDH keep a native FFI path and a pure-PHP fallback |
+| [0026](docs/adr/0026-signature-fromhex-requires-a-full-64-byte-signature.md) | `Signature::fromHex` requires a complete 64-byte signature |
+| [0027](docs/adr/0027-secp256k1signer-verify-is-a-total-predicate.md) | `Secp256k1Signer::verify` is a total predicate — it returns `false`, never throws |
 
 ## Dependencies
 

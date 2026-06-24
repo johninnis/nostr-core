@@ -13,6 +13,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
 use InvalidArgumentException;
 use Override;
+use Throwable;
 
 final class Secp256k1Signer implements SignatureServiceInterface
 {
@@ -29,6 +30,7 @@ final class Secp256k1Signer implements SignatureServiceInterface
     {
         $randomBytes ??= new NativeRandomBytesGenerator();
         $seed = $randomBytes->bytes(32);
+        // Deliberate: probes for native libsecp256k1; absent it, signing uses the pure-PHP path, which is NOT constant-time — prefer the native path for server-side signers, see ADR-0025
         $ffi = LibSecp256k1Ffi::tryLoad($seed);
 
         return new self($ffi, $randomBytes);
@@ -59,11 +61,16 @@ final class Secp256k1Signer implements SignatureServiceInterface
     public function verify(PublicKey $publicKey, string $message, Signature $signature): bool
     {
         // Deliberate: verify stays length-agnostic (unlike sign) — see ADR-0013; native/pure-PHP dispatch — see ADR-0025
-        if (null !== $this->ffi) {
-            return $this->ffi->verify($signature->toBytes(), $message, $publicKey->toBytes());
-        }
+        try {
+            if (null !== $this->ffi) {
+                return $this->ffi->verify($signature->toBytes(), $message, $publicKey->toBytes());
+            }
 
-        return $this->verifyPurePhp($message, $signature->toHex(), $publicKey->toHex());
+            return $this->verifyPurePhp($message, $signature->toHex(), $publicKey->toHex());
+        } catch (Throwable) {
+            // Deliberate: verify is a total predicate — any internal failure is "not a valid signature", never a propagated fault — see ADR-0027
+            return false;
+        }
     }
 
     #[Override]

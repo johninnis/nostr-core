@@ -36,21 +36,21 @@ Only the latest tagged release is supported. Older releases do not receive backp
 
 - **NIP-59 gift-wrap.** `GiftWrapper` validates both outer and inner signatures before trusting any content, zeroes ephemeral keys it generates, and passes all `ConversationKey` material through the `expose(Closure)` lifecycle so derived secrets do not escape their use-site scope.
 
-- **ECDH input validation.** Every `ConversationKey::derive(...)` call validates the peer public key's x-coordinate lies in `(0, p)` and rejects a shared point that computes to the identity before deriving the conversation key.
+- **ECDH input validation.** The bundled `Secp256k1Ecdh` validates that the peer public key's x-coordinate lies in `(0, p)` and rejects a shared point that computes to the identity — on both the FFI and pure-PHP paths — before any shared secret is returned. `ConversationKey::derive(...)` delegates the ECDH to the injected `EcdhServiceInterface`, so these checks live in that implementation; a consumer that supplies its own `EcdhServiceInterface` is responsible for the equivalent validation.
 
 - **Secret material lifecycle.** `SecretKeyMaterial`, `PrivateKey`, and `ConversationKey` hold secrets behind an `expose(Closure)` contract. `zero()` deterministically erases the byte buffer and leaves the object in a state that throws `SecretKeyMaterialZeroedException` on any subsequent access. Sign and ECDH operations wrap their pure-PHP intermediate hex and byte buffers in `try/finally` `sodium_memzero` blocks.
 
-- **Defensive relay-protocol parsing.** `REQ` and `COUNT` messages cap filter count at 20; `Filter` caps each array-valued field at 1000; `SubscriptionId` restricts to printable ASCII; `OkMessage` requires a strict boolean for its `accepted` flag. Malformed relay responses are rejected with `InvalidArgumentException` rather than propagating `TypeError`.
+- **Defensive relay-protocol parsing.** `REQ` and `COUNT` messages cap filter count at 20; `Filter` caps each array-valued field at 1000; `SubscriptionId` restricts to printable ASCII; `OkMessage` requires a strict boolean for its `accepted` flag. Malformed relay input is rejected as a typed outcome — the message `fromArray`/`fromJson` factories return `null` and the value-object constructors throw `InvalidArgumentException` — rather than propagating a `TypeError`.
 
 - **NIP-05 identifier parsing.** Strict charset validation on both the local part and domain. IP literals, hostnames with injected paths or user-info, and control characters are rejected at construction.
 
-- **NIP-98 event validation.** `Nip98Validator` enforces kind, signature, timestamp-within-tolerance, URL match, method match, and payload-hash consistency. A signed event with a `payload` tag but no caller-supplied body hash is rejected explicitly.
+- **NIP-98 event validation.** `Nip98Validator` enforces kind, signature, timestamp-within-tolerance, URL match, method match, and payload-hash consistency, and enforces single-use by recording each event id once through an injected `Nip98ReplayGuardInterface` (returning a `Replayed` failure if the same id is presented again within the replay window). A signed event with a `payload` tag but no caller-supplied body hash is rejected explicitly.
 
 ### What this library does not provide
 
 These are load-bearing consumer responsibilities. The library deliberately does not handle them.
 
-- **NIP-98 replay protection.** The validator accepts any correctly-signed event whose `created_at` falls within the tolerance window (default 60 seconds). Preventing replay requires caller-side tracking of used event IDs. This is a NIP-98 specification constraint, not a library limitation.
+- **A durable NIP-98 replay store.** `Nip98Validator` enforces single-use by calling the injected `Nip98ReplayGuardInterface::recordOnce(...)`, but the durability, scope, and eviction of the seen-id store live in the consumer-supplied adapter. An in-memory guard only blocks replay within one process; a multi-node deployment needs a shared store. The replay window is `2 ×` the timestamp tolerance (default `2 × 60 = 120` seconds); events older than that fall outside the tolerance check and are rejected before the replay guard is consulted.
 
 - **SSRF mitigation for NIP-05 and NIP-11 fetches.** Identifier validation rejects IP literals and syntactically invalid hostnames, but the HTTP request itself is issued by the consumer-supplied `HttpServiceInterface` adapter. Blocking private IP ranges (RFC1918, link-local, metadata services) is the adapter's responsibility, where SSRF policy belongs.
 
@@ -60,13 +60,13 @@ These are load-bearing consumer responsibilities. The library deliberately does 
 
 - **Destructor-based zeroing.** `SecretKeyMaterial::__destruct` calls `zero()` for defence in depth, but PHP's garbage collector runs on refcount-zero, which may never happen for objects captured in long-lived closures, static state, exception trace frames, or cyclic references. Applications requiring bounded key-material lifetimes must call `$privateKey->zero()` explicitly. Do not rely on the destructor.
 
-- **Timing-side-channel resistance on the pure-PHP fallback path.** The pure-PHP signing, public-key derivation, and ECDH implementations via `paragonie/ecc` are not hardened against timing analysis. Where the threat model includes co-located adversaries, the FFI path (`libsecp256k1`) must be used.
+- **Timing-side-channel resistance on the pure-PHP fallback path.** The pure-PHP signing, public-key derivation, and ECDH implementations (via `paragonie/ecc` over GMP) are not constant-time, and cannot be made so. The secret-dependent operations — scalar multiplication of the private key and the per-signature nonce, the modular arithmetic that builds `s`, and the ECDH `priv·P` — run on GMP big-integer arithmetic and an interpreted double-and-add point multiplication, both of which branch on the value of the secret; a garbage-collected interpreted runtime also gives no control over instruction timing or memory-access patterns. Mitigations (Montgomery ladder, scalar/nonce blinding) can reduce the leakage but not eliminate it, because they still run on variable-time GMP and the Zend engine — a true guarantee needs the secret-independent machine code that native `libsecp256k1` provides. A local or co-located attacker able to measure signing/ECDH timing could, in principle, recover private-key material. For any server-side or long-lived signer — a relay, a NIP-46 remote signer/bunker, or any service that repeatedly signs attacker-influenced messages with a fixed key — install `libsecp256k1`, enable the `ffi` extension, and verify the native path is active before deploying. The pure-PHP fallback is intended for portability and low-exposure client use, not a hardened signing oracle. See [ADR 0025](docs/adr/0025-secp256k1-keeps-a-native-ffi-path-and-a-pure-php-fallback.md).
 
 - **Verification of AUTH-event challenge freshness.** `AuthMessage` (client) validates the event is kind 22242 at construction but does not verify the signature or match against an expected relay challenge. The library is a parser; challenge tracking is the relay or client application's responsibility.
 
 - **Safety of PHP's native `unserialize()` on library types.** Value objects in this library are not designed to round-trip through PHP's native `serialize()` / `unserialize()` functions. `unserialize` bypasses constructor validation and can instantiate library types in states the normal constructors would reject. Do not pass untrusted data through `unserialize()` into any library type. Parsing incoming relay JSON via `json_decode` and feeding the result into `Event::fromArray`, `Filter::fromArray`, or the message-layer factories is the intended flow, and those factories perform their own type validation.
 
-- **Transport-layer limits.** `JsonMessageDeserialiser` uses `json_decode` with PHP's default depth limit (512) and no explicit input-size cap. WebSocket-frame size limits belong in the transport layer, outside this library.
+- **Transport-layer limits.** `JsonMessageDeserialiser` decodes through `JsonWireFormat::decodeArray`, which `json_validate`s then `json_decode`s at a nesting-depth limit of 512 and applies no input-size cap. WebSocket-frame size limits belong in the transport layer, outside this library.
 
 ## Design decisions
 
@@ -84,9 +84,9 @@ Consumer code should use `Secp256k1Signer::create()` and `Secp256k1Ecdh::create(
 
 `Nip49EncryptionInterface::encrypt` and `::decrypt` take the password as a `Closure(): string` rather than a raw string. The adapter invokes the closure exactly once, `sodium_memzero`s the revealed string before the method returns, and `sodium_memzero`s the NFKC-normalised copy on the way out. Callers therefore do not need to maintain a password binding in their own scope. The alternative, accepting a raw `string`, would leave the password in the caller's stack frame until the call site explicitly zeroed it, which is easy to forget.
 
-### Short Schnorr signature tolerance
+### Strict 64-byte signatures
 
-`Signature::fromHex` accepts 126-128 character hex strings and left-zero-pads shorter inputs to 128. BIP-340 specifies that signatures are always exactly 64 bytes; producers that strip leading zero bytes are non-conformant. `rust-secp256k1`, `libsecp256k1`, and `@noble/curves` all reject short signatures outright. This library tolerates them as a pragmatic accommodation for specific non-conformant producers observed in the nostr ecosystem. The tolerance only succeeds when the missing bytes were stripped from `r`; a sig stripped from `s` pads into a wrong shape and fails verification, which is the correct outcome. If a try-both-splits upgrade is ever needed, it can be added to the verify path without altering `Signature`.
+`Signature::fromHex` requires a complete 64-byte signature — exactly 128 lowercase hex characters — and returns `null` for anything shorter, longer, upper-case, or non-hex. There is no zero-padding of short inputs. BIP-340 signatures are always 64 bytes, and `libsecp256k1`, `rust-secp256k1`, and `@noble/curves` all reject short signatures outright. A producer that strips leading zero bytes therefore has its signatures rejected at parse time rather than silently reconstructed: left-padding a short input can fabricate the *wrong* signature when the missing bytes came from `s`, so the parser refuses to guess and returns `null` (an anticipated outcome the caller handles). If interoperability with such producers is ever required, it belongs in a verify-and-pick step above the value object, never in `fromHex`. See [ADR 0026](docs/adr/0026-signature-fromhex-requires-a-full-64-byte-signature.md).
 
 ### NIP-44 nonce injection via `RandomBytesGeneratorInterface`
 
@@ -94,9 +94,9 @@ Consumer code should use `Secp256k1Signer::create()` and `Secp256k1Ecdh::create(
 
 The same pattern applies to `Nip49Cipher`'s salt and nonce generation. See [ADR 0014](docs/adr/0014-nip44cipher-has-no-public-encryptwithnonce.md).
 
-### `SecretKeyMaterial::fromBytes` is not public
+### Each secret wrapper owns a fresh `SecretKeyMaterial`
 
-Construction of `SecretKeyMaterial` goes through its constructor, which validates length inline. There is no `fromBytes` named factory. Callers wanting a `PrivateKey` or `ConversationKey` go through `PrivateKey::fromBytes` / `ConversationKey::fromBytes`, which always allocate a fresh material the returned object owns. This eliminates a footgun where two wrapping types could share the same lifecycle-aware buffer and `zero()` on one would silently kill the other.
+`PrivateKey::fromBytes` and `ConversationKey::fromBytes` each allocate their own `SecretKeyMaterial` (via `SecretKeyMaterial::fromBytes`, which validates the length and returns `null` on a wrong size). A wrapping type therefore owns the buffer it zeroes: calling `zero()` on one `PrivateKey` cannot silently wipe the key material held by another object, because no API hands the same material instance to two wrappers. `SecretKeyMaterial`'s constructors (`__construct`, `fromBytes`, `fromHex`, `random`) are public; the lifecycle safety comes from each wrapper allocating a distinct material, not from hiding the factory.
 
 ### Gift-wrap outer signature verified, not merely present
 
@@ -110,9 +110,9 @@ Construction of `SecretKeyMaterial` goes through its constructor, which validate
 
 `Nip11Info::fromArray` and each lazy accessor type-guard the data they read. A relay returning `"supported_nips": "not-an-array"` causes `getSupportedNips()` to return `null` rather than propagating a `TypeError` to the caller. Relays are untrusted peers; graceful degradation on malformed responses is preferable to exception-based denial of service.
 
-### `Secp256k1Signer::verify` catches `Throwable`
+### `Secp256k1Signer::verify` is a total predicate
 
-Any exception from the underlying FFI or pure-PHP verify implementation is caught and returned as `false`. Verification has two legitimate outcomes, valid or invalid, and any path that reaches an exception is a failure of verification, not an error worth propagating. The cost is that programmer errors in the caller surface as "invalid signature" rather than as exceptions; this is accepted as a correct trade for a method whose semantic output is a boolean.
+`verify` catches `Throwable` and returns `false`: a signature that cannot be positively established as valid is, for a verification predicate, simply invalid. This is a deliberate, bounded exception to the "never swallow an exception" rule — `verify` is called per event on untrusted data by relays, so a throwing verifier would be a denial-of-service vector, and "not valid" is the safe verdict for any input it cannot verify. The trade-off is that a genuine implementation bug surfaces as "invalid signature" rather than an exception; the BIP-340 vectors and cross-engine property sweeps guard against that. Unlike `sign` — which throws on a wrong-length message, a programmer error on trusted input ([ADR 0013](docs/adr/0013-secp256k1signer-sign-rejects-non-32-byte-messages.md)) — `verify` consumes untrusted data whose every failure mode is honestly "invalid". See [ADR 0027](docs/adr/0027-secp256k1signer-verify-is-a-total-predicate.md).
 
 ### Relay-protocol parsing caps
 

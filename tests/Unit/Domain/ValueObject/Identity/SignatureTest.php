@@ -36,6 +36,11 @@ final class SignatureTest extends TestCase
         $this->assertNull(Signature::fromHex(str_repeat('a', 64)));
     }
 
+    public function testRejectsShortSignatureRatherThanZeroPadding(): void
+    {
+        $this->assertNull(Signature::fromHex(str_repeat('a', 126)));
+    }
+
     public function testEqualsWorksCorrectly(): void
     {
         $signature1 = Signature::fromHex(self::VALID_SIGNATURE_HEX) ?? throw new RuntimeException('Invalid test sig');
