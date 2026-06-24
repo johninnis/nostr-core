@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Collection;
 
-use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
@@ -92,16 +91,12 @@ final class TagCollection extends TypedCollection
 
     public function getPubkeys(): PublicKeyCollection
     {
-        return new PublicKeyCollection(array_values(array_filter(
-            array_map(PublicKey::fromHex(...), $this->getValuesByType(TagType::pubkey())),
-        )));
+        return PublicKeyCollection::fromHexValues($this->getValuesByType(TagType::pubkey()));
     }
 
     public function getEventIds(): EventIdCollection
     {
-        return new EventIdCollection(array_values(array_filter(
-            array_map(EventId::fromHex(...), $this->getValuesByType(TagType::event())),
-        )));
+        return EventIdCollection::fromHexValues($this->getValuesByType(TagType::event()));
     }
 
     public function getFirstValueByType(TagType $type): ?string

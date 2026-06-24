@@ -84,4 +84,26 @@ abstract class TypedCollection implements IteratorAggregate, Countable
 
         return array_values($unique);
     }
+
+    /**
+     * @param callable(string): (T|null) $parse
+     *
+     * @return list<T>
+     */
+    final protected static function parseStrings(mixed $values, callable $parse): array
+    {
+        $items = [];
+
+        if (is_iterable($values)) {
+            foreach ($values as $value) {
+                $parsed = is_string($value) ? $parse($value) : null;
+
+                if (null !== $parsed) {
+                    $items[] = $parsed;
+                }
+            }
+        }
+
+        return $items;
+    }
 }

@@ -112,29 +112,13 @@ final readonly class EventReferences
             )));
         }
 
-        $eventIds = [];
-        if (isset($data['all_event_ids']) && is_array($data['all_event_ids'])) {
-            $eventIds = array_values(array_filter(array_map(
-                static fn (mixed $hex) => is_string($hex) ? EventId::fromHex($hex) : null,
-                $data['all_event_ids']
-            )));
-        }
-
-        $publicKeys = [];
-        if (isset($data['all_public_keys']) && is_array($data['all_public_keys'])) {
-            $publicKeys = array_values(array_filter(array_map(
-                static fn (mixed $hex) => is_string($hex) ? PublicKey::fromHex($hex) : null,
-                $data['all_public_keys']
-            )));
-        }
-
         return new self(
             TagReferences::fromArray(isset($data['tag_references']) && is_array($data['tag_references']) ? $data['tag_references'] : []),
             new ContentReferenceCollection($contentReferences),
             ReplyChain::fromArray(isset($data['reply_chain']) && is_array($data['reply_chain']) ? $data['reply_chain'] : []),
             QuoteAnalysis::fromArray(isset($data['quote_analysis']) && is_array($data['quote_analysis']) ? $data['quote_analysis'] : []),
-            new EventIdCollection($eventIds),
-            new PublicKeyCollection($publicKeys)
+            EventIdCollection::fromHexValues($data['all_event_ids'] ?? null),
+            PublicKeyCollection::fromHexValues($data['all_public_keys'] ?? null)
         );
     }
 }

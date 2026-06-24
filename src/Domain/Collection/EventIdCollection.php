@@ -18,6 +18,11 @@ final class EventIdCollection extends TypedCollection
         return EventId::class;
     }
 
+    public static function fromHexValues(mixed $values): self
+    {
+        return new self(self::parseStrings($values, EventId::fromHex(...)));
+    }
+
     public function unique(): self
     {
         return new self($this->deduplicate(static fn (EventId $eventId): string => $eventId->toHex()));
