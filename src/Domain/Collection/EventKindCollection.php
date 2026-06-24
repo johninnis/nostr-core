@@ -12,6 +12,10 @@ use Override;
  */
 final class EventKindCollection extends TypedCollection
 {
+    // Deliberate: lazily memoised membership index, permitted because the collection is not readonly — see ADR-0024
+    /** @var array<int, true>|null */
+    private ?array $intIndex = null;
+
     #[Override]
     protected function elementType(): string
     {
@@ -28,7 +32,9 @@ final class EventKindCollection extends TypedCollection
 
     public function contains(EventKind $eventKind): bool
     {
-        return array_any($this->items, static fn (EventKind $candidate): bool => $candidate->equals($eventKind));
+        $this->intIndex ??= array_fill_keys($this->toInts(), true);
+
+        return isset($this->intIndex[$eventKind->toInt()]);
     }
 
     public function intersect(self $other): self
