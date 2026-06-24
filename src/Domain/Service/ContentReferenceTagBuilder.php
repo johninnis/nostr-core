@@ -11,10 +11,10 @@ use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Override;
 
-final class ContentReferenceTagBuilder implements ContentReferenceTagBuilderInterface
+final readonly class ContentReferenceTagBuilder implements ContentReferenceTagBuilderInterface
 {
     public function __construct(
-        private readonly ContentReferenceExtractorInterface $extractor,
+        private ContentReferenceExtractorInterface $extractor,
     ) {
     }
 

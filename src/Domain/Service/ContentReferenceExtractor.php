@@ -10,7 +10,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\ContentReference;
 use Override;
 
-final class ContentReferenceExtractor implements ContentReferenceExtractorInterface
+final readonly class ContentReferenceExtractor implements ContentReferenceExtractorInterface
 {
     public function __construct(
         private Nip19CodecInterface $nip19Codec,

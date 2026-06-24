@@ -12,7 +12,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Override;
 
-final class RelayHintExtractor implements RelayHintExtractorInterface
+final readonly class RelayHintExtractor implements RelayHintExtractorInterface
 {
     public function __construct(
         private ContentReferenceExtractorInterface $contentReferenceExtractor,

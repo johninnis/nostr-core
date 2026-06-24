@@ -10,10 +10,10 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Override;
 
-final class NipComplianceValidator implements NipComplianceValidatorInterface
+final readonly class NipComplianceValidator implements NipComplianceValidatorInterface
 {
     public function __construct(
-        private readonly SignatureServiceInterface $signatureService,
+        private SignatureServiceInterface $signatureService,
     ) {
     }
 

@@ -8,14 +8,14 @@ use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 use Override;
 
-final class EventValidator implements EventValidatorInterface
+final readonly class EventValidator implements EventValidatorInterface
 {
     private const int MAX_CONTENT_LENGTH = 65536;
     private const int MAX_TAGS_COUNT = 5000;
 
     public function __construct(
-        private readonly SignatureServiceInterface $signatureService,
-        private readonly NipComplianceValidatorInterface $nipValidator,
+        private SignatureServiceInterface $signatureService,
+        private NipComplianceValidatorInterface $nipValidator,
     ) {
     }
 

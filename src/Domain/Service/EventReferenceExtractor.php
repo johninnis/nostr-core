@@ -18,7 +18,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Reference\TagReferences;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Override;
 
-final class EventReferenceExtractor implements EventReferenceExtractorInterface
+final readonly class EventReferenceExtractor implements EventReferenceExtractorInterface
 {
     public function __construct(
         private ContentReferenceExtractorInterface $contentExtractor,
