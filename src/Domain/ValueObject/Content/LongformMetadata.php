@@ -66,7 +66,7 @@ final readonly class LongformMetadata
         }
 
         $publishedAtValue = (int) ($tags->getFirstValueByType(TagType::fromString(TagType::PUBLISHED_AT)) ?? '0');
-        $publishedAt = $publishedAtValue > 0 ? Timestamp::fromInt($publishedAtValue) : null;
+        $publishedAt = $publishedAtValue > 0 ? Timestamp::tryFromInt($publishedAtValue) : null;
 
         return new self(
             $identifier,
@@ -105,6 +105,9 @@ final readonly class LongformMetadata
         return new TagCollection($tags);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         return [
@@ -117,6 +120,9 @@ final readonly class LongformMetadata
         ];
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public static function fromArray(array $data): ?self
     {
         $identifier = JsonWireFormat::stringField($data, 'identifier');

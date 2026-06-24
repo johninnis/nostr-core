@@ -24,12 +24,18 @@ final readonly class AuthMessage extends RelayMessage
         return $this->challenge;
     }
 
+    /**
+     * @return list<mixed>
+     */
     #[Override]
     public function toArray(): array
     {
         return [self::TYPE, $this->challenge];
     }
 
+    /**
+     * @param array<array-key, mixed> $data
+     */
     #[Override]
     public static function fromArray(array $data): ?static
     {

@@ -6,7 +6,6 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Reference;
 
 use Innis\Nostr\Core\Domain\Collection\EventReferenceCollection;
 use Innis\Nostr\Core\Domain\Collection\PublicKeyCollection;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 
 final readonly class ReplyChain
 {
@@ -70,6 +69,9 @@ final readonly class ReplyChain
         return $this->mentionedEvents->count();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         return [
@@ -82,31 +84,18 @@ final readonly class ReplyChain
         ];
     }
 
+    /**
+     * @param array<array-key, mixed> $data
+     */
     public static function fromArray(array $data): self
     {
-        $participants = [];
-        if (isset($data['conversation_participants']) && is_array($data['conversation_participants'])) {
-            $participants = array_values(array_filter(array_map(
-                static fn (mixed $hex) => is_string($hex) ? PublicKey::fromHex($hex) : null,
-                $data['conversation_participants']
-            )));
-        }
-
-        $mentionedEvents = [];
-        if (isset($data['mentioned_events']) && is_array($data['mentioned_events'])) {
-            $mentionedEvents = array_values(array_filter(array_map(
-                static fn (mixed $eventData) => is_array($eventData) ? EventReference::fromArray($eventData) : null,
-                $data['mentioned_events']
-            )));
-        }
-
         return new self(
             (bool) ($data['is_reply'] ?? false),
             (bool) ($data['is_root_post'] ?? false),
             isset($data['root_event']) && is_array($data['root_event']) ? EventReference::fromArray($data['root_event']) : null,
             isset($data['parent_event']) && is_array($data['parent_event']) ? EventReference::fromArray($data['parent_event']) : null,
-            new PublicKeyCollection($participants),
-            new EventReferenceCollection($mentionedEvents)
+            PublicKeyCollection::fromHexValues($data['conversation_participants'] ?? null),
+            EventReferenceCollection::fromArrays($data['mentioned_events'] ?? null)
         );
     }
 }

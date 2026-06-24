@@ -11,8 +11,14 @@ abstract readonly class Message
 {
     protected const string TYPE = '';
 
+    /**
+     * @return array<array-key, mixed>
+     */
     abstract public function toArray(): array;
 
+    /**
+     * @param array<array-key, mixed> $data
+     */
     abstract public static function fromArray(array $data): ?static;
 
     final public function getType(): string

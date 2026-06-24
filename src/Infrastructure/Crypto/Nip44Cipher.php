@@ -109,6 +109,9 @@ final class Nip44Cipher implements Nip44EncryptionInterface
         return $payload;
     }
 
+    /**
+     * @return array{chachaKey: string, chachaNonce: string, hmacKey: string}
+     */
     private function deriveMessageKeys(string $prk, string $nonce): array
     {
         $expanded = $this->hkdfExpand($prk, $nonce, 76);

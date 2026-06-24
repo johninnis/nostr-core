@@ -31,6 +31,9 @@ final readonly class PubkeyReference
         return $this->petname;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         return [
@@ -40,6 +43,9 @@ final readonly class PubkeyReference
         ];
     }
 
+    /**
+     * @param array<array-key, mixed> $data
+     */
     public static function fromArray(array $data): ?self
     {
         $pubkeyHex = $data['pubkey'] ?? null;

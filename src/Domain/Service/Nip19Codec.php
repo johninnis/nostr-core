@@ -41,6 +41,9 @@ final class Nip19Codec implements Nip19CodecInterface
         };
     }
 
+    /**
+     * @param list<string> $relays
+     */
     #[Override]
     public function encodeAddressableEvent(string $identifier, PublicKey $pubkey, int $kind, array $relays = []): string
     {
@@ -149,6 +152,9 @@ final class Nip19Codec implements Nip19CodecInterface
         );
     }
 
+    /**
+     * @param array<int, list<string>> $tlv
+     */
     private static function decodeKind(array $tlv): ?EventKind
     {
         if (!isset($tlv[self::TLV_KIND][0])) {
@@ -160,6 +166,9 @@ final class Nip19Codec implements Nip19CodecInterface
         return EventKind::tryFromInt($kind);
     }
 
+    /**
+     * @param array<int, list<string>> $tlv
+     */
     private static function relayCollection(array $tlv): RelayUrlCollection
     {
         $relays = [];
@@ -173,6 +182,9 @@ final class Nip19Codec implements Nip19CodecInterface
         return new RelayUrlCollection($relays);
     }
 
+    /**
+     * @return array<int, list<string>>|null
+     */
     private static function parseTlv(string $bytes): ?array
     {
         $result = [];

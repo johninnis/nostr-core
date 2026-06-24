@@ -79,6 +79,9 @@ final readonly class EventReferences
         return $this->allPublicKeys->count();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         return [
@@ -91,19 +94,14 @@ final readonly class EventReferences
         ];
     }
 
+    /**
+     * @param array<array-key, mixed> $data
+     */
     public static function fromArray(array $data): self
     {
-        $contentReferences = [];
-        if (isset($data['content_references']) && is_array($data['content_references'])) {
-            $contentReferences = array_values(array_filter(array_map(
-                static fn (mixed $refData) => is_array($refData) ? ContentReference::fromArray($refData) : null,
-                $data['content_references']
-            )));
-        }
-
         return new self(
             TagReferences::fromArray(isset($data['tag_references']) && is_array($data['tag_references']) ? $data['tag_references'] : []),
-            new ContentReferenceCollection($contentReferences),
+            ContentReferenceCollection::fromArrays($data['content_references'] ?? null),
             ReplyChain::fromArray(isset($data['reply_chain']) && is_array($data['reply_chain']) ? $data['reply_chain'] : []),
             QuoteAnalysis::fromArray(isset($data['quote_analysis']) && is_array($data['quote_analysis']) ? $data['quote_analysis'] : []),
             EventIdCollection::fromHexValues($data['all_event_ids'] ?? null),

@@ -24,6 +24,9 @@ final readonly class RelayReference
         return $this->mode;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         return [
@@ -32,6 +35,9 @@ final readonly class RelayReference
         ];
     }
 
+    /**
+     * @param array<array-key, mixed> $data
+     */
     public static function fromArray(array $data): ?self
     {
         $url = $data['url'] ?? null;

@@ -73,6 +73,9 @@ final readonly class Nutzap implements PaymentReceiptInterface
         return new self($event->getPubkey(), $recipientPubkey, $amount, $message);
     }
 
+    /**
+     * @return list<int>
+     */
     private static function extractProofAmounts(TagCollection $tags): array
     {
         $amounts = [];
@@ -87,6 +90,9 @@ final readonly class Nutzap implements PaymentReceiptInterface
         return $amounts;
     }
 
+    /**
+     * @param list<int> $proofAmounts
+     */
     private static function totalWithinCap(array $proofAmounts, TagCollection $tags): ?ZapAmount
     {
         $unitValues = $tags->getValuesByType(TagType::unit());

@@ -12,10 +12,10 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\Nip05VerificationResult;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Override;
 
-final class Nip05Verifier implements Nip05VerifierInterface
+final readonly class Nip05Verifier implements Nip05VerifierInterface
 {
     public function __construct(
-        private readonly HttpServiceInterface $httpService,
+        private HttpServiceInterface $httpService,
     ) {
     }
 
@@ -38,7 +38,7 @@ final class Nip05Verifier implements Nip05VerifierInterface
         }
 
         $localPart = $identifier->getLocalPart();
-        if (!isset($data['names'][$localPart])) {
+        if (!is_array($data['names']) || !isset($data['names'][$localPart])) {
             return Nip05VerificationResult::failure($identifier, $expectedPubkey, Nip05VerificationFailure::NameNotFound);
         }
 

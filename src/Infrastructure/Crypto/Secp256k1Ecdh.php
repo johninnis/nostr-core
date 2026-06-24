@@ -40,6 +40,7 @@ final class Secp256k1Ecdh implements EcdhServiceInterface
             throw new EcdhException('ECDH public key x-coordinate out of field range');
         }
 
+        // Deliberate: native libsecp256k1 when present, pure-PHP fallback otherwise; both pinned by the ECDH parity suite — see ADR-0025
         if (null !== $this->ffi) {
             return $this->computeSharedXFfi($privateKey, $publicKey);
         }

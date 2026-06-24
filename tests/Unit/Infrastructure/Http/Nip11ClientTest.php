@@ -102,6 +102,9 @@ final class Nip11ClientTest extends TestCase
         $this->makeAdapter($httpService)->fetchNip11Info($this->relayUrl($inputUrl));
     }
 
+    /**
+     * @return array<string, array{string, string}>
+     */
     public static function urlRewriteCases(): array
     {
         return [

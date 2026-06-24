@@ -20,8 +20,8 @@ $note = EventFactory::createTextNote(
 $signed = $note->sign($keyPair, $signer);
 $event = $signed->toArray();
 
-echo 'Event id:  ' . $event['id'] . PHP_EOL;
-echo 'Pubkey:    ' . $event['pubkey'] . PHP_EOL;
+echo 'Event id:  ' . $signed->getId()->toHex() . PHP_EOL;
+echo 'Pubkey:    ' . $signed->getPubkey()->toHex() . PHP_EOL;
 echo 'Verified:  ' . ($signed->verify($signer) ? 'yes' : 'no') . PHP_EOL;
 echo PHP_EOL;
 echo json_encode($event, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL;

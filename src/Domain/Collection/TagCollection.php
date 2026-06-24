@@ -116,9 +116,12 @@ final class TagCollection extends TypedCollection
         return null;
     }
 
+    /**
+     * @return list<list<string>>
+     */
     public function toJsonArray(): array
     {
-        return array_map(static fn (Tag $tag) => $tag->toArray(), $this->items);
+        return $this->mapItems(static fn (Tag $tag): array => $tag->toArray());
     }
 
     public function equals(self $other): bool
@@ -133,6 +136,9 @@ final class TagCollection extends TypedCollection
         );
     }
 
+    /**
+     * @param array<array-key, mixed> $data
+     */
     public static function fromArray(array $data): ?self
     {
         $tags = [];

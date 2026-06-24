@@ -22,6 +22,9 @@ final readonly class SubscriptionCollection implements IteratorAggregate, Counta
     /** @var array<string, Subscription> */
     private array $subscriptions;
 
+    /**
+     * @param array<array-key, mixed> $subscriptions
+     */
     public function __construct(array $subscriptions = [])
     {
         $validated = [];

@@ -516,6 +516,7 @@ final class Nip98ValidatorTest extends TestCase
     private function createReplayGuard(): Nip98ReplayGuardInterface
     {
         return new class implements Nip98ReplayGuardInterface {
+            /** @var array<string, int> */
             private array $seen = [];
 
             public function recordOnce(EventId $eventId, int $ttlSeconds): bool

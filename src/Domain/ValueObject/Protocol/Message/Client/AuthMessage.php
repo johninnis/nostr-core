@@ -26,12 +26,18 @@ final readonly class AuthMessage extends ClientMessage
         return $this->event;
     }
 
+    /**
+     * @return list<mixed>
+     */
     #[Override]
     public function toArray(): array
     {
         return [self::TYPE, $this->event->toArray()];
     }
 
+    /**
+     * @param array<array-key, mixed> $data
+     */
     #[Override]
     public static function fromArray(array $data): ?static
     {

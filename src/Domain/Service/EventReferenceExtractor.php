@@ -10,6 +10,8 @@ use Innis\Nostr\Core\Domain\Collection\PublicKeyCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\ContentReference;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReferences;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\QuoteAnalysis;
@@ -53,10 +55,7 @@ final readonly class EventReferenceExtractor implements EventReferenceExtractorI
     {
         $isRepost = $event->isRepost();
 
-        $hasQuoteTag = array_any(
-            $event->getTags()->toJsonArray(),
-            static fn (array $tagArray): bool => TagType::QUOTE === $tagArray[0],
-        );
+        $hasQuoteTag = [] !== $event->getTags()->findByType(TagType::fromString(TagType::QUOTE));
 
         $hasEventInContent = array_any(
             $contentReferences->toArray(),
@@ -73,6 +72,9 @@ final readonly class EventReferenceExtractor implements EventReferenceExtractorI
         );
     }
 
+    /**
+     * @return array{list<EventId>, list<PublicKey>}
+     */
     private static function mergeAllReferences(
         TagReferences $tagReferences,
         ContentReferenceCollection $contentReferences,

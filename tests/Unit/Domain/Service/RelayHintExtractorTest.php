@@ -173,6 +173,9 @@ final class RelayHintExtractorTest extends TestCase
         return new RelayHintExtractor($extractor);
     }
 
+    /**
+     * @param list<list<string>> $tagArrays
+     */
     private function makeEvent(array $tagArrays, int $kind = 1): Event
     {
         $tags = [];

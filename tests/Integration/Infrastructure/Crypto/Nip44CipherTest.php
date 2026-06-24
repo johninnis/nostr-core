@@ -229,6 +229,9 @@ final class Nip44CipherTest extends TestCase
         $this->adapter->encrypt(str_repeat('x', 65536), $conversationKey);
     }
 
+    /**
+     * @return iterable<string, array{int}>
+     */
     public static function paddingBoundaryLengthsProvider(): iterable
     {
         yield 'minimum_padded_minus_one' => [31];

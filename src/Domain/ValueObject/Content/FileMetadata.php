@@ -129,6 +129,7 @@ final readonly class FileMetadata
     public function toTags(): TagCollection
     {
         return new TagCollection(array_map(
+            /** @param list<string> $field */
             static fn (array $field): Tag => new Tag(TagType::fromString((string) $field[0]), array_slice($field, 1)),
             $this->fields(),
         ));
@@ -137,6 +138,7 @@ final readonly class FileMetadata
     public function toImetaTag(): Tag
     {
         $entries = array_map(
+            /** @param list<string> $field */
             static fn (array $field): string => $field[0].' '.$field[1],
             $this->fields(),
         );
@@ -160,6 +162,9 @@ final readonly class FileMetadata
             && $this->fallbacks === $other->fallbacks;
     }
 
+    /**
+     * @return list<list<string>>
+     */
     private function fields(): array
     {
         $fields = [['url', $this->url]];
@@ -201,6 +206,9 @@ final readonly class FileMetadata
         return $fields;
     }
 
+    /**
+     * @param array<string, list<string>> $fields
+     */
     private static function fromFields(array $fields): ?self
     {
         $url = self::firstString($fields, 'url');
@@ -226,6 +234,9 @@ final readonly class FileMetadata
         );
     }
 
+    /**
+     * @param array<string, list<string>> $fields
+     */
     private static function firstString(array $fields, string $key): ?string
     {
         $values = $fields[$key] ?? null;
@@ -239,6 +250,8 @@ final readonly class FileMetadata
     }
 
     /**
+     * @param array<string, list<string>> $fields
+     *
      * @return list<string>
      */
     private static function stringList(array $fields, string $key): array

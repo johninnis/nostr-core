@@ -32,12 +32,18 @@ final readonly class CountMessage extends RelayMessage
         return $this->count;
     }
 
+    /**
+     * @return list<mixed>
+     */
     #[Override]
     public function toArray(): array
     {
         return [self::TYPE, (string) $this->subscriptionId, ['count' => $this->count]];
     }
 
+    /**
+     * @param array<array-key, mixed> $data
+     */
     #[Override]
     public static function fromArray(array $data): ?static
     {

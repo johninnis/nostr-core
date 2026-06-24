@@ -64,6 +64,9 @@ final readonly class EventReference
                 (null !== $other->author && $this->author->equals($other->author)));
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         return [
@@ -74,6 +77,9 @@ final readonly class EventReference
         ];
     }
 
+    /**
+     * @param array<array-key, mixed> $data
+     */
     public static function fromArray(array $data): ?self
     {
         $eventIdHex = $data['event_id'] ?? null;

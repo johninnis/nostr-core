@@ -73,6 +73,9 @@ final readonly class ZapReceipt implements PaymentReceiptInterface
         return new self($senderPubkey, $recipientPubkey, $amount, $message);
     }
 
+    /**
+     * @return array<array-key, mixed>|null
+     */
     private static function extractZapRequest(TagCollection $tags): ?array
     {
         $values = $tags->getValuesByType(TagType::description());
@@ -87,6 +90,9 @@ final readonly class ZapReceipt implements PaymentReceiptInterface
         return null;
     }
 
+    /**
+     * @param array<array-key, mixed>|null $zapRequest
+     */
     private static function extractPubkeyFromZapRequest(?array $zapRequest): ?PublicKey
     {
         if (null === $zapRequest) {
@@ -98,6 +104,9 @@ final readonly class ZapReceipt implements PaymentReceiptInterface
         return null !== $pubkey ? PublicKey::fromHex($pubkey) : null;
     }
 
+    /**
+     * @param array<array-key, mixed>|null $zapRequest
+     */
     private static function resolveAmount(?array $zapRequest, TagCollection $tags): ?ZapAmount
     {
         $bolt11Amount = self::extractBolt11Amount($tags);
@@ -105,7 +114,9 @@ final readonly class ZapReceipt implements PaymentReceiptInterface
             return null;
         }
 
-        if (!self::zapRequestAmountMatches($zapRequest['tags'] ?? [], $bolt11Amount)) {
+        $requestTags = $zapRequest['tags'] ?? [];
+
+        if (!is_array($requestTags) || !self::zapRequestAmountMatches($requestTags, $bolt11Amount)) {
             return null;
         }
 
@@ -124,6 +135,9 @@ final readonly class ZapReceipt implements PaymentReceiptInterface
         return null;
     }
 
+    /**
+     * @param array<array-key, mixed> $requestTags
+     */
     private static function zapRequestAmountMatches(array $requestTags, ZapAmount $bolt11Amount): bool
     {
         foreach ($requestTags as $tag) {

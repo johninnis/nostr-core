@@ -23,8 +23,16 @@ final class EventReferenceCollection extends TypedCollection
         return new self();
     }
 
+    public static function fromArrays(mixed $values): self
+    {
+        return new self(self::parseArrays($values, EventReference::fromArray(...)));
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
     public function toJsonArray(): array
     {
-        return array_map(static fn (EventReference $reference) => $reference->toArray(), $this->items);
+        return $this->mapItems(static fn (EventReference $reference): array => $reference->toArray());
     }
 }

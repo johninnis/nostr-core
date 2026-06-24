@@ -9,6 +9,9 @@ use RuntimeException;
 
 final class TagCollectionMother
 {
+    /**
+     * @param list<list<string|false>> $rawTags
+     */
     public static function fromRaw(array $rawTags): TagCollection
     {
         return TagCollection::fromArray($rawTags) ?? throw new RuntimeException('Invalid test tag data');

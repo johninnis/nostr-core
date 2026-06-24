@@ -43,6 +43,7 @@ final class Secp256k1Signer implements SignatureServiceInterface
         }
 
         return $privateKey->expose(function (string $privkeyBytes) use ($message): Signature {
+            // Deliberate: native libsecp256k1 when present, pure-PHP fallback otherwise; one contract, both pinned by the conformance suites — see ADR-0025
             if (null !== $this->ffi) {
                 $auxRand = $this->randomBytes->bytes(self::AUX_RAND_LENGTH);
 
@@ -57,6 +58,7 @@ final class Secp256k1Signer implements SignatureServiceInterface
     #[Override]
     public function verify(PublicKey $publicKey, string $message, Signature $signature): bool
     {
+        // Deliberate: verify stays length-agnostic (unlike sign) — see ADR-0013; native/pure-PHP dispatch — see ADR-0025
         if (null !== $this->ffi) {
             return $this->ffi->verify($signature->toBytes(), $message, $publicKey->toBytes());
         }
@@ -68,6 +70,7 @@ final class Secp256k1Signer implements SignatureServiceInterface
     public function derivePublicKey(PrivateKey $privateKey): PublicKey
     {
         return $privateKey->expose(function (string $privkeyBytes): PublicKey {
+            // Deliberate: native libsecp256k1 when present, pure-PHP fallback otherwise — see ADR-0025
             if (null !== $this->ffi) {
                 return PublicKey::fromBytes($this->ffi->derivePublicKey($privkeyBytes))
                     ?? throw new CryptoException('Key derivation produced invalid public key');

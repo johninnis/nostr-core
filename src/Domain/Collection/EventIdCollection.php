@@ -33,6 +33,6 @@ final class EventIdCollection extends TypedCollection
      */
     public function toHexes(): array
     {
-        return array_map(static fn (EventId $eventId): string => $eventId->toHex(), $this->items);
+        return $this->mapItems(static fn (EventId $eventId): string => $eventId->toHex());
     }
 }

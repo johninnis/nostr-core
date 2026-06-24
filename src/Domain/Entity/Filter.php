@@ -22,13 +22,21 @@ final readonly class Filter implements JsonSerializable, Stringable
 
     /** @var list<EventKind>|null */
     private ?array $kinds;
+    /** @var array<string, int>|null */
     private ?array $idSet;
+    /** @var array<string, int>|null */
     private ?array $authorSet;
+    /** @var array<int, int>|null */
     private ?array $kindSet;
+    /** @var array<string, array<string, int>>|null */
     private ?array $tagValueSets;
+    /** @var list<string>|null */
     private ?array $searchTerms;
 
     /**
+     * @param array<array-key, mixed>|null     $ids
+     * @param array<array-key, mixed>|null     $authors
+     * @param array<int|EventKind>|null        $kinds
      * @param array<string, list<string>>|null $tags
      */
     public function __construct(
@@ -72,11 +80,19 @@ final readonly class Filter implements JsonSerializable, Stringable
             : null;
     }
 
+    /**
+     * @param array<array-key, mixed> $values
+     *
+     * @return array<string, int>
+     */
     private static function flipStrings(array $values): array
     {
         return array_flip(array_filter($values, is_string(...)));
     }
 
+    /**
+     * @param array<array-key, mixed>|null $values
+     */
     private static function assertFieldWithinCap(string $fieldName, ?array $values): void
     {
         if (!self::isWithinCap($values)) {
@@ -84,6 +100,9 @@ final readonly class Filter implements JsonSerializable, Stringable
         }
     }
 
+    /**
+     * @param array<array-key, mixed>|null $values
+     */
     private static function isWithinCap(?array $values): bool
     {
         return null === $values || count($values) <= self::MAX_VALUES_PER_FIELD;
@@ -195,6 +214,9 @@ final readonly class Filter implements JsonSerializable, Stringable
         return null !== $this->search;
     }
 
+    /**
+     * @param list<string> $authors
+     */
     public function withAuthors(array $authors): self
     {
         return new self(
@@ -209,6 +231,9 @@ final readonly class Filter implements JsonSerializable, Stringable
         );
     }
 
+    /**
+     * @param array<int|EventKind> $kinds
+     */
     public function withKinds(array $kinds): self
     {
         return new self(
@@ -236,6 +261,9 @@ final readonly class Filter implements JsonSerializable, Stringable
         ));
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         $filter = [];
@@ -277,6 +305,9 @@ final readonly class Filter implements JsonSerializable, Stringable
         return $filter;
     }
 
+    /**
+     * @return array<string, mixed>|stdClass
+     */
     #[Override]
     public function jsonSerialize(): array|stdClass
     {
@@ -288,6 +319,9 @@ final readonly class Filter implements JsonSerializable, Stringable
         return is_array($value) || $value instanceof stdClass ? self::fromArray($value) : null;
     }
 
+    /**
+     * @param array<array-key, mixed>|stdClass $data
+     */
     public static function fromArray(array|stdClass $data): ?self
     {
         $data = (array) $data;
@@ -420,6 +454,9 @@ final readonly class Filter implements JsonSerializable, Stringable
         return true;
     }
 
+    /**
+     * @param array<string, int> $valueSet
+     */
     private function eventMatchesTagFilter(Event $event, string $tagName, array $valueSet): bool
     {
         foreach ($event->getTags()->findByName($tagName) as $eventTag) {

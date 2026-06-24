@@ -18,8 +18,16 @@ final class ContentReferenceCollection extends TypedCollection
         return ContentReference::class;
     }
 
+    public static function fromArrays(mixed $values): self
+    {
+        return new self(self::parseArrays($values, ContentReference::fromArray(...)));
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
     public function toJsonArray(): array
     {
-        return array_map(static fn (ContentReference $reference) => $reference->toArray(), $this->items);
+        return $this->mapItems(static fn (ContentReference $reference): array => $reference->toArray());
     }
 }

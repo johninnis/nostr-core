@@ -10,6 +10,7 @@ use Innis\Nostr\Core\Domain\Exception\InvalidBech32Exception;
 final class Bech32Codec
 {
     private const string CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
+    /** @var list<int> */
     private const array CHARKEY = [
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
@@ -20,6 +21,7 @@ final class Bech32Codec
         -1, 29, -1, 24, 13, 25, 9, 8, 23, -1, 18, 22, 31, 27, 19, -1,
         1, 0, 3, 16, 11, 28, 12, 14, 6, 4, 2, -1, -1, -1, -1, -1,
     ];
+    /** @var list<int> */
     private const array GENERATOR = [0x3B6A57B2, 0x26508E6D, 0x1EA119FA, 0x3D4233DD, 0x2A1462B3];
     private const int MAX_LENGTH = 5000;
     private const int CHECKSUM_LENGTH = 6;
@@ -121,6 +123,11 @@ final class Bech32Codec
         return null !== $decoded && $expectedHrp === $decoded['hrp'] ? $decoded['data'] : null;
     }
 
+    /**
+     * @param list<int> $data
+     *
+     * @return list<int>
+     */
     private static function convertBits(array $data, int $fromBits, int $toBits, bool $pad): array
     {
         $acc = 0;
@@ -152,6 +159,9 @@ final class Bech32Codec
         return $result;
     }
 
+    /**
+     * @param list<int> $values
+     */
     private static function polymod(array $values): int
     {
         $chk = 1;
@@ -166,6 +176,9 @@ final class Bech32Codec
         return $chk;
     }
 
+    /**
+     * @return list<int>
+     */
     private static function hrpExpand(string $hrp): array
     {
         $length = strlen($hrp);
@@ -180,6 +193,11 @@ final class Bech32Codec
         return array_merge($expand1, [0], $expand2);
     }
 
+    /**
+     * @param list<int> $data
+     *
+     * @return list<int>
+     */
     private static function createChecksum(string $hrp, array $data, Bech32Variant $variant): array
     {
         $values = array_merge(self::hrpExpand($hrp), $data, [0, 0, 0, 0, 0, 0]);

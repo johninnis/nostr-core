@@ -808,6 +808,9 @@ final class EventTest extends TestCase
         $this->assertFalse($this->event->isProtected());
     }
 
+    /**
+     * @param list<list<string>> $tagArrays
+     */
     private function createEventWithKindAndContent(int $kind, string $content, array $tagArrays): Event
     {
         $tags = [];

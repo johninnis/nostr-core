@@ -60,6 +60,9 @@ final readonly class EventCoordinate implements Stringable
         return self::fromParts($kind, $pubkey, $identifier, $relayHint);
     }
 
+    /**
+     * @param array<array-key, mixed> $tag
+     */
     public static function fromATag(array $tag): ?self
     {
         if (!isset($tag[0]) || 'a' !== $tag[0] || !isset($tag[1]) || !is_string($tag[1])) {
@@ -147,6 +150,9 @@ final readonly class EventCoordinate implements Stringable
         return $baseEquals && $thisHint === $otherHint;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         $data = [
@@ -162,6 +168,9 @@ final readonly class EventCoordinate implements Stringable
         return $data;
     }
 
+    /**
+     * @param array<array-key, mixed> $data
+     */
     public static function fromArray(array $data): ?self
     {
         if (!isset($data['kind'], $data['pubkey'], $data['identifier'])) {

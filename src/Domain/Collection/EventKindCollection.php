@@ -27,7 +27,7 @@ final class EventKindCollection extends TypedCollection
      */
     public function toInts(): array
     {
-        return array_map(static fn (EventKind $kind): int => $kind->toInt(), $this->items);
+        return $this->mapItems(static fn (EventKind $kind): int => $kind->toInt());
     }
 
     public function contains(EventKind $eventKind): bool

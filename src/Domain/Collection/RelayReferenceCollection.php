@@ -23,8 +23,16 @@ final class RelayReferenceCollection extends TypedCollection
         return new self();
     }
 
+    public static function fromArrays(mixed $values): self
+    {
+        return new self(self::parseArrays($values, RelayReference::fromArray(...)));
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
     public function toJsonArray(): array
     {
-        return array_map(static fn (RelayReference $reference) => $reference->toArray(), $this->items);
+        return $this->mapItems(static fn (RelayReference $reference): array => $reference->toArray());
     }
 }

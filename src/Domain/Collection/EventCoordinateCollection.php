@@ -23,8 +23,16 @@ final class EventCoordinateCollection extends TypedCollection
         return new self();
     }
 
+    public static function fromArrays(mixed $values): self
+    {
+        return new self(self::parseArrays($values, EventCoordinate::fromArray(...)));
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
     public function toJsonArray(): array
     {
-        return array_map(static fn (EventCoordinate $coordinate) => $coordinate->toArray(), $this->items);
+        return $this->mapItems(static fn (EventCoordinate $coordinate): array => $coordinate->toArray());
     }
 }

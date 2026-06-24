@@ -23,8 +23,16 @@ final class PubkeyReferenceCollection extends TypedCollection
         return new self();
     }
 
+    public static function fromArrays(mixed $values): self
+    {
+        return new self(self::parseArrays($values, PubkeyReference::fromArray(...)));
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
     public function toJsonArray(): array
     {
-        return array_map(static fn (PubkeyReference $reference) => $reference->toArray(), $this->items);
+        return $this->mapItems(static fn (PubkeyReference $reference): array => $reference->toArray());
     }
 }

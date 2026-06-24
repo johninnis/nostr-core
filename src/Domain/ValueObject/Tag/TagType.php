@@ -50,7 +50,7 @@ final readonly class TagType implements Stringable
     public const string CONTEXT = 'context';
     public const string COMMENT = 'comment';
 
-    public function __construct(private string $type)
+    private function __construct(private string $type)
     {
         if ('' === $this->type) {
             throw new InvalidArgumentException('Tag type cannot be empty');

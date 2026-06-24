@@ -39,12 +39,18 @@ final readonly class OkMessage extends RelayMessage
         return !$this->accepted && str_starts_with($this->message, 'auth-required:');
     }
 
+    /**
+     * @return list<mixed>
+     */
     #[Override]
     public function toArray(): array
     {
         return [self::TYPE, $this->eventId->toHex(), $this->accepted, $this->message];
     }
 
+    /**
+     * @param array<array-key, mixed> $data
+     */
     #[Override]
     public static function fromArray(array $data): ?static
     {

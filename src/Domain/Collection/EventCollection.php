@@ -98,9 +98,12 @@ final class EventCollection extends TypedCollection implements JsonSerializable
         return $this->items[count($this->items) - 1] ?? null;
     }
 
+    /**
+     * @return list<array<string, mixed>>
+     */
     public function toJsonArray(): array
     {
-        return array_map(static fn (Event $event) => $event->toArray(), $this->items);
+        return $this->mapItems(static fn (Event $event): array => $event->toArray());
     }
 
     public function merge(self $other): self
@@ -113,6 +116,9 @@ final class EventCollection extends TypedCollection implements JsonSerializable
         return new self($this->deduplicate(static fn (Event $event): string => (string) $event->getId()));
     }
 
+    /**
+     * @return list<array<string, mixed>>
+     */
     #[Override]
     public function jsonSerialize(): array
     {

@@ -38,6 +38,9 @@ abstract readonly class FilterRequestMessage extends ClientMessage
         return $this->filters;
     }
 
+    /**
+     * @return list<mixed>
+     */
     #[Override]
     final public function toArray(): array
     {
@@ -48,6 +51,9 @@ abstract readonly class FilterRequestMessage extends ClientMessage
         ];
     }
 
+    /**
+     * @param array<array-key, mixed> $data
+     */
     #[Override]
     final public static function fromArray(array $data): ?static
     {

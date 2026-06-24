@@ -712,6 +712,9 @@ final class FilterTest extends TestCase
         $this->assertSame('nostr', $newFilter->getSearch());
     }
 
+    /**
+     * @param list<int> $expectedInts
+     */
     private function assertKinds(array $expectedInts, ?EventKindCollection $actualKinds): void
     {
         $this->assertNotNull($actualKinds);

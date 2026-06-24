@@ -8,6 +8,9 @@ use FFI;
 
 final class FfiLibraryLoader
 {
+    /**
+     * @param list<string> $libraryNames
+     */
     public static function tryLoad(string $cdef, array $libraryNames): ?FFI
     {
         foreach ($libraryNames as $name) {

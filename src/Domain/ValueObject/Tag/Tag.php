@@ -11,15 +11,20 @@ final readonly class Tag
     /** @var list<string> */
     private array $values;
 
+    /**
+     * @param array<array-key, mixed> $values
+     */
     public function __construct(
         private TagType $type,
         array $values,
     ) {
-        if (!array_all($values, static fn (mixed $value): bool => is_string($value))) {
+        $strings = array_values(array_filter($values, is_string(...)));
+
+        if (count($strings) !== count($values)) {
             throw new InvalidArgumentException('All tag values must be strings');
         }
 
-        $this->values = array_values($values);
+        $this->values = $strings;
     }
 
     public function getType(): TagType
@@ -45,6 +50,9 @@ final readonly class Tag
         return in_array($value, $this->values, true);
     }
 
+    /**
+     * @return list<string>
+     */
     public function toArray(): array
     {
         return [(string) $this->type, ...$this->values];
@@ -97,17 +105,22 @@ final readonly class Tag
         return new self(TagType::fromString($type), $values);
     }
 
+    /**
+     * @param array<array-key, mixed> $data
+     */
     public static function fromArray(array $data): ?self
     {
-        if ([] === $data || !array_all($data, static fn (mixed $value): bool => is_string($value))) {
+        $strings = array_values(array_filter($data, is_string(...)));
+
+        if ([] === $strings || count($strings) !== count($data)) {
             return null;
         }
 
-        $name = array_shift($data);
+        $name = array_shift($strings);
         if ('' === $name) {
             return null;
         }
 
-        return new self(TagType::fromString((string) $name), $data);
+        return new self(TagType::fromString($name), $strings);
     }
 }

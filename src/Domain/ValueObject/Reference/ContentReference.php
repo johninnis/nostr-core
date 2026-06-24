@@ -10,7 +10,6 @@ use Innis\Nostr\Core\Domain\Enum\Nip19EntityType;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
-use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use InvalidArgumentException;
 
 final readonly class ContentReference
@@ -92,6 +91,9 @@ final readonly class ContentReference
         return null !== $this->getAddressableIdentifier() && null !== $this->getKind() && null !== $this->getPublicKey();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         return [
@@ -108,6 +110,9 @@ final readonly class ContentReference
         ];
     }
 
+    /**
+     * @param array<array-key, mixed> $data
+     */
     public static function fromArray(array $data): ?self
     {
         $type = ContentReferenceType::tryFrom(is_string($data['type'] ?? null) ? $data['type'] : '');
@@ -117,14 +122,6 @@ final readonly class ContentReference
 
         if (null === $type || !is_string($rawText) || !is_string($identifier) || !is_int($position) || $position < 0) {
             return null;
-        }
-
-        $relays = [];
-        if (isset($data['relays']) && is_array($data['relays'])) {
-            $relays = array_values(array_filter(array_map(
-                static fn (mixed $url) => is_string($url) ? RelayUrl::fromString($url) : null,
-                $data['relays'],
-            )));
         }
 
         $addressableIdentifier = $data['addressable_identifier'] ?? null;
@@ -137,7 +134,7 @@ final readonly class ContentReference
             eventId: isset($data['event_id']) && is_string($data['event_id']) ? EventId::fromHex($data['event_id']) : null,
             identifier: is_string($addressableIdentifier) ? $addressableIdentifier : null,
             kind: isset($data['kind']) && is_int($data['kind']) ? EventKind::tryFromInt($data['kind']) : null,
-            relays: new RelayUrlCollection($relays),
+            relays: RelayUrlCollection::fromStrings($data['relays'] ?? null),
         );
 
         return new self($type, $rawText, $identifier, $position, $decoded);

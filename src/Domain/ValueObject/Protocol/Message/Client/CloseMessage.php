@@ -21,12 +21,18 @@ final readonly class CloseMessage extends ClientMessage
         return $this->subscriptionId;
     }
 
+    /**
+     * @return list<mixed>
+     */
     #[Override]
     public function toArray(): array
     {
         return [self::TYPE, (string) $this->subscriptionId];
     }
 
+    /**
+     * @param array<array-key, mixed> $data
+     */
     #[Override]
     public static function fromArray(array $data): ?static
     {

@@ -30,6 +30,9 @@ final readonly class EventMessage extends RelayMessage implements PreSerialisedM
         return $this->event;
     }
 
+    /**
+     * @return list<mixed>
+     */
     #[Override]
     public function toArray(): array
     {
@@ -50,6 +53,9 @@ final readonly class EventMessage extends RelayMessage implements PreSerialisedM
         return '["'.self::TYPE.'",'.$subscriptionId.','.$rawJson.']';
     }
 
+    /**
+     * @param array<array-key, mixed> $data
+     */
     #[Override]
     public static function fromArray(array $data): ?static
     {

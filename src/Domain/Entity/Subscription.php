@@ -63,6 +63,9 @@ final readonly class Subscription
         return array_any($this->filters->toArray(), static fn (Filter $filter): bool => $filter->matches($event));
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         return [
@@ -73,6 +76,9 @@ final readonly class Subscription
         ];
     }
 
+    /**
+     * @param array<array-key, mixed> $data
+     */
     public static function fromArray(array $data): ?self
     {
         if (!isset($data['id'], $data['filters'], $data['created_at'])) {

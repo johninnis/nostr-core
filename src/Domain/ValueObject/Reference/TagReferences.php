@@ -8,7 +8,6 @@ use Innis\Nostr\Core\Domain\Collection\EventCoordinateCollection;
 use Innis\Nostr\Core\Domain\Collection\EventReferenceCollection;
 use Innis\Nostr\Core\Domain\Collection\PubkeyReferenceCollection;
 use Innis\Nostr\Core\Domain\Collection\RelayReferenceCollection;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use InvalidArgumentException;
 
 final readonly class TagReferences
@@ -54,11 +53,17 @@ final readonly class TagReferences
         return $this->relays;
     }
 
+    /**
+     * @return list<mixed>
+     */
     public function getChallenges(): array
     {
         return $this->challenges;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         return [
@@ -71,37 +76,21 @@ final readonly class TagReferences
         ];
     }
 
+    /**
+     * @param array<array-key, mixed> $data
+     */
     public static function fromArray(array $data): self
     {
         $challenges = is_array($data['challenges'] ?? null) ? $data['challenges'] : [];
 
         return new self(
-            new EventReferenceCollection(self::parseList($data['events'] ?? null, EventReference::fromArray(...))),
-            new PubkeyReferenceCollection(self::parseList($data['pubkeys'] ?? null, PubkeyReference::fromArray(...))),
-            new EventReferenceCollection(self::parseList($data['quotes'] ?? null, EventReference::fromArray(...))),
-            new EventCoordinateCollection(self::parseList($data['addressable'] ?? null, EventCoordinate::fromArray(...))),
-            new RelayReferenceCollection(self::parseList($data['relays'] ?? null, RelayReference::fromArray(...))),
+            EventReferenceCollection::fromArrays($data['events'] ?? null),
+            PubkeyReferenceCollection::fromArrays($data['pubkeys'] ?? null),
+            EventReferenceCollection::fromArrays($data['quotes'] ?? null),
+            EventCoordinateCollection::fromArrays($data['addressable'] ?? null),
+            RelayReferenceCollection::fromArrays($data['relays'] ?? null),
             array_values(array_filter($challenges, static fn (mixed $challenge): bool => is_string($challenge))),
         );
-    }
-
-    /**
-     * @template T of object
-     *
-     * @param callable(array<mixed>): (T|null) $parse
-     *
-     * @return list<T>
-     */
-    private static function parseList(mixed $data, callable $parse): array
-    {
-        if (!is_array($data)) {
-            return [];
-        }
-
-        return array_values(array_filter(array_map(
-            static fn (mixed $item) => is_array($item) ? $parse($item) : null,
-            $data,
-        )));
     }
 
     public static function empty(): self

@@ -13,6 +13,9 @@ interface Nip19CodecInterface
 {
     public function decodeComplexEntity(string $bech32): ?DecodedNip19Entity;
 
+    /**
+     * @param list<string> $relays
+     */
     public function encodeAddressableEvent(string $identifier, PublicKey $pubkey, int $kind, array $relays = []): string;
 
     public function parseEventReference(string $input): EventId|EventCoordinate|null;

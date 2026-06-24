@@ -23,8 +23,11 @@ final class FilterCollection extends TypedCollection
         return new self();
     }
 
+    /**
+     * @return list<array<string, mixed>>
+     */
     public function toJsonArray(): array
     {
-        return array_map(static fn (Filter $filter) => $filter->toArray(), $this->items);
+        return $this->mapItems(static fn (Filter $filter): array => $filter->toArray());
     }
 }

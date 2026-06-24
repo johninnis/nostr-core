@@ -191,6 +191,9 @@ final class NutzapTest extends TestCase
         $this->assertNull($nutzap->getRecipientPubkey());
     }
 
+    /**
+     * @param list<list<string|false>> $rawTags
+     */
     private function buildNutzapEvent(array $rawTags, string $content = ''): Event
     {
         return new Event(

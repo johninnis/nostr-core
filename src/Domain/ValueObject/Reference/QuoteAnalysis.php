@@ -34,6 +34,9 @@ final readonly class QuoteAnalysis
         return $this->isQuote;
     }
 
+    /**
+     * @return array<string, bool>
+     */
     public function toArray(): array
     {
         return [
@@ -44,6 +47,9 @@ final readonly class QuoteAnalysis
         ];
     }
 
+    /**
+     * @param array<array-key, mixed> $data
+     */
     public static function fromArray(array $data): self
     {
         return new self(

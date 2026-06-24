@@ -314,6 +314,9 @@ final class ZapReceiptTest extends TestCase
         $this->assertNull($receipt->getMessage());
     }
 
+    /**
+     * @param list<list<string|false>> $rawTags
+     */
     private function buildReceiptEvent(array $rawTags): Event
     {
         return new Event(

@@ -24,6 +24,9 @@ final class FilterHasher
         return hash('sha256', self::encode($canonical));
     }
 
+    /**
+     * @param array<string, mixed> $filter
+     */
     private static function canonicaliseFilter(array $filter): stdClass
     {
         ksort($filter, SORT_STRING);

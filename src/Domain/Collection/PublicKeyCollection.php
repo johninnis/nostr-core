@@ -37,7 +37,7 @@ final class PublicKeyCollection extends TypedCollection
      */
     public function toHexes(): array
     {
-        return array_map(static fn (PublicKey $publicKey): string => $publicKey->toHex(), $this->items);
+        return $this->mapItems(static fn (PublicKey $publicKey): string => $publicKey->toHex());
     }
 
     public function contains(PublicKey $publicKey): bool

@@ -90,6 +90,9 @@ final class Nip44EncryptionComplianceTest extends TestCase
         $adapter->decrypt($payload, $conversationKey);
     }
 
+    /**
+     * @return iterable<string, array{string, string, string}>
+     */
     public static function conversationKeyVectorsProvider(): iterable
     {
         $vectors = self::loadVectors()['valid']['get_conversation_key'];
@@ -103,6 +106,9 @@ final class Nip44EncryptionComplianceTest extends TestCase
         }
     }
 
+    /**
+     * @return iterable<string, array{string, string, string, string}>
+     */
     public static function encryptDecryptVectorsProvider(): iterable
     {
         $vectors = self::loadVectors()['valid']['encrypt_decrypt'];
@@ -117,6 +123,9 @@ final class Nip44EncryptionComplianceTest extends TestCase
         }
     }
 
+    /**
+     * @return iterable<string, array{int, int}>
+     */
     public static function paddedLengthVectorsProvider(): iterable
     {
         $vectors = self::loadVectors()['valid']['calc_padded_len'];
@@ -129,6 +138,9 @@ final class Nip44EncryptionComplianceTest extends TestCase
         }
     }
 
+    /**
+     * @return iterable<string, array{string, string}>
+     */
     public static function invalidDecryptVectorsProvider(): iterable
     {
         $vectors = self::loadVectors()['invalid']['decrypt'];
@@ -141,6 +153,18 @@ final class Nip44EncryptionComplianceTest extends TestCase
         }
     }
 
+    /**
+     * @return array{
+     *     valid: array{
+     *         get_conversation_key: list<array{sec1: string, pub2: string, conversation_key: string}>,
+     *         encrypt_decrypt: list<array{conversation_key: string, nonce: string, plaintext: string, payload: string}>,
+     *         calc_padded_len: list<array{int, int}>,
+     *     },
+     *     invalid: array{
+     *         decrypt: list<array{conversation_key: string, payload: string, note?: string}>,
+     *     },
+     * }
+     */
     private static function loadVectors(): array
     {
         $content = file_get_contents(__DIR__.'/../Vectors/nip44.vectors.json');
@@ -150,6 +174,20 @@ final class Nip44EncryptionComplianceTest extends TestCase
         assert(is_array($decoded));
         assert(is_array($decoded['v2']));
 
-        return $decoded['v2'];
+        /**
+         * @var array{
+         *     valid: array{
+         *         get_conversation_key: list<array{sec1: string, pub2: string, conversation_key: string}>,
+         *         encrypt_decrypt: list<array{conversation_key: string, nonce: string, plaintext: string, payload: string}>,
+         *         calc_padded_len: list<array{int, int}>,
+         *     },
+         *     invalid: array{
+         *         decrypt: list<array{conversation_key: string, payload: string, note?: string}>,
+         *     },
+         * } $vectors
+         */
+        $vectors = $decoded['v2'];
+
+        return $vectors;
     }
 }

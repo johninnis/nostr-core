@@ -214,6 +214,9 @@ final readonly class Event implements Stringable
         return null !== $value ? Timestamp::tryFromInt((int) $value) : null;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         return [
@@ -227,6 +230,9 @@ final readonly class Event implements Stringable
         ];
     }
 
+    /**
+     * @param array<array-key, mixed> $data
+     */
     public static function fromArray(array $data): ?self
     {
         return self::build($data, null);
@@ -248,6 +254,9 @@ final readonly class Event implements Stringable
         return self::build($data, $json);
     }
 
+    /**
+     * @param array<array-key, mixed> $data
+     */
     private static function build(array $data, ?string $rawJson): ?self
     {
         foreach (['pubkey', 'created_at', 'kind', 'tags', 'content'] as $field) {

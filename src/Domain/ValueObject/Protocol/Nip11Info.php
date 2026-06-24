@@ -40,6 +40,9 @@ final readonly class Nip11Info
         return $this->stringOrNull('contact');
     }
 
+    /**
+     * @return array<array-key, mixed>|null
+     */
     public function getSupportedNips(): ?array
     {
         return $this->arrayOrNull('supported_nips');
@@ -80,6 +83,9 @@ final readonly class Nip11Info
         return is_string($value) ? $value : null;
     }
 
+    /**
+     * @return array<array-key, mixed>|null
+     */
     private function arrayOrNull(string $key): ?array
     {
         $value = $this->rawData[$key] ?? null;
@@ -87,11 +93,17 @@ final readonly class Nip11Info
         return is_array($value) ? $value : null;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         return $this->rawData;
     }
 
+    /**
+     * @return array<array-key, mixed>|null
+     */
     public function getLimitation(): ?array
     {
         return $this->arrayOrNull('limitation');
@@ -125,21 +137,33 @@ final readonly class Nip11Info
         return true === $value;
     }
 
+    /**
+     * @return array<array-key, mixed>|null
+     */
     public function getRetention(): ?array
     {
         return $this->arrayOrNull('retention');
     }
 
+    /**
+     * @return array<array-key, mixed>|null
+     */
     public function getRelayCountries(): ?array
     {
         return $this->arrayOrNull('relay_countries');
     }
 
+    /**
+     * @return array<array-key, mixed>|null
+     */
     public function getLanguageTags(): ?array
     {
         return $this->arrayOrNull('language_tags');
     }
 
+    /**
+     * @return array<array-key, mixed>|null
+     */
     public function getTags(): ?array
     {
         return $this->arrayOrNull('tags');
@@ -155,6 +179,9 @@ final readonly class Nip11Info
         return $this->stringOrNull('payments_url');
     }
 
+    /**
+     * @return array<array-key, mixed>|null
+     */
     public function getFees(): ?array
     {
         return $this->arrayOrNull('fees');

@@ -67,6 +67,9 @@ final readonly class LiveEventMetadata
         );
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         return [
@@ -79,6 +82,9 @@ final readonly class LiveEventMetadata
         ];
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public static function fromArray(array $data): ?self
     {
         $identifier = JsonWireFormat::stringField($data, 'identifier');

@@ -154,6 +154,9 @@ final class Bip340ComplianceTest extends TestCase
         }
     }
 
+    /**
+     * @param array{index: int, secret: string, public: string, aux: string, message: string, signature: string, expected: bool, comment: string} $vector
+     */
     private function collectVerifyMismatch(SignatureServiceInterface $service, array $vector, string $pathLabel): ?string
     {
         $publicKey = PublicKey::fromHex(strtolower($vector['public']));
@@ -204,6 +207,9 @@ final class Bip340ComplianceTest extends TestCase
         return null;
     }
 
+    /**
+     * @return iterable<array{index: int, secret: string, public: string, aux: string, message: string, signature: string, expected: bool, comment: string}>
+     */
     private function vectors(): iterable
     {
         $handle = fopen(self::VECTORS_PATH, 'r');
@@ -230,6 +236,9 @@ final class Bip340ComplianceTest extends TestCase
         fclose($handle);
     }
 
+    /**
+     * @return iterable<array{index: int, secret: string, public: string, aux: string, message: string, signature: string, expected: bool, comment: string}>
+     */
     private function signingVectors(): iterable
     {
         foreach ($this->vectors() as $vector) {

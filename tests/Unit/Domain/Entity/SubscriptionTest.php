@@ -121,6 +121,7 @@ final class SubscriptionTest extends TestCase
         $this->assertSame('test-sub', $array['id']);
         $this->assertSame(1700000000, $array['created_at']);
         $this->assertSame('live', $array['state']);
+        $this->assertIsArray($array['filters']);
         $this->assertCount(1, $array['filters']);
     }
 

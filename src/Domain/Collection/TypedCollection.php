@@ -20,6 +20,9 @@ abstract class TypedCollection implements IteratorAggregate, Countable
     /** @var list<T> */
     protected readonly array $items;
 
+    /**
+     * @param array<array-key, mixed> $items
+     */
     final public function __construct(array $items = [])
     {
         $type = $this->elementType();
@@ -70,6 +73,18 @@ abstract class TypedCollection implements IteratorAggregate, Countable
     }
 
     /**
+     * @template TValue
+     *
+     * @param callable(T): TValue $map
+     *
+     * @return list<TValue>
+     */
+    final protected function mapItems(callable $map): array
+    {
+        return array_map($map, $this->items);
+    }
+
+    /**
      * @param callable(T): string $keyOf
      *
      * @return list<T>
@@ -113,6 +128,28 @@ abstract class TypedCollection implements IteratorAggregate, Countable
         if (is_iterable($values)) {
             foreach ($values as $value) {
                 $parsed = is_string($value) ? $parse($value) : null;
+
+                if (null !== $parsed) {
+                    $items[] = $parsed;
+                }
+            }
+        }
+
+        return $items;
+    }
+
+    /**
+     * @param callable(array<array-key, mixed>): (T|null) $parse
+     *
+     * @return list<T>
+     */
+    final protected static function parseArrays(mixed $values, callable $parse): array
+    {
+        $items = [];
+
+        if (is_iterable($values)) {
+            foreach ($values as $value) {
+                $parsed = is_array($value) ? $parse($value) : null;
 
                 if (null !== $parsed) {
                     $items[] = $parsed;
