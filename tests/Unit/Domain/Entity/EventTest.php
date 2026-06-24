@@ -661,9 +661,10 @@ final class EventTest extends TestCase
         $this->assertSame($signedEvent->getId()->toHex(), (string) $signedEvent);
     }
 
-    public function testToStringReturnsEmptyStringForUnsignedEvent(): void
+    public function testToStringReturnsComputedEventIdForUnsignedEvent(): void
     {
-        $this->assertSame('', (string) $this->event);
+        $this->assertFalse($this->event->isSigned());
+        $this->assertSame($this->event->getId()->toHex(), (string) $this->event);
     }
 
     public function testFromArrayHandlesNonStringContent(): void

@@ -321,6 +321,6 @@ final readonly class Event implements Stringable
     #[Override]
     public function __toString(): string
     {
-        return null !== $this->id ? (string) $this->id : '';
+        return $this->getId()->toHex();
     }
 }
