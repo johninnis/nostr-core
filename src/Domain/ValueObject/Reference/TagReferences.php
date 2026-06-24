@@ -91,36 +91,31 @@ final readonly class TagReferences
         $challenges = is_array($data['challenges'] ?? null) ? $data['challenges'] : [];
 
         return new self(
-            new EventReferenceCollection(self::parseEventReferences($data['events'] ?? null)),
-            new PubkeyReferenceCollection(array_values(array_filter(array_map(
-                static fn (mixed $ref) => is_array($ref) ? PubkeyReference::fromArray($ref) : null,
-                is_array($data['pubkeys'] ?? null) ? $data['pubkeys'] : [],
-            )))),
-            new EventReferenceCollection(self::parseEventReferences($data['quotes'] ?? null)),
-            new EventCoordinateCollection(array_values(array_filter(array_map(
-                static fn (mixed $ref) => is_array($ref) ? EventCoordinate::fromArray($ref) : null,
-                is_array($data['addressable'] ?? null) ? $data['addressable'] : [],
-            )))),
-            new RelayReferenceCollection(array_values(array_filter(array_map(
-                static fn (mixed $ref) => is_array($ref) ? RelayReference::fromArray($ref) : null,
-                is_array($data['relays'] ?? null) ? $data['relays'] : [],
-            )))),
+            new EventReferenceCollection(self::parseList($data['events'] ?? null, EventReference::fromArray(...))),
+            new PubkeyReferenceCollection(self::parseList($data['pubkeys'] ?? null, PubkeyReference::fromArray(...))),
+            new EventReferenceCollection(self::parseList($data['quotes'] ?? null, EventReference::fromArray(...))),
+            new EventCoordinateCollection(self::parseList($data['addressable'] ?? null, EventCoordinate::fromArray(...))),
+            new RelayReferenceCollection(self::parseList($data['relays'] ?? null, RelayReference::fromArray(...))),
             array_values(array_filter($challenges, static fn (mixed $challenge): bool => is_string($challenge))),
         );
     }
 
     /**
-     * @return list<EventReference>
+     * @template T of object
+     *
+     * @param callable(array<mixed>): (T|null) $parse
+     *
+     * @return list<T>
      */
-    private static function parseEventReferences(mixed $references): array
+    private static function parseList(mixed $data, callable $parse): array
     {
-        if (!is_array($references)) {
+        if (!is_array($data)) {
             return [];
         }
 
         return array_values(array_filter(array_map(
-            static fn (mixed $ref) => is_array($ref) ? EventReference::fromArray($ref) : null,
-            $references,
+            static fn (mixed $item) => is_array($item) ? $parse($item) : null,
+            $data,
         )));
     }
 
