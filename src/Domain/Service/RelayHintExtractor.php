@@ -8,8 +8,11 @@ use Innis\Nostr\Core\Domain\Collection\RelayUrlCollection;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
-use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReference;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\PubkeyReference;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\RelayReference;
 use Override;
 
 final readonly class RelayHintExtractor implements RelayHintExtractorInterface
@@ -35,23 +38,17 @@ final readonly class RelayHintExtractor implements RelayHintExtractorInterface
      */
     private function extractFromTags(TagCollection $tags): array
     {
-        $relays = [];
+        $references = TagReferenceExtractor::extract($tags);
 
-        foreach ($tags as $tag) {
-            $type = $tag->getType();
-            $relayValue = match (true) {
-                $type->is(TagType::REFERENCE) => $tag->getValue(0),
-                $type->is(TagType::EVENT), $type->is(TagType::PUBKEY) => $tag->getValue(1),
-                default => null,
-            };
+        $relayUrls = [
+            ...array_map(static fn (EventReference $event): ?RelayUrl => $event->getRelayUrl(), $references->getEvents()->toArray()),
+            ...array_map(static fn (EventReference $quote): ?RelayUrl => $quote->getRelayUrl(), $references->getQuotes()->toArray()),
+            ...array_map(static fn (PubkeyReference $pubkey): ?RelayUrl => $pubkey->getRelayUrl(), $references->getPubkeys()->toArray()),
+            ...array_map(static fn (EventCoordinate $coordinate): ?RelayUrl => $coordinate->getRelayHint(), $references->getAddressable()->toArray()),
+            ...array_map(static fn (RelayReference $relay): RelayUrl => $relay->getRelayUrl(), $references->getRelays()->toArray()),
+        ];
 
-            $relayUrl = RelayUrl::fromString($relayValue);
-            if (null !== $relayUrl) {
-                $relays[] = $relayUrl;
-            }
-        }
-
-        return $relays;
+        return array_values(array_filter($relayUrls, static fn (?RelayUrl $relayUrl): bool => null !== $relayUrl));
     }
 
     /**

@@ -57,33 +57,17 @@ final class Nip49Cipher implements Nip49EncryptionInterface
             throw new Nip49DecryptionFailedException();
         }
 
-        $revealed = $this->revealPassword($passwordProvider);
-
-        try {
-            $normalised = Normalizer::normalize($revealed, Normalizer::FORM_KC);
-            if (false === $normalised) {
-                throw new Nip49DecryptionFailedException();
-            }
-
-            try {
-                $derivedKey = $this->scrypt->derive($normalised, $ncryptsec->getSalt(), $logN);
-
-                try {
-                    $plaintext = sodium_crypto_aead_xchacha20poly1305_ietf_decrypt(
-                        $ncryptsec->getAeadCiphertextAndTag(),
-                        chr($keySecurity->value),
-                        $ncryptsec->getNonce(),
-                        $derivedKey,
-                    );
-                } finally {
-                    sodium_memzero($derivedKey);
-                }
-            } finally {
-                sodium_memzero($normalised);
-            }
-        } finally {
-            sodium_memzero($revealed);
-        }
+        $plaintext = $this->withDerivedKey(
+            $passwordProvider,
+            $ncryptsec->getSalt(),
+            $logN,
+            static fn (string $derivedKey): string|false => sodium_crypto_aead_xchacha20poly1305_ietf_decrypt(
+                $ncryptsec->getAeadCiphertextAndTag(),
+                chr($keySecurity->value),
+                $ncryptsec->getNonce(),
+                $derivedKey,
+            ),
+        );
 
         if (false === $plaintext) {
             throw new Nip49DecryptionFailedException();
@@ -104,6 +88,33 @@ final class Nip49Cipher implements Nip49EncryptionInterface
         string $salt,
         string $nonce,
     ): Ncryptsec {
+        $aeadOutput = $this->withDerivedKey(
+            $passwordProvider,
+            $salt,
+            $logN,
+            static fn (string $derivedKey): string => $privateKey->expose(
+                static fn (string $nsecBytes): string => sodium_crypto_aead_xchacha20poly1305_ietf_encrypt(
+                    $nsecBytes,
+                    chr($keySecurity->value),
+                    $nonce,
+                    $derivedKey,
+                )
+            ),
+        );
+
+        return Ncryptsec::fromFields($logN, $salt, $nonce, $keySecurity, $aeadOutput);
+    }
+
+    /**
+     * @template T
+     *
+     * @param Closure(): string  $passwordProvider
+     * @param Closure(string): T $use
+     *
+     * @return T
+     */
+    private function withDerivedKey(Closure $passwordProvider, string $salt, int $logN, Closure $use): mixed
+    {
         $revealed = $this->revealPassword($passwordProvider);
 
         try {
@@ -116,14 +127,7 @@ final class Nip49Cipher implements Nip49EncryptionInterface
                 $derivedKey = $this->scrypt->derive($normalised, $salt, $logN);
 
                 try {
-                    $aeadOutput = $privateKey->expose(
-                        static fn (string $nsecBytes): string => sodium_crypto_aead_xchacha20poly1305_ietf_encrypt(
-                            $nsecBytes,
-                            chr($keySecurity->value),
-                            $nonce,
-                            $derivedKey,
-                        )
-                    );
+                    return $use($derivedKey);
                 } finally {
                     sodium_memzero($derivedKey);
                 }
@@ -133,8 +137,6 @@ final class Nip49Cipher implements Nip49EncryptionInterface
         } finally {
             sodium_memzero($revealed);
         }
-
-        return Ncryptsec::fromFields($logN, $salt, $nonce, $keySecurity, $aeadOutput);
     }
 
     private function revealPassword(Closure $passwordProvider): string

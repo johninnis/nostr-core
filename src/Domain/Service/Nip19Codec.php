@@ -20,6 +20,7 @@ final class Nip19Codec implements Nip19CodecInterface
     private const int TLV_RELAY = 1;
     private const int TLV_AUTHOR = 2;
     private const int TLV_KIND = 3;
+    private const int KIND_BYTE_LENGTH = 4;
 
     #[Override]
     public function decodeComplexEntity(string $bech32): ?DecodedNip19Entity
@@ -157,13 +158,13 @@ final class Nip19Codec implements Nip19CodecInterface
      */
     private static function decodeKind(array $tlv): ?EventKind
     {
-        if (!isset($tlv[self::TLV_KIND][0])) {
+        if (!isset($tlv[self::TLV_KIND][0]) || self::KIND_BYTE_LENGTH !== strlen($tlv[self::TLV_KIND][0])) {
             return null;
         }
 
-        $kind = self::bytesToInteger($tlv[self::TLV_KIND][0]);
+        $unpacked = unpack('N', $tlv[self::TLV_KIND][0]);
 
-        return EventKind::tryFromInt($kind);
+        return false === $unpacked ? null : EventKind::tryFromInt($unpacked[1]);
     }
 
     /**
@@ -209,13 +210,6 @@ final class Nip19Codec implements Nip19CodecInterface
     private static function tlvEntry(int $type, string $value): string
     {
         return pack('CC', $type, strlen($value)).$value;
-    }
-
-    private static function bytesToInteger(string $bytes): int
-    {
-        $unpacked = unpack('N', str_pad($bytes, 4, "\x00", STR_PAD_LEFT));
-
-        return false === $unpacked ? 0 : $unpacked[1];
     }
 
     private static function integerToBytes(int $integer): string

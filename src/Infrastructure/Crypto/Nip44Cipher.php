@@ -19,6 +19,11 @@ final class Nip44Cipher implements Nip44EncryptionInterface
     private const int MIN_PLAINTEXT_LENGTH = 1;
     private const int MAX_PLAINTEXT_LENGTH = 65535;
     private const int MIN_PADDED_LENGTH = 32;
+    private const int SHA256_LENGTH = 32;
+    private const int CHACHA_KEY_LENGTH = 32;
+    private const int CHACHA_NONCE_LENGTH = 12;
+    private const int HMAC_KEY_LENGTH = 32;
+    private const int MESSAGE_KEYS_LENGTH = self::CHACHA_KEY_LENGTH + self::CHACHA_NONCE_LENGTH + self::HMAC_KEY_LENGTH;
 
     public function __construct(
         private readonly RandomBytesGeneratorInterface $randomBytes = new NativeRandomBytesGenerator(),
@@ -114,19 +119,18 @@ final class Nip44Cipher implements Nip44EncryptionInterface
      */
     private function deriveMessageKeys(string $prk, string $nonce): array
     {
-        $expanded = $this->hkdfExpand($prk, $nonce, 76);
+        $expanded = $this->hkdfExpand($prk, $nonce, self::MESSAGE_KEYS_LENGTH);
 
         return [
-            'chachaKey' => substr($expanded, 0, 32),
-            'chachaNonce' => substr($expanded, 32, 12),
-            'hmacKey' => substr($expanded, 44, 32),
+            'chachaKey' => substr($expanded, 0, self::CHACHA_KEY_LENGTH),
+            'chachaNonce' => substr($expanded, self::CHACHA_KEY_LENGTH, self::CHACHA_NONCE_LENGTH),
+            'hmacKey' => substr($expanded, self::CHACHA_KEY_LENGTH + self::CHACHA_NONCE_LENGTH, self::HMAC_KEY_LENGTH),
         ];
     }
 
     private function hkdfExpand(string $prk, string $info, int $length): string
     {
-        $hashLength = 32;
-        $iterations = (int) ceil($length / $hashLength);
+        $iterations = (int) ceil($length / self::SHA256_LENGTH);
         $output = '';
         $previous = '';
 
