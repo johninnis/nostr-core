@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol;
 
+use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
+
 final readonly class Nip11Info
 {
     /**
@@ -22,22 +24,22 @@ final readonly class Nip11Info
 
     public function getName(): ?string
     {
-        return $this->stringOrNull('name');
+        return JsonWireFormat::stringField($this->rawData, 'name');
     }
 
     public function getDescription(): ?string
     {
-        return $this->stringOrNull('description');
+        return JsonWireFormat::stringField($this->rawData, 'description');
     }
 
     public function getPubkey(): ?string
     {
-        return $this->stringOrNull('pubkey');
+        return JsonWireFormat::stringField($this->rawData, 'pubkey');
     }
 
     public function getContact(): ?string
     {
-        return $this->stringOrNull('contact');
+        return JsonWireFormat::stringField($this->rawData, 'contact');
     }
 
     /**
@@ -45,27 +47,27 @@ final readonly class Nip11Info
      */
     public function getSupportedNips(): ?array
     {
-        return $this->arrayOrNull('supported_nips');
+        return JsonWireFormat::arrayField($this->rawData, 'supported_nips');
     }
 
     public function getSoftware(): ?string
     {
-        return $this->stringOrNull('software');
+        return JsonWireFormat::stringField($this->rawData, 'software');
     }
 
     public function getVersion(): ?string
     {
-        return $this->stringOrNull('version');
+        return JsonWireFormat::stringField($this->rawData, 'version');
     }
 
     public function getBanner(): ?string
     {
-        return $this->stringOrNull('banner');
+        return JsonWireFormat::stringField($this->rawData, 'banner');
     }
 
     public function getIcon(): ?string
     {
-        return $this->stringOrNull('icon');
+        return JsonWireFormat::stringField($this->rawData, 'icon');
     }
 
     /**
@@ -74,23 +76,6 @@ final readonly class Nip11Info
     public static function fromArray(RelayUrl $relayUrl, array $data = []): self
     {
         return new self($relayUrl, $data);
-    }
-
-    private function stringOrNull(string $key): ?string
-    {
-        $value = $this->rawData[$key] ?? null;
-
-        return is_string($value) ? $value : null;
-    }
-
-    /**
-     * @return array<array-key, mixed>|null
-     */
-    private function arrayOrNull(string $key): ?array
-    {
-        $value = $this->rawData[$key] ?? null;
-
-        return is_array($value) ? $value : null;
     }
 
     /**
@@ -106,35 +91,27 @@ final readonly class Nip11Info
      */
     public function getLimitation(): ?array
     {
-        return $this->arrayOrNull('limitation');
+        return JsonWireFormat::arrayField($this->rawData, 'limitation');
     }
 
     public function getMaxSubscriptions(): ?int
     {
-        $value = $this->getLimitation()['max_subscriptions'] ?? null;
-
-        return is_int($value) ? $value : null;
+        return JsonWireFormat::intField($this->getLimitation() ?? [], 'max_subscriptions');
     }
 
     public function getMaxLimit(): ?int
     {
-        $value = $this->getLimitation()['max_limit'] ?? null;
-
-        return is_int($value) ? $value : null;
+        return JsonWireFormat::intField($this->getLimitation() ?? [], 'max_limit');
     }
 
     public function isAuthRequired(): bool
     {
-        $value = $this->getLimitation()['auth_required'] ?? false;
-
-        return true === $value;
+        return true === ($this->getLimitation()['auth_required'] ?? false);
     }
 
     public function isPaymentRequired(): bool
     {
-        $value = $this->getLimitation()['payment_required'] ?? false;
-
-        return true === $value;
+        return true === ($this->getLimitation()['payment_required'] ?? false);
     }
 
     /**
@@ -142,7 +119,7 @@ final readonly class Nip11Info
      */
     public function getRetention(): ?array
     {
-        return $this->arrayOrNull('retention');
+        return JsonWireFormat::arrayField($this->rawData, 'retention');
     }
 
     /**
@@ -150,7 +127,7 @@ final readonly class Nip11Info
      */
     public function getRelayCountries(): ?array
     {
-        return $this->arrayOrNull('relay_countries');
+        return JsonWireFormat::arrayField($this->rawData, 'relay_countries');
     }
 
     /**
@@ -158,7 +135,7 @@ final readonly class Nip11Info
      */
     public function getLanguageTags(): ?array
     {
-        return $this->arrayOrNull('language_tags');
+        return JsonWireFormat::arrayField($this->rawData, 'language_tags');
     }
 
     /**
@@ -166,17 +143,17 @@ final readonly class Nip11Info
      */
     public function getTags(): ?array
     {
-        return $this->arrayOrNull('tags');
+        return JsonWireFormat::arrayField($this->rawData, 'tags');
     }
 
     public function getPostingPolicy(): ?string
     {
-        return $this->stringOrNull('posting_policy');
+        return JsonWireFormat::stringField($this->rawData, 'posting_policy');
     }
 
     public function getPaymentsUrl(): ?string
     {
-        return $this->stringOrNull('payments_url');
+        return JsonWireFormat::stringField($this->rawData, 'payments_url');
     }
 
     /**
@@ -184,16 +161,16 @@ final readonly class Nip11Info
      */
     public function getFees(): ?array
     {
-        return $this->arrayOrNull('fees');
+        return JsonWireFormat::arrayField($this->rawData, 'fees');
     }
 
     public function getPrivacyPolicy(): ?string
     {
-        return $this->stringOrNull('privacy_policy');
+        return JsonWireFormat::stringField($this->rawData, 'privacy_policy');
     }
 
     public function getTermsOfService(): ?string
     {
-        return $this->stringOrNull('terms_of_service');
+        return JsonWireFormat::stringField($this->rawData, 'terms_of_service');
     }
 }

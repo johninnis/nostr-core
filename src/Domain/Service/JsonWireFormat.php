@@ -53,4 +53,16 @@ final class JsonWireFormat
 
         return is_int($value) ? $value : null;
     }
+
+    /**
+     * @param array<mixed> $data
+     *
+     * @return array<array-key, mixed>|null
+     */
+    public static function arrayField(array $data, string $key): ?array
+    {
+        $value = $data[$key] ?? null;
+
+        return is_array($value) ? $value : null;
+    }
 }

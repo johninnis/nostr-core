@@ -22,6 +22,13 @@ final readonly class RelayUrl implements Stringable
         return str_starts_with($this->url, 'wss://');
     }
 
+    public function toHttpUrl(): string
+    {
+        return $this->isSecure()
+            ? 'https'.substr($this->url, strlen('wss'))
+            : 'http'.substr($this->url, strlen('ws'));
+    }
+
     public function getHost(): string
     {
         return $this->host;

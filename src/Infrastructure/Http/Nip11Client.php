@@ -7,7 +7,6 @@ namespace Innis\Nostr\Core\Infrastructure\Http;
 use Innis\Nostr\Core\Application\Port\HttpServiceInterface;
 use Innis\Nostr\Core\Application\Port\Nip11FetcherInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Nip11Info;
-use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayHttpUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Override;
 
@@ -21,9 +20,7 @@ final readonly class Nip11Client implements Nip11FetcherInterface
     #[Override]
     public function fetchNip11Info(RelayUrl $relayUrl): ?Nip11Info
     {
-        $httpUrl = new RelayHttpUrl($relayUrl);
-
-        $data = $this->httpService->getJson((string) $httpUrl, [
+        $data = $this->httpService->getJson($relayUrl->toHttpUrl(), [
             'Accept' => 'application/nostr+json',
             'User-Agent' => UserAgent::DEFAULT,
         ]);

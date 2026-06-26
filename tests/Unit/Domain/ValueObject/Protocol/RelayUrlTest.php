@@ -310,4 +310,25 @@ final class RelayUrlTest extends TestCase
 
         $this->assertTrue($bare->equals($explicit));
     }
+
+    public function testToHttpUrlMapsWssToHttps(): void
+    {
+        $url = $this->createRelayUrl('wss://relay.example.com');
+
+        $this->assertSame('https://relay.example.com', $url->toHttpUrl());
+    }
+
+    public function testToHttpUrlMapsWsToHttp(): void
+    {
+        $url = $this->createRelayUrl('ws://localhost:7777');
+
+        $this->assertSame('http://localhost:7777', $url->toHttpUrl());
+    }
+
+    public function testToHttpUrlPreservesPortAndPath(): void
+    {
+        $url = $this->createRelayUrl('wss://relay.example.com:8080/nostr');
+
+        $this->assertSame('https://relay.example.com:8080/nostr', $url->toHttpUrl());
+    }
 }
