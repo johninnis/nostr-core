@@ -2,6 +2,10 @@
 
 This document describes the security properties `innis/nostr-core` provides, the properties it deliberately does not provide, and the reasoning behind the non-obvious design decisions. It is the reference consumers should read before relying on this library in production, and the reference contributors should read before changing any of the cryptographic, identity, or HTTP-facing code paths.
 
+## Audit status
+
+**This library has not undergone an independent third-party cryptographic audit.** It is built and reviewed with care — strict layer separation, conformance against the official BIP-340 and NIP-44 test vectors, cross-engine property sweeps, and the design decisions recorded below and in [`docs/adr/`](docs/adr/) — but internal review is not a substitute for an external audit. Nostr keys frequently control real value (zaps, Cashu/nutzaps), so treat the cryptographic guarantees as best-effort and not externally verified. Use the library at your own risk, weigh the consumer responsibilities set out below, and prefer the native `libsecp256k1` (FFI) path for any server-side or high-value signer. If you commission or perform an audit, please share the results through the vulnerability-reporting channel below.
+
 ## Reporting a vulnerability
 
 If you have found a security vulnerability in `innis/nostr-core`, report it privately through GitHub's built-in vulnerability reporting: **Security → Advisories → Report a vulnerability** on the repository page. Do not open a public issue for security-sensitive bugs.
