@@ -54,7 +54,8 @@ final class SecretKeyMaterial
             throw new SecretKeyMaterialZeroedException();
         }
 
-        $exposed = $this->bytes;
+        // Deliberate: XOR forces a fresh, non-copy-on-write buffer so sodium_memzero wipes the exposed bytes, not a throwaway; do not reduce to $this->bytes — see ADR-0028
+        $exposed = $this->bytes ^ str_repeat("\0", self::BYTE_LENGTH);
 
         try {
             return $fn($exposed);

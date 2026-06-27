@@ -19,7 +19,7 @@ final class Secp256k1EcdhTest extends TestCase
 
     public function testComputeSharedXIsSymmetric(): void
     {
-        $ecdh = new Secp256k1Ecdh();
+        $ecdh = new Secp256k1Ecdh(null);
         $signer = new Secp256k1Signer(null, new NativeRandomBytesGenerator());
 
         $privateKeyA = PrivateKey::generate();
@@ -35,7 +35,7 @@ final class Secp256k1EcdhTest extends TestCase
 
     public function testComputeSharedXIsDeterministic(): void
     {
-        $ecdh = new Secp256k1Ecdh();
+        $ecdh = new Secp256k1Ecdh(null);
         $signer = new Secp256k1Signer(null, new NativeRandomBytesGenerator());
 
         $privateKey = PrivateKey::generate();
@@ -49,7 +49,7 @@ final class Secp256k1EcdhTest extends TestCase
 
     public function testComputeSharedXMatchesLegacyConversationKeyDerivation(): void
     {
-        $ecdh = new Secp256k1Ecdh();
+        $ecdh = new Secp256k1Ecdh(null);
         $signer = new Secp256k1Signer(null, new NativeRandomBytesGenerator());
 
         $privateKey = PrivateKey::generate();
@@ -66,7 +66,7 @@ final class Secp256k1EcdhTest extends TestCase
 
     public function testComputeSharedXProducesThirtyTwoBytes(): void
     {
-        $ecdh = new Secp256k1Ecdh();
+        $ecdh = new Secp256k1Ecdh(null);
         $signer = new Secp256k1Signer(null, new NativeRandomBytesGenerator());
 
         $privateKey = PrivateKey::generate();

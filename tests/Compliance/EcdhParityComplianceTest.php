@@ -18,7 +18,7 @@ final class EcdhParityComplianceTest extends TestCase
     public function testFfiAndPurePhpComputeByteIdenticalSharedXAcrossRandomInputs(): void
     {
         $ffiEcdh = $this->ffiEcdhService();
-        $purePhpEcdh = new Secp256k1Ecdh();
+        $purePhpEcdh = new Secp256k1Ecdh(null);
         $signer = new Secp256k1Signer(null, new NativeRandomBytesGenerator());
 
         $problems = [];
@@ -46,7 +46,7 @@ final class EcdhParityComplianceTest extends TestCase
     public function testSharedXIsSymmetricAcrossBothEngines(): void
     {
         $ffiEcdh = $this->ffiEcdhService();
-        $purePhpEcdh = new Secp256k1Ecdh();
+        $purePhpEcdh = new Secp256k1Ecdh(null);
         $signer = new Secp256k1Signer(null, new NativeRandomBytesGenerator());
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {

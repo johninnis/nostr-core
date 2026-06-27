@@ -10,6 +10,7 @@ use Innis\Nostr\Core\Domain\Exception\GiftWrapException;
 use Innis\Nostr\Core\Domain\Factory\EventFactory;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
@@ -216,6 +217,17 @@ final class GiftWrapperTest extends TestCase
         $this->adapter->unwrap($giftWrap, $this->recipientKeyPair->getPrivateKey());
     }
 
+    public function testUnwrapRejectsSignedRumour(): void
+    {
+        $signedRumour = $this->createRumour('Sneaky')->sign($this->senderKeyPair, CryptoFixtures::signer());
+        $giftWrap = $this->sealAndWrap($signedRumour, $this->senderKeyPair);
+
+        $this->expectException(GiftWrapException::class);
+        $this->expectExceptionMessage('Decrypted rumour must not be signed');
+
+        $this->adapter->unwrap($giftWrap, $this->recipientKeyPair->getPrivateKey());
+    }
+
     public function testUnwrapRejectsTamperedGiftWrap(): void
     {
         $legitimate = $this->wrapRumour('Original');
@@ -291,5 +303,32 @@ final class GiftWrapperTest extends TestCase
             $this->senderKeyPair->getPrivateKey(),
             $this->recipientKeyPair->getPublicKey()
         );
+    }
+
+    private function sealAndWrap(Event $rumour, KeyPair $authorKeyPair): Event
+    {
+        $signer = CryptoFixtures::signer();
+        $cipher = new Nip44Cipher();
+        $recipientPublicKey = $this->recipientKeyPair->getPublicKey();
+
+        $sealKey = ConversationKey::derive($authorKeyPair->getPrivateKey(), $recipientPublicKey, CryptoFixtures::ecdh());
+        $seal = new Event(
+            $authorKeyPair->getPublicKey(),
+            Timestamp::now(),
+            EventKind::fromInt(EventKind::SEAL),
+            TagCollection::empty(),
+            EventContent::fromString($cipher->encrypt($rumour->toJson(), $sealKey)),
+        )->sign($authorKeyPair, $signer);
+
+        $ephemeralKeyPair = KeyPair::generate($signer);
+        $wrapKey = ConversationKey::derive($ephemeralKeyPair->getPrivateKey(), $recipientPublicKey, CryptoFixtures::ecdh());
+
+        return new Event(
+            $ephemeralKeyPair->getPublicKey(),
+            Timestamp::now(),
+            EventKind::fromInt(EventKind::GIFT_WRAP),
+            new TagCollection([Tag::pubkey($recipientPublicKey->toHex())]),
+            EventContent::fromString($cipher->encrypt($seal->toJson(), $wrapKey)),
+        )->sign($ephemeralKeyPair, $signer);
     }
 }

@@ -132,4 +132,34 @@ final class PrivateKeyTest extends TestCase
     {
         $this->assertNull(PrivateKey::fromBytes('too-short'));
     }
+
+    public function testRejectsZeroScalar(): void
+    {
+        $this->assertNull(PrivateKey::fromHex(str_repeat('0', 64)));
+    }
+
+    public function testRejectsScalarEqualToCurveOrder(): void
+    {
+        $this->assertNull(PrivateKey::fromHex('fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141'));
+    }
+
+    public function testRejectsScalarAboveCurveOrder(): void
+    {
+        $this->assertNull(PrivateKey::fromHex(str_repeat('f', 64)));
+    }
+
+    public function testAcceptsScalarOneBelowCurveOrder(): void
+    {
+        $this->assertNotNull(PrivateKey::fromHex('fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364140'));
+    }
+
+    public function testAcceptsScalarOfOne(): void
+    {
+        $this->assertNotNull(PrivateKey::fromHex('0000000000000000000000000000000000000000000000000000000000000001'));
+    }
+
+    public function testFromBytesRejectsZeroScalar(): void
+    {
+        $this->assertNull(PrivateKey::fromBytes(str_repeat("\x00", 32)));
+    }
 }

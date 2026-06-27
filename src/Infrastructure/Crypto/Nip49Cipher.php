@@ -17,13 +17,19 @@ use Override;
 
 final class Nip49Cipher implements Nip49EncryptionInterface
 {
+    // Deliberate: encrypt floors at 16 so no weak-KDF ncryptsec is minted; decrypt accepts lower for interop — see ADR-0030
+    private const int ENCRYPT_LOG_N_MIN = 16;
     private const int LOG_N_MIN = 1;
     private const int LOG_N_MAX = 22;
 
     public function __construct(
         private readonly Nip49Scrypt $scrypt = new Nip49Scrypt(),
         private readonly RandomBytesGeneratorInterface $randomBytes = new NativeRandomBytesGenerator(),
+        private readonly int $maxDecryptLogN = self::LOG_N_MAX,
     ) {
+        if ($maxDecryptLogN < self::LOG_N_MIN || $maxDecryptLogN > self::LOG_N_MAX) {
+            throw new InvalidArgumentException(sprintf('maxDecryptLogN must be between %d and %d', self::LOG_N_MIN, self::LOG_N_MAX));
+        }
     }
 
     #[Override]
@@ -33,8 +39,8 @@ final class Nip49Cipher implements Nip49EncryptionInterface
         int $logN = 16,
         KeySecurityByte $keySecurity = KeySecurityByte::Unknown,
     ): Ncryptsec {
-        if ($logN < self::LOG_N_MIN || $logN > self::LOG_N_MAX) {
-            throw new InvalidArgumentException(sprintf('logN must be between %d and %d', self::LOG_N_MIN, self::LOG_N_MAX));
+        if ($logN < self::ENCRYPT_LOG_N_MIN || $logN > self::LOG_N_MAX) {
+            throw new InvalidArgumentException(sprintf('logN must be between %d and %d', self::ENCRYPT_LOG_N_MIN, self::LOG_N_MAX));
         }
 
         $salt = $this->randomBytes->bytes(Ncryptsec::SALT_LENGTH);
@@ -47,7 +53,7 @@ final class Nip49Cipher implements Nip49EncryptionInterface
     public function decrypt(Ncryptsec $ncryptsec, Closure $passwordProvider): PrivateKey
     {
         $logN = $ncryptsec->getLogN();
-        if ($logN < self::LOG_N_MIN || $logN > self::LOG_N_MAX) {
+        if ($logN < self::LOG_N_MIN || $logN > $this->maxDecryptLogN) {
             throw new Nip49DecryptionFailedException();
         }
 

@@ -18,7 +18,7 @@ final class Secp256k1Ecdh implements EcdhServiceInterface
     private const string SECP256K1_PRIME_HEX = 'fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f';
     private const string ZERO_X_HEX = '0000000000000000000000000000000000000000000000000000000000000000';
 
-    public function __construct(private readonly ?LibSecp256k1Ffi $ffi = null)
+    public function __construct(private readonly ?LibSecp256k1Ffi $ffi)
     {
     }
 

@@ -14,14 +14,14 @@
     "require": {
         "php": "^8.4",
         "ext-intl": "*",
+        "ext-mbstring": "*",
         "ext-sodium": "*",
         "paragonie/ecc": "^2.5",
         "paragonie/sodium_compat": "^2.1"
     },
     "suggest": {
         "ext-gmp": "Pure-PHP secp256k1 signing and ECDH fallback when libsecp256k1 is unavailable",
-        "ext-ffi": "Native libsecp256k1 acceleration and NIP-49 scrypt (required for NIP-49)",
-        "ext-mbstring": "Search-filter matching, EventContent::getLength, and the bech32 TLV decoder"
+        "ext-ffi": "Native libsecp256k1 acceleration and NIP-49 scrypt (required for NIP-49)"
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.95",

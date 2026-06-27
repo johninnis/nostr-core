@@ -8,17 +8,19 @@ use Closure;
 use Innis\Nostr\Core\Domain\Service\Bech32Codec;
 use Innis\Nostr\Core\Domain\Service\HexCodec;
 
+// Deliberate: rejects scalars outside [1, n-1] so both signing backends agree and no degenerate key is built — see ADR-0029
 final readonly class PrivateKey
 {
+    private const string CURVE_ORDER_HEX = 'fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141';
+    private const string ZERO_HEX = '0000000000000000000000000000000000000000000000000000000000000000';
+
     private function __construct(private SecretKeyMaterial $material)
     {
     }
 
     public static function fromHex(string $hex): ?self
     {
-        $material = SecretKeyMaterial::fromHex($hex);
-
-        return null === $material ? null : new self($material);
+        return self::fromValidatedMaterial(SecretKeyMaterial::fromHex($hex));
     }
 
     public static function fromBech32(string $bech32): ?self
@@ -30,14 +32,44 @@ final readonly class PrivateKey
 
     public static function fromBytes(string $bytes): ?self
     {
-        $material = SecretKeyMaterial::fromBytes($bytes);
-
-        return null === $material ? null : new self($material);
+        return self::fromValidatedMaterial(SecretKeyMaterial::fromBytes($bytes));
     }
 
     public static function generate(): self
     {
-        return new self(SecretKeyMaterial::random());
+        while (true) {
+            $key = self::fromValidatedMaterial(SecretKeyMaterial::random());
+
+            if (null !== $key) {
+                return $key;
+            }
+        }
+    }
+
+    private static function fromValidatedMaterial(?SecretKeyMaterial $material): ?self
+    {
+        if (null === $material) {
+            return null;
+        }
+
+        if (!$material->expose(self::isWithinCurveOrder(...))) {
+            $material->zero();
+
+            return null;
+        }
+
+        return new self($material);
+    }
+
+    private static function isWithinCurveOrder(string $bytes): bool
+    {
+        $hex = bin2hex($bytes);
+
+        try {
+            return self::ZERO_HEX !== $hex && strcmp($hex, self::CURVE_ORDER_HEX) < 0;
+        } finally {
+            sodium_memzero($hex);
+        }
     }
 
     public function toHex(): string

@@ -182,6 +182,10 @@ final class GiftWrapper implements GiftWrapServiceInterface
             throw new GiftWrapException('Decrypted event is not a rumour (kind 14)');
         }
 
+        if ($rumour->isSigned()) {
+            throw new GiftWrapException('Decrypted rumour must not be signed');
+        }
+
         if (!$rumour->getPubkey()->equals($seal->getPubkey())) {
             throw new GiftWrapException('Rumour pubkey does not match seal pubkey');
         }

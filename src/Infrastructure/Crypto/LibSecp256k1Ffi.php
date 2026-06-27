@@ -59,7 +59,11 @@ final class LibSecp256k1Ffi
 
         try {
             $context = $ffi->secp256k1_context_create(self::CONTEXT_SIGN_VERIFY);
-            $ffi->secp256k1_context_randomize($context, FfiLibraryLoader::toBuffer($ffi, $seed32));
+            if (1 !== $ffi->secp256k1_context_randomize($context, FfiLibraryLoader::toBuffer($ffi, $seed32))) {
+                $ffi->secp256k1_context_destroy($context);
+
+                return null;
+            }
         } catch (Throwable) {
             return null;
         }
