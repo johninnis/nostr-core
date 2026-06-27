@@ -57,18 +57,21 @@ final class LibSecp256k1Ffi
             return null;
         }
 
+        $context = null;
+
         try {
             $context = $ffi->secp256k1_context_create(self::CONTEXT_SIGN_VERIFY);
-            if (1 !== $ffi->secp256k1_context_randomize($context, FfiLibraryLoader::toBuffer($ffi, $seed32))) {
-                $ffi->secp256k1_context_destroy($context);
-
-                return null;
+            if (1 === $ffi->secp256k1_context_randomize($context, FfiLibraryLoader::toBuffer($ffi, $seed32))) {
+                return new self($ffi, $context);
             }
         } catch (Throwable) {
-            return null;
         }
 
-        return new self($ffi, $context);
+        if (null !== $context) {
+            $ffi->secp256k1_context_destroy($context);
+        }
+
+        return null;
     }
 
     public function sign(string $messageBytes, string $privkeyBytes, string $auxRand32): string

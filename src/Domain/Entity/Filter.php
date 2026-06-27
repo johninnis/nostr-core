@@ -22,12 +22,6 @@ final readonly class Filter implements JsonSerializable, Stringable
 {
     public const int MAX_VALUES_PER_FIELD = 1000;
 
-    /** @var array<string, int>|null */
-    private ?array $idSet;
-    /** @var array<string, int>|null */
-    private ?array $authorSet;
-    /** @var array<int, int>|null */
-    private ?array $kindSet;
     /** @var array<string, array<string, int>>|null */
     private ?array $tagValueSets;
     /** @var list<string>|null */
@@ -64,9 +58,6 @@ final readonly class Filter implements JsonSerializable, Stringable
             }
         }
 
-        $this->idSet = null === $this->ids ? null : array_fill_keys($this->ids->toHexes(), 0);
-        $this->authorSet = null === $this->authors ? null : array_fill_keys($this->authors->toHexes(), 0);
-        $this->kindSet = null === $this->kinds ? null : array_fill_keys($this->kinds->toInts(), 0);
         $this->tagValueSets = null === $this->tags ? null : array_map(self::flipStrings(...), $this->tags);
         $this->searchTerms = null === $this->search
             ? null
@@ -97,15 +88,15 @@ final readonly class Filter implements JsonSerializable, Stringable
 
     public function matches(Event $event): bool
     {
-        if (null !== $this->idSet && !isset($this->idSet[$event->getId()->toHex()])) {
+        if (null !== $this->ids && !$this->ids->contains($event->getId())) {
             return false;
         }
 
-        if (null !== $this->authorSet && !isset($this->authorSet[$event->getPubkey()->toHex()])) {
+        if (null !== $this->authors && !$this->authors->contains($event->getPubkey())) {
             return false;
         }
 
-        if (null !== $this->kindSet && !isset($this->kindSet[$event->getKind()->toInt()])) {
+        if (null !== $this->kinds && !$this->kinds->contains($event->getKind())) {
             return false;
         }
 

@@ -28,6 +28,11 @@ final class EventIdCollection extends TypedCollection
         return new self($this->deduplicate(static fn (EventId $eventId): string => $eventId->toHex()));
     }
 
+    public function contains(EventId $eventId): bool
+    {
+        return $this->containsByKey($eventId->toHex(), static fn (EventId $id): string => $id->toHex());
+    }
+
     /**
      * @return list<string>
      */

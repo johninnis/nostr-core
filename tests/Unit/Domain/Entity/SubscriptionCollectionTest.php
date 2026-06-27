@@ -43,14 +43,19 @@ final class SubscriptionCollectionTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        new SubscriptionCollection(['key' => 'not-a-subscription']);
+        new SubscriptionCollection(['not-a-subscription']);
     }
 
-    public function testConstructorValidatesKeys(): void
+    public function testConstructorKeysBySubscriptionId(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $collection = new SubscriptionCollection([
+            $this->createSubscription('alpha'),
+            $this->createSubscription('beta'),
+        ]);
 
-        new SubscriptionCollection([0 => $this->createSubscription()]);
+        $this->assertSame(['alpha', 'beta'], $collection->keys());
+        $this->assertTrue($collection->has(self::subscriptionId('alpha')));
+        $this->assertTrue($collection->has(self::subscriptionId('beta')));
     }
 
     public function testAddReturnsNewCollection(): void

@@ -27,28 +27,22 @@ final readonly class SubscriptionCollection implements IteratorAggregate, Counta
      */
     public function __construct(array $subscriptions = [])
     {
-        $validated = [];
+        $keyed = [];
 
-        foreach ($subscriptions as $key => $subscription) {
-            if (!is_string($key)) {
-                throw new InvalidArgumentException('All keys must be subscription ID strings');
-            }
+        foreach ($subscriptions as $subscription) {
             if (!$subscription instanceof Subscription) {
                 throw new InvalidArgumentException('All items must be Subscription instances');
             }
 
-            $validated[$key] = $subscription;
+            $keyed[(string) $subscription->getId()] = $subscription;
         }
 
-        $this->subscriptions = $validated;
+        $this->subscriptions = $keyed;
     }
 
     public function add(Subscription $subscription): self
     {
-        $subscriptions = $this->subscriptions;
-        $subscriptions[(string) $subscription->getId()] = $subscription;
-
-        return new self($subscriptions);
+        return new self([...array_values($this->subscriptions), $subscription]);
     }
 
     public function remove(SubscriptionId $subscriptionId): self
@@ -56,7 +50,7 @@ final readonly class SubscriptionCollection implements IteratorAggregate, Counta
         $subscriptions = $this->subscriptions;
         unset($subscriptions[(string) $subscriptionId]);
 
-        return new self($subscriptions);
+        return new self(array_values($subscriptions));
     }
 
     public function get(SubscriptionId $subscriptionId): ?Subscription
@@ -80,7 +74,7 @@ final readonly class SubscriptionCollection implements IteratorAggregate, Counta
         $subscriptions = $this->subscriptions;
         $subscriptions[$key] = $subscriptions[$key]->withState($state);
 
-        return new self($subscriptions);
+        return new self(array_values($subscriptions));
     }
 
     public function getState(SubscriptionId $subscriptionId): ?SubscriptionState
@@ -101,7 +95,7 @@ final readonly class SubscriptionCollection implements IteratorAggregate, Counta
      */
     public function filter(callable $predicate): self
     {
-        return new self(array_filter($this->subscriptions, $predicate));
+        return new self(array_values(array_filter($this->subscriptions, $predicate)));
     }
 
     public function isEmpty(): bool
