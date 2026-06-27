@@ -15,6 +15,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use Innis\Nostr\Core\Infrastructure\Crypto\GiftWrapEnvelope;
 use Innis\Nostr\Core\Infrastructure\Crypto\GiftWrapper;
 use Innis\Nostr\Core\Infrastructure\Crypto\Nip44Cipher;
 use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
@@ -251,8 +252,11 @@ final class GiftWrapperTest extends TestCase
     public function testDeterministicWrapWithExplicitParameters(): void
     {
         $ephemeralKeyPair = KeyPair::generate(CryptoFixtures::signer());
-        $sealTimestamp = Timestamp::fromInt(1700000000);
-        $wrapTimestamp = Timestamp::fromInt(1700000100);
+        $envelope = new GiftWrapEnvelope(
+            $ephemeralKeyPair,
+            Timestamp::fromInt(1700000000),
+            Timestamp::fromInt(1700000100),
+        );
 
         $rumour = $this->createRumour('Deterministic test');
 
@@ -260,9 +264,7 @@ final class GiftWrapperTest extends TestCase
             $rumour,
             $this->senderKeyPair->getPrivateKey(),
             $this->recipientKeyPair->getPublicKey(),
-            $ephemeralKeyPair,
-            $sealTimestamp,
-            $wrapTimestamp
+            $envelope,
         );
 
         $this->assertTrue($giftWrap->getPubkey()->equals($ephemeralKeyPair->getPublicKey()));

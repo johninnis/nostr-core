@@ -136,7 +136,7 @@ final readonly class EventKind implements Stringable
     public const int MEDIA_STARTER_PACK = 39092;
     public const int PARAMETERISED_REPLACEABLE_MAX = 39999;
 
-    public function __construct(private int $kind)
+    private function __construct(private int $kind)
     {
         if (!self::isValid($kind)) {
             throw new InvalidArgumentException('Event kind must be between 0 and 65535');

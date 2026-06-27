@@ -359,6 +359,12 @@ final readonly class Filter implements JsonSerializable, Stringable
             return null;
         }
 
+        if ((null !== $ids && !array_all($ids, static fn (mixed $id): bool => is_string($id)))
+            || (null !== $authors && !array_all($authors, static fn (mixed $author): bool => is_string($author)))
+        ) {
+            return null;
+        }
+
         if (null !== $kinds && !is_array($kinds)) {
             return null;
         }

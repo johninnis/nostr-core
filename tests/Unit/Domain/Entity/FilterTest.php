@@ -538,7 +538,9 @@ final class FilterTest extends TestCase
         yield 'kinds not an array' => [['kinds' => 'one']];
         yield 'kinds with non-int element' => [['kinds' => ['1']]];
         yield 'ids not an array' => [['ids' => str_repeat('a', 64)]];
+        yield 'ids with non-string element' => [['ids' => [123]]];
         yield 'authors not an array' => [['authors' => str_repeat('a', 64)]];
+        yield 'authors with non-string element' => [['authors' => [123]]];
         yield 'limit not an int' => [['limit' => '5']];
         yield 'search not a string' => [['search' => ['nostr']]];
         yield 'since not an int' => [['since' => '1700000000']];

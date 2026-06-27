@@ -68,7 +68,7 @@ final class NostrAuthHeaderCodecTest extends TestCase
         return EventFactory::createCustomKind(
             $keyPair->getPublicKey(),
             EventKind::fromInt(EventKind::HTTP_AUTH),
-            new EventContent(''),
+            EventContent::empty(),
             new TagCollection([]),
         )->sign($keyPair, FakeSignatureService::accepting());
     }

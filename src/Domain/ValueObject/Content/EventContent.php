@@ -9,7 +9,7 @@ use Stringable;
 
 final readonly class EventContent implements Stringable
 {
-    public function __construct(private string $content)
+    private function __construct(private string $content)
     {
     }
 

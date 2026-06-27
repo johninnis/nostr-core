@@ -8,12 +8,11 @@ use Innis\Nostr\Core\Domain\Collection\EventCoordinateCollection;
 use Innis\Nostr\Core\Domain\Collection\EventReferenceCollection;
 use Innis\Nostr\Core\Domain\Collection\PubkeyReferenceCollection;
 use Innis\Nostr\Core\Domain\Collection\RelayReferenceCollection;
-use InvalidArgumentException;
 
 final readonly class TagReferences
 {
     /**
-     * @param list<mixed> $challenges
+     * @param list<string> $challenges
      */
     public function __construct(
         private EventReferenceCollection $events,
@@ -23,9 +22,6 @@ final readonly class TagReferences
         private RelayReferenceCollection $relays,
         private array $challenges,
     ) {
-        if (!array_all($this->challenges, static fn (mixed $challenge): bool => is_string($challenge))) {
-            throw new InvalidArgumentException('All challenges must be strings');
-        }
     }
 
     public function getEvents(): EventReferenceCollection
@@ -54,7 +50,7 @@ final readonly class TagReferences
     }
 
     /**
-     * @return list<mixed>
+     * @return list<string>
      */
     public function getChallenges(): array
     {

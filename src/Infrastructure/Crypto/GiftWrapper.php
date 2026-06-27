@@ -39,38 +39,36 @@ final class GiftWrapper implements GiftWrapServiceInterface
         Event $rumour,
         PrivateKey $senderPrivateKey,
         PublicKey $recipientPublicKey,
-        ?KeyPair $ephemeralKeyPair = null,
-        ?Timestamp $sealTimestamp = null,
-        ?Timestamp $wrapTimestamp = null,
+        ?GiftWrapEnvelope $envelope = null,
     ): Event {
         $this->validateRumour($rumour, $senderPrivateKey);
 
         $senderKeyPair = KeyPair::fromPrivateKey($senderPrivateKey, $this->signatureService);
 
-        $seal = $this->encryptAndWrap(
-            $rumour,
-            $senderKeyPair,
-            $recipientPublicKey,
-            EventKind::fromInt(EventKind::SEAL),
-            TagCollection::empty(),
-            $sealTimestamp
-        );
-
-        $ephemeral = $ephemeralKeyPair ?? KeyPair::generate($this->signatureService);
-        $ownsEphemeral = null === $ephemeralKeyPair;
+        $ownsEnvelope = null === $envelope;
+        $envelope ??= GiftWrapEnvelope::random($this->signatureService);
 
         try {
+            $seal = $this->encryptAndWrap(
+                $rumour,
+                $senderKeyPair,
+                $recipientPublicKey,
+                EventKind::fromInt(EventKind::SEAL),
+                TagCollection::empty(),
+                $envelope->getSealTimestamp()
+            );
+
             return $this->encryptAndWrap(
                 $seal,
-                $ephemeral,
+                $envelope->getEphemeralKeyPair(),
                 $recipientPublicKey,
                 EventKind::fromInt(EventKind::GIFT_WRAP),
                 new TagCollection([Tag::pubkey($recipientPublicKey->toHex())]),
-                $wrapTimestamp
+                $envelope->getWrapTimestamp()
             );
         } finally {
-            if ($ownsEphemeral) {
-                $ephemeral->getPrivateKey()->zero();
+            if ($ownsEnvelope) {
+                $envelope->getEphemeralKeyPair()->getPrivateKey()->zero();
             }
         }
     }
@@ -97,7 +95,7 @@ final class GiftWrapper implements GiftWrapServiceInterface
         PublicKey $recipientPublicKey,
         EventKind $kind,
         TagCollection $tags,
-        ?Timestamp $timestamp,
+        Timestamp $timestamp,
     ): Event {
         $conversationKey = ConversationKey::derive($signingKeyPair->getPrivateKey(), $recipientPublicKey, $this->ecdhService);
 
@@ -106,7 +104,7 @@ final class GiftWrapper implements GiftWrapServiceInterface
 
             $event = new Event(
                 $signingKeyPair->getPublicKey(),
-                $timestamp ?? Timestamp::randomised(),
+                $timestamp,
                 $kind,
                 $tags,
                 EventContent::fromString($encrypted)

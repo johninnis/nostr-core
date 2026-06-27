@@ -12,7 +12,7 @@ use Stringable;
 
 final readonly class Timestamp implements Stringable
 {
-    public function __construct(private int $timestamp)
+    private function __construct(private int $timestamp)
     {
         if ($this->timestamp < 0) {
             throw new InvalidArgumentException('Timestamp cannot be negative');
