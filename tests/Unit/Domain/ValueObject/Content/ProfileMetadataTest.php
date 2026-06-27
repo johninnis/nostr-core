@@ -24,6 +24,7 @@ final class ProfileMetadataTest extends TestCase
 
         $metadata = ProfileMetadata::fromJsonString($json);
 
+        $this->assertNotNull($metadata);
         $this->assertSame('alice', $metadata->getName());
         $this->assertSame('Alice', $metadata->getDisplayName());
         $this->assertSame('A nostr user', $metadata->getAbout());
@@ -40,6 +41,7 @@ final class ProfileMetadataTest extends TestCase
 
         $metadata = ProfileMetadata::fromJsonString($json);
 
+        $this->assertNotNull($metadata);
         $this->assertSame('bob', $metadata->getName());
         $this->assertNull($metadata->getDisplayName());
         $this->assertNull($metadata->getAbout());
@@ -50,18 +52,9 @@ final class ProfileMetadataTest extends TestCase
         $this->assertNull($metadata->getLud16());
     }
 
-    public function testFromInvalidJsonReturnsEmptyMetadata(): void
+    public function testFromInvalidJsonReturnsNull(): void
     {
-        $metadata = ProfileMetadata::fromJsonString('not valid json');
-
-        $this->assertNull($metadata->getName());
-        $this->assertNull($metadata->getDisplayName());
-        $this->assertNull($metadata->getAbout());
-        $this->assertNull($metadata->getPicture());
-        $this->assertNull($metadata->getBanner());
-        $this->assertNull($metadata->getWebsite());
-        $this->assertNull($metadata->getNip05());
-        $this->assertNull($metadata->getLud16());
+        $this->assertNull(ProfileMetadata::fromJsonString('not valid json'));
     }
 
     public function testToArrayFromArrayRoundTrip(): void
@@ -118,6 +111,7 @@ final class ProfileMetadataTest extends TestCase
 
         $metadata = ProfileMetadata::fromJsonString($json);
 
+        $this->assertNotNull($metadata);
         $this->assertSame('alice', $metadata->getName());
         $this->assertNull($metadata->getDisplayName());
         $this->assertNull($metadata->getAbout());

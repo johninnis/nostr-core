@@ -15,7 +15,7 @@ require __DIR__.'/../vendor/autoload.php';
 
 $signer = Secp256k1Signer::create();
 $ecdh = Secp256k1Ecdh::create();
-$giftWrapper = new GiftWrapper(new Nip44Cipher(), $signer, $ecdh);
+$giftWrapper = GiftWrapper::create(new Nip44Cipher(), $signer, $ecdh);
 
 $sender = KeyPair::generate($signer);
 $recipient = KeyPair::generate($signer);

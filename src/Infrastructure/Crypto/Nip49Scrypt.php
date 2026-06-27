@@ -48,28 +48,28 @@ final class Nip49Scrypt
         $saltBuffer = FfiLibraryLoader::toBuffer($ffi, $salt);
         $output = $ffi->new('unsigned char['.self::OUTPUT_LENGTH.']');
 
-        $returnCode = $ffi->crypto_pwhash_scryptsalsa208sha256_ll(
-            $passwordBuffer,
-            strlen($password),
-            $saltBuffer,
-            strlen($salt),
-            1 << $logN,
-            self::SCRYPT_BLOCK_SIZE,
-            self::SCRYPT_PARALLELISM,
-            $output,
-            self::OUTPUT_LENGTH,
-        );
+        try {
+            $returnCode = $ffi->crypto_pwhash_scryptsalsa208sha256_ll(
+                $passwordBuffer,
+                strlen($password),
+                $saltBuffer,
+                strlen($salt),
+                1 << $logN,
+                self::SCRYPT_BLOCK_SIZE,
+                self::SCRYPT_PARALLELISM,
+                $output,
+                self::OUTPUT_LENGTH,
+            );
 
-        if (0 !== $returnCode) {
-            throw new CryptoException('scrypt derivation returned non-zero status');
+            if (0 !== $returnCode) {
+                throw new CryptoException('scrypt derivation returned non-zero status');
+            }
+
+            return FFI::string($output, self::OUTPUT_LENGTH);
+        } finally {
+            FFI::memset($output, 0, self::OUTPUT_LENGTH);
+            FFI::memset($passwordBuffer, 0, strlen($password));
+            FFI::memset($saltBuffer, 0, strlen($salt));
         }
-
-        $derived = FFI::string($output, self::OUTPUT_LENGTH);
-
-        FFI::memset($output, 0, self::OUTPUT_LENGTH);
-        FFI::memset($passwordBuffer, 0, strlen($password));
-        FFI::memset($saltBuffer, 0, strlen($salt));
-
-        return $derived;
     }
 }

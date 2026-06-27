@@ -20,9 +20,11 @@ final readonly class ProfileMetadata
     ) {
     }
 
-    public static function fromJsonString(string $json): self
+    public static function fromJsonString(string $json): ?self
     {
-        return self::fromArray(JsonWireFormat::decodeArray($json) ?? []);
+        $data = JsonWireFormat::decodeArray($json);
+
+        return null === $data ? null : self::fromArray($data);
     }
 
     public function getName(): ?string

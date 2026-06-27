@@ -31,7 +31,16 @@ final class GiftWrapper implements GiftWrapServiceInterface
         private readonly Nip44EncryptionInterface $encryption,
         private readonly SignatureServiceInterface $signatureService,
         private readonly EcdhServiceInterface $ecdhService,
+        private readonly GiftWrapEnvelopeFactoryInterface $envelopeFactory,
     ) {
+    }
+
+    public static function create(
+        Nip44EncryptionInterface $encryption,
+        SignatureServiceInterface $signatureService,
+        EcdhServiceInterface $ecdhService,
+    ): self {
+        return new self($encryption, $signatureService, $ecdhService, new RandomGiftWrapEnvelopeFactory($signatureService));
     }
 
     #[Override]
@@ -39,14 +48,12 @@ final class GiftWrapper implements GiftWrapServiceInterface
         Event $rumour,
         PrivateKey $senderPrivateKey,
         PublicKey $recipientPublicKey,
-        ?GiftWrapEnvelope $envelope = null,
     ): Event {
         $this->validateRumour($rumour, $senderPrivateKey);
 
         $senderKeyPair = KeyPair::fromPrivateKey($senderPrivateKey, $this->signatureService);
 
-        $ownsEnvelope = null === $envelope;
-        $envelope ??= GiftWrapEnvelope::random($this->signatureService);
+        $envelope = $this->envelopeFactory->create();
 
         try {
             $seal = $this->encryptAndWrap(
@@ -67,9 +74,7 @@ final class GiftWrapper implements GiftWrapServiceInterface
                 $envelope->getWrapTimestamp()
             );
         } finally {
-            if ($ownsEnvelope) {
-                $envelope->getEphemeralKeyPair()->getPrivateKey()->zero();
-            }
+            $envelope->getEphemeralKeyPair()->getPrivateKey()->zero();
         }
     }
 

@@ -134,6 +134,46 @@ final class FilterTest extends TestCase
         $this->assertTrue($filter->matches($event));
     }
 
+    public function testMatchesEventAtTheMaximumAuthorCount(): void
+    {
+        $keyPair = KeyMother::alice();
+        $event = new Event(
+            $keyPair->getPublicKey(),
+            Timestamp::now(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
+            TagCollection::empty(),
+            EventContent::fromString('test')
+        );
+
+        $authors = array_map(
+            static fn (int $i): string => str_pad(dechex($i), 64, '0', STR_PAD_LEFT),
+            range(1, Filter::MAX_VALUES_PER_FIELD - 1),
+        );
+        $authors[] = $keyPair->getPublicKey()->toHex();
+
+        $this->assertTrue(new Filter(authors: $authors)->matches($event));
+    }
+
+    public function testTagFilterMatchesAnEventCarryingManyTags(): void
+    {
+        $keyPair = KeyMother::alice();
+        $tags = [];
+        for ($i = 0; $i < 1000; ++$i) {
+            $tags[] = Tag::hashtag("noise{$i}");
+        }
+        $tags[] = Tag::hashtag('target');
+
+        $event = new Event(
+            $keyPair->getPublicKey(),
+            Timestamp::now(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
+            new TagCollection($tags),
+            EventContent::fromString('test')
+        );
+
+        $this->assertTrue(new Filter(tags: ['t' => ['target']])->matches($event));
+    }
+
     public function testMatchesEventWithMultipleTagTypesRequiresAll(): void
     {
         $keyPair = KeyMother::alice();

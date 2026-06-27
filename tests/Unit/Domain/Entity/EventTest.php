@@ -318,6 +318,13 @@ final class EventTest extends TestCase
         $this->assertNull(Event::fromJson('"not an object"'));
     }
 
+    public function testFromJsonReturnsNullForDeeplyNestedJson(): void
+    {
+        $depthBomb = str_repeat('[', 600).str_repeat(']', 600);
+
+        $this->assertNull(Event::fromJson($depthBomb));
+    }
+
     public function testFromJsonReturnsNullWhenTagElementIsNotAnArray(): void
     {
         $json = json_encode([

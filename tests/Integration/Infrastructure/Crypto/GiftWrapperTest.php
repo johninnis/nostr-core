@@ -16,6 +16,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Infrastructure\Crypto\GiftWrapEnvelope;
+use Innis\Nostr\Core\Infrastructure\Crypto\GiftWrapEnvelopeFactoryInterface;
 use Innis\Nostr\Core\Infrastructure\Crypto\GiftWrapper;
 use Innis\Nostr\Core\Infrastructure\Crypto\Nip44Cipher;
 use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
@@ -30,7 +31,7 @@ final class GiftWrapperTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->adapter = new GiftWrapper(new Nip44Cipher(), CryptoFixtures::signer(), CryptoFixtures::ecdh());
+        $this->adapter = GiftWrapper::create(new Nip44Cipher(), CryptoFixtures::signer(), CryptoFixtures::ecdh());
         $this->senderKeyPair = KeyPair::generate(CryptoFixtures::signer());
         $this->recipientKeyPair = KeyPair::generate(CryptoFixtures::signer());
     }
@@ -249,7 +250,7 @@ final class GiftWrapperTest extends TestCase
         $this->adapter->unwrap($tampered, $this->recipientKeyPair->getPrivateKey());
     }
 
-    public function testDeterministicWrapWithExplicitParameters(): void
+    public function testDeterministicWrapWithInjectedEnvelopeFactory(): void
     {
         $ephemeralKeyPair = KeyPair::generate(CryptoFixtures::signer());
         $envelope = new GiftWrapEnvelope(
@@ -258,19 +259,23 @@ final class GiftWrapperTest extends TestCase
             Timestamp::fromInt(1700000100),
         );
 
+        $envelopeFactory = $this->createStub(GiftWrapEnvelopeFactoryInterface::class);
+        $envelopeFactory->method('create')->willReturn($envelope);
+
+        $giftWrapper = new GiftWrapper(new Nip44Cipher(), CryptoFixtures::signer(), CryptoFixtures::ecdh(), $envelopeFactory);
+
         $rumour = $this->createRumour('Deterministic test');
 
-        $giftWrap = $this->adapter->wrapForRecipient(
+        $giftWrap = $giftWrapper->wrapForRecipient(
             $rumour,
             $this->senderKeyPair->getPrivateKey(),
             $this->recipientKeyPair->getPublicKey(),
-            $envelope,
         );
 
         $this->assertTrue($giftWrap->getPubkey()->equals($ephemeralKeyPair->getPublicKey()));
         $this->assertSame(1700000100, $giftWrap->getCreatedAt()->toInt());
 
-        $unwrapped = $this->adapter->unwrap($giftWrap, $this->recipientKeyPair->getPrivateKey());
+        $unwrapped = $giftWrapper->unwrap($giftWrap, $this->recipientKeyPair->getPrivateKey());
         $this->assertSame('Deterministic test', (string) $unwrapped->getContent());
     }
 

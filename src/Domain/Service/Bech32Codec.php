@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Enum\Bech32Variant;
-use Innis\Nostr\Core\Domain\Exception\InvalidBech32Exception;
+use InvalidArgumentException;
 
 final class Bech32Codec
 {
@@ -33,7 +33,8 @@ final class Bech32Codec
     public static function encode(string $hrp, string $bytes, Bech32Variant $variant = Bech32Variant::Bech32): string
     {
         $byteValues = '' === $bytes ? [] : array_values((array) unpack('C*', $bytes));
-        $words = self::convertBits($byteValues, 8, 5, true);
+        $words = self::convertBits($byteValues, 8, 5, true)
+            ?? throw new InvalidArgumentException('Byte values out of range for bech32 encoding');
         $checksum = self::createChecksum($hrp, $words, $variant);
 
         $encoded = $hrp.'1';
@@ -104,9 +105,8 @@ final class Bech32Codec
 
         $stripped = array_slice($data, 0, -self::CHECKSUM_LENGTH);
 
-        try {
-            $payload = self::convertBits($stripped, 5, 8, false);
-        } catch (InvalidBech32Exception) {
+        $payload = self::convertBits($stripped, 5, 8, false);
+        if (null === $payload) {
             return null;
         }
 
@@ -126,9 +126,9 @@ final class Bech32Codec
     /**
      * @param list<int> $data
      *
-     * @return list<int>
+     * @return list<int>|null
      */
-    private static function convertBits(array $data, int $fromBits, int $toBits, bool $pad): array
+    private static function convertBits(array $data, int $fromBits, int $toBits, bool $pad): ?array
     {
         $acc = 0;
         $bits = 0;
@@ -138,7 +138,7 @@ final class Bech32Codec
 
         foreach ($data as $value) {
             if ($value < 0 || $value >> $fromBits) {
-                throw new InvalidBech32Exception('Invalid value for bit conversion');
+                return null;
             }
             $acc = (($acc << $fromBits) | $value) & $maxAcc;
             $bits += $fromBits;
@@ -153,7 +153,7 @@ final class Bech32Codec
                 $result[] = ($acc << ($toBits - $bits)) & $maxValue;
             }
         } elseif ($bits >= $fromBits || (($acc << ($toBits - $bits)) & $maxValue)) {
-            throw new InvalidBech32Exception('Invalid padding in bit conversion');
+            return null;
         }
 
         return $result;
