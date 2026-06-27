@@ -70,7 +70,6 @@ final class PublicKeyTest extends TestCase
     {
         $publicKey1 = PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
         $publicKey2 = PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX);
-        $this->assertNotNull($publicKey2);
         $publicKey3 = PublicKey::fromHex(str_repeat('a', 64));
         $this->assertNotNull($publicKey3);
 

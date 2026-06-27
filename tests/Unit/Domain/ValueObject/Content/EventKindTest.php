@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Content;
 
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class EventKindTest extends TestCase
@@ -113,10 +114,106 @@ final class EventKindTest extends TestCase
         $this->assertSame(1059, EventKind::fromInt(EventKind::GIFT_WRAP)->toInt());
     }
 
-    public function testNip17KindConstants(): void
+    #[DataProvider('kindConstants')]
+    public function testKindConstantHasWireValue(int $expected, int $actual): void
     {
-        $this->assertSame(13, EventKind::SEAL);
-        $this->assertSame(14, EventKind::PRIVATE_MESSAGE);
+        $this->assertSame($expected, $actual);
+    }
+
+    /**
+     * @return iterable<string, array{int, int}>
+     */
+    public static function kindConstants(): iterable
+    {
+        yield 'SEAL' => [13, EventKind::SEAL];
+        yield 'PRIVATE_MESSAGE' => [14, EventKind::PRIVATE_MESSAGE];
+
+        yield 'MUTE_LIST' => [10000, EventKind::MUTE_LIST];
+        yield 'PIN_LIST' => [10001, EventKind::PIN_LIST];
+        yield 'RELAY_LIST' => [10002, EventKind::RELAY_LIST];
+        yield 'BOOKMARK_LIST' => [10003, EventKind::BOOKMARK_LIST];
+        yield 'COMMUNITIES_LIST' => [10004, EventKind::COMMUNITIES_LIST];
+        yield 'PUBLIC_CHATS_LIST' => [10005, EventKind::PUBLIC_CHATS_LIST];
+        yield 'BLOCKED_RELAYS_LIST' => [10006, EventKind::BLOCKED_RELAYS_LIST];
+        yield 'SEARCH_RELAYS_LIST' => [10007, EventKind::SEARCH_RELAYS_LIST];
+        yield 'PROFILE_BADGES' => [10008, EventKind::PROFILE_BADGES];
+        yield 'USER_GROUPS_LIST' => [10009, EventKind::USER_GROUPS_LIST];
+        yield 'EXTERNAL_IDENTITIES' => [10011, EventKind::EXTERNAL_IDENTITIES];
+        yield 'RELAY_FEEDS_LIST' => [10012, EventKind::RELAY_FEEDS_LIST];
+        yield 'PRIVATE_EVENT_RELAY_LIST' => [10013, EventKind::PRIVATE_EVENT_RELAY_LIST];
+        yield 'INTERESTS_LIST' => [10015, EventKind::INTERESTS_LIST];
+        yield 'GIT_AUTHORS_LIST' => [10017, EventKind::GIT_AUTHORS_LIST];
+        yield 'GIT_REPOSITORIES_LIST' => [10018, EventKind::GIT_REPOSITORIES_LIST];
+        yield 'NUTZAP_MINT_RECOMMENDATION' => [10019, EventKind::NUTZAP_MINT_RECOMMENDATION];
+        yield 'MEDIA_FOLLOWS_LIST' => [10020, EventKind::MEDIA_FOLLOWS_LIST];
+        yield 'CUSTOM_EMOJI_LIST' => [10030, EventKind::CUSTOM_EMOJI_LIST];
+        yield 'DM_RELAY_LIST' => [10050, EventKind::DM_RELAY_LIST];
+        yield 'KEY_PACKAGE_RELAYS' => [10051, EventKind::KEY_PACKAGE_RELAYS];
+        yield 'GOOD_WIKI_AUTHORS_LIST' => [10101, EventKind::GOOD_WIKI_AUTHORS_LIST];
+        yield 'GOOD_WIKI_RELAYS_LIST' => [10102, EventKind::GOOD_WIKI_RELAYS_LIST];
+        yield 'RELAY_MONITOR_ANNOUNCEMENT' => [10166, EventKind::RELAY_MONITOR_ANNOUNCEMENT];
+        yield 'ROOM_PRESENCE' => [10312, EventKind::ROOM_PRESENCE];
+        yield 'WALLET_INFO' => [13194, EventKind::WALLET_INFO];
+        yield 'CASHU_WALLET' => [17375, EventKind::CASHU_WALLET];
+
+        yield 'BADGE_AWARD' => [8, EventKind::BADGE_AWARD];
+        yield 'CHAT_MESSAGE' => [9, EventKind::CHAT_MESSAGE];
+        yield 'THREAD' => [11, EventKind::THREAD];
+        yield 'FILE_MESSAGE' => [15, EventKind::FILE_MESSAGE];
+        yield 'WEBSITE_REACTION' => [17, EventKind::WEBSITE_REACTION];
+        yield 'VANISH_REQUEST' => [62, EventKind::VANISH_REQUEST];
+        yield 'POLL_RESPONSE' => [1018, EventKind::POLL_RESPONSE];
+        yield 'OPENTIMESTAMPS' => [1040, EventKind::OPENTIMESTAMPS];
+        yield 'FILE_METADATA' => [1063, EventKind::FILE_METADATA];
+        yield 'POLL' => [1068, EventKind::POLL];
+        yield 'LIVE_CHAT_MESSAGE' => [1311, EventKind::LIVE_CHAT_MESSAGE];
+        yield 'REPORTING' => [1984, EventKind::REPORTING];
+        yield 'COMMUNITY_POST_APPROVAL' => [4550, EventKind::COMMUNITY_POST_APPROVAL];
+        yield 'CASHU_RESERVED_TOKENS' => [7374, EventKind::CASHU_RESERVED_TOKENS];
+        yield 'CASHU_WALLET_TOKENS' => [7375, EventKind::CASHU_WALLET_TOKENS];
+        yield 'CASHU_WALLET_HISTORY' => [7376, EventKind::CASHU_WALLET_HISTORY];
+        yield 'ZAP_GOAL' => [9041, EventKind::ZAP_GOAL];
+        yield 'WALLET_REQUEST' => [23194, EventKind::WALLET_REQUEST];
+        yield 'WALLET_RESPONSE' => [23195, EventKind::WALLET_RESPONSE];
+        yield 'BLOSSOM_BLOB' => [24242, EventKind::BLOSSOM_BLOB];
+
+        yield 'FOLLOW_SET' => [30000, EventKind::FOLLOW_SET];
+        yield 'RELAY_SET' => [30002, EventKind::RELAY_SET];
+        yield 'BOOKMARK_SET' => [30003, EventKind::BOOKMARK_SET];
+        yield 'CURATION_SET_ARTICLES' => [30004, EventKind::CURATION_SET_ARTICLES];
+        yield 'CURATION_SET_VIDEO' => [30005, EventKind::CURATION_SET_VIDEO];
+        yield 'CURATION_SET_PICTURES' => [30006, EventKind::CURATION_SET_PICTURES];
+        yield 'KIND_MUTE_SET' => [30007, EventKind::KIND_MUTE_SET];
+        yield 'BADGE_SET' => [30008, EventKind::BADGE_SET];
+        yield 'BADGE_DEFINITION' => [30009, EventKind::BADGE_DEFINITION];
+        yield 'INTEREST_SET' => [30015, EventKind::INTEREST_SET];
+        yield 'LONGFORM_CONTENT_DRAFT' => [30024, EventKind::LONGFORM_CONTENT_DRAFT];
+        yield 'EMOJI_SET' => [30030, EventKind::EMOJI_SET];
+        yield 'RELEASE_ARTIFACT_SET' => [30063, EventKind::RELEASE_ARTIFACT_SET];
+        yield 'RELAY_DISCOVERY' => [30166, EventKind::RELAY_DISCOVERY];
+        yield 'APP_CURATION_SET' => [30267, EventKind::APP_CURATION_SET];
+        yield 'INTERACTIVE_ROOM' => [30312, EventKind::INTERACTIVE_ROOM];
+        yield 'CONFERENCE_EVENT' => [30313, EventKind::CONFERENCE_EVENT];
+        yield 'USER_STATUS' => [30315, EventKind::USER_STATUS];
+        yield 'SITE_MANIFEST' => [30630, EventKind::SITE_MANIFEST];
+        yield 'WEB_PAGE' => [30631, EventKind::WEB_PAGE];
+        yield 'WEB_PAGE_DRAFT' => [30632, EventKind::WEB_PAGE_DRAFT];
+        yield 'WIKI_ARTICLE' => [30818, EventKind::WIKI_ARTICLE];
+        yield 'WIKI_REDIRECT' => [30819, EventKind::WIKI_REDIRECT];
+        yield 'DRAFT_EVENT' => [31234, EventKind::DRAFT_EVENT];
+        yield 'CALENDAR_EVENT_DATE' => [31922, EventKind::CALENDAR_EVENT_DATE];
+        yield 'CALENDAR_EVENT_TIME' => [31923, EventKind::CALENDAR_EVENT_TIME];
+        yield 'CALENDAR' => [31924, EventKind::CALENDAR];
+        yield 'CALENDAR_EVENT_RSVP' => [31925, EventKind::CALENDAR_EVENT_RSVP];
+        yield 'HANDLER_RECOMMENDATION' => [31989, EventKind::HANDLER_RECOMMENDATION];
+        yield 'HANDLER_INFORMATION' => [31990, EventKind::HANDLER_INFORMATION];
+        yield 'VIDEO_ADDRESSABLE' => [34235, EventKind::VIDEO_ADDRESSABLE];
+        yield 'SHORT_FORM_VIDEO_ADDRESSABLE' => [34236, EventKind::SHORT_FORM_VIDEO_ADDRESSABLE];
+        yield 'COMMUNITY_DEFINITION' => [34550, EventKind::COMMUNITY_DEFINITION];
+        yield 'CASHU_MINT_ANNOUNCEMENT' => [38172, EventKind::CASHU_MINT_ANNOUNCEMENT];
+        yield 'FEDIMINT_ANNOUNCEMENT' => [38173, EventKind::FEDIMINT_ANNOUNCEMENT];
+        yield 'STARTER_PACK' => [39089, EventKind::STARTER_PACK];
+        yield 'MEDIA_STARTER_PACK' => [39092, EventKind::MEDIA_STARTER_PACK];
     }
 
     public function testAdditionalStaticFactoryMethods(): void
@@ -136,61 +233,6 @@ final class EventKindTest extends TestCase
         $this->assertSame(9735, EventKind::fromInt(EventKind::ZAP_RECEIPT)->toInt());
         $this->assertSame(9321, EventKind::fromInt(EventKind::NUTZAP)->toInt());
         $this->assertSame(10050, EventKind::fromInt(EventKind::DM_RELAY_LIST)->toInt());
-    }
-
-    public function testReplaceableListKindConstants(): void
-    {
-        $this->assertSame(10000, EventKind::MUTE_LIST);
-        $this->assertSame(10001, EventKind::PIN_LIST);
-        $this->assertSame(10002, EventKind::RELAY_LIST);
-        $this->assertSame(10003, EventKind::BOOKMARK_LIST);
-        $this->assertSame(10004, EventKind::COMMUNITIES_LIST);
-        $this->assertSame(10005, EventKind::PUBLIC_CHATS_LIST);
-        $this->assertSame(10006, EventKind::BLOCKED_RELAYS_LIST);
-        $this->assertSame(10007, EventKind::SEARCH_RELAYS_LIST);
-        $this->assertSame(10008, EventKind::PROFILE_BADGES);
-        $this->assertSame(10009, EventKind::USER_GROUPS_LIST);
-        $this->assertSame(10011, EventKind::EXTERNAL_IDENTITIES);
-        $this->assertSame(10012, EventKind::RELAY_FEEDS_LIST);
-        $this->assertSame(10013, EventKind::PRIVATE_EVENT_RELAY_LIST);
-        $this->assertSame(10015, EventKind::INTERESTS_LIST);
-        $this->assertSame(10017, EventKind::GIT_AUTHORS_LIST);
-        $this->assertSame(10018, EventKind::GIT_REPOSITORIES_LIST);
-        $this->assertSame(10019, EventKind::NUTZAP_MINT_RECOMMENDATION);
-        $this->assertSame(10020, EventKind::MEDIA_FOLLOWS_LIST);
-        $this->assertSame(10030, EventKind::CUSTOM_EMOJI_LIST);
-        $this->assertSame(10050, EventKind::DM_RELAY_LIST);
-        $this->assertSame(10051, EventKind::KEY_PACKAGE_RELAYS);
-        $this->assertSame(10101, EventKind::GOOD_WIKI_AUTHORS_LIST);
-        $this->assertSame(10102, EventKind::GOOD_WIKI_RELAYS_LIST);
-        $this->assertSame(10166, EventKind::RELAY_MONITOR_ANNOUNCEMENT);
-        $this->assertSame(10312, EventKind::ROOM_PRESENCE);
-        $this->assertSame(13194, EventKind::WALLET_INFO);
-        $this->assertSame(17375, EventKind::CASHU_WALLET);
-    }
-
-    public function testRegularAndEphemeralKindConstants(): void
-    {
-        $this->assertSame(8, EventKind::BADGE_AWARD);
-        $this->assertSame(9, EventKind::CHAT_MESSAGE);
-        $this->assertSame(11, EventKind::THREAD);
-        $this->assertSame(15, EventKind::FILE_MESSAGE);
-        $this->assertSame(17, EventKind::WEBSITE_REACTION);
-        $this->assertSame(62, EventKind::VANISH_REQUEST);
-        $this->assertSame(1018, EventKind::POLL_RESPONSE);
-        $this->assertSame(1040, EventKind::OPENTIMESTAMPS);
-        $this->assertSame(1063, EventKind::FILE_METADATA);
-        $this->assertSame(1068, EventKind::POLL);
-        $this->assertSame(1311, EventKind::LIVE_CHAT_MESSAGE);
-        $this->assertSame(1984, EventKind::REPORTING);
-        $this->assertSame(4550, EventKind::COMMUNITY_POST_APPROVAL);
-        $this->assertSame(7374, EventKind::CASHU_RESERVED_TOKENS);
-        $this->assertSame(7375, EventKind::CASHU_WALLET_TOKENS);
-        $this->assertSame(7376, EventKind::CASHU_WALLET_HISTORY);
-        $this->assertSame(9041, EventKind::ZAP_GOAL);
-        $this->assertSame(23194, EventKind::WALLET_REQUEST);
-        $this->assertSame(23195, EventKind::WALLET_RESPONSE);
-        $this->assertSame(24242, EventKind::BLOSSOM_BLOB);
     }
 
     public function testAllReplaceableListKindsAreReplaceable(): void
@@ -225,47 +267,6 @@ final class EventKindTest extends TestCase
                 "Kind {$kind} should be replaceable"
             );
         }
-    }
-
-    public function testParameterisedReplaceableSetKindConstants(): void
-    {
-        $this->assertSame(30000, EventKind::FOLLOW_SET);
-        $this->assertSame(30002, EventKind::RELAY_SET);
-        $this->assertSame(30003, EventKind::BOOKMARK_SET);
-        $this->assertSame(30004, EventKind::CURATION_SET_ARTICLES);
-        $this->assertSame(30005, EventKind::CURATION_SET_VIDEO);
-        $this->assertSame(30006, EventKind::CURATION_SET_PICTURES);
-        $this->assertSame(30007, EventKind::KIND_MUTE_SET);
-        $this->assertSame(30008, EventKind::BADGE_SET);
-        $this->assertSame(30009, EventKind::BADGE_DEFINITION);
-        $this->assertSame(30015, EventKind::INTEREST_SET);
-        $this->assertSame(30024, EventKind::LONGFORM_CONTENT_DRAFT);
-        $this->assertSame(30030, EventKind::EMOJI_SET);
-        $this->assertSame(30063, EventKind::RELEASE_ARTIFACT_SET);
-        $this->assertSame(30166, EventKind::RELAY_DISCOVERY);
-        $this->assertSame(30267, EventKind::APP_CURATION_SET);
-        $this->assertSame(30312, EventKind::INTERACTIVE_ROOM);
-        $this->assertSame(30313, EventKind::CONFERENCE_EVENT);
-        $this->assertSame(30315, EventKind::USER_STATUS);
-        $this->assertSame(30630, EventKind::SITE_MANIFEST);
-        $this->assertSame(30631, EventKind::WEB_PAGE);
-        $this->assertSame(30632, EventKind::WEB_PAGE_DRAFT);
-        $this->assertSame(30818, EventKind::WIKI_ARTICLE);
-        $this->assertSame(30819, EventKind::WIKI_REDIRECT);
-        $this->assertSame(31234, EventKind::DRAFT_EVENT);
-        $this->assertSame(31922, EventKind::CALENDAR_EVENT_DATE);
-        $this->assertSame(31923, EventKind::CALENDAR_EVENT_TIME);
-        $this->assertSame(31924, EventKind::CALENDAR);
-        $this->assertSame(31925, EventKind::CALENDAR_EVENT_RSVP);
-        $this->assertSame(31989, EventKind::HANDLER_RECOMMENDATION);
-        $this->assertSame(31990, EventKind::HANDLER_INFORMATION);
-        $this->assertSame(34235, EventKind::VIDEO_ADDRESSABLE);
-        $this->assertSame(34236, EventKind::SHORT_FORM_VIDEO_ADDRESSABLE);
-        $this->assertSame(34550, EventKind::COMMUNITY_DEFINITION);
-        $this->assertSame(38172, EventKind::CASHU_MINT_ANNOUNCEMENT);
-        $this->assertSame(38173, EventKind::FEDIMINT_ANNOUNCEMENT);
-        $this->assertSame(39089, EventKind::STARTER_PACK);
-        $this->assertSame(39092, EventKind::MEDIA_STARTER_PACK);
     }
 
     public function testAllSetKindsAreParameterisedReplaceable(): void

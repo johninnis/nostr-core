@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
-use Innis\Nostr\Core\Domain\Collection\ContentReferenceCollection;
 use Innis\Nostr\Core\Domain\Collection\RelayUrlCollection;
 use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
 use Innis\Nostr\Core\Domain\Enum\Nip19EntityType;
@@ -250,7 +249,7 @@ final class ContentReferenceExtractorTest extends TestCase
         $references = (new ContentReferenceExtractor($this->createStub(Nip19CodecInterface::class)))
             ->extractContentReferences(EventContent::fromString('plain text'));
 
-        $this->assertInstanceOf(ContentReferenceCollection::class, $references);
+        $this->assertCount(0, $references);
     }
 
     public function testExtractsConcatenatedReferencesWithoutSeparator(): void

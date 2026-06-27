@@ -49,7 +49,6 @@ final class TimestampTest extends TestCase
         $timestamp = Timestamp::fromInt(1672574400);
         $dateTime = $timestamp->toDateTime();
 
-        $this->assertInstanceOf(DateTimeImmutable::class, $dateTime);
         $this->assertSame('2023-01-01 12:00:00', $dateTime->format('Y-m-d H:i:s'));
     }
 

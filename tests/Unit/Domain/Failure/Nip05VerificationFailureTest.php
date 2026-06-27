@@ -5,13 +5,26 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Failure;
 
 use Innis\Nostr\Core\Domain\Failure\Nip05VerificationFailure;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class Nip05VerificationFailureTest extends TestCase
 {
-    public function testValueIsAStableMachineCode(): void
+    #[DataProvider('caseCodes')]
+    public function testValueIsAStableMachineCode(Nip05VerificationFailure $failure, string $code): void
     {
-        $this->assertSame('pubkey_mismatch', Nip05VerificationFailure::PubkeyMismatch->value);
+        $this->assertSame($code, $failure->value);
+    }
+
+    /**
+     * @return iterable<string, array{Nip05VerificationFailure, string}>
+     */
+    public static function caseCodes(): iterable
+    {
+        yield 'fetch failed' => [Nip05VerificationFailure::FetchFailed, 'fetch_failed'];
+        yield 'missing names' => [Nip05VerificationFailure::MissingNames, 'missing_names'];
+        yield 'name not found' => [Nip05VerificationFailure::NameNotFound, 'name_not_found'];
+        yield 'pubkey mismatch' => [Nip05VerificationFailure::PubkeyMismatch, 'pubkey_mismatch'];
     }
 
     public function testMessageIsAHumanReadableDescription(): void

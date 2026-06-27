@@ -8,9 +8,6 @@ use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Service\ReplyChainAnalyser;
 use Innis\Nostr\Core\Domain\Service\TagReferenceExtractor;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
-use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReference;
-use Innis\Nostr\Core\Domain\ValueObject\Reference\PubkeyReference;
-use Innis\Nostr\Core\Domain\ValueObject\Reference\RelayReference;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Tests\Support\TagCollectionMother;
@@ -199,7 +196,6 @@ final class TagCollectionTest extends TestCase
 
         $events = $references->getEvents()->toArray();
         $this->assertCount(2, $events);
-        $this->assertInstanceOf(EventReference::class, $events[0]);
         $this->assertEquals('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', $events[0]->getEventId()->toHex());
         $this->assertEquals('wss://relay.com', (string) $events[0]->getRelayUrl());
         $this->assertEquals('reply', $events[0]->getMarker());
@@ -222,7 +218,6 @@ final class TagCollectionTest extends TestCase
 
         $pubkeys = $references->getPubkeys()->toArray();
         $this->assertCount(2, $pubkeys);
-        $this->assertInstanceOf(PubkeyReference::class, $pubkeys[0]);
         $this->assertEquals('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', $pubkeys[0]->getPubkey()->toHex());
         $this->assertEquals('wss://relay.com', (string) $pubkeys[0]->getRelayUrl());
         $this->assertEquals('alice', $pubkeys[0]->getPetname());
@@ -242,7 +237,6 @@ final class TagCollectionTest extends TestCase
 
         $quotes = $references->getQuotes()->toArray();
         $this->assertCount(2, $quotes);
-        $this->assertInstanceOf(EventReference::class, $quotes[0]);
         $this->assertEquals('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', $quotes[0]->getEventId()->toHex());
         $this->assertEquals('wss://relay.com', (string) $quotes[0]->getRelayUrl());
         $this->assertNotNull($quotes[0]->getAuthor());
@@ -337,7 +331,6 @@ final class TagCollectionTest extends TestCase
 
         $relays = $references->getRelays()->toArray();
         $this->assertCount(2, $relays);
-        $this->assertInstanceOf(RelayReference::class, $relays[0]);
         $this->assertEquals('wss://relay.com', (string) $relays[0]->getRelayUrl());
         $this->assertEquals('read', $relays[0]->getMode());
         $this->assertEquals('wss://other.com', (string) $relays[1]->getRelayUrl());

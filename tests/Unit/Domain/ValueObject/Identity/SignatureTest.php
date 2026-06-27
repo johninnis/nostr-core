@@ -50,7 +50,6 @@ final class SignatureTest extends TestCase
     {
         $signature1 = Signature::fromHex(self::VALID_SIGNATURE_HEX) ?? throw new RuntimeException('Invalid test sig');
         $signature2 = Signature::fromHex(self::VALID_SIGNATURE_HEX);
-        $this->assertNotNull($signature2);
         $signature3 = Signature::fromHex(str_repeat('f', 128));
         $this->assertNotNull($signature3);
 

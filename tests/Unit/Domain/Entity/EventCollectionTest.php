@@ -358,7 +358,7 @@ final class EventCollectionTest extends TestCase
         $array = $collection->toArray();
 
         $this->assertCount(1, $array);
-        $this->assertInstanceOf(Event::class, $array[0]);
+        $this->assertSame($event, $array[0]);
     }
 
     public function testToJsonArrayReturnsSerialisedEvents(): void
@@ -369,7 +369,6 @@ final class EventCollectionTest extends TestCase
         $jsonArray = $collection->toJsonArray();
 
         $this->assertCount(1, $jsonArray);
-        $this->assertIsArray($jsonArray[0]);
         $this->assertArrayHasKey('id', $jsonArray[0]);
         $this->assertArrayHasKey('pubkey', $jsonArray[0]);
         $this->assertArrayHasKey('content', $jsonArray[0]);
@@ -411,7 +410,6 @@ final class EventCollectionTest extends TestCase
         $contents = [];
         $iterator = $collection->getIterator();
         foreach ($iterator as $event) {
-            $this->assertInstanceOf(Event::class, $event);
             $contents[] = (string) $event->getContent();
         }
 

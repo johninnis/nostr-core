@@ -179,7 +179,7 @@ final class RelayHintExtractorTest extends TestCase
     {
         $relays = $this->makeExtractor()->extractRelayHints($this->makeEvent([['r', 'wss://relay.example.com']]));
 
-        $this->assertInstanceOf(RelayUrlCollection::class, $relays);
+        $this->assertSame(['wss://relay.example.com'], $this->relayStrings($relays));
     }
 
     /**

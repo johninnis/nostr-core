@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Enum\Bech32Variant;
 use Innis\Nostr\Core\Domain\Service\Bech32Codec;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -86,9 +87,19 @@ final class Bech32CodecTest extends TestCase
         $this->assertSame('', $decoded['data']);
     }
 
-    public function testBech32mVariantValueMatchesBip350Constant(): void
+    #[DataProvider('variantChecksumConstants')]
+    public function testVariantValueMatchesSpecConstant(Bech32Variant $variant, int $checksumConstant): void
     {
-        $this->assertSame(0x2BC830A3, Bech32Variant::Bech32m->value);
+        $this->assertSame($checksumConstant, $variant->value);
+    }
+
+    /**
+     * @return iterable<string, array{Bech32Variant, int}>
+     */
+    public static function variantChecksumConstants(): iterable
+    {
+        yield 'bech32 (BIP-173)' => [Bech32Variant::Bech32, 1];
+        yield 'bech32m (BIP-350)' => [Bech32Variant::Bech32m, 0x2BC830A3];
     }
 
     private static function flipLastChar(string $encoded): string

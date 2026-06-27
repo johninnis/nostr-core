@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol;
 
 use Innis\Nostr\Core\Domain\Enum\SubscriptionState;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class SubscriptionStateTest extends TestCase
@@ -64,26 +65,43 @@ final class SubscriptionStateTest extends TestCase
         $this->assertTrue($state->isTerminal());
     }
 
-    public function testBackedStringValues(): void
+    #[DataProvider('stateStringValues')]
+    public function testBackedStringValue(SubscriptionState $state, string $value): void
     {
-        $this->assertSame('pending', SubscriptionState::Pending->value);
-        $this->assertSame('active', SubscriptionState::Active->value);
-        $this->assertSame('live', SubscriptionState::Live->value);
-        $this->assertSame('closed_by_relay', SubscriptionState::ClosedByRelay->value);
-        $this->assertSame('closed_by_client', SubscriptionState::ClosedByClient->value);
+        $this->assertSame($value, $state->value);
     }
 
-    public function testFromStringValue(): void
+    #[DataProvider('stateStringValues')]
+    public function testFromParsesStringValue(SubscriptionState $state, string $value): void
     {
-        $this->assertSame(SubscriptionState::Pending, SubscriptionState::from('pending'));
-        $this->assertSame(SubscriptionState::Active, SubscriptionState::from('active'));
-        $this->assertSame(SubscriptionState::Live, SubscriptionState::from('live'));
-        $this->assertSame(SubscriptionState::ClosedByRelay, SubscriptionState::from('closed_by_relay'));
-        $this->assertSame(SubscriptionState::ClosedByClient, SubscriptionState::from('closed_by_client'));
+        $this->assertSame($state, SubscriptionState::from($value));
     }
 
-    public function testInvalidStringValueReturnsNull(): void
+    /**
+     * @return iterable<string, array{SubscriptionState, string}>
+     */
+    public static function stateStringValues(): iterable
     {
-        $this->assertNull(SubscriptionState::tryFrom('invalid'));
+        yield 'pending' => [SubscriptionState::Pending, 'pending'];
+        yield 'active' => [SubscriptionState::Active, 'active'];
+        yield 'live' => [SubscriptionState::Live, 'live'];
+        yield 'closed by relay' => [SubscriptionState::ClosedByRelay, 'closed_by_relay'];
+        yield 'closed by client' => [SubscriptionState::ClosedByClient, 'closed_by_client'];
+    }
+
+    #[DataProvider('invalidStringValues')]
+    public function testInvalidStringValueReturnsNull(string $value): void
+    {
+        $this->assertNull(SubscriptionState::tryFrom($value));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function invalidStringValues(): iterable
+    {
+        yield 'unknown word' => ['invalid'];
+        yield 'empty string' => [''];
+        yield 'wrong case' => ['Pending'];
     }
 }

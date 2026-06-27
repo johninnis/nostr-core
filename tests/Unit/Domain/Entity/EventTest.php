@@ -9,7 +9,6 @@ use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Service\ReplyChainAnalyser;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
@@ -43,7 +42,6 @@ final class EventTest extends TestCase
 
     public function testCanCreateEvent(): void
     {
-        $this->assertInstanceOf(Event::class, $this->event);
         $this->assertTrue($this->event->getPubkey()->equals($this->keyPair->getPublicKey()));
         $this->assertTrue($this->event->getKind()->is(EventKind::TEXT_NOTE));
         $this->assertSame('Hello Nostr!', (string) $this->event->getContent());
@@ -56,7 +54,6 @@ final class EventTest extends TestCase
 
         $this->assertTrue($signedEvent->isSigned());
         $this->assertInstanceOf(Signature::class, $signedEvent->getSignature());
-        $this->assertInstanceOf(EventId::class, $signedEvent->getId());
         $this->assertNotSame($this->event, $signedEvent);
     }
 

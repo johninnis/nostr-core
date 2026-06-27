@@ -53,7 +53,10 @@ final class SecretKeyMaterialTest extends TestCase
     {
         $material = new SecretKeyMaterial(self::EXACT_LENGTH_BYTES);
 
-        $this->assertSame(42, $material->expose(static fn (string $bytes): int => 42));
+        $this->assertSame(
+            bin2hex(self::EXACT_LENGTH_BYTES),
+            $material->expose(static fn (string $bytes): string => bin2hex($bytes)),
+        );
     }
 
     public function testExposeForcesCopyNotAlias(): void

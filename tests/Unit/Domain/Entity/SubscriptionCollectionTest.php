@@ -148,7 +148,6 @@ final class SubscriptionCollectionTest extends TestCase
         $keys = [];
         foreach ($collection as $key => $value) {
             $keys[] = $key;
-            $this->assertInstanceOf(Subscription::class, $value);
         }
 
         $this->assertSame(['sub-1', 'sub-2'], $keys);

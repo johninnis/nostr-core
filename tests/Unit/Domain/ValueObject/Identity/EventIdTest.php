@@ -35,7 +35,6 @@ final class EventIdTest extends TestCase
         $hex = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
         $eventId1 = EventId::fromHex($hex) ?? throw new RuntimeException('Invalid test event ID');
         $eventId2 = EventId::fromHex($hex);
-        $this->assertNotNull($eventId2);
         $eventId3 = EventId::fromHex('fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210');
         $this->assertNotNull($eventId3);
 

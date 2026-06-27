@@ -12,7 +12,6 @@ use Innis\Nostr\Core\Domain\Service\EventReferenceExtractor;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
-use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReferences;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use PHPUnit\Framework\TestCase;
@@ -31,7 +30,6 @@ final class EventReferenceExtractorTest extends TestCase
 
         $result = $service->extractReferences($this->createTestEvent());
 
-        $this->assertInstanceOf(EventReferences::class, $result);
         $this->assertCount(1, $result->getTagReferences()->getEvents());
         $this->assertCount(1, $result->getTagReferences()->getPubkeys());
         $this->assertSame([], $result->getContentReferences()->toArray());
