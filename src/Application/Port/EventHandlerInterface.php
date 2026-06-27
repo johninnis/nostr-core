@@ -8,6 +8,7 @@ use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
 
+// Deliberate: a published port implemented and called only by downstream connection-driving consumers; it has no in-package implementer or consumer by design — do not delete as "orphaned" — see ADR-0032
 interface EventHandlerInterface
 {
     public function handleEvent(Event $event, SubscriptionId $subscriptionId): void;

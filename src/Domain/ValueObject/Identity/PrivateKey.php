@@ -63,7 +63,7 @@ final readonly class PrivateKey
 
     private static function isWithinCurveOrder(string $bytes): bool
     {
-        $hex = bin2hex($bytes);
+        $hex = HexCodec::encode($bytes);
 
         try {
             return self::ZERO_HEX !== $hex && strcmp($hex, self::CURVE_ORDER_HEX) < 0;
@@ -74,7 +74,7 @@ final readonly class PrivateKey
 
     public function toHex(): string
     {
-        return $this->material->expose(HexCodec::fromBytes(...));
+        return $this->material->expose(HexCodec::encode(...));
     }
 
     public function toBech32(): string

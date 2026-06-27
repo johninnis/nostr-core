@@ -17,9 +17,9 @@ final class ReplyTagBuilder
     {
     }
 
-    public static function build(Event $replyTo, ?Event $root = null): TagCollection
+    public static function buildTags(Event $replyTo, ?Event $root = null): TagCollection
     {
-        return self::buildFromValues(
+        return self::buildTagsFromValues(
             $replyTo->getId(),
             $replyTo->getPubkey(),
             $root?->getId(),
@@ -27,7 +27,7 @@ final class ReplyTagBuilder
         );
     }
 
-    public static function buildFromValues(
+    public static function buildTagsFromValues(
         EventId $replyToId,
         PublicKey $replyToAuthor,
         ?EventId $rootId = null,

@@ -98,9 +98,7 @@ final readonly class LongformMetadata
             $tags[] = Tag::create(TagType::PUBLISHED_AT, (string) $this->publishedAt->toInt());
         }
 
-        foreach ($this->topics as $topic) {
-            $tags[] = Tag::hashtag($topic);
-        }
+        $tags = [...$tags, ...array_map(Tag::hashtag(...), $this->topics)];
 
         return new TagCollection($tags);
     }

@@ -8,13 +8,12 @@ use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
-use JsonSerializable;
 use Override;
 
 /**
  * @extends TypedCollection<Event>
  */
-final class EventCollection extends TypedCollection implements JsonSerializable
+final class EventCollection extends TypedCollection
 {
     #[Override]
     protected function elementType(): string
@@ -107,14 +106,5 @@ final class EventCollection extends TypedCollection implements JsonSerializable
     public function unique(): self
     {
         return new self($this->deduplicate(static fn (Event $event): string => (string) $event->getId()));
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    #[Override]
-    public function jsonSerialize(): array
-    {
-        return $this->toJsonArray();
     }
 }

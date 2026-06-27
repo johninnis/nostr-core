@@ -8,6 +8,7 @@ use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Factory\EventFactory;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
+use Innis\Nostr\Core\Domain\ValueObject\Content\FileMetadata;
 use Innis\Nostr\Core\Domain\ValueObject\Content\LongformMetadata;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
@@ -430,5 +431,32 @@ final class EventFactoryTest extends TestCase
         );
 
         $this->assertTrue($event->getTags()->equals($tags));
+    }
+
+    public function testCanCreateFileMetadata(): void
+    {
+        $metadata = new FileMetadata('https://example.com/image.png', mimeType: 'image/png');
+
+        $event = EventFactory::createFileMetadata(
+            $this->keyPair->getPublicKey(),
+            $metadata,
+            'a caption',
+        );
+
+        $this->assertTrue($event->getKind()->is(EventKind::FILE_METADATA));
+        $this->assertSame('a caption', (string) $event->getContent());
+        $this->assertTrue($event->getTags()->equals($metadata->toTags()));
+    }
+
+    public function testCanCreateFileMetadataAtCustomTimestamp(): void
+    {
+        $event = EventFactory::createFileMetadata(
+            $this->keyPair->getPublicKey(),
+            new FileMetadata('https://example.com/image.png'),
+            '',
+            Timestamp::fromInt(1700000000),
+        );
+
+        $this->assertSame(1700000000, $event->getCreatedAt()->toInt());
     }
 }

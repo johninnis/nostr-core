@@ -33,7 +33,7 @@ final class ReplyTagBuilderTest extends TestCase
         $rootEvent = $this->createEvent($this->keyPair1);
         $signedRoot = $rootEvent->sign($this->keyPair1, FakeSignatureService::accepting());
 
-        $tags = ReplyTagBuilder::build($signedRoot);
+        $tags = ReplyTagBuilder::buildTags($signedRoot);
 
         $tagArray = $tags->toJsonArray();
         $this->assertCount(2, $tagArray);
@@ -53,7 +53,7 @@ final class ReplyTagBuilderTest extends TestCase
         $replyEvent = $this->createEvent($this->keyPair2);
         $signedReply = $replyEvent->sign($this->keyPair2, FakeSignatureService::accepting());
 
-        $tags = ReplyTagBuilder::build($signedReply, $signedRoot);
+        $tags = ReplyTagBuilder::buildTags($signedReply, $signedRoot);
 
         $tagArray = $tags->toJsonArray();
         $this->assertCount(4, $tagArray);
@@ -80,7 +80,7 @@ final class ReplyTagBuilderTest extends TestCase
         $rootId = EventId::fromHex(str_repeat('b', 64)) ?? throw new RuntimeException('Invalid test event ID');
         $rootAuthor = $this->keyPair2->getPublicKey();
 
-        $tags = ReplyTagBuilder::buildFromValues($replyToId, $replyToAuthor, $rootId, $rootAuthor);
+        $tags = ReplyTagBuilder::buildTagsFromValues($replyToId, $replyToAuthor, $rootId, $rootAuthor);
 
         $tagArray = $tags->toJsonArray();
         $this->assertCount(4, $tagArray);
@@ -96,7 +96,7 @@ final class ReplyTagBuilderTest extends TestCase
         $rootId = EventId::fromHex(str_repeat('b', 64)) ?? throw new RuntimeException('Invalid test event ID');
         $author = $this->keyPair1->getPublicKey();
 
-        $tags = ReplyTagBuilder::buildFromValues($replyToId, $author, $rootId, $author);
+        $tags = ReplyTagBuilder::buildTagsFromValues($replyToId, $author, $rootId, $author);
 
         $tagArray = $tags->toJsonArray();
         $this->assertCount(3, $tagArray);

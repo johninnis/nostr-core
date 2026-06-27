@@ -290,6 +290,8 @@ Design rationale lives in [`docs/adr/`](docs/adr/) as immutable Architecture Dec
 | [0029](docs/adr/0029-privatekey-rejects-scalars-outside-the-curve-order.md) | `PrivateKey` rejects scalars outside `[1, n-1]` |
 | [0030](docs/adr/0030-nip49-floors-encryption-logn-but-accepts-weaker-on-decrypt.md) | NIP-49 floors what it encrypts at logN 16 but accepts weaker on decrypt, with a configurable decrypt ceiling |
 | [0031](docs/adr/0031-tojsonarray-stays-per-leaf-to-keep-precise-element-shapes.md) | `toJsonArray()` stays per collection leaf to keep each element's precise shape |
+| [0032](docs/adr/0032-eventhandlerinterface-is-a-downstream-implemented-port.md) | `EventHandlerInterface` is a downstream-implemented port with no in-package implementer or consumer |
+| [0033](docs/adr/0033-from-parsers-return-optional-only-when-a-required-field-can-be-absent.md) | A `from*` parser returns `?self` only when a required field can be absent |
 
 ## Dependencies
 

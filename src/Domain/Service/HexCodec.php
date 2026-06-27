@@ -17,7 +17,7 @@ final class HexCodec
         return 1 === preg_match('/^[0-9a-f]{'.($byteLength * 2).'}$/', $hex);
     }
 
-    public static function toBytes(string $hex): string
+    public static function decode(string $hex): string
     {
         $bytes = hex2bin($hex);
         if (false === $bytes) {
@@ -27,7 +27,7 @@ final class HexCodec
         return $bytes;
     }
 
-    public static function fromBytes(string $bytes): string
+    public static function encode(string $bytes): string
     {
         return bin2hex($bytes);
     }

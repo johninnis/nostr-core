@@ -33,7 +33,7 @@ final class SecretKeyMaterial
 
     public static function fromHex(string $hex): ?self
     {
-        return HexCodec::isValid($hex, self::BYTE_LENGTH) ? new self(HexCodec::toBytes($hex)) : null;
+        return HexCodec::isValid($hex, self::BYTE_LENGTH) ? new self(HexCodec::decode($hex)) : null;
     }
 
     public static function fromBytes(string $bytes): ?self

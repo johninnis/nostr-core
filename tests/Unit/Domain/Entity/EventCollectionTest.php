@@ -365,29 +365,6 @@ final class EventCollectionTest extends TestCase
         $this->assertSame(['First', 'Second'], $contents);
     }
 
-    public function testJsonSerializeReturnsSerialisedEvents(): void
-    {
-        $event = $this->createEvent('Hello')->sign($this->keyPair, FakeSignatureService::accepting());
-        $collection = new EventCollection([$event]);
-
-        $serialised = $collection->jsonSerialize();
-
-        $this->assertSame($collection->toJsonArray(), $serialised);
-    }
-
-    public function testJsonEncodeProducesValidJson(): void
-    {
-        $event = $this->createEvent('Hello')->sign($this->keyPair, FakeSignatureService::accepting());
-        $collection = new EventCollection([$event]);
-
-        $json = json_encode($collection);
-
-        $this->assertIsString($json);
-        $decoded = json_decode($json, true);
-        $this->assertIsArray($decoded);
-        $this->assertCount(1, $decoded);
-    }
-
     public function testCollectionIsImmutable(): void
     {
         $event1 = $this->createEvent('First');

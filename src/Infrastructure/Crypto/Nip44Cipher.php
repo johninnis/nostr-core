@@ -65,19 +65,28 @@ final class Nip44Cipher implements Nip44EncryptionInterface
         $plaintext = $conversationKey->expose(function (string $prk) use ($nonce, $ciphertext, $mac): string {
             $messageKeys = $this->deriveMessageKeys($prk, $nonce);
 
-            $expectedMac = hash_hmac('sha256', $nonce.$ciphertext, $messageKeys['hmacKey'], true);
+            try {
+                $expectedMac = hash_hmac('sha256', $nonce.$ciphertext, $messageKeys['hmacKey'], true);
 
-            if (!hash_equals($expectedMac, $mac)) {
-                throw new EncryptionException('Invalid MAC');
+                if (!hash_equals($expectedMac, $mac)) {
+                    throw new EncryptionException('Invalid MAC');
+                }
+
+                $padded = ParagonIE_Sodium_Core_ChaCha20::ietfStreamXorIc(
+                    $ciphertext,
+                    $messageKeys['chachaNonce'],
+                    $messageKeys['chachaKey']
+                );
+
+                try {
+                    return $this->unpad($padded);
+                } finally {
+                    sodium_memzero($padded);
+                }
+            } finally {
+                sodium_memzero($messageKeys['chachaKey']);
+                sodium_memzero($messageKeys['hmacKey']);
             }
-
-            $padded = ParagonIE_Sodium_Core_ChaCha20::ietfStreamXorIc(
-                $ciphertext,
-                $messageKeys['chachaNonce'],
-                $messageKeys['chachaKey']
-            );
-
-            return $this->unpad($padded);
         });
 
         return $plaintext;
@@ -100,15 +109,21 @@ final class Nip44Cipher implements Nip44EncryptionInterface
             $messageKeys = $this->deriveMessageKeys($prk, $nonce);
             $padded = $this->pad($plaintext);
 
-            $ciphertext = ParagonIE_Sodium_Core_ChaCha20::ietfStreamXorIc(
-                $padded,
-                $messageKeys['chachaNonce'],
-                $messageKeys['chachaKey']
-            );
+            try {
+                $ciphertext = ParagonIE_Sodium_Core_ChaCha20::ietfStreamXorIc(
+                    $padded,
+                    $messageKeys['chachaNonce'],
+                    $messageKeys['chachaKey']
+                );
 
-            $mac = hash_hmac('sha256', $nonce.$ciphertext, $messageKeys['hmacKey'], true);
+                $mac = hash_hmac('sha256', $nonce.$ciphertext, $messageKeys['hmacKey'], true);
 
-            return base64_encode(chr(self::VERSION).$nonce.$ciphertext.$mac);
+                return base64_encode(chr(self::VERSION).$nonce.$ciphertext.$mac);
+            } finally {
+                sodium_memzero($padded);
+                sodium_memzero($messageKeys['chachaKey']);
+                sodium_memzero($messageKeys['hmacKey']);
+            }
         });
 
         return $payload;
@@ -121,11 +136,15 @@ final class Nip44Cipher implements Nip44EncryptionInterface
     {
         $expanded = $this->hkdfExpand($prk, $nonce, self::MESSAGE_KEYS_LENGTH);
 
-        return [
-            'chachaKey' => substr($expanded, 0, self::CHACHA_KEY_LENGTH),
-            'chachaNonce' => substr($expanded, self::CHACHA_KEY_LENGTH, self::CHACHA_NONCE_LENGTH),
-            'hmacKey' => substr($expanded, self::CHACHA_KEY_LENGTH + self::CHACHA_NONCE_LENGTH, self::HMAC_KEY_LENGTH),
-        ];
+        try {
+            return [
+                'chachaKey' => substr($expanded, 0, self::CHACHA_KEY_LENGTH),
+                'chachaNonce' => substr($expanded, self::CHACHA_KEY_LENGTH, self::CHACHA_NONCE_LENGTH),
+                'hmacKey' => substr($expanded, self::CHACHA_KEY_LENGTH + self::CHACHA_NONCE_LENGTH, self::HMAC_KEY_LENGTH),
+            ];
+        } finally {
+            sodium_memzero($expanded);
+        }
     }
 
     private function hkdfExpand(string $prk, string $info, int $length): string

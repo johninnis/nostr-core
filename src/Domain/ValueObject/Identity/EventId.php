@@ -25,7 +25,7 @@ final readonly class EventId implements Stringable
 
     public function toBytes(): string
     {
-        return HexCodec::toBytes($this->id);
+        return HexCodec::decode($this->id);
     }
 
     public function toBech32(): string
@@ -53,7 +53,7 @@ final readonly class EventId implements Stringable
             return null;
         }
 
-        return new self(HexCodec::fromBytes($bytes));
+        return new self(HexCodec::encode($bytes));
     }
 
     public static function fromBech32(string $bech32): ?self
