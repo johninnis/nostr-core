@@ -164,6 +164,17 @@ $signatureService->sign($privateKey, $message); // throws SecretKeyMaterialZeroe
 
 `zero()` is a contract a caller invokes explicitly, not a guarantee delivered by the destructor. Applications that require bounded key-material lifetimes — session-scoped bunker signers, for example — must call `$privateKey->zero()` explicitly at the end of the session rather than relying on garbage collection. See [ADR-0015](docs/adr/0015-zero-is-a-contract-not-a-guarantee-via-destruction.md).
 
+## Examples
+
+Runnable scripts live in [`examples/`](examples/); run one with `php examples/<name>.php`:
+
+- [`sign_and_verify.php`](examples/sign_and_verify.php) — generate a key pair, create and sign a text note, verify it
+- [`nip44_encrypt_decrypt.php`](examples/nip44_encrypt_decrypt.php) — derive a NIP-44 conversation key via ECDH and encrypt/decrypt a message
+- [`nip49_password_encrypt.php`](examples/nip49_password_encrypt.php) — encrypt a private key under a password to an `ncryptsec` and recover it (requires `ext-ffi` and libsodium)
+- [`giftwrap_direct_message.php`](examples/giftwrap_direct_message.php) — seal and gift-wrap a NIP-17 private message, then unwrap it
+
+The `examples/` directory is covered by PHPStan and php-cs-fixer in CI, like `src` and `tests`.
+
 ## Supported NIPs
 
 | NIP | Description | Support |
