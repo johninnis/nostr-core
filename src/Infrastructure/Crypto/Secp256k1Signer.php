@@ -29,9 +29,8 @@ final class Secp256k1Signer implements SignatureServiceInterface
     public static function create(?RandomBytesGeneratorInterface $randomBytes = null): self
     {
         $randomBytes ??= new NativeRandomBytesGenerator();
-        $seed = $randomBytes->bytes(32);
         // Deliberate: probes for native libsecp256k1; absent it, signing uses the pure-PHP path, which is NOT constant-time — prefer the native path for server-side signers, see ADR-0025
-        $ffi = LibSecp256k1Ffi::tryLoad($seed);
+        $ffi = LibSecp256k1Ffi::tryLoad($randomBytes);
 
         return new self($ffi, $randomBytes);
     }

@@ -40,7 +40,7 @@ final readonly class ContentReferenceTagBuilder implements ContentReferenceTagBu
             $kind = $ref->getKind();
             $addressableIdentifier = $ref->getAddressableIdentifier();
             if (null !== $pubkey && null !== $kind && null !== $addressableIdentifier) {
-                $coordinate = EventCoordinate::fromParts($kind->toInt(), $pubkey->toHex(), $addressableIdentifier);
+                $coordinate = EventCoordinate::create($kind, $pubkey, $addressableIdentifier);
                 if (null !== $coordinate) {
                     $tags = $tags->add(Tag::create(TagType::ADDRESSABLE, (string) $coordinate));
                 }

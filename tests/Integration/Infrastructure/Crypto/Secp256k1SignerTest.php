@@ -147,7 +147,7 @@ final class Secp256k1SignerTest extends TestCase
     private function ffiService(): Secp256k1Signer
     {
         $randomBytes = new NativeRandomBytesGenerator();
-        $ffi = LibSecp256k1Ffi::tryLoad($randomBytes->bytes(32))
+        $ffi = LibSecp256k1Ffi::tryLoad($randomBytes)
             ?? self::markTestSkipped('libsecp256k1 FFI unavailable');
 
         return new Secp256k1Signer($ffi, $randomBytes);

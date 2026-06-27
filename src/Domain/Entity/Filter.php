@@ -41,7 +41,7 @@ final readonly class Filter implements JsonSerializable, Stringable
             throw new InvalidArgumentException('Limit must be between 1 and 5000');
         }
 
-        if (null !== $this->since && null !== $this->until && $this->since->isAfter($this->until)) {
+        if (!self::areTimestampsInOrder($this->since, $this->until)) {
             throw new InvalidArgumentException('Since timestamp cannot be after until timestamp');
         }
 
@@ -73,9 +73,19 @@ final readonly class Filter implements JsonSerializable, Stringable
 
     private static function assertCountWithinCap(string $fieldName, ?int $count): void
     {
-        if (null !== $count && $count > self::MAX_VALUES_PER_FIELD) {
+        if (!self::isCountWithinCap($count)) {
             throw new InvalidArgumentException(sprintf('Filter field "%s" may contain at most %d values', $fieldName, self::MAX_VALUES_PER_FIELD));
         }
+    }
+
+    private static function isCountWithinCap(?int $count): bool
+    {
+        return null === $count || $count <= self::MAX_VALUES_PER_FIELD;
+    }
+
+    private static function areTimestampsInOrder(?Timestamp $since, ?Timestamp $until): bool
+    {
+        return null === $since || null === $until || !$since->isAfter($until);
     }
 
     private static function isValidLimit(?int $limit): bool
@@ -348,19 +358,13 @@ final readonly class Filter implements JsonSerializable, Stringable
             }
         }
 
-        if (null !== $sinceTimestamp && null !== $untilTimestamp && $sinceTimestamp->isAfter($untilTimestamp)) {
-            return null;
-        }
-
-        if (!self::isValidLimit($limit)
-            || ($idCollection?->count() ?? 0) > self::MAX_VALUES_PER_FIELD
-            || ($authorCollection?->count() ?? 0) > self::MAX_VALUES_PER_FIELD
-            || ($kindCollection?->count() ?? 0) > self::MAX_VALUES_PER_FIELD
+        if (!self::areTimestampsInOrder($sinceTimestamp, $untilTimestamp)
+            || !self::isValidLimit($limit)
+            || !self::isCountWithinCap($idCollection?->count())
+            || !self::isCountWithinCap($authorCollection?->count())
+            || !self::isCountWithinCap($kindCollection?->count())
+            || !array_all($tags, static fn (array $values): bool => self::isCountWithinCap(count($values)))
         ) {
-            return null;
-        }
-
-        if (!array_all($tags, static fn (array $values): bool => count($values) <= self::MAX_VALUES_PER_FIELD)) {
             return null;
         }
 

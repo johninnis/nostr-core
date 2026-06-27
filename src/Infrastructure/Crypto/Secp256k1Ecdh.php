@@ -24,11 +24,7 @@ final class Secp256k1Ecdh implements EcdhServiceInterface
 
     public static function create(?RandomBytesGeneratorInterface $randomBytes = null): self
     {
-        $randomBytes ??= new NativeRandomBytesGenerator();
-        $seed = $randomBytes->bytes(32);
-        $ffi = LibSecp256k1Ffi::tryLoad($seed);
-
-        return new self($ffi);
+        return new self(LibSecp256k1Ffi::tryLoad($randomBytes));
     }
 
     #[Override]

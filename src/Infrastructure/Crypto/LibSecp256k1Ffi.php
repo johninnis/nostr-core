@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Infrastructure\Crypto;
 
 use FFI;
+use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
 use Innis\Nostr\Core\Domain\Exception\CryptoException;
 use Innis\Nostr\Core\Domain\Exception\EcdhException;
 use Throwable;
@@ -32,6 +33,7 @@ final class LibSecp256k1Ffi
         C;
 
     private const int CONTEXT_SIGN_VERIFY = 769;
+    private const int CONTEXT_SEED_LENGTH = 32;
     private const int EC_COMPRESSED_FLAG = 258;
     private const int COMPRESSED_PUBKEY_LENGTH = 33;
     private const int XONLY_PUBKEY_LENGTH = 32;
@@ -50,13 +52,14 @@ final class LibSecp256k1Ffi
     ) {
     }
 
-    public static function tryLoad(string $seed32): ?self
+    public static function tryLoad(?RandomBytesGeneratorInterface $randomBytes = null): ?self
     {
         $ffi = FfiLibraryLoader::tryLoad(self::CDEF, self::LIBRARY_NAMES);
         if (null === $ffi) {
             return null;
         }
 
+        $seed32 = ($randomBytes ?? new NativeRandomBytesGenerator())->bytes(self::CONTEXT_SEED_LENGTH);
         $context = null;
 
         try {

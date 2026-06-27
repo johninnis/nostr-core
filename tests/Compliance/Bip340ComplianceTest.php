@@ -251,7 +251,7 @@ final class Bip340ComplianceTest extends TestCase
     private function ffiService(): Secp256k1Signer
     {
         $randomBytes = new NativeRandomBytesGenerator();
-        $ffi = LibSecp256k1Ffi::tryLoad($randomBytes->bytes(32))
+        $ffi = LibSecp256k1Ffi::tryLoad($randomBytes)
             ?? self::markTestSkipped('libsecp256k1 FFI unavailable');
 
         return new Secp256k1Signer($ffi, $randomBytes);
@@ -264,7 +264,7 @@ final class Bip340ComplianceTest extends TestCase
 
     private function ffiServiceWithFixedAux(string $aux): Secp256k1Signer
     {
-        $ffi = LibSecp256k1Ffi::tryLoad((new NativeRandomBytesGenerator())->bytes(32))
+        $ffi = LibSecp256k1Ffi::tryLoad(new NativeRandomBytesGenerator())
             ?? self::markTestSkipped('libsecp256k1 FFI unavailable');
 
         return new Secp256k1Signer($ffi, QueuedRandomBytesGenerator::withBytes($aux));

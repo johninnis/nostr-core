@@ -21,7 +21,7 @@ final class CryptoFixtures
         if (null === self::$signer) {
             $randomBytes = new NativeRandomBytesGenerator();
             self::$signer = new Secp256k1Signer(
-                LibSecp256k1Ffi::tryLoad($randomBytes->bytes(32)),
+                LibSecp256k1Ffi::tryLoad($randomBytes),
                 $randomBytes,
             );
         }

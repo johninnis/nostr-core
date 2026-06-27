@@ -62,6 +62,35 @@ final class EventCoordinateTest extends TestCase
         $this->assertNull(EventCoordinate::fromParts(self::VALID_KIND, self::VALID_PUBKEY, ''));
     }
 
+    public function testCreateBuildsCoordinateFromValueObjects(): void
+    {
+        $kind = EventKind::fromInt(self::VALID_KIND);
+        $pubkey = PublicKey::fromHex(self::VALID_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey');
+        $relay = RelayUrl::fromString(self::VALID_RELAY) ?? throw new RuntimeException('Invalid test relay');
+
+        $coordinate = EventCoordinate::create($kind, $pubkey, self::VALID_IDENTIFIER, $relay)
+            ?? throw new RuntimeException('Failed to create coordinate');
+
+        $this->assertTrue($coordinate->getKind()->equals($kind));
+        $this->assertTrue($coordinate->getPubkey()->equals($pubkey));
+        $this->assertSame(self::VALID_IDENTIFIER, $coordinate->getIdentifier());
+        $this->assertSame(self::VALID_RELAY, (string) $coordinate->getRelayHint());
+    }
+
+    public function testCreateReturnsNullForNonParameterisedReplaceableKind(): void
+    {
+        $pubkey = PublicKey::fromHex(self::VALID_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey');
+
+        $this->assertNull(EventCoordinate::create(EventKind::fromInt(1), $pubkey, self::VALID_IDENTIFIER));
+    }
+
+    public function testCreateReturnsNullForEmptyIdentifier(): void
+    {
+        $pubkey = PublicKey::fromHex(self::VALID_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey');
+
+        $this->assertNull(EventCoordinate::create(EventKind::fromInt(self::VALID_KIND), $pubkey, ''));
+    }
+
     public function testFromStringParsesValidCoordinate(): void
     {
         $coordinateString = self::VALID_KIND.':'.self::VALID_PUBKEY.':'.self::VALID_IDENTIFIER;

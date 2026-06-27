@@ -21,23 +21,29 @@ final readonly class EventCoordinate implements Stringable
     ) {
     }
 
+    public static function create(EventKind $kind, PublicKey $pubkey, string $identifier, ?RelayUrl $relayHint = null): ?self
+    {
+        if (!$kind->isParameterisedReplaceable() || '' === $identifier) {
+            return null;
+        }
+
+        return new self($kind, $pubkey, $identifier, $relayHint);
+    }
+
     public static function fromParts(int $kind, string $pubkeyHex, string $identifier, ?string $relayHint = null): ?self
     {
         $eventKind = EventKind::tryFromInt($kind);
-        if (null === $eventKind || !$eventKind->isParameterisedReplaceable()) {
-            return null;
-        }
-
         $pubkey = PublicKey::fromHex($pubkeyHex);
-        if (null === $pubkey || '' === $identifier) {
+
+        if (null === $eventKind || null === $pubkey) {
             return null;
         }
 
-        return new self(
+        return self::create(
             $eventKind,
             $pubkey,
             $identifier,
-            null !== $relayHint ? RelayUrl::fromString($relayHint) : null
+            null !== $relayHint ? RelayUrl::fromString($relayHint) : null,
         );
     }
 
