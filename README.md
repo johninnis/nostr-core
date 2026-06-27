@@ -31,7 +31,7 @@ Declared in `composer.json`:
 
 - PHP 8.4 or higher
 - `ext-intl` (NFKC password normalisation in NIP-49)
-- `ext-mbstring` (search-filter matching on untrusted event content, `EventContent::getLength`, and the bech32 TLV decoder)
+- `ext-mbstring` (search-filter matching on untrusted event content and `EventContent::getLength`)
 - `ext-sodium` (NIP-44 and NIP-49 AEAD, `sodium_memzero`)
 - `paragonie/ecc` (pure-PHP secp256k1 fallback)
 - `paragonie/sodium_compat` (raw ChaCha20 keystream with explicit block counter for NIP-44, which `ext-sodium` does not expose)
@@ -186,7 +186,7 @@ The `examples/` directory is covered by PHPStan and php-cs-fixer in CI, like `sr
 | [NIP-09](https://github.com/nostr-protocol/nips/blob/master/09.md) | Event deletion | Kind 5 with deletion tag validation and `isDeletion()` detection |
 | [NIP-10](https://github.com/nostr-protocol/nips/blob/master/10.md) | Reply conventions | Reply chain analysis with root/reply/mention markers |
 | [NIP-11](https://github.com/nostr-protocol/nips/blob/master/11.md) | Relay information | Relay metadata fetching and parsing |
-| [NIP-17](https://github.com/nostr-protocol/nips/blob/master/17.md) | Private direct messages | Kind 14 with NIP-44 encryption and gift wrap (kind 1059/1060) |
+| [NIP-17](https://github.com/nostr-protocol/nips/blob/master/17.md) | Private direct messages | Kind 14 with NIP-44 encryption and gift wrap (kind 1059) |
 | [NIP-18](https://github.com/nostr-protocol/nips/blob/master/18.md) | Reposts | Kind 6/16 with embedded event extraction and quote detection |
 | [NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md) | Bech32 encoding | npub, nsec, note, nprofile, nevent, naddr encoding/decoding; `Bech32Codec` also supports the BIP-350 bech32m variant for non-NIP consumers (e.g. FROSTR `bfgroup1…` / `bfshare1…` / `bfonboard1…`) via the `Bech32Variant` enum |
 | [NIP-22](https://github.com/nostr-protocol/nips/blob/master/22.md) | Comments | Kind 1111 with root/parent kind tags and reply chain analysis |

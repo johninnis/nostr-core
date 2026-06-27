@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-`NostrException` (abstract, extending `\Exception`) is defined here and is the **shared** root for faults thrown by Nostr library code across the whole `nostr-*` ecosystem — not just this package. nostr-core's own leaves extend it (`InvalidEventException`, `InvalidSignatureException`, `InvalidBech32Exception`, the crypto faults `CryptoException` / `EcdhException` / `EncryptionException` / `GiftWrapException`, and the key-lifecycle and NIP-49 faults `SecretKeyMaterialZeroedException` / `Nip49DecryptionFailedException`). A sibling `nostr-*` package that throws its own package-specific faults extends `NostrException` too — that shared root is correct and intended for Nostr library code.
+`NostrException` (abstract, extending `\Exception`) is defined here and is the **shared** root for faults thrown by Nostr library code across the whole `nostr-*` ecosystem — not just this package. nostr-core's own leaves extend it (`InvalidEventException`, the crypto faults `CryptoException` / `EcdhException` / `EncryptionException` / `GiftWrapException`, and the key-lifecycle and NIP-49 faults `SecretKeyMaterialZeroedException` / `Nip49DecryptionFailedException`). A sibling `nostr-*` package that throws its own package-specific faults extends `NostrException` too — that shared root is correct and intended for Nostr library code.
 
 The tempting-but-wrong move is at a different boundary: the **consumer application**. Because an application depends on nostr-core, it looks natural to root the application's *own* faults under `NostrException` as well, so the whole process shares one throwable root. That is the case this record rejects.
 
