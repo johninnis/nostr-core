@@ -31,6 +31,7 @@ Declared in `composer.json`:
 
 - PHP 8.4 or higher
 - `ext-intl` (NFKC password normalisation in NIP-49)
+- `ext-mbstring` (search-filter matching on untrusted event content, `EventContent::getLength`, and the bech32 TLV decoder)
 - `ext-sodium` (NIP-44 and NIP-49 AEAD, `sodium_memzero`)
 - `paragonie/ecc` (pure-PHP secp256k1 fallback)
 - `paragonie/sodium_compat` (raw ChaCha20 keystream with explicit block counter for NIP-44, which `ext-sodium` does not expose)
@@ -38,8 +39,7 @@ Declared in `composer.json`:
 Declared under `suggest` in `composer.json` (used by optional code paths that the recommended typical usage will load anyway):
 
 - `ext-gmp` is needed by the pure-PHP signing and ECDH fallback (the documented path when `libsecp256k1` is unavailable). If you know you always have `libsecp256k1` installed and never invoke the pure-PHP path, this extension is not touched.
-- `ext-mbstring` is needed by the search-filter matcher and `EventContent::getLength`. Most consumers will hit one of these.
-- `ext-ffi` is needed by NIP-49 (unconditionally) and by the `Secp256k1Signer::create()` / `Secp256k1Ecdh::create()` factories (for the `libsecp256k1` probe). Consumers who do not use NIP-49 and who construct the adapters directly with `new Secp256k1Signer(null, ...)` / `new Secp256k1Ecdh()` can run without `ext-ffi` at all and stay on the pure-PHP path.
+- `ext-ffi` is needed by NIP-49 (unconditionally) and by the `Secp256k1Signer::create()` / `Secp256k1Ecdh::create()` factories (for the `libsecp256k1` probe). Consumers who do not use NIP-49 and who construct the adapters directly with `new Secp256k1Signer(null, ...)` / `new Secp256k1Ecdh(null)` can run without `ext-ffi` at all and stay on the pure-PHP path.
 
 ### Optional system libraries
 
@@ -107,7 +107,7 @@ $plaintext = $encryption->decrypt($ciphertext, $conversationKey);
 
 Nonce generation is injected. `Nip44Cipher` accepts an optional `RandomBytesGeneratorInterface` and defaults to `NativeRandomBytesGenerator` (PHP's `random_bytes`) when none is supplied — that is the production path. Test suites inject a deterministic generator to reproduce the official NIP-44 vectors byte-for-byte. There is deliberately no public `encryptWithNonce` method; see [ADR-0014](docs/adr/0014-nip44cipher-has-no-public-encryptwithnonce.md).
 
-Always construct the adapters through their `::create()` factories. Direct instantiation via `new Secp256k1Signer(null, ...)` or `new Secp256k1Ecdh()` exists for dependency injection and testing but stays on the pure-PHP path regardless of whether `libsecp256k1` is installed.
+Always construct the adapters through their `::create()` factories. Direct instantiation via `new Secp256k1Signer(null, ...)` or `new Secp256k1Ecdh(null)` exists for dependency injection and testing but stays on the pure-PHP path regardless of whether `libsecp256k1` is installed.
 
 ### Message Handling
 
@@ -151,7 +151,7 @@ $recovered = $adapter->decrypt($decoded, static fn (): string => readPasswordFro
 
 ### Secret Key Lifecycle
 
-`PrivateKey` and `ConversationKey` hold their raw bytes inside a `SecretKeyMaterial` value object. Callers that need to clear secret material from memory can call `zero()`; any subsequent operation on that key throws `SecretKeyMaterialZeroedException`. Infrastructure code that genuinely needs raw bytes uses the bounded `expose` callback, which passes a CoW-separated copy of the bytes to the closure and `sodium_memzero`s that copy before the method returns:
+`PrivateKey` and `ConversationKey` hold their raw bytes inside a `SecretKeyMaterial` value object. Callers that need to clear secret material from memory can call `zero()`; any subsequent operation on that key throws `SecretKeyMaterialZeroedException`. Infrastructure code that genuinely needs raw bytes uses the bounded `expose` callback, which passes a freshly-allocated copy of the bytes (not a copy-on-write alias of the stored secret) to the closure and `sodium_memzero`s that copy before the method returns, so the exposed bytes are actually wiped rather than left in a spared buffer; see [ADR-0028](docs/adr/0028-secretkeymaterial-expose-hands-a-detached-copy-so-the-wipe-is-effective.md):
 
 ```php
 $derived = $privateKey->expose(static function (string $bytes): string {
@@ -275,6 +275,9 @@ Design rationale lives in [`docs/adr/`](docs/adr/) as immutable Architecture Dec
 | [0025](docs/adr/0025-secp256k1-keeps-a-native-ffi-path-and-a-pure-php-fallback.md) | secp256k1 signing and ECDH keep a native FFI path and a pure-PHP fallback |
 | [0026](docs/adr/0026-signature-fromhex-requires-a-full-64-byte-signature.md) | `Signature::fromHex` requires a complete 64-byte signature |
 | [0027](docs/adr/0027-secp256k1signer-verify-is-a-total-predicate.md) | `Secp256k1Signer::verify` is a total predicate — it returns `false`, never throws |
+| [0028](docs/adr/0028-secretkeymaterial-expose-hands-a-detached-copy-so-the-wipe-is-effective.md) | `SecretKeyMaterial::expose` hands the closure a detached copy so the wipe is effective |
+| [0029](docs/adr/0029-privatekey-rejects-scalars-outside-the-curve-order.md) | `PrivateKey` rejects scalars outside `[1, n-1]` |
+| [0030](docs/adr/0030-nip49-floors-encryption-logn-but-accepts-weaker-on-decrypt.md) | NIP-49 floors what it encrypts at logN 16 but accepts weaker on decrypt, with a configurable decrypt ceiling |
 
 ## Dependencies
 
