@@ -295,6 +295,7 @@ Design rationale lives in [`docs/adr/`](docs/adr/) as immutable Architecture Dec
 | [0034](docs/adr/0034-http-transport-hardening-is-the-hosts-obligation.md) | HTTP transport hardening (body size, SSRF redirects, timeout) is the host's obligation behind `HttpServiceInterface` |
 | [0035](docs/adr/0035-giftwrapper-is-a-composed-cryptographic-capability.md) | `GiftWrapper` is a composed cryptographic capability kept with the crypto family; its envelope factory is a local injection seam |
 | [0036](docs/adr/0036-nip11info-is-a-thin-view-over-the-raw-document.md) | `Nip11Info` is a thin typed view over the raw document, while `ProfileMetadata` is fully parsed |
+| [0037](docs/adr/0037-nip44cipher-uses-sodium-compat-internal-chacha20.md) | `Nip44Cipher` uses sodium_compat's internal ChaCha20 because no public IETF stream cipher exists |
 
 ## Dependencies
 

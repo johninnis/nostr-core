@@ -141,7 +141,7 @@ final readonly class ZapReceipt implements PaymentReceiptInterface
     private static function zapRequestAmountMatches(array $requestTags, ZapAmount $bolt11Amount): bool
     {
         foreach ($requestTags as $tag) {
-            if (!is_array($tag) || 'amount' !== ($tag[0] ?? null) || !isset($tag[1])) {
+            if (!is_array($tag) || TagType::AMOUNT !== ($tag[0] ?? null) || !isset($tag[1])) {
                 continue;
             }
 

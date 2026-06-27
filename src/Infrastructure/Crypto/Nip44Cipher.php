@@ -72,6 +72,7 @@ final class Nip44Cipher implements Nip44EncryptionInterface
                     throw new EncryptionException('Invalid MAC');
                 }
 
+                // Deliberate: ext-sodium exposes no raw chacha20-ietf stream; sodium_compat's internal class is the only pure-PHP route — see ADR-0037
                 $padded = ParagonIE_Sodium_Core_ChaCha20::ietfStreamXorIc(
                     $ciphertext,
                     $messageKeys['chachaNonce'],
@@ -110,6 +111,7 @@ final class Nip44Cipher implements Nip44EncryptionInterface
             $padded = $this->pad($plaintext);
 
             try {
+                // Deliberate: ext-sodium exposes no raw chacha20-ietf stream; sodium_compat's internal class is the only pure-PHP route — see ADR-0037
                 $ciphertext = ParagonIE_Sodium_Core_ChaCha20::ietfStreamXorIc(
                     $padded,
                     $messageKeys['chachaNonce'],
@@ -206,7 +208,7 @@ final class Nip44Cipher implements Nip44EncryptionInterface
             return self::MIN_PADDED_LENGTH;
         }
 
-        $nextPower = 1 << ((int) floor(log($unpaddedLength - 1, 2)) + 1);
+        $nextPower = 1 << strlen(decbin($unpaddedLength - 1));
         $chunk = $nextPower <= 256 ? self::MIN_PADDED_LENGTH : (int) ($nextPower / 8);
 
         return $chunk * ((int) floor(($unpaddedLength - 1) / $chunk) + 1);

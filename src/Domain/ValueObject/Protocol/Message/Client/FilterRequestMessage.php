@@ -70,16 +70,11 @@ abstract readonly class FilterRequestMessage extends ClientMessage
             return null;
         }
 
-        $filters = [];
-        foreach (array_slice($data, 2) as $filterData) {
-            $filter = Filter::fromWire($filterData);
-            if (null === $filter) {
-                return null;
-            }
-
-            $filters[] = $filter;
+        $filters = FilterCollection::fromWire(array_slice($data, 2));
+        if (null === $filters) {
+            return null;
         }
 
-        return new static($subscriptionId, new FilterCollection($filters));
+        return new static($subscriptionId, $filters);
     }
 }

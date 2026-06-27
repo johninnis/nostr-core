@@ -8,9 +8,6 @@ use Innis\Nostr\Core\Domain\Collection\EventIdCollection;
 use Innis\Nostr\Core\Domain\Collection\EventKindCollection;
 use Innis\Nostr\Core\Domain\Collection\PublicKeyCollection;
 use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
-use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use InvalidArgumentException;
 use JsonSerializable;
@@ -303,10 +300,7 @@ final readonly class Filter implements JsonSerializable, Stringable
         $limit = $data['limit'] ?? null;
         $search = $data['search'] ?? null;
 
-        if ((null !== $ids && !is_array($ids))
-            || (null !== $authors && !is_array($authors))
-            || (null !== $kinds && !is_array($kinds))
-            || (null !== $since && !is_int($since))
+        if ((null !== $since && !is_int($since))
             || (null !== $until && !is_int($until))
             || (null !== $limit && !is_int($limit))
             || (null !== $search && !is_string($search))
@@ -316,41 +310,26 @@ final readonly class Filter implements JsonSerializable, Stringable
 
         $idCollection = null;
         if (null !== $ids) {
-            $eventIds = [];
-            foreach ($ids as $id) {
-                $eventId = is_string($id) ? EventId::fromHex($id) : null;
-                if (null === $eventId) {
-                    return null;
-                }
-                $eventIds[] = $eventId;
+            $idCollection = EventIdCollection::fromWire($ids);
+            if (null === $idCollection) {
+                return null;
             }
-            $idCollection = new EventIdCollection($eventIds);
         }
 
         $authorCollection = null;
         if (null !== $authors) {
-            $publicKeys = [];
-            foreach ($authors as $author) {
-                $publicKey = is_string($author) ? PublicKey::fromHex($author) : null;
-                if (null === $publicKey) {
-                    return null;
-                }
-                $publicKeys[] = $publicKey;
+            $authorCollection = PublicKeyCollection::fromWire($authors);
+            if (null === $authorCollection) {
+                return null;
             }
-            $authorCollection = new PublicKeyCollection($publicKeys);
         }
 
         $kindCollection = null;
         if (null !== $kinds) {
-            $kindObjects = [];
-            foreach ($kinds as $kind) {
-                $eventKind = is_int($kind) ? EventKind::tryFromInt($kind) : null;
-                if (null === $eventKind) {
-                    return null;
-                }
-                $kindObjects[] = $eventKind;
+            $kindCollection = EventKindCollection::fromWire($kinds);
+            if (null === $kindCollection) {
+                return null;
             }
-            $kindCollection = new EventKindCollection($kindObjects);
         }
 
         $sinceTimestamp = null;

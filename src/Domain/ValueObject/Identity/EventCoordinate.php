@@ -65,7 +65,7 @@ final readonly class EventCoordinate implements Stringable
      */
     public static function fromATag(array $tag): ?self
     {
-        if (!isset($tag[0]) || 'a' !== $tag[0] || !isset($tag[1]) || !is_string($tag[1])) {
+        if (!isset($tag[0]) || TagType::ADDRESSABLE !== $tag[0] || !isset($tag[1]) || !is_string($tag[1])) {
             return null;
         }
 
@@ -110,7 +110,7 @@ final readonly class EventCoordinate implements Stringable
      */
     public function toATag(): array
     {
-        $tag = ['a', (string) $this];
+        $tag = [TagType::ADDRESSABLE, (string) $this];
 
         if (null !== $this->relayHint) {
             $tag[] = (string) $this->relayHint;

@@ -23,6 +23,13 @@ final class PublicKeyCollection extends TypedCollection
         return new self(self::parseStrings($values, PublicKey::fromHex(...)));
     }
 
+    public static function fromWire(mixed $values): ?self
+    {
+        $publicKeys = self::parseAll($values, static fn (mixed $value): ?PublicKey => is_string($value) ? PublicKey::fromHex($value) : null);
+
+        return null === $publicKeys ? null : new self($publicKeys);
+    }
+
     public function unique(): self
     {
         return new self($this->deduplicate(static fn (PublicKey $publicKey): string => $publicKey->toHex()));

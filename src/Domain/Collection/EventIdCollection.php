@@ -23,6 +23,13 @@ final class EventIdCollection extends TypedCollection
         return new self(self::parseStrings($values, EventId::fromHex(...)));
     }
 
+    public static function fromWire(mixed $values): ?self
+    {
+        $eventIds = self::parseAll($values, static fn (mixed $value): ?EventId => is_string($value) ? EventId::fromHex($value) : null);
+
+        return null === $eventIds ? null : new self($eventIds);
+    }
+
     public function unique(): self
     {
         return new self($this->deduplicate(static fn (EventId $eventId): string => $eventId->toHex()));

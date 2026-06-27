@@ -85,7 +85,7 @@ final readonly class Subscription
             return null;
         }
 
-        if (!is_array($data['filters']) || !is_int($data['created_at'])) {
+        if (!is_int($data['created_at'])) {
             return null;
         }
 
@@ -99,18 +99,9 @@ final readonly class Subscription
             return null;
         }
 
-        $filters = [];
-        foreach ($data['filters'] as $filterData) {
-            if (!is_array($filterData)) {
-                return null;
-            }
-
-            $filter = Filter::fromArray($filterData);
-            if (null === $filter) {
-                return null;
-            }
-
-            $filters[] = $filter;
+        $filters = FilterCollection::fromWire($data['filters']);
+        if (null === $filters) {
+            return null;
         }
 
         $state = SubscriptionState::Pending;
@@ -127,7 +118,7 @@ final readonly class Subscription
 
         return new self(
             $id,
-            new FilterCollection($filters),
+            $filters,
             $createdAt,
             $state,
         );

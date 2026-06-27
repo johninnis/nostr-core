@@ -22,7 +22,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\OkMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
 use Override;
 
-final class JsonMessageDeserialiser implements MessageDeserialiserInterface
+final readonly class JsonMessageDeserialiser implements MessageDeserialiserInterface
 {
     #[Override]
     public function deserialiseClientMessage(string $json): ?ClientMessage
