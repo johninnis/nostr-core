@@ -32,7 +32,7 @@ final class NipComplianceTest extends TestCase
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('Hello Nostr!')
         );
         $signedEvent = $event->sign($this->keyPair, CryptoFixtures::signer());
@@ -230,7 +230,7 @@ final class NipComplianceTest extends TestCase
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('test signature')
         );
         $signedEvent = $event->sign($this->keyPair, CryptoFixtures::signer());

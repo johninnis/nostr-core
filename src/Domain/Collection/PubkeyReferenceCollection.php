@@ -18,11 +18,6 @@ final class PubkeyReferenceCollection extends TypedCollection
         return PubkeyReference::class;
     }
 
-    public static function empty(): self
-    {
-        return new self();
-    }
-
     public static function fromArrays(mixed $values): self
     {
         return new self(self::parseArrays($values, PubkeyReference::fromArray(...)));

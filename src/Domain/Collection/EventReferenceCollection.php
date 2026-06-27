@@ -18,11 +18,6 @@ final class EventReferenceCollection extends TypedCollection
         return EventReference::class;
     }
 
-    public static function empty(): self
-    {
-        return new self();
-    }
-
     public static function fromArrays(mixed $values): self
     {
         return new self(self::parseArrays($values, EventReference::fromArray(...)));

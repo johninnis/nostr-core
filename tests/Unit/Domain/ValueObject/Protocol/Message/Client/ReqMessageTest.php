@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol\Message\Client;
 
+use Innis\Nostr\Core\Domain\Collection\EventKindCollection;
 use Innis\Nostr\Core\Domain\Collection\FilterCollection;
 use Innis\Nostr\Core\Domain\Entity\Filter;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client\ReqMessage;
@@ -18,7 +19,7 @@ final class ReqMessageTest extends TestCase
     {
         $message = new ReqMessage(
             SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
-            new FilterCollection([new Filter(kinds: [1])]),
+            new FilterCollection([new Filter(kinds: EventKindCollection::fromInts([1]))]),
         );
 
         $this->assertSame('REQ', $message->getType());
@@ -27,14 +28,14 @@ final class ReqMessageTest extends TestCase
     public function testGetSubscriptionIdReturnsConstructedValue(): void
     {
         $subId = SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID');
-        $message = new ReqMessage($subId, new FilterCollection([new Filter(kinds: [1])]));
+        $message = new ReqMessage($subId, new FilterCollection([new Filter(kinds: EventKindCollection::fromInts([1]))]));
 
         $this->assertTrue($subId->equals($message->getSubscriptionId()));
     }
 
     public function testGetFiltersReturnsConstructedFilters(): void
     {
-        $filter = new Filter(kinds: [1]);
+        $filter = new Filter(kinds: EventKindCollection::fromInts([1]));
         $message = new ReqMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), new FilterCollection([$filter]));
 
         $this->assertCount(1, $message->getFilters());
@@ -59,7 +60,7 @@ final class ReqMessageTest extends TestCase
 
     public function testToArrayReturnsCorrectFormat(): void
     {
-        $filter = new Filter(kinds: [1]);
+        $filter = new Filter(kinds: EventKindCollection::fromInts([1]));
         $message = new ReqMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), new FilterCollection([$filter]));
 
         $result = $message->toArray();
@@ -72,8 +73,8 @@ final class ReqMessageTest extends TestCase
 
     public function testToArrayWithMultipleFilters(): void
     {
-        $filter1 = new Filter(kinds: [1]);
-        $filter2 = new Filter(kinds: [0], limit: 10);
+        $filter1 = new Filter(kinds: EventKindCollection::fromInts([1]));
+        $filter2 = new Filter(kinds: EventKindCollection::fromInts([0]), limit: 10);
         $message = new ReqMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), new FilterCollection([$filter1, $filter2]));
 
         $result = $message->toArray();
@@ -87,7 +88,7 @@ final class ReqMessageTest extends TestCase
     {
         $message = new ReqMessage(
             SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
-            new FilterCollection([new Filter(kinds: [1])]),
+            new FilterCollection([new Filter(kinds: EventKindCollection::fromInts([1]))]),
         );
 
         $decoded = json_decode($message->toJson(), true, flags: JSON_THROW_ON_ERROR);
@@ -138,7 +139,7 @@ final class ReqMessageTest extends TestCase
     {
         $original = new ReqMessage(
             SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
-            new FilterCollection([new Filter(kinds: [1]), new Filter(limit: 50)]),
+            new FilterCollection([new Filter(kinds: EventKindCollection::fromInts([1])), new Filter(limit: 50)]),
         );
 
         $restored = ReqMessage::fromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
@@ -152,7 +153,7 @@ final class ReqMessageTest extends TestCase
 
     public function testConstructorRejectsMoreThanMaxFilters(): void
     {
-        $filters = array_fill(0, ReqMessage::MAX_FILTERS + 1, new Filter(kinds: [1]));
+        $filters = array_fill(0, ReqMessage::MAX_FILTERS + 1, new Filter(kinds: EventKindCollection::fromInts([1])));
 
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('may contain at most');

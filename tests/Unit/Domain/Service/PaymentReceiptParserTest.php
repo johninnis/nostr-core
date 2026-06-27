@@ -64,7 +64,7 @@ final class PaymentReceiptParserTest extends TestCase
             PublicKey::fromHex(self::SENDER_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1700000000),
             EventKind::fromInt($kind),
-            [] === $rawTags ? TagCollection::empty() : TagCollectionMother::fromRaw($rawTags),
+            [] === $rawTags ? new TagCollection() : TagCollectionMother::fromRaw($rawTags),
             EventContent::fromString(''),
         );
     }

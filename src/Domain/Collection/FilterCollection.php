@@ -18,11 +18,6 @@ final class FilterCollection extends TypedCollection
         return Filter::class;
     }
 
-    public static function empty(): self
-    {
-        return new self();
-    }
-
     /**
      * @return list<array<string, mixed>>
      */

@@ -31,7 +31,7 @@ final class SubscriptionCollectionTest extends TestCase
 
     public function testEmptyCollection(): void
     {
-        $collection = SubscriptionCollection::empty();
+        $collection = new SubscriptionCollection();
 
         $this->assertTrue($collection->isEmpty());
         $this->assertSame(0, $collection->count());
@@ -55,7 +55,7 @@ final class SubscriptionCollectionTest extends TestCase
 
     public function testAddReturnsNewCollection(): void
     {
-        $collection = SubscriptionCollection::empty();
+        $collection = new SubscriptionCollection();
         $subscription = $this->createSubscription('sub-1');
 
         $updated = $collection->add($subscription);
@@ -68,7 +68,7 @@ final class SubscriptionCollectionTest extends TestCase
     public function testAddUsesSubscriptionIdAsKey(): void
     {
         $subscription = $this->createSubscription('my-sub');
-        $collection = SubscriptionCollection::empty()->add($subscription);
+        $collection = new SubscriptionCollection()->add($subscription);
 
         $this->assertSame(['my-sub'], $collection->keys());
     }
@@ -76,7 +76,7 @@ final class SubscriptionCollectionTest extends TestCase
     public function testRemoveReturnsNewCollection(): void
     {
         $subscription = $this->createSubscription('sub-1');
-        $collection = SubscriptionCollection::empty()->add($subscription);
+        $collection = new SubscriptionCollection()->add($subscription);
 
         $updated = $collection->remove(self::subscriptionId('sub-1'));
 
@@ -86,7 +86,7 @@ final class SubscriptionCollectionTest extends TestCase
 
     public function testRemoveNonExistentIsNoOp(): void
     {
-        $collection = SubscriptionCollection::empty();
+        $collection = new SubscriptionCollection();
         $updated = $collection->remove(self::subscriptionId('nonexistent'));
 
         $this->assertTrue($updated->isEmpty());
@@ -95,7 +95,7 @@ final class SubscriptionCollectionTest extends TestCase
     public function testGetAndHas(): void
     {
         $subscription = $this->createSubscription('sub-1');
-        $collection = SubscriptionCollection::empty()->add($subscription);
+        $collection = new SubscriptionCollection()->add($subscription);
 
         $this->assertTrue($collection->has(self::subscriptionId('sub-1')));
         $this->assertFalse($collection->has(self::subscriptionId('unknown')));
@@ -106,7 +106,7 @@ final class SubscriptionCollectionTest extends TestCase
     public function testWithUpdatedState(): void
     {
         $subscription = $this->createSubscription('sub-1');
-        $collection = SubscriptionCollection::empty()->add($subscription);
+        $collection = new SubscriptionCollection()->add($subscription);
 
         $updated = $collection->withUpdatedState(self::subscriptionId('sub-1'), SubscriptionState::Active);
 
@@ -116,7 +116,7 @@ final class SubscriptionCollectionTest extends TestCase
 
     public function testWithUpdatedStateReturnsUnchangedForUnknown(): void
     {
-        $collection = SubscriptionCollection::empty();
+        $collection = new SubscriptionCollection();
         $updated = $collection->withUpdatedState(self::subscriptionId('unknown'), SubscriptionState::Active);
 
         $this->assertTrue($updated->isEmpty());
@@ -126,7 +126,7 @@ final class SubscriptionCollectionTest extends TestCase
     {
         $sub1 = $this->createSubscription('sub-1');
         $sub2 = $this->createSubscription('sub-2');
-        $collection = SubscriptionCollection::empty()
+        $collection = new SubscriptionCollection()
             ->add($sub1)
             ->add($sub2)
             ->withUpdatedState(self::subscriptionId('sub-1'), SubscriptionState::Active);
@@ -143,7 +143,7 @@ final class SubscriptionCollectionTest extends TestCase
     {
         $sub1 = $this->createSubscription('sub-1');
         $sub2 = $this->createSubscription('sub-2');
-        $collection = SubscriptionCollection::empty()->add($sub1)->add($sub2);
+        $collection = new SubscriptionCollection()->add($sub1)->add($sub2);
 
         $keys = [];
         foreach ($collection as $key => $value) {
@@ -155,7 +155,7 @@ final class SubscriptionCollectionTest extends TestCase
 
     public function testKeys(): void
     {
-        $collection = SubscriptionCollection::empty()
+        $collection = new SubscriptionCollection()
             ->add($this->createSubscription('a'))
             ->add($this->createSubscription('b'));
 

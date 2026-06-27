@@ -43,11 +43,6 @@ final readonly class SubscriptionCollection implements IteratorAggregate, Counta
         $this->subscriptions = $validated;
     }
 
-    public static function empty(): self
-    {
-        return new self();
-    }
-
     public function add(Subscription $subscription): self
     {
         $subscriptions = $this->subscriptions;

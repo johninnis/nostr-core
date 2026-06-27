@@ -29,7 +29,7 @@ final class EventFactory
             $pubkey,
             $createdAt ?? Timestamp::now(),
             $kind,
-            $tags ?? TagCollection::empty(),
+            $tags ?? new TagCollection(),
             $content,
         );
     }

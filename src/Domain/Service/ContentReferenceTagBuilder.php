@@ -22,7 +22,7 @@ final readonly class ContentReferenceTagBuilder implements ContentReferenceTagBu
     public function buildTags(EventContent $content, ?TagCollection $existingTags = null): TagCollection
     {
         $references = $this->extractor->extractContentReferences($content);
-        $tags = $existingTags ?? TagCollection::empty();
+        $tags = $existingTags ?? new TagCollection();
 
         foreach ($references as $ref) {
             $pubkey = $ref->getPublicKey();

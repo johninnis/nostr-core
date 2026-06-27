@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Compliance;
 
+use Innis\Nostr\Core\Domain\Collection\EventIdCollection;
+use Innis\Nostr\Core\Domain\Collection\EventKindCollection;
+use Innis\Nostr\Core\Domain\Collection\PublicKeyCollection;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Entity\Filter;
@@ -164,9 +167,9 @@ final class WireParserRoundTripComplianceTest extends TestCase
         $since = random_int(0, 1_000_000_000);
 
         return new Filter(
-            ids: 1 === random_int(0, 1) ? [bin2hex(random_bytes(32))] : null,
-            authors: 1 === random_int(0, 1) ? [bin2hex(random_bytes(32))] : null,
-            kinds: 1 === random_int(0, 1) ? [random_int(0, 65535)] : null,
+            ids: 1 === random_int(0, 1) ? EventIdCollection::fromHexValues([bin2hex(random_bytes(32))]) : null,
+            authors: 1 === random_int(0, 1) ? PublicKeyCollection::fromHexValues([bin2hex(random_bytes(32))]) : null,
+            kinds: 1 === random_int(0, 1) ? EventKindCollection::fromInts([random_int(0, 65535)]) : null,
             tags: 1 === random_int(0, 1) ? ['t' => [bin2hex(random_bytes(4))]] : null,
             since: Timestamp::fromInt($since),
             until: Timestamp::fromInt($since + random_int(0, 1_000_000)),

@@ -92,11 +92,11 @@ final readonly class TagReferences
     public static function empty(): self
     {
         return new self(
-            EventReferenceCollection::empty(),
-            PubkeyReferenceCollection::empty(),
-            EventReferenceCollection::empty(),
-            EventCoordinateCollection::empty(),
-            RelayReferenceCollection::empty(),
+            new EventReferenceCollection(),
+            new PubkeyReferenceCollection(),
+            new EventReferenceCollection(),
+            new EventCoordinateCollection(),
+            new RelayReferenceCollection(),
             []
         );
     }

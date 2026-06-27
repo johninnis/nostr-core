@@ -34,7 +34,7 @@ final class JsonMessageDeserialiserTest extends TestCase
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('Hello Nostr!')
         );
         $this->event = $this->event->sign($this->keyPair, CryptoFixtures::signer());

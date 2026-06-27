@@ -109,7 +109,7 @@ final class EventReferenceExtractorTest extends TestCase
             PublicKey::fromHex('1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef') ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1234567890),
             EventKind::fromInt(EventKind::GENERIC_REPOST),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('Test content')
         );
 

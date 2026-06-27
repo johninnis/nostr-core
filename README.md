@@ -289,6 +289,7 @@ Design rationale lives in [`docs/adr/`](docs/adr/) as immutable Architecture Dec
 | [0028](docs/adr/0028-secretkeymaterial-expose-hands-a-detached-copy-so-the-wipe-is-effective.md) | `SecretKeyMaterial::expose` hands the closure a detached copy so the wipe is effective |
 | [0029](docs/adr/0029-privatekey-rejects-scalars-outside-the-curve-order.md) | `PrivateKey` rejects scalars outside `[1, n-1]` |
 | [0030](docs/adr/0030-nip49-floors-encryption-logn-but-accepts-weaker-on-decrypt.md) | NIP-49 floors what it encrypts at logN 16 but accepts weaker on decrypt, with a configurable decrypt ceiling |
+| [0031](docs/adr/0031-tojsonarray-stays-per-leaf-to-keep-precise-element-shapes.md) | `toJsonArray()` stays per collection leaf to keep each element's precise shape |
 
 ## Dependencies
 

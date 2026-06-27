@@ -161,7 +161,7 @@ final class GiftWrapperTest extends TestCase
             $this->senderKeyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('Not a rumour')
         );
 
@@ -209,7 +209,7 @@ final class GiftWrapperTest extends TestCase
             $this->senderKeyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::GIFT_WRAP),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('fake')
         );
 
@@ -323,7 +323,7 @@ final class GiftWrapperTest extends TestCase
             $authorKeyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::SEAL),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString($cipher->encrypt($rumour->toJson(), $sealKey)),
         )->sign($authorKeyPair, $signer);
 

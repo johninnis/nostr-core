@@ -18,7 +18,7 @@ final class TagCollectionTest extends TestCase
 {
     public function testCanCreateEmptyCollection(): void
     {
-        $collection = TagCollection::empty();
+        $collection = new TagCollection();
 
         $this->assertTrue($collection->isEmpty());
         $this->assertSame(0, $collection->count());
@@ -45,7 +45,7 @@ final class TagCollectionTest extends TestCase
 
     public function testCanAddTag(): void
     {
-        $collection = TagCollection::empty();
+        $collection = new TagCollection();
         $tag = Tag::event('event-id');
 
         $newCollection = $collection->add($tag);

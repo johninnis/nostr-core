@@ -160,7 +160,7 @@ final class EventMessageTest extends TestCase
             self::createPublicKey(),
             Timestamp::fromInt(1700000000),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('test content'),
         );
     }

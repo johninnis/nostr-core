@@ -134,7 +134,7 @@ final class EventCollectionTest extends TestCase
             $otherKeyPair->getPublicKey(),
             Timestamp::fromInt(1234567890),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('By other author')
         );
         $collection = new EventCollection([$event1, $event2]);
@@ -162,57 +162,6 @@ final class EventCollectionTest extends TestCase
         $first = $filtered->first();
         $this->assertNotNull($first);
         $this->assertSame('Late', (string) $first->getContent());
-    }
-
-    public function testMapTransformsAllEvents(): void
-    {
-        $event1 = $this->createEvent('First');
-        $event2 = $this->createEventAtTime('Second', 1234567891);
-        $collection = new EventCollection([$event1, $event2]);
-
-        $mapped = $collection->map(
-            static fn (Event $event) => new Event(
-                $event->getPubkey(),
-                $event->getCreatedAt(),
-                $event->getKind(),
-                $event->getTags(),
-                EventContent::fromString('Mapped: '.(string) $event->getContent())
-            )
-        );
-
-        $this->assertSame(2, $mapped->count());
-        $first = $mapped->first();
-        $last = $mapped->last();
-        $this->assertNotNull($first);
-        $this->assertNotNull($last);
-        $this->assertSame('Mapped: First', (string) $first->getContent());
-        $this->assertSame('Mapped: Second', (string) $last->getContent());
-    }
-
-    public function testReduceAggregatesValues(): void
-    {
-        $event1 = $this->createEvent('Hello');
-        $event2 = $this->createEventAtTime('World', 1234567891);
-        $collection = new EventCollection([$event1, $event2]);
-
-        $result = $collection->reduce(
-            static fn (string $carry, Event $event) => $carry.' '.(string) $event->getContent(),
-            ''
-        );
-
-        $this->assertSame(' Hello World', $result);
-    }
-
-    public function testReduceWithEmptyCollectionReturnsInitial(): void
-    {
-        $collection = new EventCollection();
-
-        $result = $collection->reduce(
-            static fn (int $carry, Event $event) => $carry + 1,
-            0
-        );
-
-        $this->assertSame(0, $result);
     }
 
     public function testSortByTimestampAscending(): void
@@ -461,7 +410,7 @@ final class EventCollectionTest extends TestCase
             $this->keyPair->getPublicKey(),
             Timestamp::fromInt(1234567890),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString($content)
         );
     }
@@ -472,7 +421,7 @@ final class EventCollectionTest extends TestCase
             $this->keyPair->getPublicKey(),
             Timestamp::fromInt($timestamp),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString($content)
         );
     }
@@ -483,7 +432,7 @@ final class EventCollectionTest extends TestCase
             $this->keyPair->getPublicKey(),
             Timestamp::fromInt(1234567890),
             $kind,
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString($content)
         );
     }

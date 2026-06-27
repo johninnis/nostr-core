@@ -28,7 +28,7 @@ final class HighlightMetadataTest extends TestCase
 
     public function testFromTagCollectionWithNoTags(): void
     {
-        $tags = TagCollection::empty();
+        $tags = new TagCollection();
 
         $metadata = HighlightMetadata::fromTagCollection($tags);
 

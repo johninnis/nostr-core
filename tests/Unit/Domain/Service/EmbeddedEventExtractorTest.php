@@ -75,7 +75,7 @@ final class EmbeddedEventExtractorTest extends TestCase
             PublicKey::fromHex(self::PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1700000000),
             EventKind::fromInt($kind),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString($content),
         );
     }

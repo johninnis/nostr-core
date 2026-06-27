@@ -9,6 +9,8 @@ use Innis\Nostr\Core\Domain\Collection\EventKindCollection;
 use Innis\Nostr\Core\Domain\Collection\PublicKeyCollection;
 use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use InvalidArgumentException;
 use JsonSerializable;
@@ -20,8 +22,6 @@ final readonly class Filter implements JsonSerializable, Stringable
 {
     public const int MAX_VALUES_PER_FIELD = 1000;
 
-    /** @var list<EventKind>|null */
-    private ?array $kinds;
     /** @var array<string, int>|null */
     private ?array $idSet;
     /** @var array<string, int>|null */
@@ -34,23 +34,18 @@ final readonly class Filter implements JsonSerializable, Stringable
     private ?array $searchTerms;
 
     /**
-     * @param array<array-key, mixed>|null     $ids
-     * @param array<array-key, mixed>|null     $authors
-     * @param array<int|EventKind>|null        $kinds
      * @param array<string, list<string>>|null $tags
      */
     public function __construct(
-        private ?array $ids = null,
-        private ?array $authors = null,
-        ?array $kinds = null,
+        private ?EventIdCollection $ids = null,
+        private ?PublicKeyCollection $authors = null,
+        private ?EventKindCollection $kinds = null,
         private ?array $tags = null,
         private ?Timestamp $since = null,
         private ?Timestamp $until = null,
         private ?int $limit = null,
         private ?string $search = null,
     ) {
-        $this->kinds = null !== $kinds ? self::normaliseKinds($kinds) : null;
-
         if (!self::isValidLimit($this->limit)) {
             throw new InvalidArgumentException('Limit must be between 1 and 5000');
         }
@@ -59,25 +54,23 @@ final readonly class Filter implements JsonSerializable, Stringable
             throw new InvalidArgumentException('Since timestamp cannot be after until timestamp');
         }
 
-        self::assertFieldWithinCap('ids', $this->ids);
-        self::assertFieldWithinCap('authors', $this->authors);
-        self::assertFieldWithinCap('kinds', $this->kinds);
+        self::assertCountWithinCap('ids', $this->ids?->count());
+        self::assertCountWithinCap('authors', $this->authors?->count());
+        self::assertCountWithinCap('kinds', $this->kinds?->count());
 
         if (null !== $this->tags) {
             foreach ($this->tags as $tagName => $values) {
-                self::assertFieldWithinCap("#{$tagName}", $values);
+                self::assertCountWithinCap("#{$tagName}", count($values));
             }
         }
 
-        $this->idSet = null !== $this->ids ? self::flipStrings($this->ids) : null;
-        $this->authorSet = null !== $this->authors ? self::flipStrings($this->authors) : null;
-        $this->kindSet = null !== $this->kinds
-            ? array_flip(new EventKindCollection($this->kinds)->toInts())
-            : null;
-        $this->tagValueSets = null !== $this->tags ? array_map(self::flipStrings(...), $this->tags) : null;
-        $this->searchTerms = null !== $this->search
-            ? (preg_split('/\s+/', mb_strtolower(trim($this->search)), -1, PREG_SPLIT_NO_EMPTY) ?: [])
-            : null;
+        $this->idSet = null === $this->ids ? null : array_fill_keys($this->ids->toHexes(), 0);
+        $this->authorSet = null === $this->authors ? null : array_fill_keys($this->authors->toHexes(), 0);
+        $this->kindSet = null === $this->kinds ? null : array_fill_keys($this->kinds->toInts(), 0);
+        $this->tagValueSets = null === $this->tags ? null : array_map(self::flipStrings(...), $this->tags);
+        $this->searchTerms = null === $this->search
+            ? null
+            : (preg_split('/\s+/', mb_strtolower(trim($this->search)), -1, PREG_SPLIT_NO_EMPTY) ?: []);
     }
 
     /**
@@ -90,22 +83,11 @@ final readonly class Filter implements JsonSerializable, Stringable
         return array_flip(array_filter($values, is_string(...)));
     }
 
-    /**
-     * @param array<array-key, mixed>|null $values
-     */
-    private static function assertFieldWithinCap(string $fieldName, ?array $values): void
+    private static function assertCountWithinCap(string $fieldName, ?int $count): void
     {
-        if (!self::isWithinCap($values)) {
+        if (null !== $count && $count > self::MAX_VALUES_PER_FIELD) {
             throw new InvalidArgumentException(sprintf('Filter field "%s" may contain at most %d values', $fieldName, self::MAX_VALUES_PER_FIELD));
         }
-    }
-
-    /**
-     * @param array<array-key, mixed>|null $values
-     */
-    private static function isWithinCap(?array $values): bool
-    {
-        return null === $values || count($values) <= self::MAX_VALUES_PER_FIELD;
     }
 
     private static function isValidLimit(?int $limit): bool
@@ -148,7 +130,7 @@ final readonly class Filter implements JsonSerializable, Stringable
 
     public function getIds(): ?EventIdCollection
     {
-        return null === $this->ids ? null : EventIdCollection::fromHexValues($this->ids);
+        return $this->ids;
     }
 
     public function hasIds(): bool
@@ -158,7 +140,7 @@ final readonly class Filter implements JsonSerializable, Stringable
 
     public function getAuthors(): ?PublicKeyCollection
     {
-        return null === $this->authors ? null : PublicKeyCollection::fromHexValues($this->authors);
+        return $this->authors;
     }
 
     public function hasAuthors(): bool
@@ -168,7 +150,7 @@ final readonly class Filter implements JsonSerializable, Stringable
 
     public function getKinds(): ?EventKindCollection
     {
-        return null === $this->kinds ? null : new EventKindCollection($this->kinds);
+        return $this->kinds;
     }
 
     public function hasKinds(): bool
@@ -214,10 +196,7 @@ final readonly class Filter implements JsonSerializable, Stringable
         return null !== $this->search;
     }
 
-    /**
-     * @param list<string> $authors
-     */
-    public function withAuthors(array $authors): self
+    public function withAuthors(PublicKeyCollection $authors): self
     {
         return new self(
             ids: $this->ids,
@@ -231,10 +210,7 @@ final readonly class Filter implements JsonSerializable, Stringable
         );
     }
 
-    /**
-     * @param array<int|EventKind> $kinds
-     */
-    public function withKinds(array $kinds): self
+    public function withKinds(EventKindCollection $kinds): self
     {
         return new self(
             ids: $this->ids,
@@ -249,19 +225,6 @@ final readonly class Filter implements JsonSerializable, Stringable
     }
 
     /**
-     * @param array<int|EventKind> $kinds
-     *
-     * @return list<EventKind>
-     */
-    private static function normaliseKinds(array $kinds): array
-    {
-        return array_values(array_map(
-            static fn (int|EventKind $kind) => $kind instanceof EventKind ? $kind : EventKind::fromInt($kind),
-            $kinds
-        ));
-    }
-
-    /**
      * @return array<string, mixed>
      */
     public function toArray(): array
@@ -269,15 +232,15 @@ final readonly class Filter implements JsonSerializable, Stringable
         $filter = [];
 
         if (null !== $this->ids) {
-            $filter['ids'] = $this->ids;
+            $filter['ids'] = $this->ids->toHexes();
         }
 
         if (null !== $this->authors) {
-            $filter['authors'] = $this->authors;
+            $filter['authors'] = $this->authors->toHexes();
         }
 
         if (null !== $this->kinds) {
-            $filter['kinds'] = new EventKindCollection($this->kinds)->toInts();
+            $filter['kinds'] = $this->kinds->toInts();
         }
 
         if (null !== $this->tags) {
@@ -351,6 +314,7 @@ final readonly class Filter implements JsonSerializable, Stringable
 
         if ((null !== $ids && !is_array($ids))
             || (null !== $authors && !is_array($authors))
+            || (null !== $kinds && !is_array($kinds))
             || (null !== $since && !is_int($since))
             || (null !== $until && !is_int($until))
             || (null !== $limit && !is_int($limit))
@@ -359,31 +323,43 @@ final readonly class Filter implements JsonSerializable, Stringable
             return null;
         }
 
-        if ((null !== $ids && !array_all($ids, static fn (mixed $id): bool => is_string($id)))
-            || (null !== $authors && !array_all($authors, static fn (mixed $author): bool => is_string($author)))
-        ) {
-            return null;
+        $idCollection = null;
+        if (null !== $ids) {
+            $eventIds = [];
+            foreach ($ids as $id) {
+                $eventId = is_string($id) ? EventId::fromHex($id) : null;
+                if (null === $eventId) {
+                    return null;
+                }
+                $eventIds[] = $eventId;
+            }
+            $idCollection = new EventIdCollection($eventIds);
         }
 
-        if (null !== $kinds && !is_array($kinds)) {
-            return null;
+        $authorCollection = null;
+        if (null !== $authors) {
+            $publicKeys = [];
+            foreach ($authors as $author) {
+                $publicKey = is_string($author) ? PublicKey::fromHex($author) : null;
+                if (null === $publicKey) {
+                    return null;
+                }
+                $publicKeys[] = $publicKey;
+            }
+            $authorCollection = new PublicKeyCollection($publicKeys);
         }
 
-        $kindObjects = null;
+        $kindCollection = null;
         if (null !== $kinds) {
             $kindObjects = [];
             foreach ($kinds as $kind) {
-                if (!is_int($kind)) {
-                    return null;
-                }
-
-                $eventKind = EventKind::tryFromInt($kind);
+                $eventKind = is_int($kind) ? EventKind::tryFromInt($kind) : null;
                 if (null === $eventKind) {
                     return null;
                 }
-
                 $kindObjects[] = $eventKind;
             }
+            $kindCollection = new EventKindCollection($kindObjects);
         }
 
         $sinceTimestamp = null;
@@ -407,21 +383,21 @@ final readonly class Filter implements JsonSerializable, Stringable
         }
 
         if (!self::isValidLimit($limit)
-            || !self::isWithinCap($ids)
-            || !self::isWithinCap($authors)
-            || !self::isWithinCap($kindObjects)
+            || ($idCollection?->count() ?? 0) > self::MAX_VALUES_PER_FIELD
+            || ($authorCollection?->count() ?? 0) > self::MAX_VALUES_PER_FIELD
+            || ($kindCollection?->count() ?? 0) > self::MAX_VALUES_PER_FIELD
         ) {
             return null;
         }
 
-        if (!array_all($tags, static fn (array $values): bool => self::isWithinCap($values))) {
+        if (!array_all($tags, static fn (array $values): bool => count($values) <= self::MAX_VALUES_PER_FIELD)) {
             return null;
         }
 
         return new self(
-            $ids,
-            $authors,
-            $kindObjects,
+            $idCollection,
+            $authorCollection,
+            $kindCollection,
             [] === $tags ? null : $tags,
             $sinceTimestamp,
             $untilTimestamp,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Entity;
 
+use Innis\Nostr\Core\Domain\Collection\EventKindCollection;
 use Innis\Nostr\Core\Domain\Collection\FilterCollection;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
@@ -76,11 +77,11 @@ final class SubscriptionTest extends TestCase
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('test'),
         );
 
-        $filter = new Filter(kinds: [EventKind::TEXT_NOTE]);
+        $filter = new Filter(kinds: EventKindCollection::fromInts([EventKind::TEXT_NOTE]));
         $subscription = Subscription::create(SubscriptionId::generate(), new FilterCollection([$filter]));
 
         $this->assertFalse($subscription->matchesEvent($event));
@@ -99,11 +100,11 @@ final class SubscriptionTest extends TestCase
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('test'),
         );
 
-        $filter = new Filter(kinds: [EventKind::TEXT_NOTE]);
+        $filter = new Filter(kinds: EventKindCollection::fromInts([EventKind::TEXT_NOTE]));
         $closed = Subscription::create(SubscriptionId::generate(), new FilterCollection([$filter]))
             ->withState(SubscriptionState::ClosedByClient);
 
@@ -113,7 +114,7 @@ final class SubscriptionTest extends TestCase
     public function testToArray(): void
     {
         $id = SubscriptionId::fromString('test-sub') ?? throw new RuntimeException('Expected a valid subscription ID');
-        $filter = new Filter(kinds: [EventKind::TEXT_NOTE]);
+        $filter = new Filter(kinds: EventKindCollection::fromInts([EventKind::TEXT_NOTE]));
         $subscription = new Subscription($id, new FilterCollection([$filter]), Timestamp::fromInt(1700000000), SubscriptionState::Live);
 
         $array = $subscription->toArray();

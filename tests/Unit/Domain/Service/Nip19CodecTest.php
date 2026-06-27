@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
+use Innis\Nostr\Core\Domain\Collection\RelayUrlCollection;
 use Innis\Nostr\Core\Domain\Enum\Nip19EntityType;
 use Innis\Nostr\Core\Domain\Service\Bech32Codec;
 use Innis\Nostr\Core\Domain\Service\Nip19Codec;
@@ -11,6 +12,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -131,7 +133,7 @@ final class Nip19CodecTest extends TestCase
     public function testDecodeNaddrReturnsAddressEntity(): void
     {
         $pubkey = $this->pubkey();
-        $naddr = $this->codec->encodeAddressableEvent(self::IDENTIFIER, $pubkey, self::ADDRESSABLE_KIND);
+        $naddr = $this->codec->encodeAddressableEvent($this->coordinate());
 
         $entity = $this->codec->decodeComplexEntity($naddr);
 
@@ -177,7 +179,7 @@ final class Nip19CodecTest extends TestCase
     public function testParseEventReferenceAcceptsNaddrAsCoordinate(): void
     {
         $pubkey = $this->pubkey();
-        $naddr = $this->codec->encodeAddressableEvent(self::IDENTIFIER, $pubkey, self::ADDRESSABLE_KIND);
+        $naddr = $this->codec->encodeAddressableEvent($this->coordinate());
 
         $reference = $this->codec->parseEventReference($naddr);
 
@@ -194,12 +196,9 @@ final class Nip19CodecTest extends TestCase
 
     public function testEncodeAddressableEventCarriesRelayHint(): void
     {
-        $pubkey = $this->pubkey();
         $naddr = $this->codec->encodeAddressableEvent(
-            self::IDENTIFIER,
-            $pubkey,
-            self::ADDRESSABLE_KIND,
-            ['wss://relay.example.com'],
+            $this->coordinate(),
+            new RelayUrlCollection([RelayUrl::fromString('wss://relay.example.com') ?? throw new RuntimeException('Invalid test relay')]),
         );
 
         $entity = $this->codec->decodeComplexEntity($naddr);
@@ -216,6 +215,12 @@ final class Nip19CodecTest extends TestCase
     private function pubkey(): PublicKey
     {
         return PublicKey::fromHex(self::PUBKEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
+    }
+
+    private function coordinate(): EventCoordinate
+    {
+        return EventCoordinate::fromParts(self::ADDRESSABLE_KIND, self::PUBKEY_HEX, self::IDENTIFIER)
+            ?? throw new RuntimeException('Invalid test coordinate');
     }
 
     private function eventId(): EventId

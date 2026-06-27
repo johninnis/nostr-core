@@ -35,7 +35,7 @@ final class EventTest extends TestCase
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('Hello Nostr!')
         );
     }
@@ -298,7 +298,7 @@ final class EventTest extends TestCase
         $event = Event::fromJson(json_encode($signed->toArray(), JSON_THROW_ON_ERROR));
 
         $this->assertNotNull($event);
-        $this->assertNull($event->withTags(TagCollection::empty())->getRawJson());
+        $this->assertNull($event->withTags(new TagCollection())->getRawJson());
     }
 
     public function testSignDropsRawJson(): void
@@ -341,7 +341,7 @@ final class EventTest extends TestCase
             $this->keyPair->getPublicKey(),
             Timestamp::fromInt(1234567890),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('test')
         );
 
@@ -349,7 +349,7 @@ final class EventTest extends TestCase
             $this->keyPair->getPublicKey(),
             Timestamp::fromInt(1234567890),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('test')
         );
 
@@ -362,7 +362,7 @@ final class EventTest extends TestCase
             $this->keyPair->getPublicKey(),
             Timestamp::fromInt(1234567890),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('test1')
         );
 
@@ -370,7 +370,7 @@ final class EventTest extends TestCase
             $this->keyPair->getPublicKey(),
             Timestamp::fromInt(1234567890),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('test2')
         );
 
@@ -393,7 +393,7 @@ final class EventTest extends TestCase
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('This is not a reply')
         );
 

@@ -241,7 +241,7 @@ final class JsonMessageDeserialiserTest extends TestCase
             self::createPublicKey(),
             Timestamp::fromInt(1700000000),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('test content'),
         );
     }
@@ -252,7 +252,7 @@ final class JsonMessageDeserialiserTest extends TestCase
             self::createPublicKey(),
             Timestamp::fromInt(1700000000),
             EventKind::fromInt(EventKind::CLIENT_AUTH),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString(''),
         );
     }

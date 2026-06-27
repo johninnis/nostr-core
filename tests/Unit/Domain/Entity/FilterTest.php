@@ -27,9 +27,9 @@ final class FilterTest extends TestCase
     public function testCanCreateFilter(): void
     {
         $filter = new Filter(
-            ids: [str_repeat('a', 64)],
-            authors: [str_repeat('b', 64)],
-            kinds: [1, 2],
+            ids: EventIdCollection::fromHexValues([str_repeat('a', 64)]),
+            authors: PublicKeyCollection::fromHexValues([str_repeat('b', 64)]),
+            kinds: EventKindCollection::fromInts([1, 2]),
             tags: ['t' => ['nostr']],
             since: Timestamp::fromInt(1234567890),
             until: Timestamp::fromInt(1234567900),
@@ -75,12 +75,12 @@ final class FilterTest extends TestCase
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('test')
         );
         $signedEvent = $event->sign($keyPair, FakeSignatureService::accepting());
 
-        $filter = new Filter(ids: [$signedEvent->getId()->toHex()]);
+        $filter = new Filter(ids: EventIdCollection::fromHexValues([$signedEvent->getId()->toHex()]));
 
         $this->assertTrue($filter->matches($signedEvent));
     }
@@ -92,11 +92,11 @@ final class FilterTest extends TestCase
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('test')
         );
 
-        $filter = new Filter(authors: [$keyPair->getPublicKey()->toHex()]);
+        $filter = new Filter(authors: PublicKeyCollection::fromHexValues([$keyPair->getPublicKey()->toHex()]));
 
         $this->assertTrue($filter->matches($event));
     }
@@ -108,11 +108,11 @@ final class FilterTest extends TestCase
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('test')
         );
 
-        $filter = new Filter(kinds: [1]);
+        $filter = new Filter(kinds: EventKindCollection::fromInts([1]));
 
         $this->assertTrue($filter->matches($event));
     }
@@ -141,7 +141,7 @@ final class FilterTest extends TestCase
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('test')
         );
 
@@ -151,7 +151,7 @@ final class FilterTest extends TestCase
         );
         $authors[] = $keyPair->getPublicKey()->toHex();
 
-        $this->assertTrue(new Filter(authors: $authors)->matches($event));
+        $this->assertTrue(new Filter(authors: PublicKeyCollection::fromHexValues($authors))->matches($event));
     }
 
     public function testTagFilterMatchesAnEventCarryingManyTags(): void
@@ -241,7 +241,7 @@ final class FilterTest extends TestCase
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('test')
         );
 
@@ -256,11 +256,11 @@ final class FilterTest extends TestCase
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('test')
         );
 
-        $filter = new Filter(kinds: [2]); // Different kind
+        $filter = new Filter(kinds: EventKindCollection::fromInts([2])); // Different kind
 
         $this->assertFalse($filter->matches($event));
     }
@@ -268,9 +268,9 @@ final class FilterTest extends TestCase
     public function testCanConvertToArray(): void
     {
         $filter = new Filter(
-            ids: ['event-id'],
-            authors: ['author-pubkey'],
-            kinds: [1],
+            ids: EventIdCollection::fromHexValues([str_repeat('a', 64)]),
+            authors: PublicKeyCollection::fromHexValues([str_repeat('b', 64)]),
+            kinds: EventKindCollection::fromInts([1]),
             tags: ['t' => ['nostr']],
             since: Timestamp::fromInt(1234567890),
             until: Timestamp::fromInt(1234567900),
@@ -318,7 +318,7 @@ final class FilterTest extends TestCase
 
     public function testHasIdsReturnsTrueWhenIdsAreSet(): void
     {
-        $filter = new Filter(ids: ['event-id']);
+        $filter = new Filter(ids: EventIdCollection::fromHexValues([str_repeat('a', 64)]));
 
         $this->assertTrue($filter->hasIds());
     }
@@ -332,7 +332,7 @@ final class FilterTest extends TestCase
 
     public function testHasAuthorsReturnsTrueWhenAuthorsAreSet(): void
     {
-        $filter = new Filter(authors: ['author-pubkey']);
+        $filter = new Filter(authors: PublicKeyCollection::fromHexValues([str_repeat('b', 64)]));
 
         $this->assertTrue($filter->hasAuthors());
     }
@@ -346,7 +346,7 @@ final class FilterTest extends TestCase
 
     public function testHasKindsReturnsTrueWhenKindsAreSet(): void
     {
-        $filter = new Filter(kinds: [1]);
+        $filter = new Filter(kinds: EventKindCollection::fromInts([1]));
 
         $this->assertTrue($filter->hasKinds());
     }
@@ -375,13 +375,13 @@ final class FilterTest extends TestCase
     public function testWithAuthorsReturnsNewFilterWithUpdatedAuthors(): void
     {
         $filter = new Filter(
-            ids: [str_repeat('a', 64)],
-            authors: [str_repeat('c', 64)],
-            kinds: [1],
+            ids: EventIdCollection::fromHexValues([str_repeat('a', 64)]),
+            authors: PublicKeyCollection::fromHexValues([str_repeat('c', 64)]),
+            kinds: EventKindCollection::fromInts([1]),
             limit: 10
         );
 
-        $newFilter = $filter->withAuthors([str_repeat('d', 64), str_repeat('e', 64)]);
+        $newFilter = $filter->withAuthors(PublicKeyCollection::fromHexValues([str_repeat('d', 64), str_repeat('e', 64)]));
 
         $this->assertAuthorHexes([str_repeat('c', 64)], $filter->getAuthors());
         $this->assertAuthorHexes([str_repeat('d', 64), str_repeat('e', 64)], $newFilter->getAuthors());
@@ -393,12 +393,12 @@ final class FilterTest extends TestCase
     public function testWithKindsReturnsNewFilterWithReplacedKinds(): void
     {
         $filter = new Filter(
-            authors: [str_repeat('f', 64)],
-            kinds: [1, 2],
+            authors: PublicKeyCollection::fromHexValues([str_repeat('f', 64)]),
+            kinds: EventKindCollection::fromInts([1, 2]),
             limit: 10
         );
 
-        $newFilter = $filter->withKinds([0, 7, 30023]);
+        $newFilter = $filter->withKinds(EventKindCollection::fromInts([0, 7, 30023]));
 
         $this->assertKinds([1, 2], $filter->getKinds());
         $this->assertKinds([0, 7, 30023], $newFilter->getKinds());
@@ -413,7 +413,7 @@ final class FilterTest extends TestCase
             $keyPair->getPublicKey(),
             Timestamp::fromInt(1234567895),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('test')
         );
 
@@ -431,7 +431,7 @@ final class FilterTest extends TestCase
             $keyPair->getPublicKey(),
             Timestamp::fromInt(1234567895),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('test')
         );
 
@@ -449,7 +449,7 @@ final class FilterTest extends TestCase
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('test')
         );
 
@@ -465,12 +465,12 @@ final class FilterTest extends TestCase
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('test')
         );
         $signedEvent = $event->sign($keyPair, FakeSignatureService::accepting());
 
-        $filter = new Filter(ids: ['0000000000000000000000000000000000000000000000000000000000000000']);
+        $filter = new Filter(ids: EventIdCollection::fromHexValues(['0000000000000000000000000000000000000000000000000000000000000000']));
 
         $this->assertFalse($filter->matches($signedEvent));
     }
@@ -482,11 +482,11 @@ final class FilterTest extends TestCase
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('test')
         );
 
-        $filter = new Filter(authors: [str_repeat('0', 64)]);
+        $filter = new Filter(authors: PublicKeyCollection::fromHexValues([str_repeat('0', 64)]));
 
         $this->assertFalse($filter->matches($event));
     }
@@ -501,7 +501,7 @@ final class FilterTest extends TestCase
 
     public function testToArrayOmitsNullFields(): void
     {
-        $filter = new Filter(kinds: [1]);
+        $filter = new Filter(kinds: EventKindCollection::fromInts([1]));
 
         $array = $filter->toArray();
 
@@ -515,7 +515,7 @@ final class FilterTest extends TestCase
 
     public function testToArrayConvertsEventKindObjectsToIntegers(): void
     {
-        $filter = new Filter(kinds: [EventKind::fromInt(EventKind::TEXT_NOTE)]);
+        $filter = new Filter(kinds: EventKindCollection::fromInts([EventKind::TEXT_NOTE]));
 
         $array = $filter->toArray();
 
@@ -580,10 +580,10 @@ final class FilterTest extends TestCase
         yield 'kinds with out-of-range value' => [['kinds' => [70000]]];
         yield 'ids not an array' => [['ids' => str_repeat('a', 64)]];
         yield 'ids with non-string element' => [['ids' => [123]]];
-        yield 'ids exceeding the value cap' => [['ids' => array_fill(0, 1001, 'a')]];
+        yield 'ids exceeding the value cap' => [['ids' => array_fill(0, 1001, str_repeat('0', 64))]];
         yield 'authors not an array' => [['authors' => str_repeat('a', 64)]];
         yield 'authors with non-string element' => [['authors' => [123]]];
-        yield 'authors exceeding the value cap' => [['authors' => array_fill(0, 1001, 'a')]];
+        yield 'authors exceeding the value cap' => [['authors' => array_fill(0, 1001, str_repeat('0', 64))]];
         yield 'tag values exceeding the value cap' => [['#t' => array_fill(0, 1001, 'x')]];
         yield 'limit not an int' => [['limit' => '5']];
         yield 'limit below minimum' => [['limit' => 0]];
@@ -606,7 +606,7 @@ final class FilterTest extends TestCase
 
     public function testToStringReturnsJsonRepresentation(): void
     {
-        $filter = new Filter(kinds: [1], limit: 10);
+        $filter = new Filter(kinds: EventKindCollection::fromInts([1]), limit: 10);
 
         $string = (string) $filter;
 
@@ -619,8 +619,8 @@ final class FilterTest extends TestCase
     public function testRoundTripFromArrayToArray(): void
     {
         $data = [
-            'ids' => ['abc123'],
-            'authors' => ['def456'],
+            'ids' => [str_repeat('a', 64)],
+            'authors' => [str_repeat('b', 64)],
             'kinds' => [1, 7],
             '#t' => ['nostr'],
             'since' => 1234567890,
@@ -641,7 +641,7 @@ final class FilterTest extends TestCase
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('Hello Nostr world')
         );
 
@@ -657,7 +657,7 @@ final class FilterTest extends TestCase
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('Hello NOSTR World')
         );
 
@@ -673,7 +673,7 @@ final class FilterTest extends TestCase
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('Hello Nostr')
         );
 
@@ -689,7 +689,7 @@ final class FilterTest extends TestCase
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('Hello world')
         );
 
@@ -705,7 +705,7 @@ final class FilterTest extends TestCase
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('Hello world')
         );
 
@@ -721,12 +721,12 @@ final class FilterTest extends TestCase
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('Hello Nostr')
         );
 
-        $matchingFilter = new Filter(kinds: [1], search: 'nostr');
-        $nonMatchingFilter = new Filter(kinds: [2], search: 'nostr');
+        $matchingFilter = new Filter(kinds: EventKindCollection::fromInts([1]), search: 'nostr');
+        $nonMatchingFilter = new Filter(kinds: EventKindCollection::fromInts([2]), search: 'nostr');
 
         $this->assertTrue($matchingFilter->matches($event));
         $this->assertFalse($nonMatchingFilter->matches($event));
@@ -763,7 +763,7 @@ final class FilterTest extends TestCase
 
     public function testToArrayOmitsSearchWhenNull(): void
     {
-        $filter = new Filter(kinds: [1]);
+        $filter = new Filter(kinds: EventKindCollection::fromInts([1]));
 
         $array = $filter->toArray();
 
@@ -774,7 +774,7 @@ final class FilterTest extends TestCase
     {
         $filter = new Filter(search: 'nostr');
 
-        $newFilter = $filter->withAuthors(['new-author']);
+        $newFilter = $filter->withAuthors(PublicKeyCollection::fromHexValues([str_repeat('c', 64)]));
 
         $this->assertSame('nostr', $newFilter->getSearch());
     }
@@ -813,7 +813,7 @@ final class FilterTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('may contain at most');
 
-        new Filter(ids: $ids);
+        new Filter(ids: EventIdCollection::fromHexValues($ids));
     }
 
     public function testConstructorRejectsAuthorsExceedingMaxValues(): void
@@ -823,7 +823,7 @@ final class FilterTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('may contain at most');
 
-        new Filter(authors: $authors);
+        new Filter(authors: PublicKeyCollection::fromHexValues($authors));
     }
 
     public function testConstructorRejectsKindsExceedingMaxValues(): void
@@ -833,7 +833,7 @@ final class FilterTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('may contain at most');
 
-        new Filter(kinds: $kinds);
+        new Filter(kinds: EventKindCollection::fromInts($kinds));
     }
 
     public function testConstructorRejectsTagValuesExceedingMaxValues(): void
@@ -863,7 +863,7 @@ final class FilterTest extends TestCase
 
     public function testNonEmptyFilterJsonSerialisesWithItsArrayShape(): void
     {
-        $this->assertSame('{"kinds":[1]}', json_encode((new Filter(kinds: [1]))->jsonSerialize(), JSON_THROW_ON_ERROR));
+        $this->assertSame('{"kinds":[1]}', json_encode((new Filter(kinds: EventKindCollection::fromInts([1])))->jsonSerialize(), JSON_THROW_ON_ERROR));
     }
 
     public function testEmptyFilterCastsToStringAsAnObject(): void
@@ -873,7 +873,7 @@ final class FilterTest extends TestCase
 
     public function testCastToStringAgreesWithJsonSerialisation(): void
     {
-        $filter = new Filter(kinds: [1], authors: ['abc']);
+        $filter = new Filter(kinds: EventKindCollection::fromInts([1]), authors: PublicKeyCollection::fromHexValues([str_repeat('d', 64)]));
 
         $this->assertSame(json_encode($filter->jsonSerialize(), JSON_THROW_ON_ERROR), (string) $filter);
     }

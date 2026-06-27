@@ -56,19 +56,12 @@ final class EventCollection extends TypedCollection implements JsonSerializable
         ));
     }
 
+    /**
+     * @param callable(Event): bool $predicate
+     */
     public function filter(callable $predicate): self
     {
         return new self(array_filter($this->items, $predicate));
-    }
-
-    public function map(callable $callback): self
-    {
-        return new self(array_map($callback, $this->items));
-    }
-
-    public function reduce(callable $callback, mixed $initial = null): mixed
-    {
-        return array_reduce($this->items, $callback, $initial);
     }
 
     public function sortByTimestamp(bool $ascending = true): self

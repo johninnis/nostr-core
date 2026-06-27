@@ -47,7 +47,7 @@ final class EventValidatorTest extends TestCase
             $this->keyPair->getPublicKey(),
             $futureTimestamp,
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('Hello')
         );
         $signedEvent = $event->sign($this->keyPair, FakeSignatureService::accepting());
@@ -65,7 +65,7 @@ final class EventValidatorTest extends TestCase
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString($longContent)
         );
 
@@ -126,7 +126,7 @@ final class EventValidatorTest extends TestCase
             $this->keyPair->getPublicKey(),
             $futureTimestamp,
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('Hello')
         );
 
@@ -139,7 +139,7 @@ final class EventValidatorTest extends TestCase
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('Hello')
         );
 
@@ -178,7 +178,7 @@ final class EventValidatorTest extends TestCase
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString($maxLengthContent)
         ))->sign($this->keyPair, FakeSignatureService::accepting());
 
@@ -211,7 +211,7 @@ final class EventValidatorTest extends TestCase
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString('Hello Nostr!')
         );
 

@@ -157,9 +157,4 @@ final class TagCollection extends TypedCollection
 
         return new self($tags);
     }
-
-    public static function empty(): self
-    {
-        return new self();
-    }
 }

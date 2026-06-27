@@ -42,18 +42,15 @@ final class Nip19Codec implements Nip19CodecInterface
         };
     }
 
-    /**
-     * @param list<string> $relays
-     */
     #[Override]
-    public function encodeAddressableEvent(string $identifier, PublicKey $pubkey, int $kind, array $relays = []): string
+    public function encodeAddressableEvent(EventCoordinate $coordinate, RelayUrlCollection $relays = new RelayUrlCollection()): string
     {
-        $bytes = self::tlvEntry(self::TLV_SPECIAL, $identifier);
+        $bytes = self::tlvEntry(self::TLV_SPECIAL, $coordinate->getIdentifier());
         foreach ($relays as $relay) {
             $bytes .= self::tlvEntry(self::TLV_RELAY, (string) $relay);
         }
-        $bytes .= self::tlvEntry(self::TLV_AUTHOR, $pubkey->toBytes());
-        $bytes .= self::tlvEntry(self::TLV_KIND, self::integerToBytes($kind));
+        $bytes .= self::tlvEntry(self::TLV_AUTHOR, $coordinate->getPubkey()->toBytes());
+        $bytes .= self::tlvEntry(self::TLV_KIND, self::integerToBytes($coordinate->getKind()->toInt()));
 
         return Bech32Codec::encode('naddr', $bytes);
     }

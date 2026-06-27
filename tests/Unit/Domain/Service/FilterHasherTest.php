@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
+use Innis\Nostr\Core\Domain\Collection\EventKindCollection;
+use Innis\Nostr\Core\Domain\Collection\PublicKeyCollection;
 use Innis\Nostr\Core\Domain\Entity\Filter;
 use Innis\Nostr\Core\Domain\Service\FilterHasher;
 use PHPUnit\Framework\TestCase;
@@ -12,7 +14,7 @@ final class FilterHasherTest extends TestCase
 {
     public function testHashIsStableForTheSameInput(): void
     {
-        $filter = new Filter(authors: ['a'], kinds: [1, 2]);
+        $filter = new Filter(authors: PublicKeyCollection::fromHexValues([str_repeat('a', 64)]), kinds: EventKindCollection::fromInts([1, 2]));
 
         $this->assertSame(FilterHasher::hash($filter), FilterHasher::hash($filter));
     }
@@ -20,8 +22,8 @@ final class FilterHasherTest extends TestCase
     public function testHashIsIndependentOfArrayElementOrder(): void
     {
         $this->assertSame(
-            FilterHasher::hash(new Filter(authors: ['a', 'b'])),
-            FilterHasher::hash(new Filter(authors: ['b', 'a'])),
+            FilterHasher::hash(new Filter(authors: PublicKeyCollection::fromHexValues([str_repeat('a', 64), str_repeat('b', 64)]))),
+            FilterHasher::hash(new Filter(authors: PublicKeyCollection::fromHexValues([str_repeat('b', 64), str_repeat('a', 64)]))),
         );
     }
 
@@ -35,8 +37,8 @@ final class FilterHasherTest extends TestCase
 
     public function testHashIsIndependentOfTheOrderOfFiltersInTheSet(): void
     {
-        $first = new Filter(authors: ['a']);
-        $second = new Filter(authors: ['b']);
+        $first = new Filter(authors: PublicKeyCollection::fromHexValues([str_repeat('a', 64)]));
+        $second = new Filter(authors: PublicKeyCollection::fromHexValues([str_repeat('b', 64)]));
 
         $this->assertSame(
             FilterHasher::hash($first, $second),
@@ -47,29 +49,29 @@ final class FilterHasherTest extends TestCase
     public function testHashDistinguishesFiltersThatSelectDifferentEvents(): void
     {
         $this->assertNotSame(
-            FilterHasher::hash(new Filter(authors: ['a'])),
-            FilterHasher::hash(new Filter(authors: ['b'])),
+            FilterHasher::hash(new Filter(authors: PublicKeyCollection::fromHexValues([str_repeat('a', 64)]))),
+            FilterHasher::hash(new Filter(authors: PublicKeyCollection::fromHexValues([str_repeat('b', 64)]))),
         );
     }
 
     public function testHashTreatsAbsentFieldsConsistently(): void
     {
         $this->assertNotSame(
-            FilterHasher::hash(new Filter(authors: ['a'])),
-            FilterHasher::hash(new Filter(authors: ['a'], limit: 10)),
+            FilterHasher::hash(new Filter(authors: PublicKeyCollection::fromHexValues([str_repeat('a', 64)]))),
+            FilterHasher::hash(new Filter(authors: PublicKeyCollection::fromHexValues([str_repeat('a', 64)]), limit: 10)),
         );
     }
 
     public function testHashIsLowercaseHexSha256(): void
     {
-        $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', FilterHasher::hash(new Filter(authors: ['a'])));
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', FilterHasher::hash(new Filter(authors: PublicKeyCollection::fromHexValues([str_repeat('a', 64)]))));
     }
 
     public function testHashPreservesDuplicateArrayElements(): void
     {
         $this->assertNotSame(
-            FilterHasher::hash(new Filter(authors: ['a', 'a'])),
-            FilterHasher::hash(new Filter(authors: ['a'])),
+            FilterHasher::hash(new Filter(authors: PublicKeyCollection::fromHexValues([str_repeat('a', 64), str_repeat('a', 64)]))),
+            FilterHasher::hash(new Filter(authors: PublicKeyCollection::fromHexValues([str_repeat('a', 64)]))),
         );
     }
 
@@ -86,7 +88,7 @@ final class FilterHasherTest extends TestCase
     {
         $this->assertSame(
             'a34519033f2032b87a019ef94f4be40fc1ab6a621d2b66c55b0d386c3e576587',
-            FilterHasher::hash(new Filter(kinds: [2, 1], limit: 5)),
+            FilterHasher::hash(new Filter(kinds: EventKindCollection::fromInts([2, 1]), limit: 5)),
         );
     }
 

@@ -61,7 +61,7 @@ final class GiftWrapper implements GiftWrapServiceInterface
                 $senderKeyPair,
                 $recipientPublicKey,
                 EventKind::fromInt(EventKind::SEAL),
-                TagCollection::empty(),
+                new TagCollection(),
                 $envelope->getSealTimestamp()
             );
 

@@ -41,7 +41,7 @@ final class AuthMessageTest extends TestCase
             self::createPublicKey(),
             Timestamp::fromInt(1700000000),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString(''),
         );
 
@@ -119,7 +119,7 @@ final class AuthMessageTest extends TestCase
             self::createPublicKey(),
             Timestamp::fromInt(1700000000),
             EventKind::fromInt(EventKind::CLIENT_AUTH),
-            TagCollection::empty(),
+            new TagCollection(),
             EventContent::fromString(''),
         );
     }
