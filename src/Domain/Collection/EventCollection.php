@@ -36,7 +36,7 @@ final class EventCollection extends TypedCollection
 
     public function contains(EventId $eventId): bool
     {
-        return array_any($this->items, static fn (Event $event): bool => $event->getId()->equals($eventId));
+        return $this->containsByKey((string) $eventId, static fn (Event $event): string => (string) $event->getId());
     }
 
     public function filterByKind(EventKind $kind): self

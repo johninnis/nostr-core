@@ -12,10 +12,6 @@ use Override;
  */
 final class PublicKeyCollection extends TypedCollection
 {
-    // Deliberate: lazily memoised membership index, permitted because the collection is not readonly — see ADR-0024
-    /** @var array<string, true>|null */
-    private ?array $hexIndex = null;
-
     #[Override]
     protected function elementType(): string
     {
@@ -42,9 +38,7 @@ final class PublicKeyCollection extends TypedCollection
 
     public function contains(PublicKey $publicKey): bool
     {
-        $this->hexIndex ??= array_fill_keys($this->toHexes(), true);
-
-        return isset($this->hexIndex[$publicKey->toHex()]);
+        return $this->containsByKey($publicKey->toHex(), static fn (PublicKey $key): string => $key->toHex());
     }
 
     public function intersect(self $other): self

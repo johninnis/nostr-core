@@ -75,22 +75,6 @@ final readonly class Nip11Info
     }
 
     /**
-     * @param array<string, mixed> $data
-     */
-    public static function fromArray(RelayUrl $relayUrl, array $data = []): self
-    {
-        return new self($relayUrl, $data);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function toArray(): array
-    {
-        return $this->rawData;
-    }
-
-    /**
      * @return array<array-key, mixed>|null
      */
     public function getLimitation(): ?array
@@ -110,12 +94,12 @@ final readonly class Nip11Info
 
     public function isAuthRequired(): bool
     {
-        return true === ($this->getLimitation()['auth_required'] ?? false);
+        return JsonWireFormat::boolField($this->getLimitation() ?? [], 'auth_required') ?? false;
     }
 
     public function isPaymentRequired(): bool
     {
-        return true === ($this->getLimitation()['payment_required'] ?? false);
+        return JsonWireFormat::boolField($this->getLimitation() ?? [], 'payment_required') ?? false;
     }
 
     /**
@@ -176,5 +160,21 @@ final readonly class Nip11Info
     public function getTermsOfService(): ?string
     {
         return JsonWireFormat::stringField($this->rawData, 'terms_of_service');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        return $this->rawData;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    public static function fromArray(RelayUrl $relayUrl, array $data = []): self
+    {
+        return new self($relayUrl, $data);
     }
 }

@@ -20,6 +20,10 @@ abstract class TypedCollection implements IteratorAggregate, Countable
     /** @var list<T> */
     protected readonly array $items;
 
+    // Deliberate: lazily memoised membership index, permitted because the collection is not readonly — see ADR-0024
+    /** @var array<array-key, true>|null */
+    private ?array $membershipIndex = null;
+
     /**
      * @param array<array-key, mixed> $items
      */
@@ -98,6 +102,17 @@ abstract class TypedCollection implements IteratorAggregate, Countable
         }
 
         return array_values($unique);
+    }
+
+    /**
+     * @param array-key              $key
+     * @param callable(T): array-key $keyOf
+     */
+    final protected function containsByKey(int|string $key, callable $keyOf): bool
+    {
+        $this->membershipIndex ??= array_fill_keys(array_map($keyOf, $this->items), true);
+
+        return isset($this->membershipIndex[$key]);
     }
 
     /**

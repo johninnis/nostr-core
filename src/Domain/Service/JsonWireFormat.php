@@ -56,6 +56,16 @@ final class JsonWireFormat
 
     /**
      * @param array<mixed> $data
+     */
+    public static function boolField(array $data, string $key): ?bool
+    {
+        $value = $data[$key] ?? null;
+
+        return is_bool($value) ? $value : null;
+    }
+
+    /**
+     * @param array<mixed> $data
      *
      * @return array<array-key, mixed>|null
      */
