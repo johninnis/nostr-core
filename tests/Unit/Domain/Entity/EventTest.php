@@ -808,6 +808,53 @@ final class EventTest extends TestCase
         $this->assertFalse($this->event->isProtected());
     }
 
+    public function testFromArrayParsesTheValidBaselineUsedByMalformedCases(): void
+    {
+        $this->assertNotNull(Event::fromArray(self::validEventArray()));
+    }
+
+    /**
+     * @param array<array-key, mixed> $data
+     */
+    #[DataProvider('malformedEventProvider')]
+    public function testFromArrayReturnsNullForMalformedFields(array $data): void
+    {
+        $this->assertNull(Event::fromArray($data));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function validEventArray(): array
+    {
+        return [
+            'pubkey' => str_repeat('a', 64),
+            'created_at' => 1700000000,
+            'kind' => 1,
+            'tags' => [],
+            'content' => 'hello',
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{array<array-key, mixed>}>
+     */
+    public static function malformedEventProvider(): iterable
+    {
+        yield 'pubkey not a string' => [[...self::validEventArray(), 'pubkey' => 123]];
+        yield 'pubkey not valid hex' => [[...self::validEventArray(), 'pubkey' => 'zz']];
+        yield 'created_at not an int' => [[...self::validEventArray(), 'created_at' => '1700000000']];
+        yield 'created_at negative' => [[...self::validEventArray(), 'created_at' => -1]];
+        yield 'kind not an int' => [[...self::validEventArray(), 'kind' => '1']];
+        yield 'kind above protocol maximum' => [[...self::validEventArray(), 'kind' => 70000]];
+        yield 'tags not an array' => [[...self::validEventArray(), 'tags' => 'nope']];
+        yield 'content not encodable as json' => [[...self::validEventArray(), 'content' => ["\xB1"]]];
+        yield 'id not a string' => [[...self::validEventArray(), 'id' => 123]];
+        yield 'id not valid hex' => [[...self::validEventArray(), 'id' => 'zz']];
+        yield 'sig not a string' => [[...self::validEventArray(), 'sig' => 123]];
+        yield 'sig not valid hex' => [[...self::validEventArray(), 'sig' => 'zz']];
+    }
+
     /**
      * @param list<list<string>> $tagArrays
      */

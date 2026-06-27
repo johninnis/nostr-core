@@ -537,13 +537,22 @@ final class FilterTest extends TestCase
     {
         yield 'kinds not an array' => [['kinds' => 'one']];
         yield 'kinds with non-int element' => [['kinds' => ['1']]];
+        yield 'kinds with out-of-range value' => [['kinds' => [70000]]];
         yield 'ids not an array' => [['ids' => str_repeat('a', 64)]];
         yield 'ids with non-string element' => [['ids' => [123]]];
+        yield 'ids exceeding the value cap' => [['ids' => array_fill(0, 1001, 'a')]];
         yield 'authors not an array' => [['authors' => str_repeat('a', 64)]];
         yield 'authors with non-string element' => [['authors' => [123]]];
+        yield 'authors exceeding the value cap' => [['authors' => array_fill(0, 1001, 'a')]];
+        yield 'tag values exceeding the value cap' => [['#t' => array_fill(0, 1001, 'x')]];
         yield 'limit not an int' => [['limit' => '5']];
+        yield 'limit below minimum' => [['limit' => 0]];
+        yield 'limit above maximum' => [['limit' => 99999]];
         yield 'search not a string' => [['search' => ['nostr']]];
         yield 'since not an int' => [['since' => '1700000000']];
+        yield 'since negative' => [['since' => -1]];
+        yield 'until negative' => [['until' => -1]];
+        yield 'since after until' => [['since' => 2000, 'until' => 1000]];
     }
 
     /**
@@ -647,6 +656,22 @@ final class FilterTest extends TestCase
         $filter = new Filter(search: 'nostr');
 
         $this->assertFalse($filter->matches($event));
+    }
+
+    public function testWhitespaceOnlySearchMatchesAnyEvent(): void
+    {
+        $keyPair = KeyMother::alice();
+        $event = new Event(
+            $keyPair->getPublicKey(),
+            Timestamp::now(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
+            TagCollection::empty(),
+            EventContent::fromString('Hello world')
+        );
+
+        $filter = new Filter(search: '   ');
+
+        $this->assertTrue($filter->matches($event));
     }
 
     public function testSearchCombinesWithOtherFilters(): void
