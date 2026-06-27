@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol;
 
 use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 
+// Deliberate: a thin typed view over the raw NIP-11 document, not a fully-parsed value object — see ADR-0036
 final readonly class Nip11Info
 {
     /**
@@ -32,9 +34,11 @@ final readonly class Nip11Info
         return JsonWireFormat::stringField($this->rawData, 'description');
     }
 
-    public function getPubkey(): ?string
+    public function getPubkey(): ?PublicKey
     {
-        return JsonWireFormat::stringField($this->rawData, 'pubkey');
+        $pubkey = JsonWireFormat::stringField($this->rawData, 'pubkey');
+
+        return null === $pubkey ? null : PublicKey::fromHex($pubkey);
     }
 
     public function getContact(): ?string

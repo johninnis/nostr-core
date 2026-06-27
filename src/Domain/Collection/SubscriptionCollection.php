@@ -96,6 +96,9 @@ final readonly class SubscriptionCollection implements IteratorAggregate, Counta
         return array_keys($this->subscriptions);
     }
 
+    /**
+     * @param callable(Subscription): bool $predicate
+     */
     public function filter(callable $predicate): self
     {
         return new self(array_filter($this->subscriptions, $predicate));

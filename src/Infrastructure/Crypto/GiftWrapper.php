@@ -24,6 +24,7 @@ use InvalidArgumentException;
 use Override;
 use Throwable;
 
+// Deliberate: a composed cryptographic capability, kept with the crypto family despite reaching primitives only through ports — see ADR-0035
 final class GiftWrapper implements GiftWrapServiceInterface
 {
     public function __construct(

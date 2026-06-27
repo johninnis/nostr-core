@@ -36,7 +36,7 @@ final class Nip49Cipher implements Nip49EncryptionInterface
     public function encrypt(
         PrivateKey $privateKey,
         Closure $passwordProvider,
-        int $logN = 16,
+        int $logN = self::ENCRYPT_LOG_N_MIN,
         KeySecurityByte $keySecurity = KeySecurityByte::Unknown,
     ): Ncryptsec {
         if ($logN < self::ENCRYPT_LOG_N_MIN || $logN > self::LOG_N_MAX) {
@@ -46,7 +46,21 @@ final class Nip49Cipher implements Nip49EncryptionInterface
         $salt = $this->randomBytes->bytes(Ncryptsec::SALT_LENGTH);
         $nonce = $this->randomBytes->bytes(Ncryptsec::NONCE_LENGTH);
 
-        return $this->encryptWithSaltAndNonce($privateKey, $passwordProvider, $logN, $keySecurity, $salt, $nonce);
+        $aeadOutput = $this->withDerivedKey(
+            $passwordProvider,
+            $salt,
+            $logN,
+            static fn (string $derivedKey): string => $privateKey->expose(
+                static fn (string $nsecBytes): string => sodium_crypto_aead_xchacha20poly1305_ietf_encrypt(
+                    $nsecBytes,
+                    chr($keySecurity->value),
+                    $nonce,
+                    $derivedKey,
+                )
+            ),
+        );
+
+        return Ncryptsec::fromFields($logN, $salt, $nonce, $keySecurity, $aeadOutput);
     }
 
     #[Override]
@@ -84,31 +98,6 @@ final class Nip49Cipher implements Nip49EncryptionInterface
         } finally {
             sodium_memzero($plaintext);
         }
-    }
-
-    private function encryptWithSaltAndNonce(
-        PrivateKey $privateKey,
-        Closure $passwordProvider,
-        int $logN,
-        KeySecurityByte $keySecurity,
-        string $salt,
-        string $nonce,
-    ): Ncryptsec {
-        $aeadOutput = $this->withDerivedKey(
-            $passwordProvider,
-            $salt,
-            $logN,
-            static fn (string $derivedKey): string => $privateKey->expose(
-                static fn (string $nsecBytes): string => sodium_crypto_aead_xchacha20poly1305_ietf_encrypt(
-                    $nsecBytes,
-                    chr($keySecurity->value),
-                    $nonce,
-                    $derivedKey,
-                )
-            ),
-        );
-
-        return Ncryptsec::fromFields($logN, $salt, $nonce, $keySecurity, $aeadOutput);
     }
 
     /**

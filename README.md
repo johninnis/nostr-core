@@ -292,6 +292,9 @@ Design rationale lives in [`docs/adr/`](docs/adr/) as immutable Architecture Dec
 | [0031](docs/adr/0031-tojsonarray-stays-per-leaf-to-keep-precise-element-shapes.md) | `toJsonArray()` stays per collection leaf to keep each element's precise shape |
 | [0032](docs/adr/0032-eventhandlerinterface-is-a-downstream-implemented-port.md) | `EventHandlerInterface` is a downstream-implemented port with no in-package implementer or consumer |
 | [0033](docs/adr/0033-from-parsers-return-optional-only-when-a-required-field-can-be-absent.md) | A `from*` parser returns `?self` only when a required field can be absent |
+| [0034](docs/adr/0034-http-transport-hardening-is-the-hosts-obligation.md) | HTTP transport hardening (body size, SSRF redirects, timeout) is the host's obligation behind `HttpServiceInterface` |
+| [0035](docs/adr/0035-giftwrapper-is-a-composed-cryptographic-capability.md) | `GiftWrapper` is a composed cryptographic capability kept with the crypto family; its envelope factory is a local injection seam |
+| [0036](docs/adr/0036-nip11info-is-a-thin-view-over-the-raw-document.md) | `Nip11Info` is a thin typed view over the raw document, while `ProfileMetadata` is fully parsed |
 
 ## Dependencies
 

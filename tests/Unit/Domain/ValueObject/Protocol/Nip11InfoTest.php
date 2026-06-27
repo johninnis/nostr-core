@@ -52,7 +52,7 @@ final class Nip11InfoTest extends TestCase
 
         $this->assertSame('Test Relay', $info->getName());
         $this->assertSame('A test relay', $info->getDescription());
-        $this->assertSame(str_repeat('a', 64), $info->getPubkey());
+        $this->assertSame(str_repeat('a', 64), $info->getPubkey()?->toHex());
         $this->assertSame('admin@example.com', $info->getContact());
         $this->assertSame([1, 11, 42], $info->getSupportedNips());
         $this->assertSame('nostr-relay', $info->getSoftware());
@@ -80,7 +80,7 @@ final class Nip11InfoTest extends TestCase
         $this->assertTrue($info->getRelayUrl()->equals($this->relayUrl));
         $this->assertSame('Test Relay', $info->getName());
         $this->assertSame('A test relay for testing', $info->getDescription());
-        $this->assertSame(str_repeat('b', 64), $info->getPubkey());
+        $this->assertSame(str_repeat('b', 64), $info->getPubkey()?->toHex());
         $this->assertSame('hello@example.com', $info->getContact());
         $this->assertSame([1, 11], $info->getSupportedNips());
         $this->assertSame('strfry', $info->getSoftware());

@@ -24,19 +24,7 @@ final class EventKindCollection extends TypedCollection
 
     public static function fromInts(mixed $values): self
     {
-        $kinds = [];
-
-        if (is_iterable($values)) {
-            foreach ($values as $value) {
-                $kind = is_int($value) ? EventKind::tryFromInt($value) : null;
-
-                if (null !== $kind) {
-                    $kinds[] = $kind;
-                }
-            }
-        }
-
-        return new self($kinds);
+        return new self(self::parseInts($values, EventKind::tryFromInt(...)));
     }
 
     /**

@@ -21,10 +21,9 @@ final class Nip05VerifierTest extends TestCase
         $httpService = $this->createStub(HttpServiceInterface::class);
         $httpService->method('getJson')->willReturn(null);
 
-        $result = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
+        $failure = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
 
-        $this->assertFalse($result->isValid());
-        $this->assertSame(Nip05VerificationFailure::FetchFailed, $result->getFailureReason());
+        $this->assertSame(Nip05VerificationFailure::FetchFailed, $failure);
     }
 
     public function testReturnsFailureWhenResponseLacksNamesKey(): void
@@ -32,10 +31,9 @@ final class Nip05VerifierTest extends TestCase
         $httpService = $this->createStub(HttpServiceInterface::class);
         $httpService->method('getJson')->willReturn(['relays' => []]);
 
-        $result = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
+        $failure = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
 
-        $this->assertFalse($result->isValid());
-        $this->assertSame(Nip05VerificationFailure::MissingNames, $result->getFailureReason());
+        $this->assertSame(Nip05VerificationFailure::MissingNames, $failure);
     }
 
     public function testReturnsFailureWhenLocalPartNotInNames(): void
@@ -47,10 +45,9 @@ final class Nip05VerifierTest extends TestCase
             ],
         ]);
 
-        $result = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
+        $failure = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
 
-        $this->assertFalse($result->isValid());
-        $this->assertSame(Nip05VerificationFailure::NameNotFound, $result->getFailureReason());
+        $this->assertSame(Nip05VerificationFailure::NameNotFound, $failure);
     }
 
     public function testReturnsFailureWhenReturnedPubkeyDoesNotMatch(): void
@@ -63,13 +60,12 @@ final class Nip05VerifierTest extends TestCase
             ],
         ]);
 
-        $result = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
+        $failure = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
 
-        $this->assertFalse($result->isValid());
-        $this->assertSame(Nip05VerificationFailure::PubkeyMismatch, $result->getFailureReason());
+        $this->assertSame(Nip05VerificationFailure::PubkeyMismatch, $failure);
     }
 
-    public function testReturnsSuccessWhenNamesMatchExpectedPubkey(): void
+    public function testReturnsNullWhenNamesMatchExpectedPubkey(): void
     {
         $httpService = $this->createStub(HttpServiceInterface::class);
         $httpService->method('getJson')->willReturn([
@@ -78,13 +74,12 @@ final class Nip05VerifierTest extends TestCase
             ],
         ]);
 
-        $result = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
+        $failure = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
 
-        $this->assertTrue($result->isValid());
-        $this->assertNull($result->getFailureReason());
+        $this->assertNull($failure);
     }
 
-    public function testReturnsSuccessWhenReturnedPubkeyDiffersOnlyByCase(): void
+    public function testReturnsNullWhenReturnedPubkeyDiffersOnlyByCase(): void
     {
         $httpService = $this->createStub(HttpServiceInterface::class);
         $httpService->method('getJson')->willReturn([
@@ -93,10 +88,9 @@ final class Nip05VerifierTest extends TestCase
             ],
         ]);
 
-        $result = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
+        $failure = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
 
-        $this->assertTrue($result->isValid());
-        $this->assertNull($result->getFailureReason());
+        $this->assertNull($failure);
     }
 
     public function testFetchesWellKnownUrlForIdentifier(): void
