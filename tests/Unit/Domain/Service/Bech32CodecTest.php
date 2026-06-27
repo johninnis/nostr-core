@@ -11,6 +11,16 @@ use RuntimeException;
 
 final class Bech32CodecTest extends TestCase
 {
+    public function testDecodeRejectsValidChecksumWithNonCanonicalPadding(): void
+    {
+        $this->assertNull(Bech32Codec::decode('npub1pc3jnnt'));
+    }
+
+    public function testDecodeRejectsValidChecksumOverAnInvalidDataCharacter(): void
+    {
+        $this->assertNull(Bech32Codec::decode('npub1brfkf0u'));
+    }
+
     public function testDefaultVariantIsBech32(): void
     {
         $payload = "\x00\x01\x02\x03";

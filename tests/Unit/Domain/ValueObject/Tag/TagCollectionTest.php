@@ -72,6 +72,32 @@ final class TagCollectionTest extends TestCase
         $this->assertFalse($newCollection->hasType(TagType::event()));
     }
 
+    public function testRemoveDeletesOnlyTheTagMatchingTypeAndValue(): void
+    {
+        $eventTag1 = Tag::event('event-id-1');
+        $eventTag2 = Tag::event('event-id-2');
+        $collection = new TagCollection([$eventTag1, $eventTag2, Tag::pubkey('pubkey-hex')]);
+
+        $remainingEvents = $collection->remove($eventTag1)->findByType(TagType::event());
+
+        $this->assertCount(1, $remainingEvents);
+        $this->assertSame('event-id-2', $remainingEvents[0]->getValue());
+    }
+
+    public function testGetPubkeysReturnsPublicKeysFromPubkeyTags(): void
+    {
+        $collection = new TagCollection([Tag::pubkey(str_repeat('a', 64)), Tag::event('not-a-pubkey')]);
+
+        $this->assertCount(1, $collection->getPubkeys());
+    }
+
+    public function testGetEventIdsReturnsEventIdsFromEventTags(): void
+    {
+        $collection = new TagCollection([Tag::event(str_repeat('b', 64)), Tag::pubkey(str_repeat('a', 64))]);
+
+        $this->assertCount(1, $collection->getEventIds());
+    }
+
     public function testCanFindByType(): void
     {
         $eventTag1 = Tag::event('event-id-1');

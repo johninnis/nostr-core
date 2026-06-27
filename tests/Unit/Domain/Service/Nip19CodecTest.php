@@ -28,6 +28,34 @@ final class Nip19CodecTest extends TestCase
         $this->codec = new Nip19Codec();
     }
 
+    public function testParseEventReferenceReturnsNullForAddressableMissingKind(): void
+    {
+        $identifierOnly = chr(0).chr(3).'abc';
+        $naddr = Bech32Codec::encode('naddr', $identifierOnly);
+
+        $this->assertNull($this->codec->parseEventReference($naddr));
+    }
+
+    public function testDecodeProfileReturnsNullForTruncatedTlv(): void
+    {
+        $this->assertNull($this->codec->decodeComplexEntity(Bech32Codec::encode('nprofile', self::truncatedTlv())));
+    }
+
+    public function testDecodeEventReturnsNullForTruncatedTlv(): void
+    {
+        $this->assertNull($this->codec->decodeComplexEntity(Bech32Codec::encode('nevent', self::truncatedTlv())));
+    }
+
+    public function testDecodeAddressReturnsNullForTruncatedTlv(): void
+    {
+        $this->assertNull($this->codec->decodeComplexEntity(Bech32Codec::encode('naddr', self::truncatedTlv())));
+    }
+
+    private static function truncatedTlv(): string
+    {
+        return chr(0).chr(50).'abc';
+    }
+
     public function testDecodeNpubReturnsPubkeyEntity(): void
     {
         $pubkey = $this->pubkey();
