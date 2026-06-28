@@ -18,6 +18,11 @@ final class EventKindCollection extends TypedCollection
         return EventKind::class;
     }
 
+    private static function keyOf(EventKind $eventKind): int
+    {
+        return $eventKind->toInt();
+    }
+
     public static function fromInts(mixed $values): self
     {
         return new self(self::parseInts($values, EventKind::tryFromInt(...)));
@@ -35,21 +40,21 @@ final class EventKindCollection extends TypedCollection
      */
     public function toInts(): array
     {
-        return $this->mapItems(static fn (EventKind $kind): int => $kind->toInt());
+        return $this->mapItems(self::keyOf(...));
     }
 
     public function contains(EventKind $eventKind): bool
     {
-        return $this->containsByKey($eventKind->toInt(), static fn (EventKind $kind): int => $kind->toInt());
+        return $this->containsByKey(self::keyOf($eventKind), self::keyOf(...));
     }
 
     public function intersect(self $other): self
     {
-        return new self($this->retainByKey($other, static fn (EventKind $eventKind): int => $eventKind->toInt(), true));
+        return new self($this->retainByKey($other, self::keyOf(...), true));
     }
 
     public function diff(self $other): self
     {
-        return new self($this->retainByKey($other, static fn (EventKind $eventKind): int => $eventKind->toInt(), false));
+        return new self($this->retainByKey($other, self::keyOf(...), false));
     }
 }

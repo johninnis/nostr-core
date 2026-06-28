@@ -7,6 +7,7 @@ namespace Innis\Nostr\Core\Infrastructure\Http;
 use Innis\Nostr\Core\Application\Port\HttpServiceInterface;
 use Innis\Nostr\Core\Application\Port\Nip05VerifierInterface;
 use Innis\Nostr\Core\Domain\Failure\Nip05VerificationFailure;
+use Innis\Nostr\Core\Domain\Service\Nip05DocumentVerifier;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Nip05Identifier;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Override;
@@ -30,21 +31,6 @@ final readonly class Nip05Verifier implements Nip05VerifierInterface
             return Nip05VerificationFailure::FetchFailed;
         }
 
-        if (!isset($data['names'])) {
-            return Nip05VerificationFailure::MissingNames;
-        }
-
-        $localPart = $identifier->getLocalPart();
-        if (!is_array($data['names']) || !isset($data['names'][$localPart])) {
-            return Nip05VerificationFailure::NameNotFound;
-        }
-
-        $returnedPubkey = $data['names'][$localPart];
-
-        if (!is_string($returnedPubkey) || 0 !== strcasecmp($returnedPubkey, $expectedPubkey->toHex())) {
-            return Nip05VerificationFailure::PubkeyMismatch;
-        }
-
-        return null;
+        return Nip05DocumentVerifier::verify($data, $identifier, $expectedPubkey);
     }
 }

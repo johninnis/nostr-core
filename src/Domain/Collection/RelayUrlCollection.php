@@ -18,6 +18,11 @@ final class RelayUrlCollection extends TypedCollection
         return RelayUrl::class;
     }
 
+    private static function keyOf(RelayUrl $relayUrl): string
+    {
+        return (string) $relayUrl;
+    }
+
     public static function fromStrings(mixed $values): self
     {
         return new self(self::parseStrings($values, RelayUrl::fromString(...)));
@@ -25,7 +30,7 @@ final class RelayUrlCollection extends TypedCollection
 
     public function unique(): self
     {
-        return new self($this->deduplicate(static fn (RelayUrl $relayUrl): string => (string) $relayUrl));
+        return new self($this->deduplicate(self::keyOf(...)));
     }
 
     /**
@@ -33,6 +38,6 @@ final class RelayUrlCollection extends TypedCollection
      */
     public function toStrings(): array
     {
-        return $this->mapItems(static fn (RelayUrl $relayUrl): string => (string) $relayUrl);
+        return $this->mapItems(self::keyOf(...));
     }
 }

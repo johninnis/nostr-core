@@ -25,7 +25,7 @@ final class Nip49CipherTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->adapter = new Nip49Cipher();
+        $this->adapter = Nip49Cipher::create();
     }
 
     public function testRoundTripDecryptsToSameKey(): void

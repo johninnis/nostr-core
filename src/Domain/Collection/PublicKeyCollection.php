@@ -18,6 +18,11 @@ final class PublicKeyCollection extends TypedCollection
         return PublicKey::class;
     }
 
+    private static function keyOf(PublicKey $publicKey): string
+    {
+        return $publicKey->toHex();
+    }
+
     public static function fromHexValues(mixed $values): self
     {
         return new self(self::parseStrings($values, PublicKey::fromHex(...)));
@@ -32,7 +37,7 @@ final class PublicKeyCollection extends TypedCollection
 
     public function unique(): self
     {
-        return new self($this->deduplicate(static fn (PublicKey $publicKey): string => $publicKey->toHex()));
+        return new self($this->deduplicate(self::keyOf(...)));
     }
 
     /**
@@ -40,21 +45,21 @@ final class PublicKeyCollection extends TypedCollection
      */
     public function toHexes(): array
     {
-        return $this->mapItems(static fn (PublicKey $publicKey): string => $publicKey->toHex());
+        return $this->mapItems(self::keyOf(...));
     }
 
     public function contains(PublicKey $publicKey): bool
     {
-        return $this->containsByKey($publicKey->toHex(), static fn (PublicKey $key): string => $key->toHex());
+        return $this->containsByKey(self::keyOf($publicKey), self::keyOf(...));
     }
 
     public function intersect(self $other): self
     {
-        return new self($this->retainByKey($other, static fn (PublicKey $publicKey): string => $publicKey->toHex(), true));
+        return new self($this->retainByKey($other, self::keyOf(...), true));
     }
 
     public function diff(self $other): self
     {
-        return new self($this->retainByKey($other, static fn (PublicKey $publicKey): string => $publicKey->toHex(), false));
+        return new self($this->retainByKey($other, self::keyOf(...), false));
     }
 }

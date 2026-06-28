@@ -18,6 +18,11 @@ final class EventIdCollection extends TypedCollection
         return EventId::class;
     }
 
+    private static function keyOf(EventId $eventId): string
+    {
+        return $eventId->toHex();
+    }
+
     public static function fromHexValues(mixed $values): self
     {
         return new self(self::parseStrings($values, EventId::fromHex(...)));
@@ -32,12 +37,12 @@ final class EventIdCollection extends TypedCollection
 
     public function unique(): self
     {
-        return new self($this->deduplicate(static fn (EventId $eventId): string => $eventId->toHex()));
+        return new self($this->deduplicate(self::keyOf(...)));
     }
 
     public function contains(EventId $eventId): bool
     {
-        return $this->containsByKey($eventId->toHex(), static fn (EventId $id): string => $id->toHex());
+        return $this->containsByKey(self::keyOf($eventId), self::keyOf(...));
     }
 
     /**
@@ -45,6 +50,6 @@ final class EventIdCollection extends TypedCollection
      */
     public function toHexes(): array
     {
-        return $this->mapItems(static fn (EventId $eventId): string => $eventId->toHex());
+        return $this->mapItems(self::keyOf(...));
     }
 }

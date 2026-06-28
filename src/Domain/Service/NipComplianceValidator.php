@@ -84,10 +84,6 @@ final readonly class NipComplianceValidator implements NipComplianceValidatorInt
 
     private function validateBasicStructure(Event $event): void
     {
-        if ($event->getKind()->toInt() < 0) {
-            throw new InvalidEventException('Event kind cannot be negative');
-        }
-
         if (!$event->getCreatedAt()->isReasonable()) {
             throw new InvalidEventException('Event timestamp is not reasonable');
         }

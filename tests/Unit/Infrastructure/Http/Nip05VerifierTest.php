@@ -26,46 +26,7 @@ final class Nip05VerifierTest extends TestCase
         $this->assertSame(Nip05VerificationFailure::FetchFailed, $failure);
     }
 
-    public function testReturnsFailureWhenResponseLacksNamesKey(): void
-    {
-        $httpService = $this->createStub(HttpServiceInterface::class);
-        $httpService->method('getJson')->willReturn(['relays' => []]);
-
-        $failure = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
-
-        $this->assertSame(Nip05VerificationFailure::MissingNames, $failure);
-    }
-
-    public function testReturnsFailureWhenLocalPartNotInNames(): void
-    {
-        $httpService = $this->createStub(HttpServiceInterface::class);
-        $httpService->method('getJson')->willReturn([
-            'names' => [
-                'bob' => self::VALID_PUBKEY_HEX,
-            ],
-        ]);
-
-        $failure = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
-
-        $this->assertSame(Nip05VerificationFailure::NameNotFound, $failure);
-    }
-
-    public function testReturnsFailureWhenReturnedPubkeyDoesNotMatch(): void
-    {
-        $differentPubkey = str_repeat('f', 64);
-        $httpService = $this->createStub(HttpServiceInterface::class);
-        $httpService->method('getJson')->willReturn([
-            'names' => [
-                'alice' => $differentPubkey,
-            ],
-        ]);
-
-        $failure = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
-
-        $this->assertSame(Nip05VerificationFailure::PubkeyMismatch, $failure);
-    }
-
-    public function testReturnsNullWhenNamesMatchExpectedPubkey(): void
+    public function testDelegatesSuccessfulMatchToDomainVerifier(): void
     {
         $httpService = $this->createStub(HttpServiceInterface::class);
         $httpService->method('getJson')->willReturn([
@@ -79,18 +40,18 @@ final class Nip05VerifierTest extends TestCase
         $this->assertNull($failure);
     }
 
-    public function testReturnsNullWhenReturnedPubkeyDiffersOnlyByCase(): void
+    public function testDelegatesFailureFromDomainVerifier(): void
     {
         $httpService = $this->createStub(HttpServiceInterface::class);
         $httpService->method('getJson')->willReturn([
             'names' => [
-                'alice' => strtoupper(self::VALID_PUBKEY_HEX),
+                'bob' => self::VALID_PUBKEY_HEX,
             ],
         ]);
 
         $failure = $this->makeAdapter($httpService)->verify($this->identifier(), $this->pubkey());
 
-        $this->assertNull($failure);
+        $this->assertSame(Nip05VerificationFailure::NameNotFound, $failure);
     }
 
     public function testFetchesWellKnownUrlForIdentifier(): void

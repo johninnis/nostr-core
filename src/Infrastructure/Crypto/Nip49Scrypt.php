@@ -30,11 +30,15 @@ final class Nip49Scrypt
     private const int SCRYPT_BLOCK_SIZE = 8;
     private const int SCRYPT_PARALLELISM = 1;
 
-    private readonly ?FFI $ffi;
+    public function __construct(
+        private readonly ?FFI $ffi,
+    ) {
+    }
 
-    public function __construct()
+    public static function create(): self
     {
-        $this->ffi = FfiLibraryLoader::tryLoad(self::CDEF, self::LIBRARY_NAMES);
+        // Deliberate: the probe lives in the named constructor, never in __construct, so no instance silently dlopens libsodium — see ADR-0041
+        return new self(FfiLibraryLoader::tryLoad(self::CDEF, self::LIBRARY_NAMES));
     }
 
     public function derive(string $password, string $salt, int $logN): string

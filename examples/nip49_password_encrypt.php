@@ -9,7 +9,7 @@ use Innis\Nostr\Core\Infrastructure\Crypto\Nip49Cipher;
 
 require __DIR__.'/../vendor/autoload.php';
 
-$cipher = new Nip49Cipher();
+$cipher = Nip49Cipher::create();
 $privateKey = PrivateKey::generate();
 $password = static fn (): string => 'correct horse battery staple';
 

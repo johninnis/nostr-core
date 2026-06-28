@@ -21,6 +21,11 @@ final class EventCollection extends TypedCollection
         return Event::class;
     }
 
+    private static function keyOf(Event $event): string
+    {
+        return (string) $event->getId();
+    }
+
     public function add(Event $event): self
     {
         return new self([...$this->items, $event]);
@@ -36,7 +41,7 @@ final class EventCollection extends TypedCollection
 
     public function contains(EventId $eventId): bool
     {
-        return $this->containsByKey((string) $eventId, static fn (Event $event): string => (string) $event->getId());
+        return $this->containsByKey((string) $eventId, self::keyOf(...));
     }
 
     public function filterByKind(EventKind $kind): self
@@ -105,6 +110,6 @@ final class EventCollection extends TypedCollection
 
     public function unique(): self
     {
-        return new self($this->deduplicate(static fn (Event $event): string => (string) $event->getId()));
+        return new self($this->deduplicate(self::keyOf(...)));
     }
 }

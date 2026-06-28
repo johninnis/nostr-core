@@ -23,13 +23,21 @@ final class Nip49Cipher implements Nip49EncryptionInterface
     private const int LOG_N_MAX = 22;
 
     public function __construct(
-        private readonly Nip49Scrypt $scrypt = new Nip49Scrypt(),
+        private readonly Nip49Scrypt $scrypt = new Nip49Scrypt(null),
         private readonly RandomBytesGeneratorInterface $randomBytes = new NativeRandomBytesGenerator(),
         private readonly int $maxDecryptLogN = self::LOG_N_MAX,
     ) {
         if ($maxDecryptLogN < self::LOG_N_MIN || $maxDecryptLogN > self::LOG_N_MAX) {
             throw new InvalidArgumentException(sprintf('maxDecryptLogN must be between %d and %d', self::LOG_N_MIN, self::LOG_N_MAX));
         }
+    }
+
+    public static function create(
+        ?RandomBytesGeneratorInterface $randomBytes = null,
+        int $maxDecryptLogN = self::LOG_N_MAX,
+    ): self {
+        // Deliberate: probes for libsodium scrypt here, never in __construct; the bare constructor stays on a non-FFI scrypt for DI and tests — see ADR-0041
+        return new self(Nip49Scrypt::create(), $randomBytes ?? new NativeRandomBytesGenerator(), $maxDecryptLogN);
     }
 
     #[Override]

@@ -138,7 +138,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\Ncryptsec;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Infrastructure\Crypto\Nip49Cipher;
 
-$adapter = new Nip49Cipher();
+$adapter = Nip49Cipher::create();
 $privateKey = PrivateKey::generate();
 
 $ncryptsec = $adapter->encrypt(
@@ -153,6 +153,8 @@ $stored = (string) $ncryptsec; // ncryptsec1...
 $decoded = Ncryptsec::fromString($stored);
 $recovered = $adapter->decrypt($decoded, static fn (): string => readPasswordFromUser());
 ```
+
+Build the adapter through `Nip49Cipher::create()`, which probes for libsodium scrypt via `ext-ffi`. Like the secp256k1 adapters, the bare constructor (`new Nip49Cipher(...)`) deliberately does not probe — it is for dependency injection and tests, and stays on a non-FFI scrypt that throws on use because NIP-49 has no pure-PHP fallback. See [ADR-0041](docs/adr/0041-nip49-adapters-probe-libsodium-in-create-not-the-constructor.md) and [ADR-0039](docs/adr/0039-nip49-scrypt-requires-ffi-with-no-pure-php-fallback.md).
 
 ### Secret Key Lifecycle
 
@@ -313,6 +315,8 @@ Design rationale lives in [`docs/adr/`](docs/adr/) as immutable Architecture Dec
 | [0037](docs/adr/0037-nip44cipher-uses-sodium-compat-internal-chacha20.md) | `Nip44Cipher` uses sodium_compat's internal ChaCha20 because no public IETF stream cipher exists |
 | [0038](docs/adr/0038-nip98validator-takes-its-timestamp-tolerance-as-a-constructor-argument.md) | `Nip98Validator` takes its timestamp tolerance as a constructor argument |
 | [0039](docs/adr/0039-nip49-scrypt-requires-ffi-with-no-pure-php-fallback.md) | NIP-49 scrypt requires FFI + libsodium, with no pure-PHP fallback |
+| [0040](docs/adr/0040-zapamount-frombolt11-anchors-the-amount-to-the-bech32-separator.md) | `ZapAmount::fromBolt11` anchors the amount to the bech32 separator so amount-less invoices return null |
+| [0041](docs/adr/0041-nip49-adapters-probe-libsodium-in-create-not-the-constructor.md) | NIP-49 adapters probe libsodium in `create()`, never in the constructor |
 
 ## Dependencies
 
