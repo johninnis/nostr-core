@@ -23,14 +23,19 @@ final class PublicKeyCollection extends TypedCollection
         return $publicKey->toHex();
     }
 
+    private static function tryParse(mixed $value): ?PublicKey
+    {
+        return is_string($value) ? PublicKey::fromHex($value) : null;
+    }
+
     public static function fromHexValues(mixed $values): self
     {
-        return new self(self::parseStrings($values, PublicKey::fromHex(...)));
+        return new self(self::parseEach($values, self::tryParse(...)));
     }
 
     public static function fromWire(mixed $values): ?self
     {
-        $publicKeys = self::parseStringsStrict($values, PublicKey::fromHex(...));
+        $publicKeys = self::parseEachStrict($values, self::tryParse(...));
 
         return null === $publicKeys ? null : new self($publicKeys);
     }

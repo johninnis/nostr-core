@@ -23,14 +23,19 @@ final class EventKindCollection extends TypedCollection
         return $eventKind->toInt();
     }
 
+    private static function tryParse(mixed $value): ?EventKind
+    {
+        return is_int($value) ? EventKind::tryFromInt($value) : null;
+    }
+
     public static function fromInts(mixed $values): self
     {
-        return new self(self::parseInts($values, EventKind::tryFromInt(...)));
+        return new self(self::parseEach($values, self::tryParse(...)));
     }
 
     public static function fromWire(mixed $values): ?self
     {
-        $kinds = self::parseIntsStrict($values, EventKind::tryFromInt(...));
+        $kinds = self::parseEachStrict($values, self::tryParse(...));
 
         return null === $kinds ? null : new self($kinds);
     }

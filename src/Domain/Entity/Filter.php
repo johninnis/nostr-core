@@ -371,6 +371,6 @@ final readonly class Filter implements JsonSerializable, Stringable
     #[Override]
     public function __toString(): string
     {
-        return json_encode($this->jsonSerialize(), JsonWireFormat::MESSAGE);
+        return JsonWireFormat::encode($this->jsonSerialize(), JsonWireFormat::MESSAGE);
     }
 }

@@ -132,17 +132,17 @@ abstract class TypedCollection implements IteratorAggregate, Countable
     }
 
     /**
-     * @param callable(string): (T|null) $parse
+     * @param callable(mixed): (T|null) $tryParse
      *
      * @return list<T>
      */
-    final protected static function parseStrings(mixed $values, callable $parse): array
+    final protected static function parseEach(mixed $values, callable $tryParse): array
     {
         $items = [];
 
         if (is_iterable($values)) {
             foreach ($values as $value) {
-                $parsed = is_string($value) ? $parse($value) : null;
+                $parsed = $tryParse($value);
 
                 if (null !== $parsed) {
                     $items[] = $parsed;
@@ -154,11 +154,11 @@ abstract class TypedCollection implements IteratorAggregate, Countable
     }
 
     /**
-     * @param callable(string): (T|null) $parse
+     * @param callable(mixed): (T|null) $tryParse
      *
      * @return list<T>|null
      */
-    final protected static function parseStringsStrict(mixed $values, callable $parse): ?array
+    final protected static function parseEachStrict(mixed $values, callable $tryParse): ?array
     {
         if (!is_iterable($values)) {
             return null;
@@ -167,109 +167,13 @@ abstract class TypedCollection implements IteratorAggregate, Countable
         $items = [];
 
         foreach ($values as $value) {
-            $parsed = is_string($value) ? $parse($value) : null;
+            $parsed = $tryParse($value);
 
             if (null === $parsed) {
                 return null;
             }
 
             $items[] = $parsed;
-        }
-
-        return $items;
-    }
-
-    /**
-     * @param callable(int): (T|null) $parse
-     *
-     * @return list<T>|null
-     */
-    final protected static function parseIntsStrict(mixed $values, callable $parse): ?array
-    {
-        if (!is_iterable($values)) {
-            return null;
-        }
-
-        $items = [];
-
-        foreach ($values as $value) {
-            $parsed = is_int($value) ? $parse($value) : null;
-
-            if (null === $parsed) {
-                return null;
-            }
-
-            $items[] = $parsed;
-        }
-
-        return $items;
-    }
-
-    /**
-     * @param callable(array<array-key, mixed>): (T|null) $parse
-     *
-     * @return list<T>|null
-     */
-    final protected static function parseArraysStrict(mixed $values, callable $parse): ?array
-    {
-        if (!is_iterable($values)) {
-            return null;
-        }
-
-        $items = [];
-
-        foreach ($values as $value) {
-            $parsed = is_array($value) ? $parse($value) : null;
-
-            if (null === $parsed) {
-                return null;
-            }
-
-            $items[] = $parsed;
-        }
-
-        return $items;
-    }
-
-    /**
-     * @param callable(int): (T|null) $parse
-     *
-     * @return list<T>
-     */
-    final protected static function parseInts(mixed $values, callable $parse): array
-    {
-        $items = [];
-
-        if (is_iterable($values)) {
-            foreach ($values as $value) {
-                $parsed = is_int($value) ? $parse($value) : null;
-
-                if (null !== $parsed) {
-                    $items[] = $parsed;
-                }
-            }
-        }
-
-        return $items;
-    }
-
-    /**
-     * @param callable(array<array-key, mixed>): (T|null) $parse
-     *
-     * @return list<T>
-     */
-    final protected static function parseArrays(mixed $values, callable $parse): array
-    {
-        $items = [];
-
-        if (is_iterable($values)) {
-            foreach ($values as $value) {
-                $parsed = is_array($value) ? $parse($value) : null;
-
-                if (null !== $parsed) {
-                    $items[] = $parsed;
-                }
-            }
         }
 
         return $items;

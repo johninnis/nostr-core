@@ -4,18 +4,31 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Service;
 
+use Innis\Nostr\Core\Domain\Exception\SerialisationException;
+
 final class JsonWireFormat
 {
     // Deliberate: emits U+2028/U+2029 verbatim so event ids are reproducible; do not drop a flag to align with FILTER_HASH — see ADR-0020
     public const int EVENT = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_LINE_TERMINATORS;
 
-    public const int MESSAGE = JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
+    public const int MESSAGE = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
 
     // Deliberate: omits JSON_UNESCAPED_UNICODE so the canonical form is pure ASCII and hashes byte-for-byte with the TypeScript side — see ADR-0020
-    public const int FILTER_HASH = JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR;
+    public const int FILTER_HASH = JSON_UNESCAPED_SLASHES;
 
     private function __construct()
     {
+    }
+
+    public static function encode(mixed $value, int $flags): string
+    {
+        $json = json_encode($value, $flags);
+
+        if (false === $json) {
+            throw new SerialisationException('Failed to serialise value to JSON: '.json_last_error_msg());
+        }
+
+        return $json;
     }
 
     /**

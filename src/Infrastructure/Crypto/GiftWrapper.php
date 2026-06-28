@@ -19,7 +19,6 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
-use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use InvalidArgumentException;
 use Override;
 use Throwable;
@@ -54,27 +53,26 @@ final class GiftWrapper implements GiftWrapServiceInterface
         $senderKeyPair = KeyPair::fromPrivateKey($senderPrivateKey, $this->signatureService);
 
         $envelope = $this->envelopeFactory->create();
+        $ephemeralKeyPair = $envelope->getEphemeralKeyPair();
 
         try {
-            $seal = $this->encryptAndWrap(
-                $rumour,
-                $senderKeyPair,
-                $recipientPublicKey,
+            $seal = new Event(
+                $senderKeyPair->getPublicKey(),
+                $envelope->getSealTimestamp(),
                 EventKind::fromInt(EventKind::SEAL),
                 new TagCollection(),
-                $envelope->getSealTimestamp()
-            );
+                EventContent::fromString($this->encryptFor($rumour, $senderKeyPair, $recipientPublicKey)),
+            )->sign($senderKeyPair, $this->signatureService);
 
-            return $this->encryptAndWrap(
-                $seal,
-                $envelope->getEphemeralKeyPair(),
-                $recipientPublicKey,
+            return new Event(
+                $ephemeralKeyPair->getPublicKey(),
+                $envelope->getWrapTimestamp(),
                 EventKind::fromInt(EventKind::GIFT_WRAP),
                 new TagCollection([Tag::pubkey($recipientPublicKey->toHex())]),
-                $envelope->getWrapTimestamp()
-            );
+                EventContent::fromString($this->encryptFor($seal, $ephemeralKeyPair, $recipientPublicKey)),
+            )->sign($ephemeralKeyPair, $this->signatureService);
         } finally {
-            $envelope->getEphemeralKeyPair()->getPrivateKey()->zero();
+            $ephemeralKeyPair->getPrivateKey()->zero();
         }
     }
 
@@ -94,28 +92,12 @@ final class GiftWrapper implements GiftWrapServiceInterface
         return $rumour;
     }
 
-    private function encryptAndWrap(
-        Event $innerEvent,
-        KeyPair $signingKeyPair,
-        PublicKey $recipientPublicKey,
-        EventKind $kind,
-        TagCollection $tags,
-        Timestamp $timestamp,
-    ): Event {
+    private function encryptFor(Event $innerEvent, KeyPair $signingKeyPair, PublicKey $recipientPublicKey): string
+    {
         $conversationKey = ConversationKey::derive($signingKeyPair->getPrivateKey(), $recipientPublicKey, $this->ecdhService);
 
         try {
-            $encrypted = $this->encryption->encrypt($this->serialiseEvent($innerEvent), $conversationKey);
-
-            $event = new Event(
-                $signingKeyPair->getPublicKey(),
-                $timestamp,
-                $kind,
-                $tags,
-                EventContent::fromString($encrypted)
-            );
-
-            return $event->sign($signingKeyPair, $this->signatureService);
+            return $this->encryption->encrypt($this->serialiseEvent($innerEvent), $conversationKey);
         } finally {
             $conversationKey->zero();
         }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Infrastructure\Crypto;
 
 use FFI;
+use FFI\CData;
 use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
 use Innis\Nostr\Core\Domain\Exception\CryptoException;
 use Innis\Nostr\Core\Domain\Exception\EcdhException;
@@ -80,14 +81,7 @@ final class LibSecp256k1Ffi
 
     public function sign(string $messageBytes, string $privkeyBytes, string $auxRand32): string
     {
-        $keypair = $this->ffi->new('secp256k1_keypair');
-        $privkeyBuffer = FfiLibraryLoader::toBuffer($this->ffi, $privkeyBytes);
-
-        try {
-            if (1 !== $this->ffi->secp256k1_keypair_create($this->context, FFI::addr($keypair), $privkeyBuffer)) {
-                throw new CryptoException('Failed to create keypair from private key');
-            }
-
+        return $this->withKeypair($privkeyBytes, function (CData $keypair) use ($messageBytes, $auxRand32): string {
             $sig = $this->ffi->new('unsigned char[64]');
 
             if (1 !== $this->ffi->secp256k1_schnorrsig_sign32($this->context, $sig, FfiLibraryLoader::toBuffer($this->ffi, $messageBytes), FFI::addr($keypair), FfiLibraryLoader::toBuffer($this->ffi, $auxRand32))) {
@@ -95,10 +89,7 @@ final class LibSecp256k1Ffi
             }
 
             return FFI::string($sig, 64);
-        } finally {
-            FFI::memset($privkeyBuffer, 0, strlen($privkeyBytes));
-            FFI::memset(FFI::addr($keypair), 0, FFI::sizeof($keypair));
-        }
+        });
     }
 
     public function verify(string $sigBytes, string $messageBytes, string $pubkeyBytes): bool
@@ -119,14 +110,7 @@ final class LibSecp256k1Ffi
 
     public function derivePublicKey(string $privkeyBytes): string
     {
-        $keypair = $this->ffi->new('secp256k1_keypair');
-        $privkeyBuffer = FfiLibraryLoader::toBuffer($this->ffi, $privkeyBytes);
-
-        try {
-            if (1 !== $this->ffi->secp256k1_keypair_create($this->context, FFI::addr($keypair), $privkeyBuffer)) {
-                throw new CryptoException('Failed to create keypair from private key');
-            }
-
+        return $this->withKeypair($privkeyBytes, function (CData $keypair): string {
             $pubkey = $this->ffi->new('secp256k1_xonly_pubkey');
             if (1 !== $this->ffi->secp256k1_keypair_xonly_pub($this->context, FFI::addr($pubkey), null, FFI::addr($keypair))) {
                 throw new CryptoException('Failed to derive x-only public key from keypair');
@@ -138,6 +122,27 @@ final class LibSecp256k1Ffi
             }
 
             return FFI::string($output, 32);
+        });
+    }
+
+    /**
+     * @template T
+     *
+     * @param callable(CData): T $use
+     *
+     * @return T
+     */
+    private function withKeypair(string $privkeyBytes, callable $use): mixed
+    {
+        $keypair = $this->ffi->new('secp256k1_keypair');
+        $privkeyBuffer = FfiLibraryLoader::toBuffer($this->ffi, $privkeyBytes);
+
+        try {
+            if (1 !== $this->ffi->secp256k1_keypair_create($this->context, FFI::addr($keypair), $privkeyBuffer)) {
+                throw new CryptoException('Failed to create keypair from private key');
+            }
+
+            return $use($keypair);
         } finally {
             FFI::memset($privkeyBuffer, 0, strlen($privkeyBytes));
             FFI::memset(FFI::addr($keypair), 0, FFI::sizeof($keypair));

@@ -39,6 +39,6 @@ abstract readonly class Message
 
     final protected static function encode(mixed $value): string
     {
-        return json_encode($value, JsonWireFormat::MESSAGE);
+        return JsonWireFormat::encode($value, JsonWireFormat::MESSAGE);
     }
 }

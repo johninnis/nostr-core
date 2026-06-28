@@ -23,14 +23,19 @@ final class EventIdCollection extends TypedCollection
         return $eventId->toHex();
     }
 
+    private static function tryParse(mixed $value): ?EventId
+    {
+        return is_string($value) ? EventId::fromHex($value) : null;
+    }
+
     public static function fromHexValues(mixed $values): self
     {
-        return new self(self::parseStrings($values, EventId::fromHex(...)));
+        return new self(self::parseEach($values, self::tryParse(...)));
     }
 
     public static function fromWire(mixed $values): ?self
     {
-        $eventIds = self::parseStringsStrict($values, EventId::fromHex(...));
+        $eventIds = self::parseEachStrict($values, self::tryParse(...));
 
         return null === $eventIds ? null : new self($eventIds);
     }

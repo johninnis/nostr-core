@@ -63,7 +63,7 @@ final readonly class Event implements Stringable
 
     public function calculateId(): EventId
     {
-        $serialised = json_encode([
+        $serialised = JsonWireFormat::encode([
             0,
             $this->pubkey->toHex(),
             $this->createdAt->toInt(),
@@ -71,10 +71,6 @@ final readonly class Event implements Stringable
             $this->tags->toJsonArray(),
             (string) $this->content,
         ], JsonWireFormat::EVENT);
-
-        if (false === $serialised) {
-            throw new InvalidEventException('Failed to serialise event for ID calculation');
-        }
 
         return EventId::fromBytes(hash('sha256', $serialised, true))
             ?? throw new InvalidEventException('Hashed event ID was not a valid 32-byte value');
@@ -151,13 +147,7 @@ final readonly class Event implements Stringable
 
     private function encodeJson(): string
     {
-        $json = json_encode($this->toArray(), JsonWireFormat::EVENT);
-
-        if (false === $json) {
-            throw new InvalidEventException('Failed to serialise event as JSON');
-        }
-
-        return $json;
+        return JsonWireFormat::encode($this->toArray(), JsonWireFormat::EVENT);
     }
 
     public function isSigned(): bool

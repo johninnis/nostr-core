@@ -18,9 +18,14 @@ final class EventCoordinateCollection extends TypedCollection
         return EventCoordinate::class;
     }
 
+    private static function tryParse(mixed $value): ?EventCoordinate
+    {
+        return is_array($value) ? EventCoordinate::fromArray($value) : null;
+    }
+
     public static function fromArrays(mixed $values): self
     {
-        return new self(self::parseArrays($values, EventCoordinate::fromArray(...)));
+        return new self(self::parseEach($values, self::tryParse(...)));
     }
 
     /**

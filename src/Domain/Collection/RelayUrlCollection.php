@@ -23,9 +23,14 @@ final class RelayUrlCollection extends TypedCollection
         return (string) $relayUrl;
     }
 
+    private static function tryParse(mixed $value): ?RelayUrl
+    {
+        return is_string($value) ? RelayUrl::fromString($value) : null;
+    }
+
     public static function fromStrings(mixed $values): self
     {
-        return new self(self::parseStrings($values, RelayUrl::fromString(...)));
+        return new self(self::parseEach($values, self::tryParse(...)));
     }
 
     public function unique(): self

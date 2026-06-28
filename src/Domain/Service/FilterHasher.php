@@ -48,6 +48,6 @@ final class FilterHasher
 
     private static function encode(mixed $value): string
     {
-        return json_encode($value, JsonWireFormat::FILTER_HASH);
+        return JsonWireFormat::encode($value, JsonWireFormat::FILTER_HASH);
     }
 }
