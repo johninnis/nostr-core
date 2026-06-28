@@ -53,6 +53,13 @@ final class Nip19CodecTest extends TestCase
         $this->assertNull($this->codec->decodeComplexEntity(Bech32Codec::encode('naddr', self::truncatedTlv())));
     }
 
+    public function testDecodeProfileReturnsNullForTrailingTypeByteWithoutLength(): void
+    {
+        $danglingType = chr(0).chr(1).'x'.chr(1);
+
+        $this->assertNull($this->codec->decodeComplexEntity(Bech32Codec::encode('nprofile', $danglingType)));
+    }
+
     private static function truncatedTlv(): string
     {
         return chr(0).chr(50).'abc';

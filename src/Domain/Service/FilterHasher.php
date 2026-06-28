@@ -19,9 +19,8 @@ final class FilterHasher
             static fn (Filter $filter): stdClass => self::canonicaliseFilter($filter->toArray()),
             $filters,
         );
-        usort($canonical, static fn (stdClass $a, stdClass $b): int => strcmp(self::encode($a), self::encode($b)));
 
-        return hash('sha256', self::encode($canonical));
+        return hash('sha256', self::encode(self::sortByEncoding($canonical)));
     }
 
     /**
@@ -41,9 +40,24 @@ final class FilterHasher
         }
 
         $items = array_map(static fn (mixed $element): mixed => self::canonicaliseValue($element), $value);
-        usort($items, static fn (mixed $a, mixed $b): int => strcmp(self::encode($a), self::encode($b)));
 
-        return $items;
+        return self::sortByEncoding($items);
+    }
+
+    /**
+     * @param array<mixed> $items
+     *
+     * @return list<mixed>
+     */
+    private static function sortByEncoding(array $items): array
+    {
+        $decorated = array_map(
+            static fn (mixed $item): array => ['item' => $item, 'key' => self::encode($item)],
+            array_values($items),
+        );
+        usort($decorated, static fn (array $a, array $b): int => strcmp($a['key'], $b['key']));
+
+        return array_map(static fn (array $pair): mixed => $pair['item'], $decorated);
     }
 
     private static function encode(mixed $value): string

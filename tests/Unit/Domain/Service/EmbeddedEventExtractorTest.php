@@ -69,6 +69,30 @@ final class EmbeddedEventExtractorTest extends TestCase
         $this->assertTrue($extracted->getId()->equals($embedded->getId()));
     }
 
+    public function testRejectsEmbeddedObjectThatTheEventParserRejects(): void
+    {
+        $repost = $this->buildEvent(EventKind::REPOST, '{"pubkey":"nothex","created_at":1700000000,"kind":1,"tags":[],"content":"x"}');
+
+        $this->assertNull(EmbeddedEventExtractor::extract($repost));
+    }
+
+    public function testExtractionGateIsTheEventParserAlone(): void
+    {
+        $embedded = json_encode([
+            'pubkey' => self::PUBKEY,
+            'created_at' => 1700000000,
+            'kind' => EventKind::TEXT_NOTE,
+            'tags' => [],
+            'content' => 'reposted note',
+        ]);
+        $this->assertIsString($embedded);
+
+        $extracted = EmbeddedEventExtractor::extract($this->buildEvent(EventKind::REPOST, $embedded));
+
+        $this->assertNotNull($extracted);
+        $this->assertSame('reposted note', (string) $extracted->getContent());
+    }
+
     private function buildEvent(int $kind, string $content): Event
     {
         return new Event(

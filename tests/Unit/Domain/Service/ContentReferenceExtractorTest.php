@@ -71,6 +71,26 @@ final class ContentReferenceExtractorTest extends TestCase
         $this->assertEquals('note10123456789abcdef0123456789abcdef0123456789abcdef0123456abc', $references[1]->getIdentifier());
     }
 
+    public function testStripsTheNostrSchemeCaseInsensitively(): void
+    {
+        $content = EventContent::fromString('Hi NOSTR:npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz');
+
+        $codec = $this->createStub(Nip19CodecInterface::class);
+        $codec
+            ->method('decodeComplexEntity')
+            ->willReturnCallback(static fn (string $bech32): ?DecodedNip19Entity => 'npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz' === $bech32
+                ? self::decoded(Nip19EntityType::Pubkey, pubkeyHex: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210')
+                : null);
+
+        $references = (new ContentReferenceExtractor($codec))->extractContentReferences($content)->toArray();
+
+        $this->assertCount(1, $references);
+        $this->assertSame(ContentReferenceType::NostrUri, $references[0]->getType());
+        $this->assertSame('NOSTR:npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz', $references[0]->getRawText());
+        $this->assertSame('npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz', $references[0]->getIdentifier());
+        $this->assertSame('fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210', $references[0]->getPublicKey()?->toHex());
+    }
+
     public function testExtractBareReferences(): void
     {
         $content = EventContent::fromString('Here is npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz and note10123456789abcdef0123456789abcdef0123456789abcdef0123456abc and nevent1qqstna2yrezu5wghjvswqqculvvwxsrcvu7uc0f78gan4xqhvz49d9spr3mhxue69uhkummnw3ez6un9d3shjtn4de6x2argwghx6egpr4mhxue69uhkummnw3ez6ur4vgh8wetvd3hhyer9wghxuet5nxnepm');

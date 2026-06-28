@@ -596,6 +596,8 @@ final class FilterTest extends TestCase
         yield 'authors with non-string element' => [['authors' => [123]]];
         yield 'authors exceeding the value cap' => [['authors' => array_fill(0, 1001, str_repeat('0', 64))]];
         yield 'tag values exceeding the value cap' => [['#t' => array_fill(0, 1001, 'x')]];
+        yield 'tag values with a non-string element' => [['#e' => [str_repeat('a', 64), 123]]];
+        yield 'tag values with a nested-array element' => [['#p' => [['nested']]]];
         yield 'limit not an int' => [['limit' => '5']];
         yield 'limit below minimum' => [['limit' => 0]];
         yield 'limit above maximum' => [['limit' => 99999]];

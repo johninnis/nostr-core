@@ -48,7 +48,7 @@ final readonly class ContentReferenceExtractor implements ContentReferenceExtrac
                     );
 
                     if (!$overlaps) {
-                        $cleanRef = str_replace('nostr:', '', $match[0]);
+                        $cleanRef = preg_replace('/^nostr:/i', '', $match[0]) ?? $match[0];
 
                         $references[] = new ContentReference(
                             $type,

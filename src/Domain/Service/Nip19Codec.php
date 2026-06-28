@@ -169,7 +169,10 @@ final readonly class Nip19Codec implements Nip19CodecInterface
 
         while ($position < $length) {
             $type = ord($bytes[$position++]);
-            $valueLength = $position < $length ? ord($bytes[$position++]) : 0;
+            if ($position >= $length) {
+                return null;
+            }
+            $valueLength = ord($bytes[$position++]);
             $value = substr($bytes, $position, $valueLength);
             if (strlen($value) < $valueLength) {
                 return null;

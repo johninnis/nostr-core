@@ -28,10 +28,6 @@ final class EmbeddedEventExtractor
             return null;
         }
 
-        if (!isset($embeddedData['id'], $embeddedData['pubkey'], $embeddedData['created_at'], $embeddedData['kind'])) {
-            return null;
-        }
-
         return Event::fromArray($embeddedData);
     }
 }
