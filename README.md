@@ -110,7 +110,7 @@ $ciphertext = $encryption->encrypt('Hello in private', $conversationKey);
 $plaintext = $encryption->decrypt($ciphertext, $conversationKey);
 ```
 
-Nonce generation is injected. `Nip44Cipher` accepts an optional `RandomBytesGeneratorInterface` and defaults to `NativeRandomBytesGenerator` (PHP's `random_bytes`) when none is supplied — that is the production path. Test suites inject a deterministic generator to reproduce the official NIP-44 vectors byte-for-byte. There is deliberately no public `encryptWithNonce` method; see [ADR-0014](docs/adr/0014-nip44cipher-has-no-public-encryptwithnonce.md).
+Nonce generation is injected: `Nip44Cipher` accepts an optional `RandomBytesGeneratorInterface`, defaulting to `NativeRandomBytesGenerator` (PHP's `random_bytes`) for production. There is no public `encryptWithNonce` method — see [ADR-0014](docs/adr/0014-nip44cipher-has-no-public-encryptwithnonce.md).
 
 Always construct the adapters through their `::create()` factories. Direct instantiation via `new Secp256k1Signer(null, ...)` or `new Secp256k1Ecdh(null)` exists for dependency injection and testing but stays on the pure-PHP path regardless of whether `libsecp256k1` is installed.
 
@@ -154,11 +154,11 @@ $decoded = Ncryptsec::fromString($stored);
 $recovered = $adapter->decrypt($decoded, static fn (): string => readPasswordFromUser());
 ```
 
-Build the adapter through `Nip49Cipher::create()`, which probes for libsodium scrypt via `ext-ffi`. Like the secp256k1 adapters, the bare constructor (`new Nip49Cipher(...)`) deliberately does not probe — it is for dependency injection and tests, and stays on a non-FFI scrypt that throws on use because NIP-49 has no pure-PHP fallback. See [ADR-0041](docs/adr/0041-nip49-adapters-probe-libsodium-in-create-not-the-constructor.md) and [ADR-0039](docs/adr/0039-nip49-scrypt-requires-ffi-with-no-pure-php-fallback.md).
+Build the adapter through `Nip49Cipher::create()`, which probes for libsodium scrypt via `ext-ffi`; the bare constructor (`new Nip49Cipher(...)`) is for dependency injection and tests. NIP-49 has no pure-PHP fallback — see [ADR-0041](docs/adr/0041-nip49-adapters-probe-libsodium-in-create-not-the-constructor.md) and [ADR-0039](docs/adr/0039-nip49-scrypt-requires-ffi-with-no-pure-php-fallback.md).
 
 ### Secret Key Lifecycle
 
-`PrivateKey` and `ConversationKey` hold their raw bytes inside a `SecretKeyMaterial` value object. Callers that need to clear secret material from memory can call `zero()`; any subsequent operation on that key throws `SecretKeyMaterialZeroedException`. Infrastructure code that genuinely needs raw bytes uses the bounded `expose` callback, which passes a freshly-allocated copy of the bytes (not a copy-on-write alias of the stored secret) to the closure and `sodium_memzero`s that copy before the method returns, so the exposed bytes are actually wiped rather than left in a spared buffer; see [ADR-0028](docs/adr/0028-secretkeymaterial-expose-hands-a-detached-copy-so-the-wipe-is-effective.md):
+`PrivateKey` and `ConversationKey` hold their raw bytes inside a `SecretKeyMaterial` value object. Callers that need to clear secret material from memory can call `zero()`; any subsequent operation on that key throws `SecretKeyMaterialZeroedException`. Infrastructure code that genuinely needs raw bytes uses the bounded `expose` callback, which hands the closure the secret bytes and `sodium_memzero`s them when it returns; see [ADR-0028](docs/adr/0028-secretkeymaterial-expose-hands-a-detached-copy-so-the-wipe-is-effective.md):
 
 ```php
 $derived = $privateKey->expose(static function (string $bytes): string {
@@ -169,7 +169,7 @@ $privateKey->zero();
 $signatureService->sign($privateKey, $message); // throws SecretKeyMaterialZeroedException
 ```
 
-`zero()` is a contract a caller invokes explicitly, not a guarantee delivered by the destructor. Applications that require bounded key-material lifetimes — session-scoped bunker signers, for example — must call `$privateKey->zero()` explicitly at the end of the session rather than relying on garbage collection. See [ADR-0015](docs/adr/0015-zero-is-a-contract-not-a-guarantee-via-destruction.md).
+Applications that require bounded key-material lifetimes — session-scoped bunker signers, for example — should call `$privateKey->zero()` explicitly at the end of the scope that owns the key. See [ADR-0015](docs/adr/0015-zero-is-a-contract-not-a-guarantee-via-destruction.md) for why the destructor is not relied upon.
 
 ## Examples
 
@@ -318,6 +318,7 @@ Design rationale lives in [`docs/adr/`](docs/adr/) as immutable Architecture Dec
 | [0040](docs/adr/0040-zapamount-frombolt11-anchors-the-amount-to-the-bech32-separator.md) | `ZapAmount::fromBolt11` anchors the amount to the bech32 separator so amount-less invoices return null |
 | [0041](docs/adr/0041-nip49-adapters-probe-libsodium-in-create-not-the-constructor.md) | NIP-49 adapters probe libsodium in `create()`, never in the constructor |
 | [0042](docs/adr/0042-entities-are-identity-bearing-artifacts-filter-is-a-value-object.md) | Entities are identity-bearing artifacts; `Filter` is a value object |
+| [0043](docs/adr/0043-filter-validates-limit-and-rejects-out-of-range-rather-than-clamping.md) | `Filter` validates `limit` in `[0, 5000]` and rejects out-of-range rather than clamping |
 
 ## Dependencies
 
