@@ -35,7 +35,7 @@ final readonly class Filter implements JsonSerializable, Stringable
         private ?string $search = null,
     ) {
         if (!self::isValidLimit($this->limit)) {
-            throw new InvalidArgumentException('Limit must be between 1 and 5000');
+            throw new InvalidArgumentException('Limit must be between 0 and 5000');
         }
 
         if (!self::areTimestampsInOrder($this->since, $this->until)) {
@@ -70,7 +70,7 @@ final readonly class Filter implements JsonSerializable, Stringable
 
     private static function isValidLimit(?int $limit): bool
     {
-        return null === $limit || ($limit >= 1 && $limit <= 5000);
+        return null === $limit || ($limit >= 0 && $limit <= 5000);
     }
 
     public function matches(Event $event): bool

@@ -53,9 +53,18 @@ final class FilterTest extends TestCase
     public function testThrowsExceptionForInvalidLimit(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Limit must be between 1 and 5000');
+        $this->expectExceptionMessage('Limit must be between 0 and 5000');
 
-        new Filter(limit: 0);
+        new Filter(limit: -1);
+    }
+
+    public function testAcceptsLimitOfZero(): void
+    {
+        $filter = new Filter(limit: 0);
+
+        $this->assertSame(0, $filter->getLimit());
+        $this->assertTrue($filter->hasLimit());
+        $this->assertSame(0, $filter->toArray()['limit']);
     }
 
     public function testThrowsExceptionForInvalidTimeRange(): void
@@ -495,7 +504,7 @@ final class FilterTest extends TestCase
     public function testThrowsExceptionForLimitAboveMaximum(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Limit must be between 1 and 5000');
+        $this->expectExceptionMessage('Limit must be between 0 and 5000');
 
         new Filter(limit: 5001);
     }
@@ -599,7 +608,7 @@ final class FilterTest extends TestCase
         yield 'tag values with a non-string element' => [['#e' => [str_repeat('a', 64), 123]]];
         yield 'tag values with a nested-array element' => [['#p' => [['nested']]]];
         yield 'limit not an int' => [['limit' => '5']];
-        yield 'limit below minimum' => [['limit' => 0]];
+        yield 'limit below minimum' => [['limit' => -1]];
         yield 'limit above maximum' => [['limit' => 99999]];
         yield 'search not a string' => [['search' => ['nostr']]];
         yield 'since not an int' => [['since' => '1700000000']];
@@ -645,6 +654,15 @@ final class FilterTest extends TestCase
 
         $this->assertNotNull($filter);
         $this->assertSame($data, $filter->toArray());
+    }
+
+    public function testFromArrayAcceptsLimitOfZero(): void
+    {
+        $filter = Filter::fromArray(['limit' => 0]);
+
+        $this->assertNotNull($filter);
+        $this->assertSame(0, $filter->getLimit());
+        $this->assertSame(['limit' => 0], $filter->toArray());
     }
 
     public function testMatchesSearchTermInContent(): void
