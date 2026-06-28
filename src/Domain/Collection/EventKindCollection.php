@@ -25,7 +25,7 @@ final class EventKindCollection extends TypedCollection
 
     public static function fromWire(mixed $values): ?self
     {
-        $kinds = self::parseAll($values, static fn (mixed $value): ?EventKind => is_int($value) ? EventKind::tryFromInt($value) : null);
+        $kinds = self::parseIntsStrict($values, EventKind::tryFromInt(...));
 
         return null === $kinds ? null : new self($kinds);
     }

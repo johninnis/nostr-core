@@ -141,7 +141,7 @@ final class TagCollection extends TypedCollection
      */
     public static function fromArray(array $data): ?self
     {
-        $tags = self::parseAll($data, static fn (mixed $tagData): ?Tag => is_array($tagData) ? Tag::fromArray($tagData) : null);
+        $tags = self::parseArraysStrict($data, Tag::fromArray(...));
 
         return null === $tags ? null : new self($tags);
     }

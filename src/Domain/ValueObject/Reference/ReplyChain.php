@@ -11,7 +11,6 @@ final readonly class ReplyChain
 {
     public function __construct(
         private bool $isReply,
-        private bool $isRootPost,
         private ?EventReference $rootEvent,
         private ?EventReference $parentEvent,
         private PublicKeyCollection $conversationParticipants,
@@ -26,7 +25,7 @@ final readonly class ReplyChain
 
     public function isRootPost(): bool
     {
-        return $this->isRootPost;
+        return !$this->isReply;
     }
 
     public function getRootEvent(): ?EventReference
@@ -76,7 +75,7 @@ final readonly class ReplyChain
     {
         return [
             'is_reply' => $this->isReply,
-            'is_root_post' => $this->isRootPost,
+            'is_root_post' => !$this->isReply,
             'root_event' => $this->rootEvent?->toArray(),
             'parent_event' => $this->parentEvent?->toArray(),
             'conversation_participants' => $this->conversationParticipants->toHexes(),
@@ -91,7 +90,6 @@ final readonly class ReplyChain
     {
         return new self(
             (bool) ($data['is_reply'] ?? false),
-            (bool) ($data['is_root_post'] ?? false),
             isset($data['root_event']) && is_array($data['root_event']) ? EventReference::fromArray($data['root_event']) : null,
             isset($data['parent_event']) && is_array($data['parent_event']) ? EventReference::fromArray($data['parent_event']) : null,
             PublicKeyCollection::fromHexValues($data['conversation_participants'] ?? null),

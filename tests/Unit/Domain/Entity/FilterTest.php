@@ -14,6 +14,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\TagFilter;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Tests\Fake\FakeSignatureService;
 use Innis\Nostr\Core\Tests\Support\KeyMother;
@@ -30,7 +31,7 @@ final class FilterTest extends TestCase
             ids: EventIdCollection::fromHexValues([str_repeat('a', 64)]),
             authors: PublicKeyCollection::fromHexValues([str_repeat('b', 64)]),
             kinds: EventKindCollection::fromInts([1, 2]),
-            tags: ['t' => ['nostr']],
+            tags: TagFilter::fromValues(['t' => ['nostr']]),
             since: Timestamp::fromInt(1234567890),
             until: Timestamp::fromInt(1234567900),
             limit: 10
@@ -39,7 +40,7 @@ final class FilterTest extends TestCase
         $this->assertIdHexes([str_repeat('a', 64)], $filter->getIds());
         $this->assertAuthorHexes([str_repeat('b', 64)], $filter->getAuthors());
         $this->assertKinds([1, 2], $filter->getKinds());
-        $this->assertSame(['t' => ['nostr']], $filter->getTags());
+        $this->assertSame(['t' => ['nostr']], $filter->getTags()?->getValues());
         $since = $filter->getSince();
         $until = $filter->getUntil();
         $this->assertNotNull($since);
@@ -129,7 +130,7 @@ final class FilterTest extends TestCase
             EventContent::fromString('test')
         );
 
-        $filter = new Filter(tags: ['t' => ['nostr']]);
+        $filter = new Filter(tags: TagFilter::fromValues(['t' => ['nostr']]));
 
         $this->assertTrue($filter->matches($event));
     }
@@ -171,7 +172,7 @@ final class FilterTest extends TestCase
             EventContent::fromString('test')
         );
 
-        $this->assertTrue(new Filter(tags: ['t' => ['target']])->matches($event));
+        $this->assertTrue(new Filter(tags: TagFilter::fromValues(['t' => ['target']]))->matches($event));
     }
 
     public function testMatchesEventWithMultipleTagTypesRequiresAll(): void
@@ -190,13 +191,13 @@ final class FilterTest extends TestCase
             EventContent::fromString('test')
         );
 
-        $filterBothMatch = new Filter(tags: ['t' => ['nostr'], 'p' => [$pubkeyHex]]);
+        $filterBothMatch = new Filter(tags: TagFilter::fromValues(['t' => ['nostr'], 'p' => [$pubkeyHex]]));
         $this->assertTrue($filterBothMatch->matches($event));
 
-        $filterOnlyPMissing = new Filter(tags: ['t' => ['nostr'], 'p' => [str_repeat('b', 64)]]);
+        $filterOnlyPMissing = new Filter(tags: TagFilter::fromValues(['t' => ['nostr'], 'p' => [str_repeat('b', 64)]]));
         $this->assertFalse($filterOnlyPMissing->matches($event));
 
-        $filterOnlyTMissing = new Filter(tags: ['t' => ['bitcoin'], 'p' => [$pubkeyHex]]);
+        $filterOnlyTMissing = new Filter(tags: TagFilter::fromValues(['t' => ['bitcoin'], 'p' => [$pubkeyHex]]));
         $this->assertFalse($filterOnlyTMissing->matches($event));
     }
 
@@ -213,9 +214,9 @@ final class FilterTest extends TestCase
             EventContent::fromString('test')
         );
 
-        $this->assertTrue((new Filter(tags: ['e' => [$referencedId]]))->matches($event));
-        $this->assertFalse((new Filter(tags: ['e' => ['wss://relay.example']]))->matches($event));
-        $this->assertFalse((new Filter(tags: ['e' => ['reply']]))->matches($event));
+        $this->assertTrue((new Filter(tags: TagFilter::fromValues(['e' => [$referencedId]])))->matches($event));
+        $this->assertFalse((new Filter(tags: TagFilter::fromValues(['e' => ['wss://relay.example']])))->matches($event));
+        $this->assertFalse((new Filter(tags: TagFilter::fromValues(['e' => ['reply']])))->matches($event));
     }
 
     public function testMatchesEventWithMultipleValuesInSameTagType(): void
@@ -230,7 +231,7 @@ final class FilterTest extends TestCase
             EventContent::fromString('test')
         );
 
-        $filter = new Filter(tags: ['t' => ['nostr', 'bitcoin']]);
+        $filter = new Filter(tags: TagFilter::fromValues(['t' => ['nostr', 'bitcoin']]));
         $this->assertTrue($filter->matches($event));
     }
 
@@ -245,7 +246,7 @@ final class FilterTest extends TestCase
             EventContent::fromString('test')
         );
 
-        $filter = new Filter(tags: ['t' => ['nostr']]);
+        $filter = new Filter(tags: TagFilter::fromValues(['t' => ['nostr']]));
         $this->assertFalse($filter->matches($event));
     }
 
@@ -271,7 +272,7 @@ final class FilterTest extends TestCase
             ids: EventIdCollection::fromHexValues([str_repeat('a', 64)]),
             authors: PublicKeyCollection::fromHexValues([str_repeat('b', 64)]),
             kinds: EventKindCollection::fromInts([1]),
-            tags: ['t' => ['nostr']],
+            tags: TagFilter::fromValues(['t' => ['nostr']]),
             since: Timestamp::fromInt(1234567890),
             until: Timestamp::fromInt(1234567900),
             limit: 10
@@ -306,7 +307,7 @@ final class FilterTest extends TestCase
         $this->assertIdHexes([str_repeat('a', 64)], $filter->getIds());
         $this->assertAuthorHexes([str_repeat('b', 64)], $filter->getAuthors());
         $this->assertKinds([1], $filter->getKinds());
-        $this->assertSame(['t' => ['nostr']], $filter->getTags());
+        $this->assertSame(['t' => ['nostr']], $filter->getTags()?->getValues());
         $since = $filter->getSince();
         $until = $filter->getUntil();
         $this->assertNotNull($since);
@@ -534,8 +535,8 @@ final class FilterTest extends TestCase
         $this->assertNotNull($filter);
         $tags = $filter->getTags();
         $this->assertNotNull($tags);
-        $this->assertSame(['nostr'], $tags['t']);
-        $this->assertSame([str_repeat('a', 64)], $tags['p']);
+        $this->assertSame(['nostr'], $tags->getValues()['t']);
+        $this->assertSame([str_repeat('a', 64)], $tags->getValues()['p']);
     }
 
     public function testFromArrayWithoutTagsReturnsNullTags(): void
@@ -853,7 +854,7 @@ final class FilterTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('may contain at most');
 
-        new Filter(tags: ['e' => $values]);
+        TagFilter::fromValues(['e' => $values]);
     }
 
     public function testFromArrayReturnsNullForEmptyTagName(): void

@@ -63,7 +63,6 @@ final class ReplyChainAnalyser
 
         return new ReplyChain(
             $isReply,
-            !$isReply,
             $rootEvent,
             $parentEvent,
             new PublicKeyCollection($conversationParticipants),
@@ -98,7 +97,7 @@ final class ReplyChainAnalyser
         ));
 
         if ([] === $tags->findByType(TagType::event())) {
-            return new ReplyChain(false, true, null, null, $participants, new EventReferenceCollection());
+            return new ReplyChain(false, null, null, $participants, new EventReferenceCollection());
         }
 
         $rootEvent = null;
@@ -131,7 +130,6 @@ final class ReplyChainAnalyser
 
         return new ReplyChain(
             true,
-            false,
             $rootEvent,
             $parentEvent,
             $participants,

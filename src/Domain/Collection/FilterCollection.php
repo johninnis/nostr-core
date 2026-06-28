@@ -20,7 +20,7 @@ final class FilterCollection extends TypedCollection
 
     public static function fromWire(mixed $values): ?self
     {
-        $filters = self::parseAll($values, static fn (mixed $value): ?Filter => is_array($value) ? Filter::fromArray($value) : null);
+        $filters = self::parseArraysStrict($values, Filter::fromArray(...));
 
         return null === $filters ? null : new self($filters);
     }

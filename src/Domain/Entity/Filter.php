@@ -8,6 +8,7 @@ use Innis\Nostr\Core\Domain\Collection\EventIdCollection;
 use Innis\Nostr\Core\Domain\Collection\EventKindCollection;
 use Innis\Nostr\Core\Domain\Collection\PublicKeyCollection;
 use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\TagFilter;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use InvalidArgumentException;
 use JsonSerializable;
@@ -19,19 +20,14 @@ final readonly class Filter implements JsonSerializable, Stringable
 {
     public const int MAX_VALUES_PER_FIELD = 1000;
 
-    /** @var array<string, array<string, int>>|null */
-    private ?array $tagValueSets;
     /** @var list<string>|null */
     private ?array $searchTerms;
 
-    /**
-     * @param array<string, list<string>>|null $tags
-     */
     public function __construct(
         private ?EventIdCollection $ids = null,
         private ?PublicKeyCollection $authors = null,
         private ?EventKindCollection $kinds = null,
-        private ?array $tags = null,
+        private ?TagFilter $tags = null,
         private ?Timestamp $since = null,
         private ?Timestamp $until = null,
         private ?int $limit = null,
@@ -49,26 +45,9 @@ final readonly class Filter implements JsonSerializable, Stringable
         self::assertCountWithinCap('authors', $this->authors?->count());
         self::assertCountWithinCap('kinds', $this->kinds?->count());
 
-        if (null !== $this->tags) {
-            foreach ($this->tags as $tagName => $values) {
-                self::assertCountWithinCap("#{$tagName}", count($values));
-            }
-        }
-
-        $this->tagValueSets = null === $this->tags ? null : array_map(self::flipStrings(...), $this->tags);
         $this->searchTerms = null === $this->search
             ? null
             : (preg_split('/\s+/', mb_strtolower(trim($this->search)), -1, PREG_SPLIT_NO_EMPTY) ?: []);
-    }
-
-    /**
-     * @param array<array-key, mixed> $values
-     *
-     * @return array<string, int>
-     */
-    private static function flipStrings(array $values): array
-    {
-        return array_flip(array_filter($values, is_string(...)));
     }
 
     private static function assertCountWithinCap(string $fieldName, ?int $count): void
@@ -107,7 +86,7 @@ final readonly class Filter implements JsonSerializable, Stringable
             return false;
         }
 
-        if (null !== $this->tagValueSets && !$this->matchesTags($event)) {
+        if (null !== $this->tags && !$this->tags->matches($event->getTags())) {
             return false;
         }
 
@@ -156,10 +135,7 @@ final readonly class Filter implements JsonSerializable, Stringable
         return null !== $this->kinds;
     }
 
-    /**
-     * @return array<string, list<string>>|null
-     */
-    public function getTags(): ?array
+    public function getTags(): ?TagFilter
     {
         return $this->tags;
     }
@@ -242,8 +218,8 @@ final readonly class Filter implements JsonSerializable, Stringable
         }
 
         if (null !== $this->tags) {
-            foreach ($this->tags as $tagName => $values) {
-                $filter["#{$tagName}"] = $values;
+            foreach ($this->tags->toArray() as $key => $values) {
+                $filter[$key] = $values;
             }
         }
 
@@ -286,26 +262,10 @@ final readonly class Filter implements JsonSerializable, Stringable
     public static function fromArray(array|stdClass $data): ?self
     {
         $data = (array) $data;
-        $tags = [];
-        foreach ($data as $key => $value) {
-            if (!is_string($key) || !str_starts_with($key, '#')) {
-                continue;
-            }
 
-            $tagName = substr($key, 1);
-
-            if ('' === $tagName || !is_array($value)) {
-                return null;
-            }
-
-            $tagValues = array_values(array_filter($value, is_string(...)));
-
-            if (!mb_check_encoding($tagName, 'UTF-8') || !array_all($tagValues, static fn (string $tagValue): bool => mb_check_encoding($tagValue, 'UTF-8'))) {
-                return null;
-            }
-
-            $tags[$tagName] = $tagValues;
-            unset($data[$key]);
+        $tags = TagFilter::fromWire($data);
+        if (null === $tags) {
+            return null;
         }
 
         $ids = $data['ids'] ?? null;
@@ -373,7 +333,6 @@ final readonly class Filter implements JsonSerializable, Stringable
             || !self::isCountWithinCap($idCollection?->count())
             || !self::isCountWithinCap($authorCollection?->count())
             || !self::isCountWithinCap($kindCollection?->count())
-            || !array_all($tags, static fn (array $values): bool => self::isCountWithinCap(count($values)))
         ) {
             return null;
         }
@@ -382,23 +341,12 @@ final readonly class Filter implements JsonSerializable, Stringable
             $idCollection,
             $authorCollection,
             $kindCollection,
-            [] === $tags ? null : $tags,
+            $tags->isEmpty() ? null : $tags,
             $sinceTimestamp,
             $untilTimestamp,
             $limit,
             $search
         );
-    }
-
-    private function matchesTags(Event $event): bool
-    {
-        foreach ($this->tagValueSets ?? [] as $tagName => $valueSet) {
-            if (!$this->eventMatchesTagFilter($event, (string) $tagName, $valueSet)) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     private function matchesSearch(Event $event): bool
@@ -418,22 +366,6 @@ final readonly class Filter implements JsonSerializable, Stringable
         }
 
         return true;
-    }
-
-    /**
-     * @param array<string, int> $valueSet
-     */
-    private function eventMatchesTagFilter(Event $event, string $tagName, array $valueSet): bool
-    {
-        foreach ($event->getTags()->findByName($tagName) as $eventTag) {
-            $value = $eventTag->getValue();
-
-            if (null !== $value && isset($valueSet[$value])) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     #[Override]

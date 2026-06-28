@@ -25,7 +25,7 @@ final class PublicKeyCollection extends TypedCollection
 
     public static function fromWire(mixed $values): ?self
     {
-        $publicKeys = self::parseAll($values, static fn (mixed $value): ?PublicKey => is_string($value) ? PublicKey::fromHex($value) : null);
+        $publicKeys = self::parseStringsStrict($values, PublicKey::fromHex(...));
 
         return null === $publicKeys ? null : new self($publicKeys);
     }

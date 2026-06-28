@@ -18,7 +18,6 @@ final class ReplyChainTest extends TestCase
     {
         $chain = new ReplyChain(
             isReply: true,
-            isRootPost: false,
             rootEvent: null,
             parentEvent: null,
             conversationParticipants: PublicKeyCollection::fromHexValues([self::PUBKEY_A, self::PUBKEY_B]),
@@ -32,7 +31,6 @@ final class ReplyChainTest extends TestCase
     {
         $chain = new ReplyChain(
             isReply: false,
-            isRootPost: true,
             rootEvent: null,
             parentEvent: null,
             conversationParticipants: new PublicKeyCollection(),

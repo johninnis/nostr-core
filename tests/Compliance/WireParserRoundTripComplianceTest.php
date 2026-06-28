@@ -18,6 +18,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\TagFilter;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Tests\Fake\FakeSignatureService;
 use Innis\Nostr\Core\Tests\Support\KeyMother;
@@ -170,7 +171,7 @@ final class WireParserRoundTripComplianceTest extends TestCase
             ids: 1 === random_int(0, 1) ? EventIdCollection::fromHexValues([bin2hex(random_bytes(32))]) : null,
             authors: 1 === random_int(0, 1) ? PublicKeyCollection::fromHexValues([bin2hex(random_bytes(32))]) : null,
             kinds: 1 === random_int(0, 1) ? EventKindCollection::fromInts([random_int(0, 65535)]) : null,
-            tags: 1 === random_int(0, 1) ? ['t' => [bin2hex(random_bytes(4))]] : null,
+            tags: 1 === random_int(0, 1) ? TagFilter::fromValues(['t' => [bin2hex(random_bytes(4))]]) : null,
             since: Timestamp::fromInt($since),
             until: Timestamp::fromInt($since + random_int(0, 1_000_000)),
             limit: random_int(1, 5000),

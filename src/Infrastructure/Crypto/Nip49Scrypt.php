@@ -41,6 +41,7 @@ final class Nip49Scrypt
     {
         $ffi = $this->ffi;
         if (null === $ffi) {
+            // Deliberate: NIP-49 has no pure-PHP scrypt fallback and throws when FFI is absent, unlike secp256k1 — see ADR-0039
             throw new CryptoException('libsodium FFI is not available for NIP-49 scrypt derivation');
         }
 

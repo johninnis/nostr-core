@@ -25,7 +25,7 @@ final class EventIdCollection extends TypedCollection
 
     public static function fromWire(mixed $values): ?self
     {
-        $eventIds = self::parseAll($values, static fn (mixed $value): ?EventId => is_string($value) ? EventId::fromHex($value) : null);
+        $eventIds = self::parseStringsStrict($values, EventId::fromHex(...));
 
         return null === $eventIds ? null : new self($eventIds);
     }

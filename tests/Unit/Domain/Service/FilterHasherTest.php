@@ -8,6 +8,7 @@ use Innis\Nostr\Core\Domain\Collection\EventKindCollection;
 use Innis\Nostr\Core\Domain\Collection\PublicKeyCollection;
 use Innis\Nostr\Core\Domain\Entity\Filter;
 use Innis\Nostr\Core\Domain\Service\FilterHasher;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\TagFilter;
 use PHPUnit\Framework\TestCase;
 
 final class FilterHasherTest extends TestCase
@@ -30,8 +31,8 @@ final class FilterHasherTest extends TestCase
     public function testHashIsIndependentOfTagValueOrder(): void
     {
         $this->assertSame(
-            FilterHasher::hash(new Filter(tags: ['t' => ['b', 'a']])),
-            FilterHasher::hash(new Filter(tags: ['t' => ['a', 'b']])),
+            FilterHasher::hash(new Filter(tags: TagFilter::fromValues(['t' => ['b', 'a']]))),
+            FilterHasher::hash(new Filter(tags: TagFilter::fromValues(['t' => ['a', 'b']]))),
         );
     }
 
@@ -120,7 +121,7 @@ final class FilterHasherTest extends TestCase
     {
         $this->assertSame(
             'a47382ebe89a655c3d9d1e27a1e5e445ca0dd4f5348e72f518b2a98b6f77f92b',
-            FilterHasher::hash(new Filter(tags: ['t' => ["\u{1F600}", "\u{1F4A9}"]])),
+            FilterHasher::hash(new Filter(tags: TagFilter::fromValues(['t' => ["\u{1F600}", "\u{1F4A9}"]]))),
         );
     }
 }
