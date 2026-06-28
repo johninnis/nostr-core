@@ -6,7 +6,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol\Message\Client
 
 use Innis\Nostr\Core\Domain\Collection\EventKindCollection;
 use Innis\Nostr\Core\Domain\Collection\FilterCollection;
-use Innis\Nostr\Core\Domain\Entity\Filter;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Filter;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client\ReqMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
 use InvalidArgumentException;
@@ -53,7 +53,7 @@ final class ReqMessageTest extends TestCase
     public function testConstructorThrowsOnNonFilterInstances(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('must be Innis\Nostr\Core\Domain\Entity\Filter instances');
+        $this->expectExceptionMessage('must be Innis\Nostr\Core\Domain\ValueObject\Protocol\Filter instances');
 
         new FilterCollection(['not-a-filter']);
     }

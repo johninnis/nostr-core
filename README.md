@@ -317,6 +317,7 @@ Design rationale lives in [`docs/adr/`](docs/adr/) as immutable Architecture Dec
 | [0039](docs/adr/0039-nip49-scrypt-requires-ffi-with-no-pure-php-fallback.md) | NIP-49 scrypt requires FFI + libsodium, with no pure-PHP fallback |
 | [0040](docs/adr/0040-zapamount-frombolt11-anchors-the-amount-to-the-bech32-separator.md) | `ZapAmount::fromBolt11` anchors the amount to the bech32 separator so amount-less invoices return null |
 | [0041](docs/adr/0041-nip49-adapters-probe-libsodium-in-create-not-the-constructor.md) | NIP-49 adapters probe libsodium in `create()`, never in the constructor |
+| [0042](docs/adr/0042-entities-are-identity-bearing-artifacts-filter-is-a-value-object.md) | Entities are identity-bearing artifacts; `Filter` is a value object |
 
 ## Dependencies
 

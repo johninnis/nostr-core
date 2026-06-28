@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Tag;
 
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
-use Innis\Nostr\Core\Domain\Entity\Filter;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Filter;
 use InvalidArgumentException;
 
 final readonly class TagFilter

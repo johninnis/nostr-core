@@ -6,8 +6,8 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Collection\EventKindCollection;
 use Innis\Nostr\Core\Domain\Collection\PublicKeyCollection;
-use Innis\Nostr\Core\Domain\Entity\Filter;
 use Innis\Nostr\Core\Domain\Service\FilterHasher;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Filter;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagFilter;
 use PHPUnit\Framework\TestCase;
 
