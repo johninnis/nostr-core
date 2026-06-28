@@ -14,6 +14,6 @@ final class TagCollectionMother
      */
     public static function fromRaw(array $rawTags): TagCollection
     {
-        return TagCollection::fromArray($rawTags) ?? throw new RuntimeException('Invalid test tag data');
+        return TagCollection::fromWire($rawTags) ?? throw new RuntimeException('Invalid test tag data');
     }
 }

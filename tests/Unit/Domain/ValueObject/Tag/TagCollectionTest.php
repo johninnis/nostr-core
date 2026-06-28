@@ -160,14 +160,14 @@ final class TagCollectionTest extends TestCase
         $this->assertFalse($collection1->equals($collection4));
     }
 
-    public function testFromArrayWorksCorrectly(): void
+    public function testFromWireWorksCorrectly(): void
     {
         $data = [
             ['e', 'event-id'],
             ['p', 'pubkey-hex'],
         ];
 
-        $collection = TagCollection::fromArray($data);
+        $collection = TagCollection::fromWire($data);
 
         $this->assertNotNull($collection);
         $this->assertSame(2, $collection->count());
@@ -175,14 +175,19 @@ final class TagCollectionTest extends TestCase
         $this->assertTrue($collection->hasType(TagType::pubkey()));
     }
 
-    public function testFromArrayReturnsNullWhenAnElementIsNotAnArray(): void
+    public function testFromWireReturnsNullWhenAnElementIsNotAnArray(): void
     {
-        $this->assertNull(TagCollection::fromArray([['e', 'event-id'], 'not-an-array']));
+        $this->assertNull(TagCollection::fromWire([['e', 'event-id'], 'not-an-array']));
     }
 
-    public function testFromArrayReturnsNullWhenATagIsMalformed(): void
+    public function testFromWireReturnsNullWhenATagIsMalformed(): void
     {
-        $this->assertNull(TagCollection::fromArray([[]]));
+        $this->assertNull(TagCollection::fromWire([[]]));
+    }
+
+    public function testFromWireReturnsNullWhenGivenANonArray(): void
+    {
+        $this->assertNull(TagCollection::fromWire('not even an array'));
     }
 
     public function testExtractReferencesExtractsEventTags(): void

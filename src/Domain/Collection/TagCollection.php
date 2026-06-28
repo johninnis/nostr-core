@@ -141,12 +141,10 @@ final class TagCollection extends TypedCollection
         return is_array($value) ? Tag::fromArray($value) : null;
     }
 
-    /**
-     * @param array<array-key, mixed> $data
-     */
-    public static function fromArray(array $data): ?self
+    // Deliberate: the strict wire parser is fromWire(mixed), not fromArray — it takes the raw decoded value and narrows itself — see ADR-0044
+    public static function fromWire(mixed $values): ?self
     {
-        $tags = self::parseEachStrict($data, self::tryParse(...));
+        $tags = self::parseEachStrict($values, self::tryParse(...));
 
         return null === $tags ? null : new self($tags);
     }

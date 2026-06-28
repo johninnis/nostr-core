@@ -114,12 +114,12 @@ final class WireParserTotalityComplianceTest extends TestCase
         }
     }
 
-    public function testTagCollectionFromArrayNeverThrowsOnArbitraryArrays(): void
+    public function testTagCollectionFromWireNeverThrowsOnArbitraryArrays(): void
     {
         $this->expectNotToPerformAssertions();
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            TagCollection::fromArray(FuzzInputMother::hostileArray());
+            TagCollection::fromWire(FuzzInputMother::hostileArray());
         }
     }
 

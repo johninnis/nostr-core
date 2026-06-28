@@ -33,6 +33,7 @@ final class EventIdCollection extends TypedCollection
         return new self(self::parseEach($values, self::tryParse(...)));
     }
 
+    // Deliberate: strict fromWire (rejects the whole set on a bad element) sits beside the lenient from* above; both parse raw mixed wire input — see ADR-0044
     public static function fromWire(mixed $values): ?self
     {
         $eventIds = self::parseEachStrict($values, self::tryParse(...));

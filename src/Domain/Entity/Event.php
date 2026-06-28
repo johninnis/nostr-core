@@ -255,7 +255,7 @@ final readonly class Event implements Stringable
             }
         }
 
-        if (!is_string($data['pubkey']) || !is_int($data['created_at']) || !is_int($data['kind']) || !is_array($data['tags'])) {
+        if (!is_string($data['pubkey']) || !is_int($data['created_at']) || !is_int($data['kind'])) {
             return null;
         }
 
@@ -274,7 +274,7 @@ final readonly class Event implements Stringable
             return null;
         }
 
-        $tags = TagCollection::fromArray($data['tags']);
+        $tags = TagCollection::fromWire($data['tags']);
         if (null === $tags) {
             return null;
         }
