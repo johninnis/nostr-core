@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Support;
 
+use stdClass;
+
 final class FuzzInputMother
 {
     private const string BECH32_CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
+
+    private const string VALID_HEX_32 = '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798';
 
     private const int MAX_ARRAY_DEPTH = 3;
 
@@ -31,6 +35,145 @@ final class FuzzInputMother
     public static function hostileArray(): array
     {
         return self::randomArray(0);
+    }
+
+    /**
+     * A near-valid event array with each field independently mutated, so the parser is driven deep
+     * (past the required-field gate) rather than rejected at the first check.
+     *
+     * @return array<array-key, mixed>
+     */
+    public static function nearValidEventArray(): array
+    {
+        $event = [
+            'id' => self::scalarOr(self::VALID_HEX_32),
+            'pubkey' => self::scalarOr(self::VALID_HEX_32),
+            'created_at' => self::scalarOr(random_int(0, 3_000_000_000)),
+            'kind' => self::scalarOr(random_int(0, 40000)),
+            'content' => self::scalarOr(self::asciiNoise(random_int(0, 64))),
+            'sig' => self::scalarOr(self::VALID_HEX_32.self::VALID_HEX_32),
+            'tags' => self::scalarOr(self::nearValidTags()),
+        ];
+
+        foreach (array_keys($event) as $field) {
+            if (0 === random_int(0, 7)) {
+                unset($event[$field]);
+            }
+        }
+
+        return $event;
+    }
+
+    /**
+     * @return array<array-key, mixed>
+     */
+    public static function nearValidFilterArray(): array
+    {
+        return array_filter([
+            'ids' => self::scalarOr([self::scalarOr(self::VALID_HEX_32)]),
+            'authors' => self::scalarOr([self::scalarOr(self::VALID_HEX_32)]),
+            'kinds' => self::scalarOr([self::scalarOr(1)]),
+            '#e' => self::scalarOr([self::scalarOr(self::VALID_HEX_32)]),
+            'since' => self::hostileScalar(),
+            'until' => self::hostileScalar(),
+            'limit' => self::hostileScalar(),
+            'search' => self::hostileScalar(),
+        ], static fn (): bool => 0 !== random_int(0, 3));
+    }
+
+    /**
+     * A protocol message as a list: a type tag followed by mutated payload elements.
+     *
+     * @param list<string> $types
+     *
+     * @return list<mixed>
+     */
+    public static function messageArray(array $types): array
+    {
+        $message = [self::scalarOr($types[random_int(0, count($types) - 1)])];
+
+        for ($i = 0, $count = random_int(0, 4); $i < $count; ++$i) {
+            $message[] = match (random_int(0, 3)) {
+                0 => self::nearValidEventArray(),
+                1 => self::nearValidFilterArray(),
+                2 => self::scalarOr('sub-'.random_int(0, 999)),
+                default => self::hostileScalar(),
+            };
+        }
+
+        return $message;
+    }
+
+    /**
+     * @param list<string> $types
+     */
+    public static function messageJson(array $types): string
+    {
+        return json_encode(self::messageArray($types), JSON_PARTIAL_OUTPUT_ON_ERROR) ?: '';
+    }
+
+    /**
+     * A JSON object whose numeric-string keys decode to a sparse-keyed PHP array (e.g. {"0":"EVENT","2":{}}),
+     * so count() passes while positional keys are absent — the message-leaf attack vector.
+     */
+    public static function sparseObjectJson(): string
+    {
+        $object = new stdClass();
+        $keys = ['0', '1', '2', '3', (string) random_int(0, 9), 'type'];
+
+        for ($i = 0, $count = random_int(0, 4); $i < $count; ++$i) {
+            $object->{$keys[random_int(0, count($keys) - 1)]} = match (random_int(0, 2)) {
+                0 => 'EVENT',
+                1 => self::nearValidEventArray(),
+                default => self::hostileScalar(),
+            };
+        }
+
+        return json_encode($object, JSON_PARTIAL_OUTPUT_ON_ERROR) ?: '{}';
+    }
+
+    private static function scalarOr(mixed $valid): mixed
+    {
+        return 0 === random_int(0, 1) ? $valid : self::hostileScalar();
+    }
+
+    private static function hostileScalar(): mixed
+    {
+        return match (random_int(0, 8)) {
+            0 => random_int(-5, 70000),
+            1 => [0, 1, -1, PHP_INT_MAX, PHP_INT_MIN][random_int(0, 4)],
+            2 => true,
+            3 => false,
+            4 => null,
+            5 => self::asciiNoise(random_int(0, 64)),
+            6 => self::randomBytes(48),
+            7 => bin2hex(self::randomBytes(32)),
+            default => '',
+        };
+    }
+
+    /**
+     * @return list<mixed>
+     */
+    private static function nearValidTags(): array
+    {
+        $tags = [];
+
+        for ($i = 0, $count = random_int(0, 8); $i < $count; ++$i) {
+            if (0 === random_int(0, 4)) {
+                $tags[] = self::hostileScalar();
+
+                continue;
+            }
+
+            $tag = [self::scalarOr(['e', 'p', 'a', 'q', 't', 'd'][random_int(0, 5)])];
+            for ($j = 0, $values = random_int(0, 4); $j < $values; ++$j) {
+                $tag[] = self::scalarOr(self::VALID_HEX_32);
+            }
+            $tags[] = $tag;
+        }
+
+        return $tags;
     }
 
     private static function bech32Shaped(): string

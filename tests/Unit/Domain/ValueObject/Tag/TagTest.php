@@ -131,4 +131,9 @@ final class TagTest extends TestCase
     {
         $this->assertNull(Tag::fromArray(['e', 123]));
     }
+
+    public function testFromArrayReturnsNullForInvalidUtf8Value(): void
+    {
+        $this->assertNull(Tag::fromArray(['e', "bad\xff\xfeutf8"]));
+    }
 }

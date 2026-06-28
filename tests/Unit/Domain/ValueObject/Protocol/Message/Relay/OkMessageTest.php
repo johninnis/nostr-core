@@ -160,6 +160,11 @@ final class OkMessageTest extends TestCase
         $this->assertNull(OkMessage::fromJson('not json'));
     }
 
+    public function testFromJsonReturnsNullOnJsonObject(): void
+    {
+        $this->assertNull(OkMessage::fromJson('{"0":"OK","2":true}'));
+    }
+
     private static function createEventId(): EventId
     {
         return EventId::fromHex(self::VALID_EVENT_ID_HEX) ?? throw new RuntimeException('Invalid test event ID');

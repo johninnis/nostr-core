@@ -298,7 +298,13 @@ final readonly class Filter implements JsonSerializable, Stringable
                 return null;
             }
 
-            $tags[$tagName] = array_values(array_filter($value, is_string(...)));
+            $tagValues = array_values(array_filter($value, is_string(...)));
+
+            if (!mb_check_encoding($tagName, 'UTF-8') || !array_all($tagValues, static fn (string $tagValue): bool => mb_check_encoding($tagValue, 'UTF-8'))) {
+                return null;
+            }
+
+            $tags[$tagName] = $tagValues;
             unset($data[$key]);
         }
 
@@ -315,6 +321,10 @@ final readonly class Filter implements JsonSerializable, Stringable
             || (null !== $limit && !is_int($limit))
             || (null !== $search && !is_string($search))
         ) {
+            return null;
+        }
+
+        if (null !== $search && !mb_check_encoding($search, 'UTF-8')) {
             return null;
         }
 

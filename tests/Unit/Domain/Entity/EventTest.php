@@ -335,6 +335,32 @@ final class EventTest extends TestCase
         $this->assertNull(Event::fromJson($json));
     }
 
+    public function testFromArrayReturnsNullForInvalidUtf8Content(): void
+    {
+        $event = Event::fromArray([
+            'pubkey' => str_repeat('a', 64),
+            'created_at' => 1700000000,
+            'kind' => 1,
+            'tags' => [],
+            'content' => "bad\xff\xfeutf8",
+        ]);
+
+        $this->assertNull($event);
+    }
+
+    public function testFromArrayReturnsNullForInvalidUtf8TagValue(): void
+    {
+        $event = Event::fromArray([
+            'pubkey' => str_repeat('a', 64),
+            'created_at' => 1700000000,
+            'kind' => 1,
+            'tags' => [['t', "bad\xff\xfeutf8"]],
+            'content' => 'hello',
+        ]);
+
+        $this->assertNull($event);
+    }
+
     public function testEventIdCalculationIsConsistent(): void
     {
         $event1 = new Event(

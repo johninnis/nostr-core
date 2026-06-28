@@ -548,6 +548,16 @@ final class FilterTest extends TestCase
         $this->assertNull($filter->getTags());
     }
 
+    public function testFromArrayReturnsNullForInvalidUtf8Search(): void
+    {
+        $this->assertNull(Filter::fromArray(['search' => "bad\xff\xfeutf8"]));
+    }
+
+    public function testFromArrayReturnsNullForInvalidUtf8TagValue(): void
+    {
+        $this->assertNull(Filter::fromArray(['#e' => ["bad\xff\xfeutf8"]]));
+    }
+
     public function testFromWireParsesAnArrayPayload(): void
     {
         $this->assertEquals(Filter::fromArray(['kinds' => [1]]), Filter::fromWire(['kinds' => [1]]));

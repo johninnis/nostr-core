@@ -75,10 +75,10 @@ final readonly class JsonMessageDeserialiser implements MessageDeserialiserInter
     {
         $data = JsonWireFormat::decodeArray($json);
 
-        if (null === $data || [] === $data) {
+        if (null === $data || [] === $data || !array_is_list($data)) {
             return null;
         }
 
-        return [is_string($data[0] ?? null) ? $data[0] : '', $data];
+        return [is_string($data[0]) ? $data[0] : '', $data];
     }
 }

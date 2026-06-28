@@ -298,6 +298,10 @@ final readonly class Event implements Stringable
             }
         }
 
+        if (!mb_check_encoding($content, 'UTF-8')) {
+            return null;
+        }
+
         $id = null;
         if (isset($data['id'])) {
             if (!is_string($data['id'])) {

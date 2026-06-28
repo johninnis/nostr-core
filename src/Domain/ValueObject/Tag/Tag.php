@@ -116,6 +116,10 @@ final readonly class Tag
             return null;
         }
 
+        if (!array_all($strings, static fn (string $value): bool => mb_check_encoding($value, 'UTF-8'))) {
+            return null;
+        }
+
         $name = array_shift($strings);
         if ('' === $name) {
             return null;
