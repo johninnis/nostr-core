@@ -10,7 +10,6 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
-use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\DecodedNip19Entity;
 use Override;
 
@@ -109,7 +108,7 @@ final readonly class Nip19Codec implements Nip19CodecInterface
         return new DecodedNip19Entity(
             Nip19EntityType::Profile,
             publicKey: isset($tlv[self::TLV_SPECIAL][0]) ? PublicKey::fromBytes($tlv[self::TLV_SPECIAL][0]) : null,
-            relays: self::relayCollection($tlv),
+            relays: RelayUrlCollection::fromStrings($tlv[self::TLV_RELAY] ?? []),
         );
     }
 
@@ -125,7 +124,7 @@ final readonly class Nip19Codec implements Nip19CodecInterface
             publicKey: isset($tlv[self::TLV_AUTHOR][0]) ? PublicKey::fromBytes($tlv[self::TLV_AUTHOR][0]) : null,
             eventId: isset($tlv[self::TLV_SPECIAL][0]) ? EventId::fromBytes($tlv[self::TLV_SPECIAL][0]) : null,
             kind: self::decodeKind($tlv),
-            relays: self::relayCollection($tlv),
+            relays: RelayUrlCollection::fromStrings($tlv[self::TLV_RELAY] ?? []),
         );
     }
 
@@ -141,7 +140,7 @@ final readonly class Nip19Codec implements Nip19CodecInterface
             publicKey: isset($tlv[self::TLV_AUTHOR][0]) ? PublicKey::fromBytes($tlv[self::TLV_AUTHOR][0]) : null,
             identifier: $tlv[self::TLV_SPECIAL][0] ?? null,
             kind: self::decodeKind($tlv),
-            relays: self::relayCollection($tlv),
+            relays: RelayUrlCollection::fromStrings($tlv[self::TLV_RELAY] ?? []),
         );
     }
 
@@ -157,22 +156,6 @@ final readonly class Nip19Codec implements Nip19CodecInterface
         $unpacked = unpack('N', $tlv[self::TLV_KIND][0]);
 
         return false === $unpacked ? null : EventKind::tryFromInt($unpacked[1]);
-    }
-
-    /**
-     * @param array<int, list<string>> $tlv
-     */
-    private static function relayCollection(array $tlv): RelayUrlCollection
-    {
-        $relays = [];
-        foreach ($tlv[self::TLV_RELAY] ?? [] as $relayString) {
-            $relay = RelayUrl::fromString($relayString);
-            if (null !== $relay) {
-                $relays[] = $relay;
-            }
-        }
-
-        return new RelayUrlCollection($relays);
     }
 
     /**

@@ -35,28 +35,28 @@ final class NcryptsecTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        Ncryptsec::fromFields(256, str_repeat('s', 16), str_repeat('n', 24), KeySecurityByte::ClientSideOnly, str_repeat('a', 48));
+        Ncryptsec::create(256, str_repeat('s', 16), str_repeat('n', 24), KeySecurityByte::ClientSideOnly, str_repeat('a', 48));
     }
 
     public function testFromFieldsRejectsWrongSaltLength(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
-        Ncryptsec::fromFields(16, str_repeat('s', 15), str_repeat('n', 24), KeySecurityByte::ClientSideOnly, str_repeat('a', 48));
+        Ncryptsec::create(16, str_repeat('s', 15), str_repeat('n', 24), KeySecurityByte::ClientSideOnly, str_repeat('a', 48));
     }
 
     public function testFromFieldsRejectsWrongNonceLength(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
-        Ncryptsec::fromFields(16, str_repeat('s', 16), str_repeat('n', 23), KeySecurityByte::ClientSideOnly, str_repeat('a', 48));
+        Ncryptsec::create(16, str_repeat('s', 16), str_repeat('n', 23), KeySecurityByte::ClientSideOnly, str_repeat('a', 48));
     }
 
     public function testFromFieldsRejectsWrongAeadLength(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
-        Ncryptsec::fromFields(16, str_repeat('s', 16), str_repeat('n', 24), KeySecurityByte::ClientSideOnly, str_repeat('a', 47));
+        Ncryptsec::create(16, str_repeat('s', 16), str_repeat('n', 24), KeySecurityByte::ClientSideOnly, str_repeat('a', 47));
     }
 
     public function testFromStringRejectsWrongHrpNsec(): void

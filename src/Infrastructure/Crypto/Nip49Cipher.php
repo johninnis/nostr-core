@@ -60,7 +60,7 @@ final class Nip49Cipher implements Nip49EncryptionInterface
             ),
         );
 
-        return Ncryptsec::fromFields($logN, $salt, $nonce, $keySecurity, $aeadOutput);
+        return Ncryptsec::create($logN, $salt, $nonce, $keySecurity, $aeadOutput);
     }
 
     #[Override]

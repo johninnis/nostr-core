@@ -50,7 +50,7 @@ final readonly class Ncryptsec implements Stringable
         return new self($bech32, $payload);
     }
 
-    public static function fromFields(
+    public static function create(
         int $logN,
         string $salt,
         string $nonce,

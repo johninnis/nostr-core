@@ -27,13 +27,13 @@ final readonly class JsonMessageDeserialiser implements MessageDeserialiserInter
     #[Override]
     public function deserialiseClientMessage(string $json): ?ClientMessage
     {
-        $data = JsonWireFormat::decodeArray($json);
+        $tagged = $this->decodeTagged($json);
 
-        if (null === $data || [] === $data) {
+        if (null === $tagged) {
             return null;
         }
 
-        $type = is_string($data[0] ?? null) ? $data[0] : '';
+        [$type, $data] = $tagged;
 
         return match ($type) {
             'EVENT' => ClientEventMessage::fromArray($data),
@@ -48,13 +48,13 @@ final readonly class JsonMessageDeserialiser implements MessageDeserialiserInter
     #[Override]
     public function deserialiseRelayMessage(string $json): ?RelayMessage
     {
-        $data = JsonWireFormat::decodeArray($json);
+        $tagged = $this->decodeTagged($json);
 
-        if (null === $data || [] === $data) {
+        if (null === $tagged) {
             return null;
         }
 
-        $type = is_string($data[0] ?? null) ? $data[0] : '';
+        [$type, $data] = $tagged;
 
         return match ($type) {
             'EVENT' => RelayEventMessage::fromArray($data),
@@ -66,5 +66,19 @@ final readonly class JsonMessageDeserialiser implements MessageDeserialiserInter
             'COUNT' => RelayCountMessage::fromArray($data),
             default => null,
         };
+    }
+
+    /**
+     * @return array{string, array<mixed>}|null
+     */
+    private function decodeTagged(string $json): ?array
+    {
+        $data = JsonWireFormat::decodeArray($json);
+
+        if (null === $data || [] === $data) {
+            return null;
+        }
+
+        return [is_string($data[0] ?? null) ? $data[0] : '', $data];
     }
 }

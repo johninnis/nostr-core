@@ -6,6 +6,10 @@ A PHP library implementing core domain entities and services for the Nostr proto
 
 Code is organised around domain concepts (events, identities, tags, messages) rather than NIP numbers: a single `Event` entity handles creation, signing, and verification regardless of which NIP defines the event kind. Domain entities and value objects are immutable, services are stateless, and the package provides building blocks for relays, clients, and web applications without imposing architectural decisions on consumers. See [ADR-0019](docs/adr/0019-domain-first-organisation-cryptography-only-domain-dependency.md) for the organising rationale.
 
+> [!IMPORTANT]
+> **Install the native `libsecp256k1` library (via the `ffi` extension) for any server-side or long-lived signer.**
+> When it is absent, signing, public-key derivation, and ECDH fall back to a pure-PHP implementation that is **not constant-time** and cannot be made so. A local or co-located attacker able to measure signing/ECDH timing could in principle recover private-key material, so a relay, a NIP-46 remote signer/bunker, or any service that repeatedly signs with a fixed key should confirm the native path is active before deploying. The pure-PHP fallback is intended for portability and low-exposure client use, not a hardened signing oracle. See [Security](#security) and [SECURITY.md](SECURITY.md#security-properties).
+
 ## Features
 
 - Complete Nostr protocol implementation
@@ -14,7 +18,8 @@ Code is organised around domain concepts (events, identities, tags, messages) ra
 - Comprehensive cryptographic support using secp256k1
 - Native libsecp256k1 FFI acceleration covering BIP340 sign/verify, x-only
   pubkey derivation, and NIP-44 ECDH — automatic pure-PHP fallback
-  when the C library is unavailable
+  when the C library is unavailable (the fallback is **not constant-time**;
+  see [Security](#security))
 - Bech32 *and* bech32m encoding/decoding via a single `Bech32Codec`
   (NIP-19 prefixes plus BIP-350 bech32m variants), selected through the
   `Bech32Variant` enum
@@ -43,7 +48,7 @@ Declared under `suggest` in `composer.json`:
 
 ### Optional system libraries
 
-- `libsecp256k1` — when present, Schnorr signing, verification, public-key derivation, and NIP-44 ECDH use the native C library (reached via `ext-ffi`) for significantly faster performance. Without it, the library falls back to a pure-PHP implementation via `paragonie/ecc` automatically.
+- `libsecp256k1` — when present, Schnorr signing, verification, public-key derivation, and NIP-44 ECDH use the native C library (reached via `ext-ffi`) for significantly faster performance. Without it, the library falls back to a pure-PHP implementation via `paragonie/ecc` automatically. That fallback is **not constant-time**, so installing the native library is a security measure as well as a performance one for any server-side or long-lived signer; see [Security](#security).
 - `libsodium` — required by NIP-49 scrypt derivation, which calls `crypto_pwhash_scryptsalsa208sha256_ll` through `ext-ffi`. Typically already installed wherever `ext-sodium` is.
 
 ## Installation
@@ -54,7 +59,7 @@ composer require innis/nostr-core
 
 ## Quick Start
 
-Cryptographic operations (signing, verification, public-key derivation, ECDH) are exposed as Domain service interfaces with Infrastructure implementations. The `Secp256k1Signer` and `Secp256k1Ecdh` pick an FFI-accelerated path when `libsecp256k1` is available and fall back to pure PHP otherwise — callers do not need to care.
+Cryptographic operations (signing, verification, public-key derivation, ECDH) are exposed as Domain service interfaces with Infrastructure implementations. The `Secp256k1Signer` and `Secp256k1Ecdh` pick an FFI-accelerated path when `libsecp256k1` is available and fall back to pure PHP otherwise; both paths produce byte-identical results, so callers do not need to care which one runs for correctness. The two are **not** equivalent for timing side channels, though — see [Security](#security) before running a server-side or long-lived signer on the pure-PHP path.
 
 ### Key Generation
 
@@ -240,9 +245,19 @@ implementation automatically, falling back to pure PHP when unavailable.
 
 See [SECURITY.md](SECURITY.md) for the library's security properties, the
 responsibilities it leaves to the consumer, and the reasoning behind the
-non-obvious cryptographic decisions. In particular, the pure-PHP cryptography
-fallback is **not constant-time**, so any server-side or long-lived signer
-should ensure the native `libsecp256k1` (FFI) path is active.
+non-obvious cryptographic decisions.
+
+The most important operational caveat: the pure-PHP cryptography fallback used
+when native `libsecp256k1` is unavailable is **not constant-time** and cannot be
+made so (the secret-dependent scalar arithmetic runs on variable-time GMP and the
+interpreted Zend engine). A local or co-located attacker able to measure
+signing/ECDH timing could in principle recover private-key material. Any
+server-side or long-lived signer — a relay, a NIP-46 remote signer/bunker, or any
+service that repeatedly signs attacker-influenced messages with a fixed key —
+should install `libsecp256k1`, enable the `ffi` extension, and confirm the native
+path is active before deploying. The pure-PHP fallback is intended for portability
+and low-exposure client use, not a hardened signing oracle. The full analysis is
+in [SECURITY.md](SECURITY.md#security-properties) and [ADR-0025](docs/adr/0025-secp256k1-keeps-a-native-ffi-path-and-a-pure-php-fallback.md).
 
 ## Architecture
 

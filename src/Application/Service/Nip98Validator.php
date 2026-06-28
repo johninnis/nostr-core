@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Application\Service;
 
+use Innis\Nostr\Core\Application\DTO\Nip98Request;
 use Innis\Nostr\Core\Application\Port\ClockInterface;
 use Innis\Nostr\Core\Application\Port\Nip98ReplayGuardInterface;
 use Innis\Nostr\Core\Domain\Entity\Event;
@@ -32,12 +33,14 @@ final readonly class Nip98Validator implements Nip98ValidatorInterface
     }
 
     #[Override]
-    public function validate(Event $event, string $requestUrl, string $requestMethod, ?string $requestBodyHash = null): PublicKey|Nip98ValidationFailure
+    public function validate(Event $event, Nip98Request $request): PublicKey|Nip98ValidationFailure
     {
+        $requestBodyHash = $request->getBodyHash();
+
         $failure = $this->validateKind($event)
             ?? $this->validateTimestamp($event)
-            ?? $this->validateUrl($event, $requestUrl)
-            ?? $this->validateMethod($event, $requestMethod)
+            ?? $this->validateUrl($event, $request->getUrl())
+            ?? $this->validateMethod($event, $request->getMethod())
             ?? $this->validatePayloadTagConsistency($event, $requestBodyHash)
             ?? $this->validateSignature($event)
             ?? (null !== $requestBodyHash ? $this->validatePayload($event, $requestBodyHash) : null);
@@ -54,7 +57,7 @@ final readonly class Nip98Validator implements Nip98ValidatorInterface
     }
 
     #[Override]
-    public function validateAuthHeader(string $authHeader, string $requestUrl, string $requestMethod, string $requestBody): PublicKey|Nip98ValidationFailure
+    public function validateAuthHeader(string $authHeader, Nip98Request $request): PublicKey|Nip98ValidationFailure
     {
         $event = $this->parseAuthHeader($authHeader);
 
@@ -62,9 +65,7 @@ final readonly class Nip98Validator implements Nip98ValidatorInterface
             return $event;
         }
 
-        $bodyHash = '' === $requestBody ? null : hash('sha256', $requestBody);
-
-        return $this->validate($event, $requestUrl, $requestMethod, $bodyHash);
+        return $this->validate($event, $request);
     }
 
     private function parseAuthHeader(string $authHeader): Event|Nip98ValidationFailure

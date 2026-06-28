@@ -28,138 +28,140 @@ final class TagReferenceExtractor
 
     public static function extract(TagCollection $tags): TagReferences
     {
-        $events = [];
-        $pubkeys = [];
-        $quotes = [];
-        $addressable = [];
-        $relays = [];
-        $challenges = [];
-
-        foreach ($tags as $tag) {
-            $value = $tag->getValue(0);
-
-            match ((string) $tag->getType()) {
-                TagType::EVENT => self::appendEvent($tag, $value, $events),
-                TagType::PUBKEY => self::appendPubkey($tag, $value, $pubkeys),
-                TagType::QUOTE => self::appendQuote($tag, $value, $addressable, $quotes),
-                TagType::ADDRESSABLE => self::appendAddressable($tag, $value, $addressable),
-                TagType::REFERENCE => self::appendRelay($value, $tag, $relays),
-                TagType::CHALLENGE => self::appendChallenge($value, $challenges),
-                default => null,
-            };
-        }
-
         return new TagReferences(
-            new EventReferenceCollection($events),
-            new PubkeyReferenceCollection($pubkeys),
-            new EventReferenceCollection($quotes),
-            new EventCoordinateCollection($addressable),
-            new RelayReferenceCollection($relays),
-            $challenges
+            new EventReferenceCollection(self::collect($tags, self::eventReference(...))),
+            new PubkeyReferenceCollection(self::collect($tags, self::pubkeyReference(...))),
+            new EventReferenceCollection(self::collect($tags, self::quotedEvent(...))),
+            new EventCoordinateCollection(self::collect($tags, self::coordinate(...))),
+            new RelayReferenceCollection(self::collect($tags, self::relayReference(...))),
+            self::collect($tags, self::challenge(...)),
         );
     }
 
     /**
-     * @param list<EventReference> $events
+     * @template TReference
+     *
+     * @param callable(Tag): (TReference|null) $parse
+     *
+     * @return list<TReference>
      */
-    private static function appendEvent(Tag $tag, ?string $value, array &$events): void
+    private static function collect(TagCollection $tags, callable $parse): array
     {
-        $eventId = null !== $value ? EventId::fromHex($value) : null;
-        if (null !== $eventId) {
-            $author = $tag->getValue(3);
-            $events[] = new EventReference(
-                $eventId,
-                RelayUrl::fromString($tag->getValue(1)),
-                $tag->getValue(2),
-                null !== $author ? PublicKey::fromHex($author) : null
-            );
-        }
-    }
+        $references = [];
 
-    /**
-     * @param list<PubkeyReference> $pubkeys
-     */
-    private static function appendPubkey(Tag $tag, ?string $value, array &$pubkeys): void
-    {
-        $pubkey = null !== $value ? PublicKey::fromHex($value) : null;
-        if (null !== $pubkey) {
-            $pubkeys[] = new PubkeyReference(
-                $pubkey,
-                RelayUrl::fromString($tag->getValue(1)),
-                $tag->getValue(2)
-            );
-        }
-    }
+        foreach ($tags as $tag) {
+            $reference = $parse($tag);
 
-    /**
-     * @param list<EventCoordinate> $addressable
-     * @param list<EventReference>  $quotes
-     */
-    private static function appendQuote(Tag $tag, ?string $value, array &$addressable, array &$quotes): void
-    {
-        if (null === $value) {
-            return;
-        }
-
-        $relayHint = $tag->getValue(1);
-        if (str_contains($value, ':')) {
-            $coordinate = EventCoordinate::fromString($value, $relayHint);
-            if (null !== $coordinate) {
-                $addressable[] = $coordinate;
+            if (null !== $reference) {
+                $references[] = $reference;
             }
+        }
 
-            return;
+        return $references;
+    }
+
+    private static function eventReference(Tag $tag): ?EventReference
+    {
+        if (TagType::EVENT !== (string) $tag->getType()) {
+            return null;
+        }
+
+        $value = $tag->getValue(0);
+        $eventId = null !== $value ? EventId::fromHex($value) : null;
+
+        if (null === $eventId) {
+            return null;
+        }
+
+        $author = $tag->getValue(3);
+
+        return new EventReference(
+            $eventId,
+            RelayUrl::fromString($tag->getValue(1)),
+            $tag->getValue(2),
+            null !== $author ? PublicKey::fromHex($author) : null,
+        );
+    }
+
+    private static function pubkeyReference(Tag $tag): ?PubkeyReference
+    {
+        if (TagType::PUBKEY !== (string) $tag->getType()) {
+            return null;
+        }
+
+        $value = $tag->getValue(0);
+        $pubkey = null !== $value ? PublicKey::fromHex($value) : null;
+
+        if (null === $pubkey) {
+            return null;
+        }
+
+        return new PubkeyReference(
+            $pubkey,
+            RelayUrl::fromString($tag->getValue(1)),
+            $tag->getValue(2),
+        );
+    }
+
+    private static function quotedEvent(Tag $tag): ?EventReference
+    {
+        if (TagType::QUOTE !== (string) $tag->getType()) {
+            return null;
+        }
+
+        $value = $tag->getValue(0);
+
+        if (null === $value || str_contains($value, ':')) {
+            return null;
         }
 
         $eventId = EventId::fromHex($value);
-        if (null !== $eventId) {
-            $author = $tag->getValue(2);
-            $quotes[] = new EventReference(
-                $eventId,
-                RelayUrl::fromString($relayHint),
-                null,
-                null !== $author ? PublicKey::fromHex($author) : null
-            );
+
+        if (null === $eventId) {
+            return null;
         }
+
+        $author = $tag->getValue(2);
+
+        return new EventReference(
+            $eventId,
+            RelayUrl::fromString($tag->getValue(1)),
+            null,
+            null !== $author ? PublicKey::fromHex($author) : null,
+        );
     }
 
-    /**
-     * @param list<EventCoordinate> $addressable
-     */
-    private static function appendAddressable(Tag $tag, ?string $value, array &$addressable): void
+    private static function coordinate(Tag $tag): ?EventCoordinate
     {
-        if (null === $value) {
-            return;
-        }
+        $value = $tag->getValue(0);
 
-        $coordinate = EventCoordinate::fromATag($tag->toArray());
-        if (null !== $coordinate) {
-            $addressable[] = $coordinate;
-        }
+        return match ((string) $tag->getType()) {
+            TagType::ADDRESSABLE => null !== $value ? EventCoordinate::fromATag($tag->toArray()) : null,
+            TagType::QUOTE => null !== $value && str_contains($value, ':')
+                ? EventCoordinate::fromString($value, $tag->getValue(1))
+                : null,
+            default => null,
+        };
     }
 
-    /**
-     * @param list<RelayReference> $relays
-     */
-    private static function appendRelay(?string $value, Tag $tag, array &$relays): void
+    private static function relayReference(Tag $tag): ?RelayReference
     {
-        if (null === $value) {
-            return;
+        if (TagType::REFERENCE !== (string) $tag->getType()) {
+            return null;
         }
 
-        $relayUrl = RelayUrl::fromString($value);
-        if (null !== $relayUrl) {
-            $relays[] = new RelayReference($relayUrl, $tag->getValue(1));
+        $value = $tag->getValue(0);
+        $relayUrl = null !== $value ? RelayUrl::fromString($value) : null;
+
+        if (null === $relayUrl) {
+            return null;
         }
+
+        return new RelayReference($relayUrl, $tag->getValue(1));
     }
 
-    /**
-     * @param list<string> $challenges
-     */
-    private static function appendChallenge(?string $value, array &$challenges): void
+    private static function challenge(Tag $tag): ?string
     {
-        if (null !== $value) {
-            $challenges[] = $value;
-        }
+        return TagType::CHALLENGE === (string) $tag->getType() ? $tag->getValue(0) : null;
     }
 }
