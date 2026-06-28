@@ -13,7 +13,7 @@ The shapes are not actually the same, which is what blocks the hoist:
 - `TagCollection::toJsonArray()` returns `list<list<string>>` (a `Tag` serialises to a positional `list<string>` such as `["e", id, relay]`).
 - The other seven return `list<array<string, mixed>>` (an `Event`, `Filter`, `EventCoordinate`, reference, etc. serialises to a keyed map).
 
-A single hoisted method can only declare one return type. The widest common type is `list<array>`, which discards the `list<string>` vs `array<string, mixed>` distinction the analyser currently enforces at every call site. Recovering precision would mean introducing an `ArrayRepresentable` interface, a second template-constrained intermediate base between `TypedCollection` and the seven map-shaped leaves, and an `implements` on each of the seven element classes — a whole inheritance layer and a new contract added to remove seven one-line methods, and a second use of inheritance beyond the single generic-substitution case the codebase otherwise holds itself to.
+A single hoisted method can only declare one return type. The widest common type is `list<array>`, which discards the `list<string>` vs `array<string, mixed>` distinction the analyser enforces at every call site. Recovering precision would mean introducing an `ArrayRepresentable` interface, a second template-constrained intermediate base between `TypedCollection` and the seven map-shaped leaves, and an `implements` on each of the seven element classes — a whole inheritance layer and a new contract added to remove seven one-line methods, and a second use of inheritance beyond the single generic-substitution case the codebase otherwise holds itself to.
 
 ## Decision
 

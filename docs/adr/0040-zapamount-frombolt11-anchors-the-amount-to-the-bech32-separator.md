@@ -11,12 +11,11 @@ by the bech32 separator `1` and the data part. The amount, when present, is a ru
 optional multiplier (`m`/`u`/`n`/`p`); when absent the invoice carries no amount at all and the payer
 chooses it.
 
-An earlier extraction matched `/^ln[a-z]+?(\d+)([munp])?/i`. On an amount-less invoice such as
-`lnbc1...` that pattern captures the bech32 *separator* `1` as the amount and, finding no multiplier,
-falls through to the whole-BTC default — so an invoice that encodes no amount is read as **one
-bitcoin**. The `/i` flag compounds it: BOLT-11 multipliers are lower-case, so an upper-cased invoice
-would match `M`/`U`/`N`/`P`, none of which the multiplier table recognises, and again fall through to
-whole-BTC.
+The obvious extraction — `/^ln[a-z]+?(\d+)([munp])?/i` — is wrong twice over. On an amount-less invoice
+such as `lnbc1...` it captures the bech32 *separator* `1` as the amount and, finding no multiplier,
+falls through to the whole-BTC default, reading an invoice that encodes no amount as **one bitcoin**.
+And the `/i` flag matches upper-case `M`/`U`/`N`/`P`, none of which the multiplier table recognises, so
+an upper-cased invoice also falls through to whole-BTC.
 
 This is a value parser of untrusted input. A parser that returns a plausible-but-wrong value is worse
 than one that returns nothing: a caller cannot tell the fabricated bitcoin from a real one. (The zap
@@ -41,5 +40,5 @@ The pattern is `/^ln[a-z]+?(\d+)([munp])?1/`, applied to the lower-cased input.
 - A whole-BTC amount (digits with no multiplier) is still parsed: its digit run sits immediately before
   the separator, e.g. `lnbc11...` is one bitcoin.
 - The lone `1` at the end of the pattern reads like a typo. Do not "simplify" it away: it is the
-  separator anchor, and removing it reinstates the 1-BTC-for-no-amount bug. A test pins the amount-less
-  and whole-BTC cases.
+  separator anchor, and without it an amount-less invoice parses as one bitcoin. A test pins the
+  amount-less and whole-BTC cases.

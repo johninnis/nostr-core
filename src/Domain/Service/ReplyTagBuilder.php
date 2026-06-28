@@ -27,7 +27,7 @@ final class ReplyTagBuilder
         );
     }
 
-    public static function buildTagsFromValues(
+    private static function buildTagsFromValues(
         EventId $replyToId,
         PublicKey $replyToAuthor,
         ?EventId $rootId = null,

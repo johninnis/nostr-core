@@ -11,10 +11,10 @@ wire a signature is hex, so a well-formed one is exactly 128 lowercase hex chara
 
 A handful of Nostr producers emit a *shorter* hex string: when the high bytes of `r` (or `s`) happen
 to be zero, they strip the leading zero bytes, yielding a 126- or 127-character string that decodes to
-fewer than 64 bytes. An earlier version of this type accommodated them — `fromHex` accepted 126-128
-characters and left-zero-padded a short input back to 128 before constructing the `Signature`.
+fewer than 64 bytes. A lenient parser could accommodate them — accept 126-128 characters and
+left-zero-pad a short input back to 128 before constructing the `Signature`.
 
-That accommodation reads helpful, and removing it will look like a regression to anyone who has seen
+That accommodation reads helpful, and refusing it looks like a regression to anyone who has seen
 those producers' events get dropped. The forces that argue against it:
 
 - **The padding is a guess that can silently reconstruct the wrong signature.** Left-padding only
@@ -48,7 +48,6 @@ that *verifies* — never in `fromHex`, which must not invent signature bytes.
 - Events from producers that strip leading zero bytes from the signature fail to parse and are
   rejected. This is the accepted cost of conformance and of never fabricating signature bytes; it
   matches what every reference secp256k1 library already does.
-- This reverses an earlier left-zero-padding accommodation. Do not re-add padding to `fromHex` to
-  "accept slightly short signatures" — it can reconstruct a wrong signature from an `s`-stripped
-  input, and the safe place to handle non-conformant producers is a verify-and-pick step above the
-  value object.
+- Do not add left-zero-padding to `fromHex` to "accept slightly short signatures" — it can
+  reconstruct a wrong signature from an `s`-stripped input, and the safe place to handle
+  non-conformant producers is a verify-and-pick step above the value object.

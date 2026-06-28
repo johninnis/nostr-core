@@ -10,16 +10,15 @@ NIP-49 scrypt derivation needs libsodium's `crypto_pwhash_scryptsalsa208sha256_l
 there is no pure-PHP fallback (ADR-0039), so an instance without the native library can only throw when
 asked to derive.
 
-`Nip49Scrypt` used to run `FfiLibraryLoader::tryLoad(...)` inside its constructor, and `Nip49Cipher`
-defaulted its scrypt collaborator to `new Nip49Scrypt()`. Merely writing `new Nip49Cipher()` therefore
-`dlopen`ed a C library as a side effect of construction. That is a hidden dependency and a hidden
-failure mode: a constructor is expected to be cheap and total, object graphs and DI containers
-instantiate freely, and a unit test had no way to exercise the library-absent path without altering the
-host environment.
+A constructor that probes for that library would `dlopen` a C library as a side effect of construction —
+a hidden dependency and a hidden failure mode. Constructors are expected to be cheap and total, object
+graphs and DI containers instantiate freely, and a probing constructor leaves no seam for a unit test to
+exercise the library-absent path without altering the host environment.
 
-The secp256k1 adapters (`Secp256k1Signer`, `Secp256k1Ecdh`) already solved this: their bare constructor
-takes an injectable native handle and stays off the native path, while a static `create()` performs the
-probe. NIP-49 was the lone inconsistency — a probing constructor with no injection seam.
+The secp256k1 adapters (`Secp256k1Signer`, `Secp256k1Ecdh`) set the pattern: the bare constructor takes
+an injectable native handle and stays off the native path, while a static `create()` performs the probe.
+The NIP-49 adapters follow the same shape rather than inventing a second way to wire an optional native
+library.
 
 ## Decision
 
@@ -38,9 +37,9 @@ tests, exactly as it is for the secp256k1 adapters.
 
 - No NIP-49 instance probes the system library as a construction side effect; the probe is an opt-in
   named-constructor step.
-- The library-absent path is now unit-testable: `new Nip49Scrypt(null)` derives nothing and throws, with
-  no host manipulation.
-- `new Nip49Cipher()` no longer auto-detects libsodium; it yields a cipher whose scrypt has no FFI and so
+- The library-absent path is unit-testable: `new Nip49Scrypt(null)` derives nothing and throws, with no
+  host manipulation.
+- A bare `new Nip49Cipher()` does not probe libsodium; it yields a cipher whose scrypt has no FFI and so
   throws on `encrypt`/`decrypt`. This is consistent with ADR-0039 (NIP-49 has no fallback) and matches
   how `new Secp256k1Signer(null, ...)` stays off the native path. Reach for `Nip49Cipher::create()` in
-  application code; do not "restore" a probing constructor.
+  application code; keep the probe out of the constructor.

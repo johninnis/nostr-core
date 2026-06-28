@@ -9,13 +9,11 @@ use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Service\ReplyTagBuilder;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Tests\Fake\FakeSignatureService;
 use Innis\Nostr\Core\Tests\Support\KeyMother;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
 
 final class ReplyTagBuilderTest extends TestCase
 {
@@ -73,45 +71,35 @@ final class ReplyTagBuilderTest extends TestCase
         $this->assertSame($signedReply->getPubkey()->toHex(), $tagArray[3][1]);
     }
 
-    public function testBuildFromValues(): void
+    public function testBuildReplyToReplyBySameAuthorDeduplicatesThePTag(): void
     {
-        $replyToId = EventId::fromHex(str_repeat('a', 64)) ?? throw new RuntimeException('Invalid test event ID');
-        $replyToAuthor = $this->keyPair1->getPublicKey();
-        $rootId = EventId::fromHex(str_repeat('b', 64)) ?? throw new RuntimeException('Invalid test event ID');
-        $rootAuthor = $this->keyPair2->getPublicKey();
+        $signedRoot = $this->createEvent($this->keyPair1, 'root content')
+            ->sign($this->keyPair1, FakeSignatureService::accepting());
+        $signedReply = $this->createEvent($this->keyPair1, 'reply content')
+            ->sign($this->keyPair1, FakeSignatureService::accepting());
 
-        $tags = ReplyTagBuilder::buildTagsFromValues($replyToId, $replyToAuthor, $rootId, $rootAuthor);
-
-        $tagArray = $tags->toJsonArray();
-        $this->assertCount(4, $tagArray);
-        $this->assertSame($rootId->toHex(), $tagArray[0][1]);
-        $this->assertSame('root', $tagArray[0][3]);
-        $this->assertSame($replyToId->toHex(), $tagArray[1][1]);
-        $this->assertSame('reply', $tagArray[1][3]);
-    }
-
-    public function testBuildFromValuesSameAuthor(): void
-    {
-        $replyToId = EventId::fromHex(str_repeat('a', 64)) ?? throw new RuntimeException('Invalid test event ID');
-        $rootId = EventId::fromHex(str_repeat('b', 64)) ?? throw new RuntimeException('Invalid test event ID');
-        $author = $this->keyPair1->getPublicKey();
-
-        $tags = ReplyTagBuilder::buildTagsFromValues($replyToId, $author, $rootId, $author);
+        $tags = ReplyTagBuilder::buildTags($signedReply, $signedRoot);
 
         $tagArray = $tags->toJsonArray();
         $this->assertCount(3, $tagArray);
-        $pTags = array_filter($tagArray, static fn ($t) => 'p' === $t[0]);
+
+        $this->assertSame($signedRoot->getId()->toHex(), $tagArray[0][1]);
+        $this->assertSame('root', $tagArray[0][3]);
+        $this->assertSame($signedReply->getId()->toHex(), $tagArray[1][1]);
+        $this->assertSame('reply', $tagArray[1][3]);
+
+        $pTags = array_filter($tagArray, static fn (array $tag): bool => 'p' === $tag[0]);
         $this->assertCount(1, $pTags);
     }
 
-    private function createEvent(KeyPair $keyPair): Event
+    private function createEvent(KeyPair $keyPair, string $content = 'Test content'): Event
     {
         return new Event(
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
-            EventContent::fromString('Test content')
+            EventContent::fromString($content)
         );
     }
 }

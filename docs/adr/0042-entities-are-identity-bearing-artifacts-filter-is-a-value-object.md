@@ -8,8 +8,7 @@ Accepted
 
 `Domain/Entity/` is reserved for identity-bearing concepts — those carrying a continuous identity or a
 lifecycle — while everything defined wholly by its attributes lives in `Domain/ValueObject/`. Three core
-protocol nouns sit close enough to that line to be mistaken for one another, and one was originally
-misfiled:
+protocol nouns sit close enough to that line to be mistaken for one another:
 
 - `Event` carries an `id` that is the SHA-256 of its own fields.
 - `Filter` carries no id, but `FilterHasher` derives a stable, order-independent digest from its fields.
@@ -20,8 +19,7 @@ or by *whether it has a hash identity*. Both fail. Prominence is irrelevant — 
 are as central as anything and are values. And a hash identity decides nothing: `EventId` is a content
 hash and `Event` is still an entity, exactly as a Git commit is content-addressed yet an object with a
 lifecycle. By the hash test alone `Filter` (hashed by `FilterHasher`) and `Event` (hashed into
-`EventId`) would be indistinguishable, which is what led `Filter` to be filed under `Entity/` next to
-`Event`.
+`EventId`) would be indistinguishable — the trap that makes `Filter` look like it belongs beside `Event`.
 
 The protocol settles it. The base flow specification states that the only object type that exists is the
 event; a filter is "a JSON object that determines what events will be sent in that subscription" — a
@@ -50,11 +48,11 @@ computed:
 
 ## Consequences
 
-- `Filter` moves from `Domain/Entity/` to `Domain/ValueObject/Protocol/`. It was the one misfiled noun.
+- `Filter` lives in `Domain/ValueObject/Protocol/`, beside the other protocol value types.
 - The criterion is recorded once, so the recurring question — "Event and Filter are both core and both
   hashable, why is one an entity and the other a value?" — has a written answer instead of being
   re-litigated. The answer is: artifact-with-identity-and-lifecycle versus attribute-defined
   specification; content-addressing is orthogonal to the distinction.
-- `Subscription` stays in `Entity/` — it is the least ambiguous entity in the package, precisely because
+- `Subscription` is an entity — the least ambiguous one in the package, precisely because
   its identity is assigned rather than content-derived. Do not "demote" it on the grounds that its id is
   weak, and do not "promote" `SubscriptionId` (or `EventId`): an id is a value.

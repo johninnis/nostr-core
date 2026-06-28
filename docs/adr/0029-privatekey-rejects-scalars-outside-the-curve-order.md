@@ -21,6 +21,6 @@ A caller-supplied out-of-range key therefore signs on a `gmp`-only host but thro
 
 ## Consequences
 
-- Both backends now reject the same inputs. An out-of-range key is an anticipated `null` at the boundary, not a backend-dependent throw and not a silently-degenerate or aliased key flowing downstream.
+- Both backends reject the same inputs. An out-of-range key is an anticipated `null` at the boundary, not a backend-dependent throw and not a silently-degenerate or aliased key flowing downstream.
 - The check is a value-range test only (`0 < d < n`), not a curve-membership or point check — a private key is a scalar, so range is the whole invariant.
 - This is the same parser-strictness stance taken for `RelayUrl` (ADR-0010) and `Signature` (ADR-0026): a parser of untrusted input refuses a well-formed-but-unacceptable value at the edge rather than letting it become a wrong result later. Do not "loosen" the constructors to accept any 64-char hex — it reintroduces the backend divergence and the degenerate-key path.

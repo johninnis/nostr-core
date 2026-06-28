@@ -18,4 +18,4 @@ Throwing on an out-of-range byte is precisely what rejects a *tampered* `ncrypts
 
 - A tampered key-security byte is rejected at decrypt time rather than silently normalised.
 - The valid `Unknown` spec value stays distinct from a corrupt byte.
-- This regressed once; `Nip49CipherTest::testDecryptRejectsUnknownKeySecurityByte` guards it. Do not add a fallback-to-`Unknown` branch.
+- `Nip49CipherTest::testDecryptRejectsUnknownKeySecurityByte` guards this. Do not add a fallback-to-`Unknown` branch.
