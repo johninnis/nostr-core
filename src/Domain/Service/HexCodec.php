@@ -14,7 +14,7 @@ final class HexCodec
 
     public static function isValid(string $hex, int $byteLength): bool
     {
-        return 1 === preg_match('/^[0-9a-f]{'.($byteLength * 2).'}$/', $hex);
+        return 1 === preg_match('/^[0-9a-f]{'.($byteLength * 2).'}$/D', $hex);
     }
 
     public static function decode(string $hex): string

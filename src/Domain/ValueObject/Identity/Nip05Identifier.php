@@ -9,8 +9,8 @@ use Stringable;
 
 final readonly class Nip05Identifier implements Stringable
 {
-    private const string LOCAL_PART_PATTERN = '/^[A-Za-z0-9._-]+$/';
-    private const string DOMAIN_PATTERN = '/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/i';
+    private const string LOCAL_PART_PATTERN = '/^[A-Za-z0-9._-]+$/D';
+    private const string DOMAIN_PATTERN = '/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/iD';
 
     private function __construct(
         private string $localPart,

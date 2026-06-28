@@ -45,11 +45,11 @@ final class EventKindCollection extends TypedCollection
 
     public function intersect(self $other): self
     {
-        return new self($this->retainByKey($other, static fn (EventKind $eventKind): string => (string) $eventKind->toInt(), true));
+        return new self($this->retainByKey($other, static fn (EventKind $eventKind): int => $eventKind->toInt(), true));
     }
 
     public function diff(self $other): self
     {
-        return new self($this->retainByKey($other, static fn (EventKind $eventKind): string => (string) $eventKind->toInt(), false));
+        return new self($this->retainByKey($other, static fn (EventKind $eventKind): int => $eventKind->toInt(), false));
     }
 }

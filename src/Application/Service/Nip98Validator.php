@@ -23,6 +23,7 @@ final readonly class Nip98Validator implements Nip98ValidatorInterface
 
     private int $replayTtlSeconds;
 
+    // Deliberate: the fourth argument is a configuration scalar, not a collaborator to fold into a value object or split out — see ADR-0038
     public function __construct(
         private SignatureServiceInterface $signatureService,
         private Nip98ReplayGuardInterface $replayGuard,

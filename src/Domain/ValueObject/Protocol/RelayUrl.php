@@ -72,7 +72,7 @@ final readonly class RelayUrl implements Stringable
         }
 
         $host = strtolower($parsed['host']);
-        if (!preg_match('/^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$/', $host)) {
+        if (!preg_match('/^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$/D', $host)) {
             return null;
         }
 

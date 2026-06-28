@@ -27,4 +27,9 @@ final class HexCodecTest extends TestCase
         $this->assertFalse(HexCodec::isValid('00ff', 3));
         $this->assertFalse(HexCodec::isValid('00fg', 2));
     }
+
+    public function testIsValidRejectsTrailingNewline(): void
+    {
+        $this->assertFalse(HexCodec::isValid("00ff\n", 2));
+    }
 }

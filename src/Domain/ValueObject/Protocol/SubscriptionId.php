@@ -10,7 +10,7 @@ use Stringable;
 final readonly class SubscriptionId implements Stringable
 {
     private const int MAX_LENGTH = 64;
-    private const string ALLOWED_PATTERN = '/^[\x21-\x7E]+$/';
+    private const string ALLOWED_PATTERN = '/^[\x21-\x7E]+$/D';
 
     private function __construct(private string $id)
     {

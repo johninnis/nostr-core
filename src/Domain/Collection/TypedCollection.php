@@ -89,7 +89,7 @@ abstract class TypedCollection implements IteratorAggregate, Countable
     }
 
     /**
-     * @param callable(T): string $keyOf
+     * @param callable(T): array-key $keyOf
      *
      * @return list<T>
      */
@@ -116,8 +116,8 @@ abstract class TypedCollection implements IteratorAggregate, Countable
     }
 
     /**
-     * @param self<T>             $other
-     * @param callable(T): string $keyOf
+     * @param self<T>                $other
+     * @param callable(T): array-key $keyOf
      *
      * @return list<T>
      */

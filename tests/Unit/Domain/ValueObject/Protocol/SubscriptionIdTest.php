@@ -84,6 +84,11 @@ final class SubscriptionIdTest extends TestCase
         $this->assertNull(SubscriptionId::fromString("sub\nid"));
     }
 
+    public function testFromStringReturnsNullForTrailingNewline(): void
+    {
+        $this->assertNull(SubscriptionId::fromString("subid\n"));
+    }
+
     public function testFromStringReturnsNullForControlCharacter(): void
     {
         $this->assertNull(SubscriptionId::fromString("sub\x01id"));

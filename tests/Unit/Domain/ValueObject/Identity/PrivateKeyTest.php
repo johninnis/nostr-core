@@ -31,6 +31,11 @@ final class PrivateKeyTest extends TestCase
         $this->assertNull(PrivateKey::fromHex('123456'));
     }
 
+    public function testReturnsNullForTrailingNewlineRatherThanThrowing(): void
+    {
+        $this->assertNull(PrivateKey::fromHex(self::VALID_PRIVATE_KEY_HEX."\n"));
+    }
+
     public function testCanGeneratePrivateKey(): void
     {
         $privateKey = PrivateKey::generate();
