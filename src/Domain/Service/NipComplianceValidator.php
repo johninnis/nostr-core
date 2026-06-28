@@ -7,6 +7,7 @@ namespace Innis\Nostr\Core\Domain\Service;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Override;
 
@@ -69,11 +70,13 @@ final readonly class NipComplianceValidator implements NipComplianceValidatorInt
             throw new InvalidEventException('NIP-09 events must have at least one k tag');
         }
 
-        foreach ($kTags as $kTag) {
-            $kindValue = $kTag->getValue();
-            if (null !== $kindValue && (string) EventKind::EVENT_DELETION === $kindValue) {
-                throw new InvalidEventException('NIP-09 events cannot target kind 5 deletion events');
-            }
+        $targetsDeletion = array_any(
+            $kTags,
+            static fn (Tag $kTag): bool => (string) EventKind::EVENT_DELETION === $kTag->getValue(),
+        );
+
+        if ($targetsDeletion) {
+            throw new InvalidEventException('NIP-09 events cannot target kind 5 deletion events');
         }
 
         $this->validateNip01Compliance($event);

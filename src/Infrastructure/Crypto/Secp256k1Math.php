@@ -26,6 +26,13 @@ final class Secp256k1Math
         return EccFactory::getSecgCurves()->curve256k1();
     }
 
+    public static function isXCoordinateInField(GMP $x): bool
+    {
+        $prime = self::curve()->getPrime();
+
+        return gmp_cmp($x, 0) > 0 && gmp_cmp($x, $prime) < 0;
+    }
+
     public static function scalarFromBytes(string $bytes): GMP
     {
         $hex = bin2hex($bytes);

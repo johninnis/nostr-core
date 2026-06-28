@@ -16,6 +16,8 @@ use PHPUnit\Framework\TestCase;
 final class Secp256k1EcdhTest extends TestCase
 {
     private const string OFF_CURVE_X_HEX = '0000000000000000000000000000000000000000000000000000000000000005';
+    private const string ZERO_X_HEX = '0000000000000000000000000000000000000000000000000000000000000000';
+    private const string FIELD_PRIME_X_HEX = 'fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f';
 
     public function testComputeSharedXIsSymmetric(): void
     {
@@ -95,5 +97,35 @@ final class Secp256k1EcdhTest extends TestCase
 
         $this->expectException(EcdhException::class);
         $ecdh->computeSharedX(PrivateKey::generate(), $offCurveKey);
+    }
+
+    public function testComputeSharedXRejectsZeroXCoordinateOnPurePhpPath(): void
+    {
+        $this->assertFieldRangeRejection(new Secp256k1Ecdh(null), self::ZERO_X_HEX);
+    }
+
+    public function testComputeSharedXRejectsZeroXCoordinateOnDefaultPath(): void
+    {
+        $this->assertFieldRangeRejection(Secp256k1Ecdh::create(), self::ZERO_X_HEX);
+    }
+
+    public function testComputeSharedXRejectsXCoordinateAtFieldPrimeOnPurePhpPath(): void
+    {
+        $this->assertFieldRangeRejection(new Secp256k1Ecdh(null), self::FIELD_PRIME_X_HEX);
+    }
+
+    public function testComputeSharedXRejectsXCoordinateAtFieldPrimeOnDefaultPath(): void
+    {
+        $this->assertFieldRangeRejection(Secp256k1Ecdh::create(), self::FIELD_PRIME_X_HEX);
+    }
+
+    private function assertFieldRangeRejection(Secp256k1Ecdh $ecdh, string $xHex): void
+    {
+        $outOfRangeKey = PublicKey::fromHex($xHex);
+        $this->assertNotNull($outOfRangeKey);
+
+        $this->expectException(EcdhException::class);
+        $this->expectExceptionMessage('out of field range');
+        $ecdh->computeSharedX(PrivateKey::generate(), $outOfRangeKey);
     }
 }

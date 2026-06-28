@@ -14,7 +14,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\DecodedNip19Entity;
 use Override;
 
-final class Nip19Codec implements Nip19CodecInterface
+final readonly class Nip19Codec implements Nip19CodecInterface
 {
     private const int TLV_SPECIAL = 0;
     private const int TLV_RELAY = 1;

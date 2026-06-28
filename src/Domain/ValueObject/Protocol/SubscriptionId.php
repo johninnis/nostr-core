@@ -43,11 +43,13 @@ final readonly class SubscriptionId implements Stringable
         return is_string($value) ? self::fromString($value) : null;
     }
 
+    // Deliberate: reads the entropy source directly, not via an injected port; no random-dependent output under test — see ADR-0018
     public static function generate(): self
     {
         return new self(bin2hex(random_bytes(16)));
     }
 
+    // Deliberate: reads the entropy source directly, not via an injected port; no random-dependent output under test — see ADR-0018
     public static function short(): self
     {
         return new self(bin2hex(random_bytes(4)));

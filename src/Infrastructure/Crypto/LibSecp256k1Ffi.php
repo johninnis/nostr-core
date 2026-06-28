@@ -68,6 +68,7 @@ final class LibSecp256k1Ffi
                 return new self($ffi, $context);
             }
         } catch (Throwable) {
+            // Deliberate: a loadable-but-incompatible native library is a failed capability probe, not a fault — fall through to the pure-PHP path rather than propagate — see ADR-0025
         }
 
         if (null !== $context) {

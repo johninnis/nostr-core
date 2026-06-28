@@ -30,15 +30,15 @@ Code is organised around domain concepts (events, identities, tags, messages) ra
 Declared in `composer.json`:
 
 - PHP 8.4 or higher
+- `ext-gmp` (bignum arithmetic for the pure-PHP secp256k1 signing and ECDH path; required transitively by `paragonie/ecc`, so the package cannot install without it even on a host that always uses the native `libsecp256k1` path)
 - `ext-intl` (NFKC password normalisation in NIP-49)
 - `ext-mbstring` (search-filter matching on untrusted event content and `EventContent::getLength`)
 - `ext-sodium` (NIP-44 and NIP-49 AEAD, `sodium_memzero`)
 - `paragonie/ecc` (pure-PHP secp256k1 fallback)
 - `paragonie/sodium_compat` (raw ChaCha20 keystream with explicit block counter for NIP-44, which `ext-sodium` does not expose)
 
-Declared under `suggest` in `composer.json` (used by optional code paths that the recommended typical usage will load anyway):
+Declared under `suggest` in `composer.json`:
 
-- `ext-gmp` is needed by the pure-PHP signing and ECDH fallback (the documented path when `libsecp256k1` is unavailable). If you know you always have `libsecp256k1` installed and never invoke the pure-PHP path, this extension is not touched.
 - `ext-ffi` is needed by NIP-49 (unconditionally) and by the `Secp256k1Signer::create()` / `Secp256k1Ecdh::create()` factories (for the `libsecp256k1` probe). Consumers who do not use NIP-49 and who construct the adapters directly with `new Secp256k1Signer(null, ...)` / `new Secp256k1Ecdh(null)` can run without `ext-ffi` at all and stay on the pure-PHP path.
 
 ### Optional system libraries

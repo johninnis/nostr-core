@@ -13,6 +13,7 @@
     ],
     "require": {
         "php": "^8.4",
+        "ext-gmp": "*",
         "ext-intl": "*",
         "ext-mbstring": "*",
         "ext-sodium": "*",
@@ -20,7 +21,6 @@
         "paragonie/sodium_compat": "^2.1"
     },
     "suggest": {
-        "ext-gmp": "Pure-PHP secp256k1 signing and ECDH fallback when libsecp256k1 is unavailable",
         "ext-ffi": "Native libsecp256k1 acceleration and NIP-49 scrypt (required for NIP-49)"
     },
     "require-dev": {

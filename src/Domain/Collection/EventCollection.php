@@ -28,10 +28,10 @@ final class EventCollection extends TypedCollection
 
     public function remove(EventId $eventId): self
     {
-        return new self(array_filter(
+        return new self(array_values(array_filter(
             $this->items,
-            static fn (Event $event) => !$event->getId()->equals($eventId)
-        ));
+            static fn (Event $event): bool => !$event->getId()->equals($eventId)
+        )));
     }
 
     public function contains(EventId $eventId): bool
@@ -41,18 +41,18 @@ final class EventCollection extends TypedCollection
 
     public function filterByKind(EventKind $kind): self
     {
-        return new self(array_filter(
+        return new self(array_values(array_filter(
             $this->items,
-            static fn (Event $event) => $event->getKind()->equals($kind)
-        ));
+            static fn (Event $event): bool => $event->getKind()->equals($kind)
+        )));
     }
 
     public function filterByAuthor(PublicKey $author): self
     {
-        return new self(array_filter(
+        return new self(array_values(array_filter(
             $this->items,
-            static fn (Event $event) => $event->getPubkey()->equals($author)
-        ));
+            static fn (Event $event): bool => $event->getPubkey()->equals($author)
+        )));
     }
 
     /**
@@ -60,7 +60,7 @@ final class EventCollection extends TypedCollection
      */
     public function filter(callable $predicate): self
     {
-        return new self(array_filter($this->items, $predicate));
+        return new self(array_values(array_filter($this->items, $predicate)));
     }
 
     public function sortByTimestamp(bool $ascending = true): self

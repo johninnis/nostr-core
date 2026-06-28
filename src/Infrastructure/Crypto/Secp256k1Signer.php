@@ -153,7 +153,7 @@ final class Secp256k1Signer implements SignatureServiceInterface
 
         $P_x = gmp_init($publicKeyHex, 16);
 
-        if (gmp_cmp($P_x, 0) <= 0 || gmp_cmp($P_x, $p) >= 0) {
+        if (!Secp256k1Math::isXCoordinateInField($P_x)) {
             return false;
         }
 

@@ -50,9 +50,13 @@ Three things make this the right shape rather than a duplicated code path to be 
    plus a present `libsecp256k1` into a hard installation requirement, excluding the many hosts that
    have `gmp` but not FFI (shared hosting, hardened/`disable_functions` environments, platforms
    without the native library). Removing the native path would forfeit the speed and the
-   constant-time guarantee of the reference implementation on the hosts that *can* run it. Supporting
-   both is the deliberate reach of the package, declared in `composer.json` (`ffi` and `gmp` are
-   suggested, not required).
+   constant-time guarantee of the reference implementation on the hosts that *can* run it. The two
+   paths are not symmetric in their installation status: the pure-PHP path is the **baseline** every
+   host runs, so `ext-gmp` is a hard `require` in `composer.json` — and `paragonie/ecc`, which the
+   pure-PHP path is built on, requires it too, so the package cannot install without `gmp` regardless.
+   The native path is **optional acceleration on top**, so `ext-ffi` is declared under `suggest`. A
+   host therefore always has the pure-PHP path available and may additionally have the native one;
+   there is no supported host with FFI but no `gmp`.
 
 ## Consequences
 

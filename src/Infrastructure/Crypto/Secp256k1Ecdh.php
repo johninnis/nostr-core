@@ -15,8 +15,6 @@ use Throwable;
 final class Secp256k1Ecdh implements EcdhServiceInterface
 {
     private const int SHARED_X_BYTE_LENGTH = 32;
-    private const string SECP256K1_PRIME_HEX = 'fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f';
-    private const string ZERO_X_HEX = '0000000000000000000000000000000000000000000000000000000000000000';
 
     public function __construct(private readonly ?LibSecp256k1Ffi $ffi)
     {
@@ -32,9 +30,7 @@ final class Secp256k1Ecdh implements EcdhServiceInterface
     {
         $pubkeyHex = $publicKey->toHex();
 
-        if (self::ZERO_X_HEX === $pubkeyHex || strcmp($pubkeyHex, self::SECP256K1_PRIME_HEX) >= 0) {
-            throw new EcdhException('ECDH public key x-coordinate out of field range');
-        }
+        $this->assertXCoordinateInFieldRange($pubkeyHex);
 
         // Deliberate: native libsecp256k1 when present, pure-PHP fallback otherwise; both pinned by the ECDH parity suite — see ADR-0025
         if (null !== $this->ffi) {
@@ -42,6 +38,14 @@ final class Secp256k1Ecdh implements EcdhServiceInterface
         }
 
         return $this->computeSharedXPurePhp($privateKey, $pubkeyHex);
+    }
+
+    // Deliberate: this gmp check runs ahead of the native/FFI dispatch above; gmp is a hard dependency (paragonie/ecc requires it), so there is no FFI-without-gmp host to keep it free of — do not "tidy" it back to a gmp-free string comparison — see ADR-0025
+    private function assertXCoordinateInFieldRange(string $pubkeyHex): void
+    {
+        if (!Secp256k1Math::isXCoordinateInField(gmp_init($pubkeyHex, 16))) {
+            throw new EcdhException('ECDH public key x-coordinate out of field range');
+        }
     }
 
     private function computeSharedXFfi(PrivateKey $privateKey, PublicKey $publicKey): string

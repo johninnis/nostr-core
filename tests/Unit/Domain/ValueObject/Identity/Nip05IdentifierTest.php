@@ -26,6 +26,19 @@ final class Nip05IdentifierTest extends TestCase
         $this->assertSame('example.com', $identifier->getDomain());
     }
 
+    public function testFromStringCanonicalisesDomainToLowerCaseButPreservesLocalPart(): void
+    {
+        $identifier = Nip05Identifier::fromString('Alice@Example.COM') ?? throw new RuntimeException('expected valid identifier');
+
+        $this->assertSame('Alice', $identifier->getLocalPart());
+        $this->assertSame('example.com', $identifier->getDomain());
+        $this->assertSame('Alice@example.com', (string) $identifier);
+        $this->assertSame(
+            'https://example.com/.well-known/nostr.json?name=Alice',
+            $identifier->getWellKnownUrl(),
+        );
+    }
+
     public function testFromStringReturnsNullForMissingAtSymbol(): void
     {
         $this->assertNull(Nip05Identifier::fromString('aliceexample.com'));

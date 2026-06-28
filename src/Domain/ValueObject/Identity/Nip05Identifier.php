@@ -27,7 +27,7 @@ final readonly class Nip05Identifier implements Stringable
         }
 
         $localPart = trim($parts[0]);
-        $domain = trim($parts[1]);
+        $domain = strtolower(trim($parts[1]));
 
         if ('' === $localPart || '' === $domain) {
             return null;
