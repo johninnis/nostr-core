@@ -50,6 +50,39 @@ final class EventReferencesTest extends TestCase
         $this->assertSame(1, $references->getReferencedPubkeyCount());
     }
 
+    public function testIsReplyReflectsTheReplyChain(): void
+    {
+        $replying = $this->referencesWith(
+            new ReplyChain(true, null, null, new PublicKeyCollection(), new EventReferenceCollection()),
+            QuoteAnalysis::fromArray([]),
+        );
+        $notReplying = $this->referencesWith(ReplyChain::fromArray([]), QuoteAnalysis::fromArray([]));
+
+        $this->assertTrue($replying->isReply());
+        $this->assertFalse($notReplying->isReply());
+    }
+
+    public function testIsQuoteReflectsTheQuoteAnalysis(): void
+    {
+        $quoting = $this->referencesWith(ReplyChain::fromArray([]), new QuoteAnalysis(true, false, false, true));
+        $notQuoting = $this->referencesWith(ReplyChain::fromArray([]), QuoteAnalysis::fromArray([]));
+
+        $this->assertTrue($quoting->isQuote());
+        $this->assertFalse($notQuoting->isQuote());
+    }
+
+    private function referencesWith(ReplyChain $replyChain, QuoteAnalysis $quoteAnalysis): EventReferences
+    {
+        return new EventReferences(
+            TagReferences::fromArray([]),
+            new ContentReferenceCollection(),
+            $replyChain,
+            $quoteAnalysis,
+            EventIdCollection::fromHexValues([]),
+            PublicKeyCollection::fromHexValues([]),
+        );
+    }
+
     private function tagReferencesWithOneEvent(): TagReferences
     {
         $eventId = EventId::fromHex(self::ID_A) ?? throw new RuntimeException('Invalid test event id');

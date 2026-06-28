@@ -6,6 +6,8 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Reference;
 
 use Innis\Nostr\Core\Domain\Enum\Nip10Marker;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReference;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -13,6 +15,8 @@ use RuntimeException;
 final class EventReferenceTest extends TestCase
 {
     private const EVENT_ID = '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798';
+    private const OTHER_EVENT_ID = '0000000000000000000000000000000000000000000000000000000000000002';
+    private const AUTHOR_HEX = '0000000000000000000000000000000000000000000000000000000000000003';
 
     public function testIsRootWhenMarkerIsRoot(): void
     {
@@ -50,8 +54,63 @@ final class EventReferenceTest extends TestCase
         $this->assertFalse($reference->isMention());
     }
 
+    public function testEqualsIsTrueForIdenticalReferences(): void
+    {
+        $a = new EventReference($this->eventId(), $this->relay(), Nip10Marker::Reply->value, $this->author());
+        $b = new EventReference($this->eventId(), $this->relay(), Nip10Marker::Reply->value, $this->author());
+
+        $this->assertTrue($a->equals($b));
+    }
+
+    public function testEqualsIsFalseWhenEventIdDiffers(): void
+    {
+        $a = new EventReference($this->eventId());
+        $b = new EventReference($this->otherEventId());
+
+        $this->assertFalse($a->equals($b));
+    }
+
+    public function testEqualsIsFalseWhenMarkerDiffers(): void
+    {
+        $a = new EventReference($this->eventId(), null, Nip10Marker::Reply->value);
+        $b = new EventReference($this->eventId(), null, Nip10Marker::Root->value);
+
+        $this->assertFalse($a->equals($b));
+    }
+
+    public function testEqualsIsFalseWhenRelayDiffers(): void
+    {
+        $a = new EventReference($this->eventId(), $this->relay('wss://relay.one'));
+        $b = new EventReference($this->eventId(), $this->relay('wss://relay.two'));
+
+        $this->assertFalse($a->equals($b));
+    }
+
+    public function testEqualsIsFalseWhenOnlyOneSideHasAnAuthor(): void
+    {
+        $a = new EventReference($this->eventId(), null, null, $this->author());
+        $b = new EventReference($this->eventId());
+
+        $this->assertFalse($a->equals($b));
+    }
+
     private function eventId(): EventId
     {
         return EventId::fromHex(self::EVENT_ID) ?? throw new RuntimeException('Invalid test event id');
+    }
+
+    private function otherEventId(): EventId
+    {
+        return EventId::fromHex(self::OTHER_EVENT_ID) ?? throw new RuntimeException('Invalid test event id');
+    }
+
+    private function author(): PublicKey
+    {
+        return PublicKey::fromHex(self::AUTHOR_HEX) ?? throw new RuntimeException('Invalid test author');
+    }
+
+    private function relay(string $url = 'wss://relay.example'): RelayUrl
+    {
+        return RelayUrl::fromString($url) ?? throw new RuntimeException('Invalid test relay url');
     }
 }

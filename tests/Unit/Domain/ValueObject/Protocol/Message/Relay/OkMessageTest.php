@@ -60,6 +60,27 @@ final class OkMessageTest extends TestCase
         $this->assertSame('duplicate: already have this event', $message->getMessage());
     }
 
+    public function testIsAuthRequiredWhenRejectedWithAuthRequiredPrefix(): void
+    {
+        $message = new OkMessage(self::createEventId(), false, 'auth-required: please authenticate');
+
+        $this->assertTrue($message->isAuthRequired());
+    }
+
+    public function testIsAuthRequiredIsFalseWhenAccepted(): void
+    {
+        $message = new OkMessage(self::createEventId(), true, 'auth-required: please authenticate');
+
+        $this->assertFalse($message->isAuthRequired());
+    }
+
+    public function testIsAuthRequiredIsFalseWhenRejectedWithoutPrefix(): void
+    {
+        $message = new OkMessage(self::createEventId(), false, 'blocked: spam');
+
+        $this->assertFalse($message->isAuthRequired());
+    }
+
     public function testToArrayReturnsCorrectFormat(): void
     {
         $message = new OkMessage(self::createEventId(), true, '');
