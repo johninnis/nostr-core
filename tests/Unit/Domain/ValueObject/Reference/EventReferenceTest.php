@@ -94,6 +94,39 @@ final class EventReferenceTest extends TestCase
         $this->assertFalse($a->equals($b));
     }
 
+    public function testToArrayFromArrayRoundTripPreservesEveryField(): void
+    {
+        $reference = new EventReference($this->eventId(), $this->relay(), Nip10Marker::Reply->value, $this->author());
+
+        $restored = EventReference::fromArray($reference->toArray());
+
+        $this->assertNotNull($restored);
+        $this->assertTrue($reference->equals($restored));
+        $this->assertSame($reference->toArray(), $restored->toArray());
+    }
+
+    public function testToArrayFromArrayRoundTripWithOnlyAnEventId(): void
+    {
+        $reference = new EventReference($this->eventId());
+
+        $restored = EventReference::fromArray($reference->toArray());
+
+        $this->assertNotNull($restored);
+        $this->assertTrue($reference->equals($restored));
+        $this->assertSame($reference->toArray(), $restored->toArray());
+    }
+
+    public function testFromArrayReturnsNullWhenEventIdIsMissingOrNonString(): void
+    {
+        $this->assertNull(EventReference::fromArray(['relay_url' => 'wss://relay.example']));
+        $this->assertNull(EventReference::fromArray(['event_id' => 123]));
+    }
+
+    public function testFromArrayReturnsNullWhenEventIdIsNotValidHex(): void
+    {
+        $this->assertNull(EventReference::fromArray(['event_id' => 'not-valid-hex']));
+    }
+
     private function eventId(): EventId
     {
         return EventId::fromHex(self::EVENT_ID) ?? throw new RuntimeException('Invalid test event id');

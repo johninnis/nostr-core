@@ -71,6 +71,22 @@ final class EventReferencesTest extends TestCase
         $this->assertFalse($notQuoting->isQuote());
     }
 
+    public function testToArrayFromArrayRoundTripPreservesPopulatedReferences(): void
+    {
+        $references = new EventReferences(
+            $this->tagReferencesWithOneEvent(),
+            new ContentReferenceCollection(),
+            new ReplyChain(true, null, null, PublicKeyCollection::fromHexValues([self::ID_A]), new EventReferenceCollection()),
+            new QuoteAnalysis(true, false, false, true),
+            EventIdCollection::fromHexValues([self::ID_A, self::ID_B]),
+            PublicKeyCollection::fromHexValues([self::ID_A]),
+        );
+
+        $restored = EventReferences::fromArray($references->toArray());
+
+        $this->assertSame($references->toArray(), $restored->toArray());
+    }
+
     private function referencesWith(ReplyChain $replyChain, QuoteAnalysis $quoteAnalysis): EventReferences
     {
         return new EventReferences(

@@ -81,6 +81,12 @@ final class RelayReferenceTest extends TestCase
         $this->assertNull(RelayReference::fromArray(['url' => 'not-a-valid-url']));
     }
 
+    public function testFromArrayReturnsNullWhenUrlIsMissingOrNonString(): void
+    {
+        $this->assertNull(RelayReference::fromArray([]));
+        $this->assertNull(RelayReference::fromArray(['url' => 123]));
+    }
+
     public function testRoundTripThroughArray(): void
     {
         $relay = RelayUrl::fromString(self::VALID_RELAY) ?? throw new RuntimeException('Invalid test relay');

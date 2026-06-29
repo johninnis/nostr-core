@@ -93,6 +93,12 @@ final class PubkeyReferenceTest extends TestCase
         $this->assertNull(PubkeyReference::fromArray(['pubkey' => 'invalid']));
     }
 
+    public function testFromArrayReturnsNullWhenPubkeyIsMissingOrNonString(): void
+    {
+        $this->assertNull(PubkeyReference::fromArray([]));
+        $this->assertNull(PubkeyReference::fromArray(['pubkey' => 123]));
+    }
+
     public function testRoundTripThroughArray(): void
     {
         $pubkey = PublicKey::fromHex(self::VALID_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey');
