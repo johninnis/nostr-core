@@ -18,14 +18,9 @@ final class FilterCollection extends TypedCollection
         return Filter::class;
     }
 
-    private static function tryParse(mixed $value): ?Filter
-    {
-        return is_array($value) ? Filter::fromArray($value) : null;
-    }
-
     public static function fromWire(mixed $values): ?self
     {
-        $filters = self::parseEachStrict($values, self::tryParse(...));
+        $filters = self::parseEachStrict($values, Filter::fromWire(...));
 
         return null === $filters ? null : new self($filters);
     }
