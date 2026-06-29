@@ -271,54 +271,7 @@ This package follows Clean Architecture principles with strict layer separation:
 
 ## Architecture decisions
 
-Design rationale lives in [`docs/adr/`](docs/adr/) as immutable Architecture Decision Records — read these before "correcting" a choice that reads like a smell. Each record states the context, the decision, and what it forbids.
-
-| ADR | Decision |
-|-----|----------|
-| [0000](docs/adr/0000-record-architecture-decisions.md) | Record architecture decisions |
-| [0001](docs/adr/0001-value-objects-keep-getter-methods-not-property-hooks.md) | Value objects expose state through `getX()` accessors, not public properties or hooks |
-| [0002](docs/adr/0002-nostrexception-roots-nostr-faults-only.md) | `NostrException` roots Nostr faults; consumers root their own |
-| [0003](docs/adr/0003-anticipated-outcomes-returned-faults-thrown.md) | Anticipated outcomes are returned; faults are thrown |
-| [0004](docs/adr/0004-publickey-eventid-signature-stay-separate.md) | `PublicKey`, `EventId`, and `Signature` stay separate types, not a shared base |
-| [0005](docs/adr/0005-timestamp-now-direct-clockinterface-when-time-under-test.md) | `Timestamp::now()` reads the clock directly; `ClockInterface` is injected only where elapsed time is under test |
-| [0006](docs/adr/0006-tagtype-is-a-value-object-not-a-backed-enum.md) | `TagType` is a value object, not a backed `enum` |
-| [0007](docs/adr/0007-subscriptioncollection-does-not-extend-typedcollection.md) | `SubscriptionCollection` does not extend `TypedCollection` |
-| [0008](docs/adr/0008-domain-services-static-when-pure-injected-when-collaborator.md) | Domain services are `static` when pure, injected interfaces when they have a collaborator |
-| [0009](docs/adr/0009-keysecuritybyte-frombyte-throws-on-unknown.md) | `KeySecurityByte::fromByte` throws on an unrecognised byte |
-| [0010](docs/adr/0010-relayurl-fromstring-rejects-more-than-malformed-syntax.md) | `RelayUrl::fromString` canonicalises, and rejects what it cannot canonicalise |
-| [0011](docs/adr/0011-contentreferencetagbuilder-emits-q-tag-only-for-quotes.md) | `ContentReferenceTagBuilder` emits a `q` tag only for a quoted event |
-| [0012](docs/adr/0012-event-does-not-cache-its-computed-id.md) | `Event` does not cache its computed id |
-| [0013](docs/adr/0013-secp256k1signer-sign-rejects-non-32-byte-messages.md) | `Secp256k1Signer::sign` rejects any message that is not exactly 32 bytes |
-| [0014](docs/adr/0014-nip44cipher-has-no-public-encryptwithnonce.md) | `Nip44Cipher` has no public `encryptWithNonce`; nonce generation stays behind a port |
-| [0015](docs/adr/0015-zero-is-a-contract-not-a-guarantee-via-destruction.md) | `zero()` is a contract, not a guarantee via destruction |
-| [0016](docs/adr/0016-message-hierarchy-uses-inheritance-for-a-sum-type.md) | The protocol message hierarchy uses inheritance for a discriminated union |
-| [0017](docs/adr/0017-eventvalidator-and-nipcompliancevalidator-keep-separate-signature-gates.md) | `EventValidator` and `NipComplianceValidator` keep separate signature and timestamp gates |
-| [0018](docs/adr/0018-randomness-read-directly-in-named-constructors-port-injected-where-output-is-under-test.md) | Random generation reads the entropy source directly in named constructors; `RandomBytesGeneratorInterface` is injected where the random output is under test |
-| [0019](docs/adr/0019-domain-first-organisation-cryptography-only-domain-dependency.md) | Code is organised domain-first, and cryptography is the only external dependency in the domain layer |
-| [0020](docs/adr/0020-filterhasher-canonicalises-to-ascii-safe-json-for-cross-language-parity.md) | `FilterHasher` canonicalises to ASCII-safe JSON for byte-identical cross-language hashes |
-| [0021](docs/adr/0021-single-bech32codec-covers-bech32-and-bech32m.md) | A single `Bech32Codec` covers both bech32 and bech32m |
-| [0022](docs/adr/0022-event-fromarray-coerces-non-string-content.md) | `Event::fromArray` coerces non-string `content` to its JSON string rather than rejecting it |
-| [0023](docs/adr/0023-tagtype-keeps-named-constructors-alongside-fromstring.md) | `TagType` keeps convenience named constructors alongside `fromString` and constants |
-| [0024](docs/adr/0024-typed-collections-memoise-a-membership-index.md) | Typed collections memoise a membership index |
-| [0025](docs/adr/0025-secp256k1-keeps-a-native-ffi-path-and-a-pure-php-fallback.md) | secp256k1 signing and ECDH keep a native FFI path and a pure-PHP fallback |
-| [0026](docs/adr/0026-signature-fromhex-requires-a-full-64-byte-signature.md) | `Signature::fromHex` requires a complete 64-byte signature |
-| [0027](docs/adr/0027-secp256k1signer-verify-is-a-total-predicate.md) | `Secp256k1Signer::verify` is a total predicate — it returns `false`, never throws |
-| [0028](docs/adr/0028-secretkeymaterial-expose-hands-a-detached-copy-so-the-wipe-is-effective.md) | `SecretKeyMaterial::expose` hands the closure a detached copy so the wipe is effective |
-| [0029](docs/adr/0029-privatekey-rejects-scalars-outside-the-curve-order.md) | `PrivateKey` rejects scalars outside `[1, n-1]` |
-| [0030](docs/adr/0030-nip49-floors-encryption-logn-but-accepts-weaker-on-decrypt.md) | NIP-49 floors what it encrypts at logN 16 but accepts weaker on decrypt, with a configurable decrypt ceiling |
-| [0031](docs/adr/0031-tojsonarray-stays-per-leaf-to-keep-precise-element-shapes.md) | `toJsonArray()` stays per collection leaf to keep each element's precise shape |
-| [0032](docs/adr/0032-eventhandlerinterface-is-a-downstream-implemented-port.md) | `EventHandlerInterface` is a downstream-implemented port with no in-package implementer or consumer |
-| [0033](docs/adr/0033-from-parsers-return-optional-only-when-a-required-field-can-be-absent.md) | A `from*` parser returns `?self` only when a required field can be absent |
-| [0034](docs/adr/0034-http-transport-hardening-is-the-hosts-obligation.md) | HTTP transport hardening (body size, SSRF redirects, timeout) is the host's obligation behind `HttpServiceInterface` |
-| [0035](docs/adr/0035-giftwrapper-is-a-composed-cryptographic-capability.md) | `GiftWrapper` is a composed cryptographic capability kept with the crypto family; its envelope factory is a local injection seam |
-| [0036](docs/adr/0036-nip11info-is-a-thin-view-over-the-raw-document.md) | `Nip11Info` is a thin typed view over the raw document, while `ProfileMetadata` is fully parsed |
-| [0037](docs/adr/0037-nip44cipher-uses-sodium-compat-internal-chacha20.md) | `Nip44Cipher` uses sodium_compat's internal ChaCha20 because no public IETF stream cipher exists |
-| [0038](docs/adr/0038-nip98validator-takes-its-timestamp-tolerance-as-a-constructor-argument.md) | `Nip98Validator` takes its timestamp tolerance as a constructor argument |
-| [0039](docs/adr/0039-nip49-scrypt-requires-ffi-with-no-pure-php-fallback.md) | NIP-49 scrypt requires FFI + libsodium, with no pure-PHP fallback |
-| [0040](docs/adr/0040-zapamount-frombolt11-anchors-the-amount-to-the-bech32-separator.md) | `ZapAmount::fromBolt11` anchors the amount to the bech32 separator so amount-less invoices return null |
-| [0041](docs/adr/0041-nip49-adapters-probe-libsodium-in-create-not-the-constructor.md) | NIP-49 adapters probe libsodium in `create()`, never in the constructor |
-| [0042](docs/adr/0042-entities-are-identity-bearing-artifacts-filter-is-a-value-object.md) | Entities are identity-bearing artifacts; `Filter` is a value object |
-| [0043](docs/adr/0043-filter-validates-limit-and-rejects-out-of-range-rather-than-clamping.md) | `Filter` validates `limit` in `[0, 5000]` and rejects out-of-range rather than clamping |
+Design rationale lives in [`docs/adr/`](docs/adr/) as immutable, sequentially-numbered Architecture Decision Records — read these before "correcting" a choice that reads like a smell. Each record states the context, the decision, and what it forbids; the filenames are the index.
 
 ## Dependencies
 
