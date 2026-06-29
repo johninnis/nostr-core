@@ -199,6 +199,48 @@ final readonly class Filter implements JsonSerializable, Stringable
         );
     }
 
+    public function withSince(?Timestamp $since): self
+    {
+        return new self(
+            ids: $this->ids,
+            authors: $this->authors,
+            kinds: $this->kinds,
+            tags: $this->tags,
+            since: $since,
+            until: $this->until,
+            limit: $this->limit,
+            search: $this->search,
+        );
+    }
+
+    public function withUntil(?Timestamp $until): self
+    {
+        return new self(
+            ids: $this->ids,
+            authors: $this->authors,
+            kinds: $this->kinds,
+            tags: $this->tags,
+            since: $this->since,
+            until: $until,
+            limit: $this->limit,
+            search: $this->search,
+        );
+    }
+
+    public function withLimit(?int $limit): self
+    {
+        return new self(
+            ids: $this->ids,
+            authors: $this->authors,
+            kinds: $this->kinds,
+            tags: $this->tags,
+            since: $this->since,
+            until: $this->until,
+            limit: $limit,
+            search: $this->search,
+        );
+    }
+
     /**
      * @return array<string, mixed>
      */

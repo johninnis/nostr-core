@@ -416,6 +416,59 @@ final class FilterTest extends TestCase
         $this->assertSame(10, $newFilter->getLimit());
     }
 
+    public function testWithUntilReturnsNewFilterWithReplacedUntil(): void
+    {
+        $filter = new Filter(
+            kinds: EventKindCollection::fromInts([1]),
+            until: Timestamp::fromInt(1234567900),
+            limit: 10
+        );
+
+        $newFilter = $filter->withUntil(Timestamp::fromInt(1234567800));
+
+        $this->assertSame(1234567900, $filter->getUntil()?->toInt());
+        $this->assertSame(1234567800, $newFilter->getUntil()?->toInt());
+        $this->assertKinds([1], $newFilter->getKinds());
+        $this->assertSame(10, $newFilter->getLimit());
+    }
+
+    public function testWithSinceReturnsNewFilterWithReplacedSince(): void
+    {
+        $filter = new Filter(kinds: EventKindCollection::fromInts([1]));
+
+        $newFilter = $filter->withSince(Timestamp::fromInt(1234567890));
+
+        $this->assertNull($filter->getSince());
+        $this->assertSame(1234567890, $newFilter->getSince()?->toInt());
+    }
+
+    public function testWithUntilNullClearsTheUpperBound(): void
+    {
+        $filter = new Filter(until: Timestamp::fromInt(1234567900));
+
+        $this->assertNull($filter->withUntil(null)->getUntil());
+    }
+
+    public function testWithLimitReturnsNewFilterWithReplacedLimit(): void
+    {
+        $filter = new Filter(kinds: EventKindCollection::fromInts([1]), limit: 10);
+
+        $newFilter = $filter->withLimit(50);
+
+        $this->assertSame(10, $filter->getLimit());
+        $this->assertSame(50, $newFilter->getLimit());
+        $this->assertKinds([1], $newFilter->getKinds());
+    }
+
+    public function testWithUntilRejectsAnInvertedWindow(): void
+    {
+        $filter = new Filter(since: Timestamp::fromInt(1234567900));
+
+        $this->expectException(InvalidArgumentException::class);
+
+        $filter->withUntil(Timestamp::fromInt(1234567800));
+    }
+
     public function testMatchesEventBySinceTimestamp(): void
     {
         $keyPair = KeyMother::alice();
