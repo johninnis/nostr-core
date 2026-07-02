@@ -12,7 +12,9 @@ use Innis\Nostr\Core\Domain\Service\RelayHintExtractor;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use Innis\Nostr\Core\Tests\Support\EventMother;
 use Innis\Nostr\Core\Tests\Support\TagCollectionMother;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -108,7 +110,7 @@ final class RelayHintExtractorRealDataTest extends TestCase
 
     public function testExtractRelayHintsFromFullSecondTestEvent(): void
     {
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             PublicKey::fromHex(self::TEST_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1756903083),
             EventKind::fromInt(1),
@@ -119,7 +121,7 @@ final class RelayHintExtractorRealDataTest extends TestCase
                 ['r', 'wss://nostr.mom/'],
             ]),
             EventContent::fromString("Getting married and having kids will make you level up as a man faster and further than anything else.\n\nnostr:nevent1qvzqqqqqqypzqxh7p36w84mcf6af8f0rlf255mhtqxfg6ynnnt5t5jpj0p5q3cmdqqsdxkwnafkgnfg68g6xkqau25548fewg440x5s8r4uud0sednkewugdc6hft ")
-        );
+        ));
 
         $relayHints = $this->makeExtractor()->extractRelayHints($event)->toArray();
 
@@ -138,12 +140,12 @@ final class RelayHintExtractorRealDataTest extends TestCase
 
     private function makeEvent(TagCollection $tags, string $content = ''): Event
     {
-        return new Event(
+        return EventMother::fromRumour(new Rumour(
             PublicKey::fromHex(self::TEST_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1756903083),
             EventKind::fromInt(1),
             $tags,
             EventContent::fromString($content)
-        );
+        ));
     }
 }

@@ -46,11 +46,13 @@ final class WireParserTotalityComplianceTest extends TestCase
     public function testEventFromArrayRoundTripsToSerialisationWithoutThrowing(): void
     {
         $baseline = Event::fromArray([
+            'id' => str_repeat('a', 64),
             'pubkey' => str_repeat('a', 64),
             'created_at' => 1700000000,
             'kind' => 1,
             'tags' => [],
             'content' => 'hello',
+            'sig' => str_repeat('a', 128),
         ]);
         $this->assertNotNull($baseline);
         $this->assertJson($baseline->toJson());

@@ -22,7 +22,6 @@ final class Nip98ValidationFailureTest extends TestCase
     public static function caseCodes(): iterable
     {
         yield 'wrong kind' => [Nip98ValidationFailure::WrongKind, 'wrong_kind'];
-        yield 'unsigned' => [Nip98ValidationFailure::Unsigned, 'unsigned'];
         yield 'bad signature' => [Nip98ValidationFailure::BadSignature, 'bad_signature'];
         yield 'timestamp outside tolerance' => [Nip98ValidationFailure::TimestampOutsideTolerance, 'timestamp_outside_tolerance'];
         yield 'missing url tag' => [Nip98ValidationFailure::MissingUrlTag, 'missing_url_tag'];

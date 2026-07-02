@@ -12,7 +12,9 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Payment\Nutzap;
 use Innis\Nostr\Core\Domain\ValueObject\Payment\ZapReceipt;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use Innis\Nostr\Core\Tests\Support\EventMother;
 use Innis\Nostr\Core\Tests\Support\TagCollectionMother;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -60,12 +62,12 @@ final class PaymentReceiptParserTest extends TestCase
      */
     private function buildEvent(int $kind, array $rawTags): Event
     {
-        return new Event(
+        return EventMother::fromRumour(new Rumour(
             PublicKey::fromHex(self::SENDER_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1700000000),
             EventKind::fromInt($kind),
             [] === $rawTags ? new TagCollection() : TagCollectionMother::fromRaw($rawTags),
             EventContent::fromString(''),
-        );
+        ));
     }
 }

@@ -10,8 +10,9 @@ use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
-use Innis\Nostr\Core\Tests\Fake\FakeSignatureService;
+use Innis\Nostr\Core\Tests\Support\EventMother;
 use Innis\Nostr\Core\Tests\Support\KeyMother;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
@@ -64,10 +65,9 @@ final class EventCollectionTest extends TestCase
     public function testRemoveReturnsNewCollectionWithoutEvent(): void
     {
         $event = $this->createEvent('Hello');
-        $signedEvent = $event->sign($this->keyPair, FakeSignatureService::accepting());
-        $collection = new EventCollection([$signedEvent]);
+        $collection = new EventCollection([$event]);
 
-        $newCollection = $collection->remove($signedEvent->getId());
+        $newCollection = $collection->remove($event->getId());
 
         $this->assertSame(1, $collection->count());
         $this->assertTrue($newCollection->isEmpty());
@@ -75,8 +75,8 @@ final class EventCollectionTest extends TestCase
 
     public function testRemoveDoesNotAffectOtherEvents(): void
     {
-        $event1 = $this->createEvent('First')->sign($this->keyPair, FakeSignatureService::accepting());
-        $event2 = $this->createEventAtTime('Second', 1234567891)->sign($this->keyPair, FakeSignatureService::accepting());
+        $event1 = $this->createEvent('First');
+        $event2 = $this->createEventAtTime('Second', 1234567891);
         $collection = new EventCollection([$event1, $event2]);
 
         $newCollection = $collection->remove($event1->getId());
@@ -87,7 +87,7 @@ final class EventCollectionTest extends TestCase
 
     public function testContainsReturnsTrueWhenEventExists(): void
     {
-        $event = $this->createEvent('Hello')->sign($this->keyPair, FakeSignatureService::accepting());
+        $event = $this->createEvent('Hello');
         $collection = new EventCollection([$event]);
 
         $this->assertTrue($collection->contains($event->getId()));
@@ -95,8 +95,8 @@ final class EventCollectionTest extends TestCase
 
     public function testContainsReturnsFalseWhenEventDoesNotExist(): void
     {
-        $event1 = $this->createEvent('Hello')->sign($this->keyPair, FakeSignatureService::accepting());
-        $event2 = $this->createEventAtTime('World', 1234567891)->sign($this->keyPair, FakeSignatureService::accepting());
+        $event1 = $this->createEvent('Hello');
+        $event2 = $this->createEventAtTime('World', 1234567891);
         $collection = new EventCollection([$event1]);
 
         $this->assertFalse($collection->contains($event2->getId()));
@@ -130,13 +130,13 @@ final class EventCollectionTest extends TestCase
     {
         $otherKeyPair = KeyMother::bob();
         $event1 = $this->createEvent('By original author');
-        $event2 = new Event(
+        $event2 = EventMother::fromRumour(new Rumour(
             $otherKeyPair->getPublicKey(),
             Timestamp::fromInt(1234567890),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('By other author')
-        );
+        ));
         $collection = new EventCollection([$event1, $event2]);
 
         $filtered = $collection->filterByAuthor($this->keyPair->getPublicKey());
@@ -280,7 +280,7 @@ final class EventCollectionTest extends TestCase
 
     public function testUniqueRemovesDuplicateEvents(): void
     {
-        $event = $this->createEvent('Hello')->sign($this->keyPair, FakeSignatureService::accepting());
+        $event = $this->createEvent('Hello');
         $collection = new EventCollection([$event, $event]);
 
         $unique = $collection->unique();
@@ -290,8 +290,8 @@ final class EventCollectionTest extends TestCase
 
     public function testUniquePreservesDistinctEvents(): void
     {
-        $event1 = $this->createEvent('First')->sign($this->keyPair, FakeSignatureService::accepting());
-        $event2 = $this->createEventAtTime('Second', 1234567891)->sign($this->keyPair, FakeSignatureService::accepting());
+        $event1 = $this->createEvent('First');
+        $event2 = $this->createEventAtTime('Second', 1234567891);
         $collection = new EventCollection([$event1, $event2]);
 
         $unique = $collection->unique();
@@ -312,7 +312,7 @@ final class EventCollectionTest extends TestCase
 
     public function testToJsonArrayReturnsSerialisedEvents(): void
     {
-        $event = $this->createEvent('Hello')->sign($this->keyPair, FakeSignatureService::accepting());
+        $event = $this->createEvent('Hello');
         $collection = new EventCollection([$event]);
 
         $jsonArray = $collection->toJsonArray();
@@ -383,34 +383,34 @@ final class EventCollectionTest extends TestCase
 
     private function createEvent(string $content): Event
     {
-        return new Event(
+        return EventMother::fromRumour(new Rumour(
             $this->keyPair->getPublicKey(),
             Timestamp::fromInt(1234567890),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString($content)
-        );
+        ));
     }
 
     private function createEventAtTime(string $content, int $timestamp): Event
     {
-        return new Event(
+        return EventMother::fromRumour(new Rumour(
             $this->keyPair->getPublicKey(),
             Timestamp::fromInt($timestamp),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString($content)
-        );
+        ));
     }
 
     private function createEventWithKind(EventKind $kind, string $content): Event
     {
-        return new Event(
+        return EventMother::fromRumour(new Rumour(
             $this->keyPair->getPublicKey(),
             Timestamp::fromInt(1234567890),
             $kind,
             new TagCollection(),
             EventContent::fromString($content)
-        );
+        ));
     }
 }

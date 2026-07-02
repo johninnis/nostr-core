@@ -5,114 +5,74 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\Entity;
 
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
-use Innis\Nostr\Core\Domain\Enum\Nip10Marker;
-use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
-use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
-use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
-use InvalidArgumentException;
 use Override;
 use Stringable;
 
 final readonly class Event implements Stringable
 {
     public function __construct(
-        private PublicKey $pubkey,
-        private Timestamp $createdAt,
-        private EventKind $kind,
-        private TagCollection $tags,
-        private EventContent $content,
-        private ?EventId $id = null,
-        private ?Signature $signature = null,
+        private Rumour $rumour,
+        private EventId $id,
+        private Signature $signature,
         private ?string $rawJson = null,
     ) {
     }
 
-    public function sign(KeyPair $keyPair, SignatureServiceInterface $signatureService): self
-    {
-        if (!$keyPair->getPublicKey()->equals($this->pubkey)) {
-            throw new InvalidArgumentException('Key pair does not match event public key');
-        }
-
-        $id = $this->calculateId();
-        $signature = $signatureService->sign($keyPair->getPrivateKey(), $id->toBytes());
-
-        return new self($this->pubkey, $this->createdAt, $this->kind, $this->tags, $this->content, $id, $signature);
-    }
-
     public function verify(SignatureServiceInterface $signatureService): bool
     {
-        if (null === $this->signature || null === $this->id) {
+        if (!$this->id->equals($this->rumour->getId())) {
             return false;
         }
 
-        if (!$this->id->equals($this->calculateId())) {
-            return false;
-        }
-
-        return $signatureService->verify($this->pubkey, $this->id->toBytes(), $this->signature);
+        return $signatureService->verify($this->rumour->getPubkey(), $this->id->toBytes(), $this->signature);
     }
 
-    public function calculateId(): EventId
+    public function getRumour(): Rumour
     {
-        $serialised = JsonWireFormat::encode([
-            0,
-            $this->pubkey->toHex(),
-            $this->createdAt->toInt(),
-            $this->kind->toInt(),
-            $this->tags->toJsonArray(),
-            (string) $this->content,
-        ], JsonWireFormat::EVENT);
-
-        return EventId::fromBytes(hash('sha256', $serialised, true))
-            ?? throw new InvalidEventException('Hashed event ID was not a valid 32-byte value');
+        return $this->rumour;
     }
 
-    // Deliberate: does not memoise the computed id, preserving the class-level readonly immutability guarantee — see ADR-0012
+    // Deliberate: returns the stored id it was signed with and never rehashes; the per-read hash lives on Rumour — see ADR-0046
     public function getId(): EventId
     {
-        return $this->id ?? $this->calculateId();
+        return $this->id;
     }
 
     public function getPubkey(): PublicKey
     {
-        return $this->pubkey;
+        return $this->rumour->getPubkey();
     }
 
     public function getCreatedAt(): Timestamp
     {
-        return $this->createdAt;
+        return $this->rumour->getCreatedAt();
     }
 
     public function getKind(): EventKind
     {
-        return $this->kind;
+        return $this->rumour->getKind();
     }
 
     public function getTags(): TagCollection
     {
-        return $this->tags;
-    }
-
-    public function withTags(TagCollection $tags): self
-    {
-        return new self($this->pubkey, $this->createdAt, $this->kind, $tags, $this->content);
+        return $this->rumour->getTags();
     }
 
     public function getContent(): EventContent
     {
-        return $this->content;
+        return $this->rumour->getContent();
     }
 
-    public function getSignature(): ?Signature
+    public function getSignature(): Signature
     {
         return $this->signature;
     }
@@ -133,16 +93,7 @@ final readonly class Event implements Stringable
             return $this;
         }
 
-        return new self(
-            $this->pubkey,
-            $this->createdAt,
-            $this->kind,
-            $this->tags,
-            $this->content,
-            $this->id,
-            $this->signature,
-            $this->encodeJson(),
-        );
+        return new self($this->rumour, $this->id, $this->signature, $this->encodeJson());
     }
 
     private function encodeJson(): string
@@ -150,58 +101,34 @@ final readonly class Event implements Stringable
         return JsonWireFormat::encode($this->toArray(), JsonWireFormat::EVENT);
     }
 
-    public function isSigned(): bool
-    {
-        return null !== $this->signature;
-    }
-
     public function isReply(): bool
     {
-        if ($this->kind->is(EventKind::REPOST) || $this->kind->is(EventKind::GENERIC_REPOST)) {
-            return false;
-        }
-
-        if ($this->kind->is(EventKind::COMMENT)) {
-            return true;
-        }
-
-        $eTags = $this->tags->findByType(TagType::event());
-
-        return array_any($eTags, static fn (Tag $tag): bool => in_array($tag->getValue(2), [Nip10Marker::Root->value, Nip10Marker::Reply->value, null, ''], true));
+        return $this->rumour->isReply();
     }
 
     public function isRepost(): bool
     {
-        return $this->kind->is(EventKind::REPOST) || $this->kind->is(EventKind::GENERIC_REPOST);
+        return $this->rumour->isRepost();
     }
 
     public function isDeletion(): bool
     {
-        return $this->kind->is(EventKind::EVENT_DELETION);
+        return $this->rumour->isDeletion();
     }
 
     public function isExpired(): bool
     {
-        $value = $this->tags->getFirstValueByType(TagType::expiration());
-        if (null === $value) {
-            return false;
-        }
-
-        $expiry = Timestamp::tryFromInt((int) $value);
-
-        return null !== $expiry && $expiry->hasPassed();
+        return $this->rumour->isExpired();
     }
 
     public function isProtected(): bool
     {
-        return $this->tags->hasType(TagType::protected());
+        return $this->rumour->isProtected();
     }
 
     public function getPublishedAt(): ?Timestamp
     {
-        $value = $this->tags->getFirstValueByType(TagType::fromString(TagType::PUBLISHED_AT));
-
-        return null !== $value ? Timestamp::tryFromInt((int) $value) : null;
+        return $this->rumour->getPublishedAt();
     }
 
     /**
@@ -210,13 +137,13 @@ final readonly class Event implements Stringable
     public function toArray(): array
     {
         return [
-            'id' => $this->getId()->toHex(),
-            'pubkey' => $this->pubkey->toHex(),
-            'created_at' => $this->createdAt->toInt(),
-            'kind' => $this->kind->toInt(),
-            'tags' => $this->tags->toJsonArray(),
-            'content' => (string) $this->content,
-            'sig' => $this->signature?->toHex() ?? '',
+            'id' => $this->id->toHex(),
+            'pubkey' => $this->rumour->getPubkey()->toHex(),
+            'created_at' => $this->rumour->getCreatedAt()->toInt(),
+            'kind' => $this->rumour->getKind()->toInt(),
+            'tags' => $this->rumour->getTags()->toJsonArray(),
+            'content' => (string) $this->rumour->getContent(),
+            'sig' => $this->signature->toHex(),
         ];
     }
 
@@ -249,86 +176,35 @@ final readonly class Event implements Stringable
      */
     private static function build(array $data, ?string $rawJson): ?self
     {
-        foreach (['pubkey', 'created_at', 'kind', 'tags', 'content'] as $field) {
-            if (!array_key_exists($field, $data)) {
-                return null;
-            }
-        }
-
-        if (!is_string($data['pubkey']) || !is_int($data['created_at']) || !is_int($data['kind'])) {
+        $rumour = Rumour::fromArray($data);
+        if (null === $rumour) {
             return null;
         }
 
-        $pubkey = PublicKey::fromHex($data['pubkey']);
-        if (null === $pubkey) {
+        if (!isset($data['id']) || !is_string($data['id'])) {
             return null;
         }
 
-        $createdAt = Timestamp::tryFromInt($data['created_at']);
-        if (null === $createdAt) {
+        $id = EventId::fromHex($data['id']);
+        if (null === $id) {
             return null;
         }
 
-        $kind = EventKind::tryFromInt($data['kind']);
-        if (null === $kind) {
+        if (!isset($data['sig']) || !is_string($data['sig']) || '' === $data['sig']) {
             return null;
         }
 
-        $tags = TagCollection::fromWire($data['tags']);
-        if (null === $tags) {
+        $signature = Signature::fromHex($data['sig']);
+        if (null === $signature) {
             return null;
         }
 
-        $content = $data['content'];
-        if (!is_string($content)) {
-            // Deliberate: coerces non-string content to the canonical event JSON string rather than rejecting it — see ADR-0022
-            $content = json_encode($content, JsonWireFormat::EVENT);
-            if (false === $content) {
-                return null;
-            }
-        }
-
-        if (!mb_check_encoding($content, 'UTF-8')) {
-            return null;
-        }
-
-        $id = null;
-        if (isset($data['id'])) {
-            if (!is_string($data['id'])) {
-                return null;
-            }
-            $id = EventId::fromHex($data['id']);
-            if (null === $id) {
-                return null;
-            }
-        }
-
-        $signature = null;
-        if (isset($data['sig']) && '' !== $data['sig']) {
-            if (!is_string($data['sig'])) {
-                return null;
-            }
-            $signature = Signature::fromHex($data['sig']);
-            if (null === $signature) {
-                return null;
-            }
-        }
-
-        return new self(
-            $pubkey,
-            $createdAt,
-            $kind,
-            $tags,
-            EventContent::fromString($content),
-            $id,
-            $signature,
-            $rawJson,
-        );
+        return new self($rumour, $id, $signature, $rawJson);
     }
 
     #[Override]
     public function __toString(): string
     {
-        return $this->getId()->toHex();
+        return $this->id->toHex();
     }
 }

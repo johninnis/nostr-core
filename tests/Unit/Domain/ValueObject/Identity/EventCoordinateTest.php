@@ -5,14 +5,15 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Identity;
 
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
-use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use Innis\Nostr\Core\Tests\Support\EventMother;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -379,13 +380,13 @@ final class EventCoordinateTest extends TestCase
         $pubkey = PublicKey::fromHex(self::VALID_PUBKEY);
         $this->assertNotNull($pubkey);
 
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $pubkey,
             Timestamp::now(),
             EventKind::fromInt(self::VALID_KIND),
             new TagCollection([Tag::identifier(self::VALID_IDENTIFIER)]),
             EventContent::fromString('test'),
-        );
+        ));
 
         $this->assertTrue($coordinate->matchesEvent($event));
     }
@@ -396,13 +397,13 @@ final class EventCoordinateTest extends TestCase
         $pubkey = PublicKey::fromHex(self::VALID_PUBKEY);
         $this->assertNotNull($pubkey);
 
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $pubkey,
             Timestamp::now(),
             EventKind::fromInt(30078),
             new TagCollection([Tag::identifier(self::VALID_IDENTIFIER)]),
             EventContent::fromString('test'),
-        );
+        ));
 
         $this->assertFalse($coordinate->matchesEvent($event));
     }
@@ -413,13 +414,13 @@ final class EventCoordinateTest extends TestCase
         $pubkey = PublicKey::fromHex(self::VALID_PUBKEY);
         $this->assertNotNull($pubkey);
 
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $pubkey,
             Timestamp::now(),
             EventKind::fromInt(self::VALID_KIND),
             new TagCollection([Tag::identifier('other-article')]),
             EventContent::fromString('test'),
-        );
+        ));
 
         $this->assertFalse($coordinate->matchesEvent($event));
     }

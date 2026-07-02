@@ -12,11 +12,12 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\FileMetadata;
 use Innis\Nostr\Core\Domain\ValueObject\Content\LongformMetadata;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 
-final class EventFactory
+final class RumourFactory
 {
     public static function createCustomKind(
         PublicKey $pubkey,
@@ -24,8 +25,8 @@ final class EventFactory
         EventContent $content,
         ?TagCollection $tags = null,
         ?Timestamp $createdAt = null,
-    ): Event {
-        return new Event(
+    ): Rumour {
+        return new Rumour(
             $pubkey,
             $createdAt ?? Timestamp::now(),
             $kind,
@@ -38,7 +39,7 @@ final class EventFactory
         PublicKey $pubkey,
         string $content,
         ?TagCollection $tags = null,
-    ): Event {
+    ): Rumour {
         return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::TEXT_NOTE), EventContent::fromString($content), $tags);
     }
 
@@ -46,7 +47,7 @@ final class EventFactory
         PublicKey $pubkey,
         string $metadata,
         ?TagCollection $tags = null,
-    ): Event {
+    ): Rumour {
         return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::METADATA), EventContent::fromString($metadata), $tags);
     }
 
@@ -54,7 +55,7 @@ final class EventFactory
         PublicKey $pubkey,
         string $encryptedContent,
         TagCollection $tags,
-    ): Event {
+    ): Rumour {
         return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::ENCRYPTED_DIRECT_MESSAGE), EventContent::fromString($encryptedContent), $tags);
     }
 
@@ -62,7 +63,7 @@ final class EventFactory
         PublicKey $pubkey,
         TagCollection $tags,
         string $reason = '',
-    ): Event {
+    ): Rumour {
         return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::EVENT_DELETION), EventContent::fromString($reason), $tags);
     }
 
@@ -71,11 +72,11 @@ final class EventFactory
         FileMetadata $metadata,
         string $caption = '',
         ?Timestamp $createdAt = null,
-    ): Event {
+    ): Rumour {
         return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::FILE_METADATA), EventContent::fromString($caption), $metadata->toTags(), $createdAt);
     }
 
-    public static function createRepost(PublicKey $pubkey, Event $originalEvent): Event
+    public static function createRepost(PublicKey $pubkey, Event $originalEvent): Rumour
     {
         $tags = new TagCollection([
             Tag::event($originalEvent->getId()->toHex()),
@@ -89,7 +90,7 @@ final class EventFactory
         PublicKey $pubkey,
         Event $targetEvent,
         string $reaction = '+',
-    ): Event {
+    ): Rumour {
         $tags = new TagCollection([
             Tag::event($targetEvent->getId()->toHex()),
             Tag::pubkey($targetEvent->getPubkey()->toHex()),
@@ -98,17 +99,17 @@ final class EventFactory
         return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::REACTION), EventContent::fromString($reaction), $tags);
     }
 
-    public static function createFollowList(PublicKey $pubkey, TagCollection $followTags): Event
+    public static function createFollowList(PublicKey $pubkey, TagCollection $followTags): Rumour
     {
         return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::FOLLOW_LIST), EventContent::fromString(''), $followTags);
     }
 
-    public static function createRelayList(PublicKey $pubkey, TagCollection $relayTags): Event
+    public static function createRelayList(PublicKey $pubkey, TagCollection $relayTags): Rumour
     {
         return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::RELAY_LIST), EventContent::fromString(''), $relayTags);
     }
 
-    public static function createMuteList(PublicKey $pubkey, TagCollection $muteTags): Event
+    public static function createMuteList(PublicKey $pubkey, TagCollection $muteTags): Rumour
     {
         return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::MUTE_LIST), EventContent::fromString(''), $muteTags);
     }
@@ -117,7 +118,7 @@ final class EventFactory
         PublicKey $pubkey,
         RelayUrl $relayUrl,
         string $challenge,
-    ): Event {
+    ): Rumour {
         $tags = new TagCollection([
             Tag::create(TagType::RELAY, (string) $relayUrl),
             Tag::create(TagType::CHALLENGE, $challenge),
@@ -131,7 +132,7 @@ final class EventFactory
         string $url,
         string $method,
         ?string $payloadHash = null,
-    ): Event {
+    ): Rumour {
         $tags = [
             Tag::create(TagType::URL, $url),
             Tag::create(TagType::METHOD, $method),
@@ -144,18 +145,18 @@ final class EventFactory
         return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::HTTP_AUTH), EventContent::fromString(''), new TagCollection($tags));
     }
 
-    public static function createRumour(
+    public static function createPrivateMessage(
         PublicKey $pubkey,
         string $content,
         TagCollection $recipientTags,
-    ): Event {
+    ): Rumour {
         return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::PRIVATE_MESSAGE), EventContent::fromString($content), $recipientTags);
     }
 
     public static function createDmRelayList(
         PublicKey $pubkey,
         TagCollection $relayTags,
-    ): Event {
+    ): Rumour {
         return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::DM_RELAY_LIST), EventContent::fromString(''), $relayTags);
     }
 
@@ -164,7 +165,7 @@ final class EventFactory
         EventContent $content,
         LongformMetadata $metadata,
         ?Timestamp $createdAt = null,
-    ): Event {
+    ): Rumour {
         return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::LONGFORM_CONTENT), $content, $metadata->toTags(), $createdAt);
     }
 }

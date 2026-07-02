@@ -14,6 +14,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client\EventMessage as 
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\ClosedMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\NoticeMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\OkMessage;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Infrastructure\Encoding\JsonMessageDeserialiser;
 use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
@@ -30,14 +31,14 @@ final class JsonMessageDeserialiserTest extends TestCase
         $this->deserialiser = new JsonMessageDeserialiser();
         $this->keyPair = KeyPair::generate(CryptoFixtures::signer());
 
-        $this->event = new Event(
+        $rumour = new Rumour(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('Hello Nostr!')
         );
-        $this->event = $this->event->sign($this->keyPair, CryptoFixtures::signer());
+        $this->event = $rumour->sign($this->keyPair, CryptoFixtures::signer());
     }
 
     public function testCanDeserialiseClientEventMessage(): void

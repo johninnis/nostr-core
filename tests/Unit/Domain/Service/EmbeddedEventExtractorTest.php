@@ -10,7 +10,9 @@ use Innis\Nostr\Core\Domain\Service\EmbeddedEventExtractor;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use Innis\Nostr\Core\Tests\Support\EventMother;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -78,12 +80,21 @@ final class EmbeddedEventExtractorTest extends TestCase
 
     public function testExtractionGateIsTheEventParserAlone(): void
     {
+        $rumour = new Rumour(
+            PublicKey::fromHex(self::PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
+            Timestamp::fromInt(1700000000),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
+            new TagCollection(),
+            EventContent::fromString('reposted note'),
+        );
         $embedded = json_encode([
+            'id' => $rumour->getId()->toHex(),
             'pubkey' => self::PUBKEY,
             'created_at' => 1700000000,
             'kind' => EventKind::TEXT_NOTE,
             'tags' => [],
             'content' => 'reposted note',
+            'sig' => EventMother::signature()->toHex(),
         ]);
         $this->assertIsString($embedded);
 
@@ -95,12 +106,12 @@ final class EmbeddedEventExtractorTest extends TestCase
 
     private function buildEvent(int $kind, string $content): Event
     {
-        return new Event(
+        return EventMother::fromRumour(new Rumour(
             PublicKey::fromHex(self::PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1700000000),
             EventKind::fromInt($kind),
             new TagCollection(),
             EventContent::fromString($content),
-        );
+        ));
     }
 }

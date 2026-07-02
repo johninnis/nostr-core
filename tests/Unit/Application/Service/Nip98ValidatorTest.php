@@ -9,13 +9,13 @@ use Innis\Nostr\Core\Application\Port\Nip98ReplayGuardInterface;
 use Innis\Nostr\Core\Application\Service\Nip98Validator;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
-use Innis\Nostr\Core\Domain\Factory\EventFactory;
 use Innis\Nostr\Core\Domain\Failure\Nip98ValidationFailure;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Infrastructure\Time\SystemClock;
@@ -53,20 +53,6 @@ final class Nip98ValidatorTest extends TestCase
 
         $this->assertSame(
             Nip98ValidationFailure::WrongKind,
-            $this->service->validate($event, Nip98Request::withBodyHash('https://relay.example.com/', 'POST'))
-        );
-    }
-
-    public function testRejectsUnsignedEvent(): void
-    {
-        $event = EventFactory::createHttpAuth(
-            $this->keyPair->getPublicKey(),
-            'https://relay.example.com/',
-            'POST'
-        );
-
-        $this->assertSame(
-            Nip98ValidationFailure::Unsigned,
             $this->service->validate($event, Nip98Request::withBodyHash('https://relay.example.com/', 'POST'))
         );
     }
@@ -469,7 +455,7 @@ final class Nip98ValidatorTest extends TestCase
             Tag::fromArray(['method', 'POST']),
         ]);
 
-        $event = new Event(
+        $rumour = new Rumour(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
             $kind,
@@ -477,7 +463,7 @@ final class Nip98ValidatorTest extends TestCase
             EventContent::empty()
         );
 
-        return $event->sign($this->keyPair, FakeSignatureService::accepting());
+        return $rumour->sign($this->keyPair, FakeSignatureService::accepting());
     }
 
     private function createSignedEventWithTimestamp(Timestamp $timestamp): Event
@@ -488,7 +474,7 @@ final class Nip98ValidatorTest extends TestCase
             Tag::fromArray(['payload', hash('sha256', '{"method":"test"}')]),
         ]);
 
-        $event = new Event(
+        $rumour = new Rumour(
             $this->keyPair->getPublicKey(),
             $timestamp,
             EventKind::fromInt(EventKind::HTTP_AUTH),
@@ -496,7 +482,7 @@ final class Nip98ValidatorTest extends TestCase
             EventContent::empty()
         );
 
-        return $event->sign($this->keyPair, FakeSignatureService::accepting());
+        return $rumour->sign($this->keyPair, FakeSignatureService::accepting());
     }
 
     private function createReplayGuard(): Nip98ReplayGuardInterface
@@ -520,7 +506,7 @@ final class Nip98ValidatorTest extends TestCase
 
     private function createSignedEventWithTags(TagCollection $tags): Event
     {
-        $event = new Event(
+        $rumour = new Rumour(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::HTTP_AUTH),
@@ -528,6 +514,6 @@ final class Nip98ValidatorTest extends TestCase
             EventContent::empty()
         );
 
-        return $event->sign($this->keyPair, FakeSignatureService::accepting());
+        return $rumour->sign($this->keyPair, FakeSignatureService::accepting());
     }
 }

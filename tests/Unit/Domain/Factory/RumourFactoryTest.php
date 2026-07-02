@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Factory;
 
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
-use Innis\Nostr\Core\Domain\Factory\EventFactory;
+use Innis\Nostr\Core\Domain\Factory\RumourFactory;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Content\FileMetadata;
@@ -19,7 +19,7 @@ use Innis\Nostr\Core\Tests\Fake\FakeSignatureService;
 use Innis\Nostr\Core\Tests\Support\KeyMother;
 use PHPUnit\Framework\TestCase;
 
-final class EventFactoryTest extends TestCase
+final class RumourFactoryTest extends TestCase
 {
     private KeyPair $keyPair;
 
@@ -30,7 +30,7 @@ final class EventFactoryTest extends TestCase
 
     public function testCanCreateTextNote(): void
     {
-        $event = EventFactory::createTextNote(
+        $event = RumourFactory::createTextNote(
             $this->keyPair->getPublicKey(),
             'Hello Nostr!'
         );
@@ -43,7 +43,7 @@ final class EventFactoryTest extends TestCase
     public function testCanCreateMetadata(): void
     {
         $metadata = '{"name":"Alice","about":"Nostr user"}';
-        $event = EventFactory::createMetadata(
+        $event = RumourFactory::createMetadata(
             $this->keyPair->getPublicKey(),
             $metadata
         );
@@ -55,7 +55,7 @@ final class EventFactoryTest extends TestCase
     public function testCanCreateFollowList(): void
     {
         $tags = new TagCollection([Tag::pubkey('follow-pubkey')]);
-        $event = EventFactory::createFollowList(
+        $event = RumourFactory::createFollowList(
             $this->keyPair->getPublicKey(),
             $tags
         );
@@ -69,7 +69,7 @@ final class EventFactoryTest extends TestCase
         $encryptedContent = 'encrypted-content';
         $tags = new TagCollection([Tag::pubkey('recipient-pubkey')]);
 
-        $event = EventFactory::createEncryptedDirectMessage(
+        $event = RumourFactory::createEncryptedDirectMessage(
             $this->keyPair->getPublicKey(),
             $encryptedContent,
             $tags
@@ -85,7 +85,7 @@ final class EventFactoryTest extends TestCase
         $tags = new TagCollection([Tag::event('event-to-delete')]);
         $reason = 'spam';
 
-        $event = EventFactory::createEventDeletion(
+        $event = RumourFactory::createEventDeletion(
             $this->keyPair->getPublicKey(),
             $tags,
             $reason
@@ -101,7 +101,7 @@ final class EventFactoryTest extends TestCase
         $customKind = EventKind::fromInt(1000);
         $content = EventContent::fromString('custom content');
 
-        $event = EventFactory::createCustomKind(
+        $event = RumourFactory::createCustomKind(
             $this->keyPair->getPublicKey(),
             $customKind,
             $content
@@ -117,7 +117,7 @@ final class EventFactoryTest extends TestCase
         $this->assertNotNull($relayUrl);
         $challenge = 'test-challenge-string';
 
-        $event = EventFactory::createAuth(
+        $event = RumourFactory::createAuth(
             $this->keyPair->getPublicKey(),
             $relayUrl,
             $challenge
@@ -141,7 +141,7 @@ final class EventFactoryTest extends TestCase
         $method = 'POST';
         $payloadHash = hash('sha256', '{"data":"test"}');
 
-        $event = EventFactory::createHttpAuth(
+        $event = RumourFactory::createHttpAuth(
             $this->keyPair->getPublicKey(),
             $url,
             $method,
@@ -165,7 +165,7 @@ final class EventFactoryTest extends TestCase
 
     public function testCanCreateHttpAuthWithoutPayload(): void
     {
-        $event = EventFactory::createHttpAuth(
+        $event = RumourFactory::createHttpAuth(
             $this->keyPair->getPublicKey(),
             'https://api.example.com/',
             'GET'
@@ -177,7 +177,7 @@ final class EventFactoryTest extends TestCase
 
     public function testFactoryMethodsCreateEventsWithReasonableTimestamps(): void
     {
-        $event = EventFactory::createTextNote(
+        $event = RumourFactory::createTextNote(
             $this->keyPair->getPublicKey(),
             'test'
         );
@@ -187,13 +187,13 @@ final class EventFactoryTest extends TestCase
 
     public function testCanCreateRepost(): void
     {
-        $originalEvent = EventFactory::createTextNote(
+        $originalEvent = RumourFactory::createTextNote(
             $this->keyPair->getPublicKey(),
             'Original post'
         )->sign($this->keyPair, FakeSignatureService::accepting());
 
         $repostingKeyPair = KeyMother::bob();
-        $repost = EventFactory::createRepost($repostingKeyPair->getPublicKey(), $originalEvent);
+        $repost = RumourFactory::createRepost($repostingKeyPair->getPublicKey(), $originalEvent);
 
         $this->assertTrue($repost->getKind()->is(EventKind::REPOST));
         $this->assertSame('', (string) $repost->getContent());
@@ -209,13 +209,13 @@ final class EventFactoryTest extends TestCase
 
     public function testCanCreateReaction(): void
     {
-        $targetEvent = EventFactory::createTextNote(
+        $targetEvent = RumourFactory::createTextNote(
             $this->keyPair->getPublicKey(),
             'Target post'
         )->sign($this->keyPair, FakeSignatureService::accepting());
 
         $reactingKeyPair = KeyMother::bob();
-        $reaction = EventFactory::createReaction($reactingKeyPair->getPublicKey(), $targetEvent);
+        $reaction = RumourFactory::createReaction($reactingKeyPair->getPublicKey(), $targetEvent);
 
         $this->assertTrue($reaction->getKind()->is(EventKind::REACTION));
         $this->assertSame('+', (string) $reaction->getContent());
@@ -231,12 +231,12 @@ final class EventFactoryTest extends TestCase
 
     public function testCanCreateReactionWithCustomContent(): void
     {
-        $targetEvent = EventFactory::createTextNote(
+        $targetEvent = RumourFactory::createTextNote(
             $this->keyPair->getPublicKey(),
             'Target post'
         )->sign($this->keyPair, FakeSignatureService::accepting());
 
-        $reaction = EventFactory::createReaction($this->keyPair->getPublicKey(), $targetEvent, '-');
+        $reaction = RumourFactory::createReaction($this->keyPair->getPublicKey(), $targetEvent, '-');
 
         $this->assertSame('-', (string) $reaction->getContent());
     }
@@ -248,7 +248,7 @@ final class EventFactoryTest extends TestCase
             Tag::fromArray(['r', 'wss://relay2.example.com', 'read']),
         ]);
 
-        $event = EventFactory::createRelayList($this->keyPair->getPublicKey(), $relayTags);
+        $event = RumourFactory::createRelayList($this->keyPair->getPublicKey(), $relayTags);
 
         $this->assertTrue($event->getKind()->is(EventKind::RELAY_LIST));
         $this->assertSame('', (string) $event->getContent());
@@ -262,19 +262,19 @@ final class EventFactoryTest extends TestCase
             Tag::hashtag('spam'),
         ]);
 
-        $event = EventFactory::createMuteList($this->keyPair->getPublicKey(), $muteTags);
+        $event = RumourFactory::createMuteList($this->keyPair->getPublicKey(), $muteTags);
 
         $this->assertTrue($event->getKind()->is(EventKind::MUTE_LIST));
         $this->assertSame('', (string) $event->getContent());
         $this->assertTrue($event->getTags()->equals($muteTags));
     }
 
-    public function testCanCreateRumour(): void
+    public function testCanCreatePrivateMessage(): void
     {
         $recipientPubkey = str_repeat('b', 64);
         $tags = new TagCollection([Tag::pubkey($recipientPubkey)]);
 
-        $event = EventFactory::createRumour(
+        $event = RumourFactory::createPrivateMessage(
             $this->keyPair->getPublicKey(),
             'Hello via NIP-17',
             $tags
@@ -282,7 +282,6 @@ final class EventFactoryTest extends TestCase
 
         $this->assertTrue($event->getKind()->is(EventKind::PRIVATE_MESSAGE));
         $this->assertSame('Hello via NIP-17', (string) $event->getContent());
-        $this->assertFalse($event->isSigned());
 
         $pTags = $event->getTags()->findByType(TagType::pubkey());
         $this->assertCount(1, $pTags);
@@ -296,7 +295,7 @@ final class EventFactoryTest extends TestCase
             Tag::fromArray(['relay', 'wss://dm.relay2.example.com']),
         ]);
 
-        $event = EventFactory::createDmRelayList(
+        $event = RumourFactory::createDmRelayList(
             $this->keyPair->getPublicKey(),
             $relayTags
         );
@@ -309,7 +308,7 @@ final class EventFactoryTest extends TestCase
     public function testCanCreateLongformContentWithMinimalFields(): void
     {
         $content = EventContent::fromString('# My Article\n\nSome content here.');
-        $event = EventFactory::createLongformContent(
+        $event = RumourFactory::createLongformContent(
             $this->keyPair->getPublicKey(),
             $content,
             new LongformMetadata('my-article', null, null, null, null, []),
@@ -329,7 +328,7 @@ final class EventFactoryTest extends TestCase
         $publishedAt = Timestamp::fromInt(1700000000);
         $createdAt = Timestamp::fromInt(1700000100);
 
-        $event = EventFactory::createLongformContent(
+        $event = RumourFactory::createLongformContent(
             $this->keyPair->getPublicKey(),
             $content,
             new LongformMetadata(
@@ -374,7 +373,7 @@ final class EventFactoryTest extends TestCase
     public function testCanCreateTextNoteWithTags(): void
     {
         $tags = new TagCollection([Tag::hashtag('nostr')]);
-        $event = EventFactory::createTextNote(
+        $event = RumourFactory::createTextNote(
             $this->keyPair->getPublicKey(),
             'Hello with tags!',
             $tags
@@ -386,7 +385,7 @@ final class EventFactoryTest extends TestCase
     public function testCanCreateMetadataWithTags(): void
     {
         $tags = new TagCollection([Tag::fromArray(['alt', 'metadata event'])]);
-        $event = EventFactory::createMetadata(
+        $event = RumourFactory::createMetadata(
             $this->keyPair->getPublicKey(),
             '{"name":"Alice"}',
             $tags
@@ -398,7 +397,7 @@ final class EventFactoryTest extends TestCase
     public function testCanCreateEventDeletionWithDefaultReason(): void
     {
         $tags = new TagCollection([Tag::event('event-to-delete')]);
-        $event = EventFactory::createEventDeletion(
+        $event = RumourFactory::createEventDeletion(
             $this->keyPair->getPublicKey(),
             $tags,
         );
@@ -409,7 +408,7 @@ final class EventFactoryTest extends TestCase
     public function testCanCreateCustomKindWithTimestamp(): void
     {
         $customTimestamp = Timestamp::fromInt(1700000000);
-        $event = EventFactory::createCustomKind(
+        $event = RumourFactory::createCustomKind(
             $this->keyPair->getPublicKey(),
             EventKind::fromInt(30000),
             EventContent::fromString('custom'),
@@ -423,7 +422,7 @@ final class EventFactoryTest extends TestCase
     public function testCanCreateCustomKindWithTags(): void
     {
         $tags = new TagCollection([Tag::identifier('test-id')]);
-        $event = EventFactory::createCustomKind(
+        $event = RumourFactory::createCustomKind(
             $this->keyPair->getPublicKey(),
             EventKind::fromInt(30000),
             EventContent::fromString('custom'),
@@ -437,7 +436,7 @@ final class EventFactoryTest extends TestCase
     {
         $metadata = new FileMetadata('https://example.com/image.png', mimeType: 'image/png');
 
-        $event = EventFactory::createFileMetadata(
+        $event = RumourFactory::createFileMetadata(
             $this->keyPair->getPublicKey(),
             $metadata,
             'a caption',
@@ -450,7 +449,7 @@ final class EventFactoryTest extends TestCase
 
     public function testCanCreateFileMetadataAtCustomTimestamp(): void
     {
-        $event = EventFactory::createFileMetadata(
+        $event = RumourFactory::createFileMetadata(
             $this->keyPair->getPublicKey(),
             new FileMetadata('https://example.com/image.png'),
             '',

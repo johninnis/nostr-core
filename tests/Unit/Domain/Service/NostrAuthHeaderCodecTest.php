@@ -6,7 +6,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
-use Innis\Nostr\Core\Domain\Factory\EventFactory;
+use Innis\Nostr\Core\Domain\Factory\RumourFactory;
 use Innis\Nostr\Core\Domain\Failure\AuthHeaderDecodeFailure;
 use Innis\Nostr\Core\Domain\Service\NostrAuthHeaderCodec;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
@@ -65,7 +65,7 @@ final class NostrAuthHeaderCodecTest extends TestCase
     {
         $keyPair = KeyMother::alice();
 
-        return EventFactory::createCustomKind(
+        return RumourFactory::createCustomKind(
             $keyPair->getPublicKey(),
             EventKind::fromInt(EventKind::HTTP_AUTH),
             EventContent::empty(),

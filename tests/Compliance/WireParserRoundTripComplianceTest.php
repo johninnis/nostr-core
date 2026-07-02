@@ -17,6 +17,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Filter;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagFilter;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
@@ -106,17 +107,37 @@ final class WireParserRoundTripComplianceTest extends TestCase
         $keyPair = KeyMother::alice();
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            $event = new Event(
+            $event = new Rumour(
+                $keyPair->getPublicKey(),
+                Timestamp::fromInt(random_int(0, 2_000_000_000)),
+                EventKind::fromInt(random_int(0, 65535)),
+                $this->randomTags(),
+                EventContent::fromString($this->randomContent()),
+            )->sign($keyPair, $signer);
+
+            $array = $event->toArray();
+            $recovered = Event::fromArray($array);
+
+            $this->assertNotNull($recovered);
+            $this->assertSame($array, $recovered->toArray());
+        }
+    }
+
+    public function testRumourRoundTripsThroughItsArrayForm(): void
+    {
+        $keyPair = KeyMother::alice();
+
+        for ($i = 0; $i < self::ITERATIONS; ++$i) {
+            $rumour = new Rumour(
                 $keyPair->getPublicKey(),
                 Timestamp::fromInt(random_int(0, 2_000_000_000)),
                 EventKind::fromInt(random_int(0, 65535)),
                 $this->randomTags(),
                 EventContent::fromString($this->randomContent()),
             );
-            $event = 1 === random_int(0, 1) ? $event->sign($keyPair, $signer) : $event;
 
-            $array = $event->toArray();
-            $recovered = Event::fromArray($array);
+            $array = $rumour->toArray();
+            $recovered = Rumour::fromArray($array);
 
             $this->assertNotNull($recovered);
             $this->assertSame($array, $recovered->toArray());

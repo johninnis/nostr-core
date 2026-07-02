@@ -4,7 +4,7 @@
 
 A PHP library implementing core domain entities and services for the Nostr protocol, built with Clean Architecture principles.
 
-Code is organised around domain concepts (events, identities, tags, messages) rather than NIP numbers: a single `Event` entity handles creation, signing, and verification regardless of which NIP defines the event kind. Domain entities and value objects are immutable, services are stateless, and the package provides building blocks for relays, clients, and web applications without imposing architectural decisions on consumers. See [ADR-0019](docs/adr/0019-domain-first-organisation-cryptography-only-domain-dependency.md) for the organising rationale.
+Code is organised around domain concepts (events, identities, tags, messages) rather than NIP numbers: an unsigned draft is a `Rumour` value object, and signing it mints the signed `Event` entity, regardless of which NIP defines the event kind. Domain entities and value objects are immutable, services are stateless, and the package provides building blocks for relays, clients, and web applications without imposing architectural decisions on consumers. See [ADR-0019](docs/adr/0019-domain-first-organisation-cryptography-only-domain-dependency.md) for the organising rationale and [ADR-0045](docs/adr/0045-rumour-is-the-unsigned-event-value-object-event-composes-it.md) for the rumour/event split.
 
 > [!IMPORTANT]
 > **Install the native `libsecp256k1` library (via the `ffi` extension) for any server-side or long-lived signer.**
@@ -76,15 +76,17 @@ echo $keyPair->getPublicKey()->toBech32();  // npub1...
 
 ### Event Creation and Signing
 
-```php
-use Innis\Nostr\Core\Domain\Factory\EventFactory;
+A `RumourFactory` builds an unsigned `Rumour`; signing it mints a signed `Event`:
 
-$event = EventFactory::createTextNote(
+```php
+use Innis\Nostr\Core\Domain\Factory\RumourFactory;
+
+$rumour = RumourFactory::createTextNote(
     $keyPair->getPublicKey(),
     'Hello Nostr!'
 );
 
-$signedEvent = $event->sign($keyPair, $signatureService);
+$signedEvent = $rumour->sign($keyPair, $signatureService);
 
 $signedEvent->verify($signatureService); // bool
 ```

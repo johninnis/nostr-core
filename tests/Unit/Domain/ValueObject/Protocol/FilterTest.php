@@ -8,15 +8,16 @@ use Innis\Nostr\Core\Domain\Collection\EventIdCollection;
 use Innis\Nostr\Core\Domain\Collection\EventKindCollection;
 use Innis\Nostr\Core\Domain\Collection\PublicKeyCollection;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
-use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Filter;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagFilter;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Tests\Fake\FakeSignatureService;
+use Innis\Nostr\Core\Tests\Support\EventMother;
 use Innis\Nostr\Core\Tests\Support\KeyMother;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -81,14 +82,14 @@ final class FilterTest extends TestCase
     public function testMatchesEventById(): void
     {
         $keyPair = KeyMother::alice();
-        $event = new Event(
+        $rumour = new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('test')
         );
-        $signedEvent = $event->sign($keyPair, FakeSignatureService::accepting());
+        $signedEvent = $rumour->sign($keyPair, FakeSignatureService::accepting());
 
         $filter = new Filter(ids: EventIdCollection::fromHexValues([$signedEvent->getId()->toHex()]));
 
@@ -98,13 +99,13 @@ final class FilterTest extends TestCase
     public function testMatchesEventByAuthor(): void
     {
         $keyPair = KeyMother::alice();
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('test')
-        );
+        ));
 
         $filter = new Filter(authors: PublicKeyCollection::fromHexValues([$keyPair->getPublicKey()->toHex()]));
 
@@ -114,13 +115,13 @@ final class FilterTest extends TestCase
     public function testMatchesEventByKind(): void
     {
         $keyPair = KeyMother::alice();
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('test')
-        );
+        ));
 
         $filter = new Filter(kinds: EventKindCollection::fromInts([1]));
 
@@ -131,13 +132,13 @@ final class FilterTest extends TestCase
     {
         $keyPair = KeyMother::alice();
         $tags = new TagCollection([Tag::hashtag('nostr')]);
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             $tags,
             EventContent::fromString('test')
-        );
+        ));
 
         $filter = new Filter(tags: TagFilter::fromValues(['t' => ['nostr']]));
 
@@ -147,13 +148,13 @@ final class FilterTest extends TestCase
     public function testMatchesEventAtTheMaximumAuthorCount(): void
     {
         $keyPair = KeyMother::alice();
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('test')
-        );
+        ));
 
         $authors = array_map(
             static fn (int $i): string => str_pad(dechex($i), 64, '0', STR_PAD_LEFT),
@@ -173,13 +174,13 @@ final class FilterTest extends TestCase
         }
         $tags[] = Tag::hashtag('target');
 
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection($tags),
             EventContent::fromString('test')
-        );
+        ));
 
         $this->assertTrue(new Filter(tags: TagFilter::fromValues(['t' => ['target']]))->matches($event));
     }
@@ -192,13 +193,13 @@ final class FilterTest extends TestCase
             Tag::hashtag('nostr'),
             Tag::pubkey($pubkeyHex),
         ]);
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             $tags,
             EventContent::fromString('test')
-        );
+        ));
 
         $filterBothMatch = new Filter(tags: TagFilter::fromValues(['t' => ['nostr'], 'p' => [$pubkeyHex]]));
         $this->assertTrue($filterBothMatch->matches($event));
@@ -215,13 +216,13 @@ final class FilterTest extends TestCase
         $pubkey = PublicKey::fromHex(str_repeat('a', 64)) ?? throw new RuntimeException('Invalid test public key');
         $referencedId = str_repeat('c', 64);
         $tags = new TagCollection([Tag::event($referencedId, 'wss://relay.example', 'reply')]);
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $pubkey,
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             $tags,
             EventContent::fromString('test')
-        );
+        ));
 
         $this->assertTrue((new Filter(tags: TagFilter::fromValues(['e' => [$referencedId]])))->matches($event));
         $this->assertFalse((new Filter(tags: TagFilter::fromValues(['e' => ['wss://relay.example']])))->matches($event));
@@ -232,13 +233,13 @@ final class FilterTest extends TestCase
     {
         $keyPair = KeyMother::alice();
         $tags = new TagCollection([Tag::hashtag('nostr')]);
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             $tags,
             EventContent::fromString('test')
-        );
+        ));
 
         $filter = new Filter(tags: TagFilter::fromValues(['t' => ['nostr', 'bitcoin']]));
         $this->assertTrue($filter->matches($event));
@@ -247,13 +248,13 @@ final class FilterTest extends TestCase
     public function testDoesNotMatchWhenNoTagsMatchFilter(): void
     {
         $keyPair = KeyMother::alice();
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('test')
-        );
+        ));
 
         $filter = new Filter(tags: TagFilter::fromValues(['t' => ['nostr']]));
         $this->assertFalse($filter->matches($event));
@@ -262,13 +263,13 @@ final class FilterTest extends TestCase
     public function testDoesNotMatchWhenCriteriaNotMet(): void
     {
         $keyPair = KeyMother::alice();
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('test')
-        );
+        ));
 
         $filter = new Filter(kinds: EventKindCollection::fromInts([2])); // Different kind
 
@@ -472,13 +473,13 @@ final class FilterTest extends TestCase
     public function testMatchesEventBySinceTimestamp(): void
     {
         $keyPair = KeyMother::alice();
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::fromInt(1234567895),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('test')
-        );
+        ));
 
         $filterMatches = new Filter(since: Timestamp::fromInt(1234567890));
         $filterDoesNotMatch = new Filter(since: Timestamp::fromInt(1234567900));
@@ -490,13 +491,13 @@ final class FilterTest extends TestCase
     public function testMatchesEventByUntilTimestamp(): void
     {
         $keyPair = KeyMother::alice();
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::fromInt(1234567895),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('test')
-        );
+        ));
 
         $filterMatches = new Filter(until: Timestamp::fromInt(1234567900));
         $filterDoesNotMatch = new Filter(until: Timestamp::fromInt(1234567890));
@@ -508,13 +509,13 @@ final class FilterTest extends TestCase
     public function testMatchesEmptyFilterMatchesAnyEvent(): void
     {
         $keyPair = KeyMother::alice();
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('test')
-        );
+        ));
 
         $filter = new Filter();
 
@@ -524,14 +525,14 @@ final class FilterTest extends TestCase
     public function testDoesNotMatchEventWithWrongId(): void
     {
         $keyPair = KeyMother::alice();
-        $event = new Event(
+        $rumour = new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('test')
         );
-        $signedEvent = $event->sign($keyPair, FakeSignatureService::accepting());
+        $signedEvent = $rumour->sign($keyPair, FakeSignatureService::accepting());
 
         $filter = new Filter(ids: EventIdCollection::fromHexValues(['0000000000000000000000000000000000000000000000000000000000000000']));
 
@@ -541,13 +542,13 @@ final class FilterTest extends TestCase
     public function testDoesNotMatchEventWithWrongAuthor(): void
     {
         $keyPair = KeyMother::alice();
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('test')
-        );
+        ));
 
         $filter = new Filter(authors: PublicKeyCollection::fromHexValues([str_repeat('0', 64)]));
 
@@ -721,13 +722,13 @@ final class FilterTest extends TestCase
     public function testMatchesSearchTermInContent(): void
     {
         $keyPair = KeyMother::alice();
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('Hello Nostr world')
-        );
+        ));
 
         $filter = new Filter(search: 'nostr');
 
@@ -737,13 +738,13 @@ final class FilterTest extends TestCase
     public function testSearchIsCaseInsensitive(): void
     {
         $keyPair = KeyMother::alice();
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('Hello NOSTR World')
-        );
+        ));
 
         $filter = new Filter(search: 'nostr world');
 
@@ -753,13 +754,13 @@ final class FilterTest extends TestCase
     public function testSearchRequiresAllTerms(): void
     {
         $keyPair = KeyMother::alice();
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('Hello Nostr')
-        );
+        ));
 
         $filter = new Filter(search: 'nostr bitcoin');
 
@@ -769,13 +770,13 @@ final class FilterTest extends TestCase
     public function testSearchDoesNotMatchWhenTermAbsent(): void
     {
         $keyPair = KeyMother::alice();
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('Hello world')
-        );
+        ));
 
         $filter = new Filter(search: 'nostr');
 
@@ -785,13 +786,13 @@ final class FilterTest extends TestCase
     public function testWhitespaceOnlySearchMatchesAnyEvent(): void
     {
         $keyPair = KeyMother::alice();
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('Hello world')
-        );
+        ));
 
         $filter = new Filter(search: '   ');
 
@@ -801,13 +802,13 @@ final class FilterTest extends TestCase
     public function testSearchCombinesWithOtherFilters(): void
     {
         $keyPair = KeyMother::alice();
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('Hello Nostr')
-        );
+        ));
 
         $matchingFilter = new Filter(kinds: EventKindCollection::fromInts([1]), search: 'nostr');
         $nonMatchingFilter = new Filter(kinds: EventKindCollection::fromInts([2]), search: 'nostr');

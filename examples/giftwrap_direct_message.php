@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
-use Innis\Nostr\Core\Domain\Factory\EventFactory;
+use Innis\Nostr\Core\Domain\Factory\RumourFactory;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Infrastructure\Crypto\GiftWrapper;
@@ -20,7 +20,7 @@ $giftWrapper = GiftWrapper::create(new Nip44Cipher(), $signer, $ecdh);
 $sender = KeyPair::generate($signer);
 $recipient = KeyPair::generate($signer);
 
-$rumour = EventFactory::createRumour(
+$rumour = RumourFactory::createPrivateMessage(
     $sender->getPublicKey(),
     'This message is sealed and gift-wrapped.',
     new TagCollection([Tag::pubkey($recipient->getPublicKey()->toHex())]),

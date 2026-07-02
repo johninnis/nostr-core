@@ -95,10 +95,6 @@ final readonly class Nip98Validator implements Nip98ValidatorInterface
 
     private function validateSignature(Event $event): ?Nip98ValidationFailure
     {
-        if (!$event->isSigned()) {
-            return Nip98ValidationFailure::Unsigned;
-        }
-
         return $event->verify($this->signatureService)
             ? null
             : Nip98ValidationFailure::BadSignature;

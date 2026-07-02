@@ -7,7 +7,6 @@ namespace Innis\Nostr\Core\Domain\Failure;
 enum Nip98ValidationFailure: string
 {
     case WrongKind = 'wrong_kind';
-    case Unsigned = 'unsigned';
     case BadSignature = 'bad_signature';
     case TimestampOutsideTolerance = 'timestamp_outside_tolerance';
     case MissingUrlTag = 'missing_url_tag';
@@ -32,7 +31,6 @@ enum Nip98ValidationFailure: string
     {
         return match ($this) {
             self::WrongKind => 'Event must be kind 27235',
-            self::Unsigned => 'Event must be signed',
             self::BadSignature => 'Event signature is invalid',
             self::TimestampOutsideTolerance => 'Event timestamp is outside tolerance',
             self::MissingUrlTag => 'Event missing u tag',

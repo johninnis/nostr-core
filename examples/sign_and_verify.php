@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Innis\Nostr\Core\Domain\Factory\EventFactory;
+use Innis\Nostr\Core\Domain\Factory\RumourFactory;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Signer;
 
@@ -12,12 +12,12 @@ $signer = Secp256k1Signer::create();
 
 $keyPair = KeyPair::generate($signer);
 
-$note = EventFactory::createTextNote(
+$rumour = RumourFactory::createTextNote(
     $keyPair->getPublicKey(),
     'Hello from innis/nostr-core',
 );
 
-$signed = $note->sign($keyPair, $signer);
+$signed = $rumour->sign($keyPair, $signer);
 $event = $signed->toArray();
 
 echo 'Event id:  '.$signed->getId()->toHex().PHP_EOL;

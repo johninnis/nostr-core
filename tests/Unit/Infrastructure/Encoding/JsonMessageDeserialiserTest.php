@@ -21,8 +21,10 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\EoseMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\EventMessage as RelayEventMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\NoticeMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\OkMessage;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Infrastructure\Encoding\JsonMessageDeserialiser;
+use Innis\Nostr\Core\Tests\Support\EventMother;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -257,23 +259,23 @@ final class JsonMessageDeserialiserTest extends TestCase
 
     private function createEvent(): Event
     {
-        return new Event(
+        return EventMother::fromRumour(new Rumour(
             self::createPublicKey(),
             Timestamp::fromInt(1700000000),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('test content'),
-        );
+        ));
     }
 
     private function createAuthEvent(): Event
     {
-        return new Event(
+        return EventMother::fromRumour(new Rumour(
             self::createPublicKey(),
             Timestamp::fromInt(1700000000),
             EventKind::fromInt(EventKind::CLIENT_AUTH),
             new TagCollection(),
             EventContent::fromString(''),
-        );
+        ));
     }
 }

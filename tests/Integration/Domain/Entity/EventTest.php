@@ -28,8 +28,8 @@ final class EventTest extends TestCase
         $this->assertNotNull($event);
         $this->assertSame(
             'ebb6b3d01d4f5ade21554c70ccc18d663a9765573ba42eac6ff4c504a0b81111',
-            $event->calculateId()->toHex(),
-            'calculateId() must emit U+2029 verbatim per NIP-01'
+            $event->getRumour()->getId()->toHex(),
+            'the recomputed id must emit U+2029 verbatim per NIP-01'
         );
         $this->assertTrue($event->verify(CryptoFixtures::signer()), 'verify() must succeed for an event whose content contains U+2029');
     }

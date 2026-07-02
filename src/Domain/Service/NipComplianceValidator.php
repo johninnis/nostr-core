@@ -92,10 +92,6 @@ final readonly class NipComplianceValidator implements NipComplianceValidatorInt
     // Deliberate: keeps its own signature gate wrapping Event::verify, not merged with EventValidator's distinct wording — see ADR-0017
     private function validateSignature(Event $event): void
     {
-        if (!$event->isSigned()) {
-            throw new InvalidEventException('Event must be signed for NIP compliance');
-        }
-
         if (!$event->verify($this->signatureService)) {
             throw new InvalidEventException('Event signature is invalid');
         }

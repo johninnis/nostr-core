@@ -7,11 +7,12 @@ namespace Innis\Nostr\Core\Tests\Integration\Infrastructure\Crypto;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Exception\GiftWrapException;
-use Innis\Nostr\Core\Domain\Factory\EventFactory;
+use Innis\Nostr\Core\Domain\Factory\RumourFactory;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
@@ -20,6 +21,7 @@ use Innis\Nostr\Core\Infrastructure\Crypto\GiftWrapEnvelopeFactoryInterface;
 use Innis\Nostr\Core\Infrastructure\Crypto\GiftWrapper;
 use Innis\Nostr\Core\Infrastructure\Crypto\Nip44Cipher;
 use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
+use Innis\Nostr\Core\Tests\Support\EventMother;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
@@ -63,7 +65,6 @@ final class GiftWrapperTest extends TestCase
     {
         $giftWrap = $this->wrapRumour('Test');
 
-        $this->assertTrue($giftWrap->isSigned());
         $this->assertTrue($giftWrap->verify(CryptoFixtures::signer()));
     }
 
@@ -92,15 +93,6 @@ final class GiftWrapperTest extends TestCase
         $this->assertTrue($rumour->getPubkey()->equals($this->senderKeyPair->getPublicKey()));
     }
 
-    public function testUnwrapReturnsUnsignedRumour(): void
-    {
-        $giftWrap = $this->wrapRumour('Test');
-
-        $rumour = $this->adapter->unwrap($giftWrap, $this->recipientKeyPair->getPrivateKey());
-
-        $this->assertFalse($rumour->isSigned());
-    }
-
     public function testUnwrapReturnsKind14Rumour(): void
     {
         $giftWrap = $this->wrapRumour('Test');
@@ -118,7 +110,7 @@ final class GiftWrapperTest extends TestCase
             Tag::create('subject', 'Test conversation'),
         ]);
 
-        $rumour = EventFactory::createRumour(
+        $rumour = RumourFactory::createPrivateMessage(
             $this->senderKeyPair->getPublicKey(),
             'Tagged message',
             $tags
@@ -141,23 +133,9 @@ final class GiftWrapperTest extends TestCase
         $this->assertSame('Test conversation', $subjectTags[0]->getValue());
     }
 
-    public function testWrapRejectsSignedRumour(): void
+    public function testWrapRejectsNonKind14Rumour(): void
     {
-        $rumour = $this->createRumour('Test')->sign($this->senderKeyPair, CryptoFixtures::signer());
-
-        $this->expectException(GiftWrapException::class);
-        $this->expectExceptionMessage('Rumour must not be signed');
-
-        $this->adapter->wrapForRecipient(
-            $rumour,
-            $this->senderKeyPair->getPrivateKey(),
-            $this->recipientKeyPair->getPublicKey()
-        );
-    }
-
-    public function testWrapRejectsNonKind14Event(): void
-    {
-        $textNote = new Event(
+        $textNote = new Rumour(
             $this->senderKeyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
@@ -192,7 +170,7 @@ final class GiftWrapperTest extends TestCase
 
     public function testUnwrapRejectsNonKind1059Event(): void
     {
-        $textNote = EventFactory::createTextNote(
+        $textNote = RumourFactory::createTextNote(
             $this->senderKeyPair->getPublicKey(),
             'Not a gift wrap'
         )->sign($this->senderKeyPair, CryptoFixtures::signer());
@@ -203,15 +181,15 @@ final class GiftWrapperTest extends TestCase
         $this->adapter->unwrap($textNote, $this->recipientKeyPair->getPrivateKey());
     }
 
-    public function testUnwrapRejectsUnsignedGiftWrap(): void
+    public function testUnwrapRejectsGiftWrapWithInvalidSignature(): void
     {
-        $giftWrap = new Event(
+        $giftWrap = EventMother::fromRumour(new Rumour(
             $this->senderKeyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::GIFT_WRAP),
             new TagCollection(),
             EventContent::fromString('fake')
-        );
+        ));
 
         $this->expectException(GiftWrapException::class);
         $this->expectExceptionMessage('Gift wrap signature is invalid');
@@ -221,8 +199,8 @@ final class GiftWrapperTest extends TestCase
 
     public function testUnwrapRejectsSignedRumour(): void
     {
-        $signedRumour = $this->createRumour('Sneaky')->sign($this->senderKeyPair, CryptoFixtures::signer());
-        $giftWrap = $this->sealAndWrap($signedRumour, $this->senderKeyPair);
+        $signedInner = $this->createRumour('Sneaky')->sign($this->senderKeyPair, CryptoFixtures::signer());
+        $giftWrap = $this->sealAndWrap($signedInner, $this->senderKeyPair);
 
         $this->expectException(GiftWrapException::class);
         $this->expectExceptionMessage('Decrypted rumour must not be signed');
@@ -235,11 +213,13 @@ final class GiftWrapperTest extends TestCase
         $legitimate = $this->wrapRumour('Original');
 
         $tampered = new Event(
-            $legitimate->getPubkey(),
-            $legitimate->getCreatedAt(),
-            $legitimate->getKind(),
-            $legitimate->getTags(),
-            EventContent::fromString('tampered ciphertext'),
+            new Rumour(
+                $legitimate->getPubkey(),
+                $legitimate->getCreatedAt(),
+                $legitimate->getKind(),
+                $legitimate->getTags(),
+                EventContent::fromString('tampered ciphertext'),
+            ),
             $legitimate->getId(),
             $legitimate->getSignature(),
         );
@@ -294,9 +274,9 @@ final class GiftWrapperTest extends TestCase
         $this->assertSame('Self-copy', (string) $unwrapped->getContent());
     }
 
-    private function createRumour(string $content): Event
+    private function createRumour(string $content): Rumour
     {
-        return EventFactory::createRumour(
+        return RumourFactory::createPrivateMessage(
             $this->senderKeyPair->getPublicKey(),
             $content,
             new TagCollection([Tag::pubkey($this->recipientKeyPair->getPublicKey()->toHex())])
@@ -312,25 +292,25 @@ final class GiftWrapperTest extends TestCase
         );
     }
 
-    private function sealAndWrap(Event $rumour, KeyPair $authorKeyPair): Event
+    private function sealAndWrap(Event $signedInner, KeyPair $authorKeyPair): Event
     {
         $signer = CryptoFixtures::signer();
         $cipher = new Nip44Cipher();
         $recipientPublicKey = $this->recipientKeyPair->getPublicKey();
 
         $sealKey = ConversationKey::derive($authorKeyPair->getPrivateKey(), $recipientPublicKey, CryptoFixtures::ecdh());
-        $seal = new Event(
+        $seal = new Rumour(
             $authorKeyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::SEAL),
             new TagCollection(),
-            EventContent::fromString($cipher->encrypt($rumour->toJson(), $sealKey)),
+            EventContent::fromString($cipher->encrypt($signedInner->toJson(), $sealKey)),
         )->sign($authorKeyPair, $signer);
 
         $ephemeralKeyPair = KeyPair::generate($signer);
         $wrapKey = ConversationKey::derive($ephemeralKeyPair->getPrivateKey(), $recipientPublicKey, CryptoFixtures::ecdh());
 
-        return new Event(
+        return new Rumour(
             $ephemeralKeyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::GIFT_WRAP),

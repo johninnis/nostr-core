@@ -7,14 +7,15 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\Entity;
 use Innis\Nostr\Core\Domain\Collection\EventKindCollection;
 use Innis\Nostr\Core\Domain\Collection\FilterCollection;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
-use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Entity\Subscription;
 use Innis\Nostr\Core\Domain\Enum\SubscriptionState;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Filter;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use Innis\Nostr\Core\Tests\Support\EventMother;
 use Innis\Nostr\Core\Tests\Support\KeyMother;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
@@ -73,13 +74,13 @@ final class SubscriptionTest extends TestCase
     public function testMatchesEventWhenReceivingEvents(): void
     {
         $keyPair = KeyMother::alice();
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('test'),
-        );
+        ));
 
         $filter = new Filter(kinds: EventKindCollection::fromInts([EventKind::TEXT_NOTE]));
         $subscription = Subscription::create(SubscriptionId::generate(), new FilterCollection([$filter]));
@@ -96,13 +97,13 @@ final class SubscriptionTest extends TestCase
     public function testMatchesEventReturnsFalseWhenClosed(): void
     {
         $keyPair = KeyMother::alice();
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('test'),
-        );
+        ));
 
         $filter = new Filter(kinds: EventKindCollection::fromInts([EventKind::TEXT_NOTE]));
         $closed = Subscription::create(SubscriptionId::generate(), new FilterCollection([$filter]))

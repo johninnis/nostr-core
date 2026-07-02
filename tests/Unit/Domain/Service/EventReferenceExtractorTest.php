@@ -12,8 +12,10 @@ use Innis\Nostr\Core\Domain\Service\EventReferenceExtractor;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
+use Innis\Nostr\Core\Tests\Support\EventMother;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -45,13 +47,13 @@ final class EventReferenceExtractorTest extends TestCase
             Tag::fromArray(['q', '3333333333333333333333333333333333333333333333333333333333333333', '', '4444444444444444444444444444444444444444444444444444444444444444']),
         ];
 
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             PublicKey::fromHex('1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef') ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1234567890),
             EventKind::fromInt(1),
             new TagCollection($tags),
             EventContent::fromString('Test content')
-        );
+        ));
 
         $contentExtractor = $this->createStub(ContentReferenceExtractorInterface::class);
         $contentExtractor->method('extractContentReferences')->willReturn(new ContentReferenceCollection([]));
@@ -81,13 +83,13 @@ final class EventReferenceExtractorTest extends TestCase
             Tag::fromArray(['p', '2222222222222222222222222222222222222222222222222222222222222222']),
         ];
 
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             PublicKey::fromHex('1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef') ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1234567890),
             EventKind::fromInt(1),
             new TagCollection($tags),
             EventContent::fromString('Test content')
-        );
+        ));
 
         $contentExtractor = $this->createStub(ContentReferenceExtractorInterface::class);
         $contentExtractor->method('extractContentReferences')->willReturn(new ContentReferenceCollection([]));
@@ -105,13 +107,13 @@ final class EventReferenceExtractorTest extends TestCase
 
     public function testGenericRepostKind16IsReportedAsRepost(): void
     {
-        $event = new Event(
+        $event = EventMother::fromRumour(new Rumour(
             PublicKey::fromHex('1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef') ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1234567890),
             EventKind::fromInt(EventKind::GENERIC_REPOST),
             new TagCollection(),
             EventContent::fromString('Test content')
-        );
+        ));
 
         $contentExtractor = $this->createStub(ContentReferenceExtractorInterface::class);
         $contentExtractor->method('extractContentReferences')->willReturn(new ContentReferenceCollection([]));
@@ -128,12 +130,12 @@ final class EventReferenceExtractorTest extends TestCase
             Tag::fromArray(['p', '2222222222222222222222222222222222222222222222222222222222222222']),
         ];
 
-        return new Event(
+        return EventMother::fromRumour(new Rumour(
             PublicKey::fromHex('1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef') ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1234567890),
             EventKind::fromInt(1),
             new TagCollection($tags),
             EventContent::fromString('Test content')
-        );
+        ));
     }
 }

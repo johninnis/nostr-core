@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Compliance;
 
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
-use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 use Innis\Nostr\Core\Domain\Service\NipComplianceValidator;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
 use PHPUnit\Framework\TestCase;
@@ -28,19 +30,16 @@ final class NipComplianceTest extends TestCase
 
     public function testNip01BasicEventCompliance(): void
     {
-        $event = new Event(
+        $signedEvent = new Rumour(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('Hello Nostr!')
-        );
-        $signedEvent = $event->sign($this->keyPair, CryptoFixtures::signer());
+        )->sign($this->keyPair, CryptoFixtures::signer());
 
         $this->validator->validateNip01Compliance($signedEvent);
 
-        // Verify the event passes validation
-        $this->assertTrue($signedEvent->isSigned());
         $this->assertTrue($signedEvent->verify(CryptoFixtures::signer()));
     }
 
@@ -51,20 +50,18 @@ final class NipComplianceTest extends TestCase
             Tag::pubkey('contact-pubkey-2'),
         ]);
 
-        $event = new Event(
+        $signedEvent = new Rumour(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::FOLLOW_LIST),
             $tags,
             EventContent::fromString('contact list')
-        );
-        $signedEvent = $event->sign($this->keyPair, CryptoFixtures::signer());
+        )->sign($this->keyPair, CryptoFixtures::signer());
 
         $this->validator->validateNip02Compliance($signedEvent);
 
-        // Verify it's a follow list event
         $this->assertSame(3, $signedEvent->getKind()->toInt());
-        $this->assertTrue($signedEvent->getTags()->hasType(\Innis\Nostr\Core\Domain\ValueObject\Tag\TagType::pubkey()));
+        $this->assertTrue($signedEvent->getTags()->hasType(TagType::pubkey()));
     }
 
     public function testNip04EncryptedDirectMessageCompliance(): void
@@ -73,20 +70,18 @@ final class NipComplianceTest extends TestCase
             Tag::pubkey('recipient-pubkey'),
         ]);
 
-        $event = new Event(
+        $signedEvent = new Rumour(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::ENCRYPTED_DIRECT_MESSAGE),
             $tags,
             EventContent::fromString('encrypted-content')
-        );
-        $signedEvent = $event->sign($this->keyPair, CryptoFixtures::signer());
+        )->sign($this->keyPair, CryptoFixtures::signer());
 
         $this->validator->validateNip04Compliance($signedEvent);
 
-        // Verify it's an encrypted DM with p tag
         $this->assertSame(4, $signedEvent->getKind()->toInt());
-        $this->assertTrue($signedEvent->getTags()->hasType(\Innis\Nostr\Core\Domain\ValueObject\Tag\TagType::pubkey()));
+        $this->assertTrue($signedEvent->getTags()->hasType(TagType::pubkey()));
     }
 
     public function testNip09EventDeletionCompliance(): void
@@ -96,19 +91,18 @@ final class NipComplianceTest extends TestCase
             Tag::create('k', '1'),
         ]);
 
-        $event = new Event(
+        $signedEvent = new Rumour(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::EVENT_DELETION),
             $tags,
             EventContent::fromString('spam')
-        );
-        $signedEvent = $event->sign($this->keyPair, CryptoFixtures::signer());
+        )->sign($this->keyPair, CryptoFixtures::signer());
 
         $this->validator->validateNip09Compliance($signedEvent);
 
         $this->assertSame(5, $signedEvent->getKind()->toInt());
-        $this->assertTrue($signedEvent->getTags()->hasType(\Innis\Nostr\Core\Domain\ValueObject\Tag\TagType::event()));
+        $this->assertTrue($signedEvent->getTags()->hasType(TagType::event()));
     }
 
     public function testNip09EventDeletionWithATagCompliance(): void
@@ -118,14 +112,13 @@ final class NipComplianceTest extends TestCase
             Tag::create('k', '30023'),
         ]);
 
-        $event = new Event(
+        $signedEvent = new Rumour(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::EVENT_DELETION),
             $tags,
             EventContent::fromString('removing article')
-        );
-        $signedEvent = $event->sign($this->keyPair, CryptoFixtures::signer());
+        )->sign($this->keyPair, CryptoFixtures::signer());
 
         $this->validator->validateNip09Compliance($signedEvent);
 
@@ -138,16 +131,15 @@ final class NipComplianceTest extends TestCase
             Tag::create('k', '1'),
         ]);
 
-        $event = new Event(
+        $signedEvent = new Rumour(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::EVENT_DELETION),
             $tags,
             EventContent::fromString('no targets')
-        );
-        $signedEvent = $event->sign($this->keyPair, CryptoFixtures::signer());
+        )->sign($this->keyPair, CryptoFixtures::signer());
 
-        $this->expectException(\Innis\Nostr\Core\Domain\Exception\InvalidEventException::class);
+        $this->expectException(InvalidEventException::class);
         $this->expectExceptionMessage('at least one e or a tag');
 
         $this->validator->validateNip09Compliance($signedEvent);
@@ -159,16 +151,15 @@ final class NipComplianceTest extends TestCase
             Tag::event('event-to-delete-id'),
         ]);
 
-        $event = new Event(
+        $signedEvent = new Rumour(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::EVENT_DELETION),
             $tags,
             EventContent::fromString('missing k tag')
-        );
-        $signedEvent = $event->sign($this->keyPair, CryptoFixtures::signer());
+        )->sign($this->keyPair, CryptoFixtures::signer());
 
-        $this->expectException(\Innis\Nostr\Core\Domain\Exception\InvalidEventException::class);
+        $this->expectException(InvalidEventException::class);
         $this->expectExceptionMessage('at least one k tag');
 
         $this->validator->validateNip09Compliance($signedEvent);
@@ -181,16 +172,15 @@ final class NipComplianceTest extends TestCase
             Tag::create('k', '5'),
         ]);
 
-        $event = new Event(
+        $signedEvent = new Rumour(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::EVENT_DELETION),
             $tags,
             EventContent::fromString('trying to delete a deletion')
-        );
-        $signedEvent = $event->sign($this->keyPair, CryptoFixtures::signer());
+        )->sign($this->keyPair, CryptoFixtures::signer());
 
-        $this->expectException(\Innis\Nostr\Core\Domain\Exception\InvalidEventException::class);
+        $this->expectException(InvalidEventException::class);
         $this->expectExceptionMessage('cannot target kind 5');
 
         $this->validator->validateNip09Compliance($signedEvent);
@@ -198,49 +188,36 @@ final class NipComplianceTest extends TestCase
 
     public function testEventIdCalculationMatchesNip01Specification(): void
     {
-        // Test with known values to ensure ID calculation is correct
-        $pubkey = str_repeat('a', 64);
-        $createdAt = 1234567890;
-        $kind = 1;
-        $tags = [];
-        $content = 'test';
-
-        $event = Event::fromArray([
-            'pubkey' => $pubkey,
-            'created_at' => $createdAt,
-            'kind' => $kind,
-            'tags' => $tags,
-            'content' => $content,
+        $rumour = Rumour::fromArray([
+            'pubkey' => str_repeat('a', 64),
+            'created_at' => 1234567890,
+            'kind' => 1,
+            'tags' => [],
+            'content' => 'test',
         ]);
 
-        $this->assertNotNull($event);
-        $calculatedId = $event->calculateId();
+        $this->assertNotNull($rumour);
+        $calculatedId = $rumour->getId();
 
-        // The ID should be a valid SHA-256 hash
         $this->assertSame(64, strlen($calculatedId->toHex()));
         $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $calculatedId->toHex());
 
-        // ID calculation should be deterministic
-        $this->assertTrue($calculatedId->equals($event->calculateId()));
+        $this->assertTrue($calculatedId->equals($rumour->getId()));
     }
 
     public function testSignatureVerificationMatchesNip01Specification(): void
     {
-        $event = new Event(
+        $signedEvent = new Rumour(
             $this->keyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('test signature')
-        );
-        $signedEvent = $event->sign($this->keyPair, CryptoFixtures::signer());
+        )->sign($this->keyPair, CryptoFixtures::signer());
 
-        // Signature should verify correctly
         $this->assertTrue($signedEvent->verify(CryptoFixtures::signer()));
 
-        // Signature should be valid format
         $signature = $signedEvent->getSignature();
-        $this->assertNotNull($signature);
         $this->assertSame(128, strlen($signature->toHex()));
         $this->assertMatchesRegularExpression('/^[a-f0-9]{128}$/', $signature->toHex());
     }
