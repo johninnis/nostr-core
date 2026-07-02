@@ -7,8 +7,6 @@ namespace Innis\Nostr\Core\Domain\Service;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Enum\Nip10Marker;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 
 final class ReplyTagBuilder
@@ -19,35 +17,18 @@ final class ReplyTagBuilder
 
     public static function buildTags(Event $replyTo, ?Event $root = null): TagCollection
     {
-        return self::buildTagsFromValues(
-            $replyTo->getId(),
-            $replyTo->getPubkey(),
-            $root?->getId(),
-            $root?->getPubkey()
-        );
-    }
+        $effectiveRoot = $root ?? $replyTo;
 
-    private static function buildTagsFromValues(
-        EventId $replyToId,
-        PublicKey $replyToAuthor,
-        ?EventId $rootId = null,
-        ?PublicKey $rootAuthor = null,
-    ): TagCollection {
-        $tags = [];
+        $tags = [Tag::event($effectiveRoot->getId(), null, Nip10Marker::Root->value)];
 
-        $effectiveRootId = $rootId ?? $replyToId;
-        $effectiveRootAuthor = $rootAuthor ?? $replyToAuthor;
-
-        $tags[] = Tag::event($effectiveRootId->toHex(), null, Nip10Marker::Root->value);
-
-        if (null !== $rootId && !$rootId->equals($replyToId)) {
-            $tags[] = Tag::event($replyToId->toHex(), null, Nip10Marker::Reply->value);
+        if (null !== $root && !$root->getId()->equals($replyTo->getId())) {
+            $tags[] = Tag::event($replyTo->getId(), null, Nip10Marker::Reply->value);
         }
 
-        $tags[] = Tag::pubkey($effectiveRootAuthor->toHex());
+        $tags[] = Tag::pubkey($effectiveRoot->getPubkey());
 
-        if (null !== $rootAuthor && !$rootAuthor->equals($replyToAuthor)) {
-            $tags[] = Tag::pubkey($replyToAuthor->toHex());
+        if (null !== $root && !$root->getPubkey()->equals($replyTo->getPubkey())) {
+            $tags[] = Tag::pubkey($replyTo->getPubkey());
         }
 
         return new TagCollection($tags);

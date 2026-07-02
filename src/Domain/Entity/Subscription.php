@@ -20,6 +20,7 @@ final readonly class Subscription
     ) {
     }
 
+    // Deliberate: irreducible subscription shape; created_at is read directly, not clock-injected — see ADR-0005
     public static function create(SubscriptionId $id, FilterCollection $filters, SubscriptionState $state = SubscriptionState::Pending, ?Timestamp $createdAt = null): self
     {
         return new self($id, $filters, $createdAt ?? Timestamp::now(), $state);

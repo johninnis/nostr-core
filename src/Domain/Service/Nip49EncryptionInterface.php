@@ -11,6 +11,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 
 interface Nip49EncryptionInterface
 {
+    // Deliberate: the key, the password source and the two independently-defaulted ncryptsec parameters (KDF cost and key-security byte) are distinct inputs, not a cohesive group to fold into a parameter object
     public function encrypt(
         PrivateKey $privateKey,
         Closure $passwordProvider,

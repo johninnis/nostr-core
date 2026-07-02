@@ -40,6 +40,7 @@ final class Nip49Cipher implements Nip49EncryptionInterface
         return new self(Nip49Scrypt::create(), $randomBytes ?? new NativeRandomBytesGenerator(), $maxDecryptLogN);
     }
 
+    // Deliberate: the key, the password source and the two independently-defaulted ncryptsec parameters (KDF cost and key-security byte) are distinct inputs, not a cohesive group to fold into a parameter object
     #[Override]
     public function encrypt(
         PrivateKey $privateKey,
@@ -116,6 +117,7 @@ final class Nip49Cipher implements Nip49EncryptionInterface
      *
      * @return T
      */
+    // Deliberate: password source, scrypt salt, scrypt cost and the consuming closure are four distinct inputs to one derive-key-and-run step
     private function withDerivedKey(Closure $passwordProvider, string $salt, int $logN, Closure $use): mixed
     {
         $revealed = $this->revealPassword($passwordProvider);

@@ -46,8 +46,8 @@ final class NipComplianceTest extends TestCase
     public function testNip02ContactListCompliance(): void
     {
         $tags = new TagCollection([
-            Tag::pubkey('contact-pubkey-1'),
-            Tag::pubkey('contact-pubkey-2'),
+            Tag::create('p', 'contact-pubkey-1'),
+            Tag::create('p', 'contact-pubkey-2'),
         ]);
 
         $signedEvent = new Rumour(
@@ -67,7 +67,7 @@ final class NipComplianceTest extends TestCase
     public function testNip04EncryptedDirectMessageCompliance(): void
     {
         $tags = new TagCollection([
-            Tag::pubkey('recipient-pubkey'),
+            Tag::create('p', 'recipient-pubkey'),
         ]);
 
         $signedEvent = new Rumour(
@@ -87,7 +87,7 @@ final class NipComplianceTest extends TestCase
     public function testNip09EventDeletionCompliance(): void
     {
         $tags = new TagCollection([
-            Tag::event('event-to-delete-id'),
+            Tag::create('e', 'event-to-delete-id'),
             Tag::create('k', '1'),
         ]);
 
@@ -148,7 +148,7 @@ final class NipComplianceTest extends TestCase
     public function testNip09EventDeletionRequiresKTag(): void
     {
         $tags = new TagCollection([
-            Tag::event('event-to-delete-id'),
+            Tag::create('e', 'event-to-delete-id'),
         ]);
 
         $signedEvent = new Rumour(
@@ -168,7 +168,7 @@ final class NipComplianceTest extends TestCase
     public function testNip09EventDeletionRejectsKind5InKTag(): void
     {
         $tags = new TagCollection([
-            Tag::event('event-to-delete-id'),
+            Tag::create('e', 'event-to-delete-id'),
             Tag::create('k', '5'),
         ]);
 

@@ -27,8 +27,8 @@ final class TagCollectionTest extends TestCase
 
     public function testCanCreateWithTags(): void
     {
-        $tag1 = Tag::event('event-id');
-        $tag2 = Tag::pubkey('pubkey-hex');
+        $tag1 = Tag::create('e', 'event-id');
+        $tag2 = Tag::create('p', 'pubkey-hex');
         $collection = new TagCollection([$tag1, $tag2]);
 
         $this->assertFalse($collection->isEmpty());
@@ -46,7 +46,7 @@ final class TagCollectionTest extends TestCase
     public function testCanAddTag(): void
     {
         $collection = new TagCollection();
-        $tag = Tag::event('event-id');
+        $tag = Tag::create('e', 'event-id');
 
         $newCollection = $collection->add($tag);
 
@@ -57,8 +57,8 @@ final class TagCollectionTest extends TestCase
 
     public function testCanRemoveTagsByType(): void
     {
-        $eventTag = Tag::event('event-id');
-        $pubkeyTag = Tag::pubkey('pubkey-hex');
+        $eventTag = Tag::create('e', 'event-id');
+        $pubkeyTag = Tag::create('p', 'pubkey-hex');
         $collection = new TagCollection([$eventTag, $pubkeyTag]);
 
         $newCollection = $collection->removeAll(TagType::event());
@@ -71,9 +71,9 @@ final class TagCollectionTest extends TestCase
 
     public function testRemoveDeletesOnlyTheTagMatchingTypeAndValue(): void
     {
-        $eventTag1 = Tag::event('event-id-1');
-        $eventTag2 = Tag::event('event-id-2');
-        $collection = new TagCollection([$eventTag1, $eventTag2, Tag::pubkey('pubkey-hex')]);
+        $eventTag1 = Tag::create('e', 'event-id-1');
+        $eventTag2 = Tag::create('e', 'event-id-2');
+        $collection = new TagCollection([$eventTag1, $eventTag2, Tag::create('p', 'pubkey-hex')]);
 
         $remainingEvents = $collection->remove($eventTag1)->findByType(TagType::event());
 
@@ -83,23 +83,23 @@ final class TagCollectionTest extends TestCase
 
     public function testGetPubkeysReturnsPublicKeysFromPubkeyTags(): void
     {
-        $collection = new TagCollection([Tag::pubkey(str_repeat('a', 64)), Tag::event('not-a-pubkey')]);
+        $collection = new TagCollection([Tag::create('p', str_repeat('a', 64)), Tag::create('e', 'not-a-pubkey')]);
 
         $this->assertCount(1, $collection->getPubkeys());
     }
 
     public function testGetEventIdsReturnsEventIdsFromEventTags(): void
     {
-        $collection = new TagCollection([Tag::event(str_repeat('b', 64)), Tag::pubkey(str_repeat('a', 64))]);
+        $collection = new TagCollection([Tag::create('e', str_repeat('b', 64)), Tag::create('p', str_repeat('a', 64))]);
 
         $this->assertCount(1, $collection->getEventIds());
     }
 
     public function testCanFindByType(): void
     {
-        $eventTag1 = Tag::event('event-id-1');
-        $eventTag2 = Tag::event('event-id-2');
-        $pubkeyTag = Tag::pubkey('pubkey-hex');
+        $eventTag1 = Tag::create('e', 'event-id-1');
+        $eventTag2 = Tag::create('e', 'event-id-2');
+        $pubkeyTag = Tag::create('p', 'pubkey-hex');
         $collection = new TagCollection([$eventTag1, $eventTag2, $pubkeyTag]);
 
         $eventTags = $collection->findByType(TagType::event());
@@ -113,7 +113,7 @@ final class TagCollectionTest extends TestCase
 
     public function testHasTypeWorksCorrectly(): void
     {
-        $eventTag = Tag::event('event-id');
+        $eventTag = Tag::create('e', 'event-id');
         $collection = new TagCollection([$eventTag]);
 
         $this->assertTrue($collection->hasType(TagType::event()));
@@ -122,8 +122,8 @@ final class TagCollectionTest extends TestCase
 
     public function testIsIterable(): void
     {
-        $tag1 = Tag::event('event-id');
-        $tag2 = Tag::pubkey('pubkey-hex');
+        $tag1 = Tag::create('e', 'event-id');
+        $tag2 = Tag::create('p', 'pubkey-hex');
         $collection = new TagCollection([$tag1, $tag2]);
 
         $tags = [];
@@ -138,7 +138,7 @@ final class TagCollectionTest extends TestCase
 
     public function testToArrayWorksCorrectly(): void
     {
-        $tag = Tag::event('event-id', 'relay-url');
+        $tag = Tag::create('e', 'event-id', 'relay-url');
         $collection = new TagCollection([$tag]);
 
         $expected = [['e', 'event-id', 'relay-url']];
@@ -147,8 +147,8 @@ final class TagCollectionTest extends TestCase
 
     public function testEqualsWorksCorrectly(): void
     {
-        $tag1 = Tag::event('event-id');
-        $tag2 = Tag::pubkey('pubkey-hex');
+        $tag1 = Tag::create('e', 'event-id');
+        $tag2 = Tag::create('p', 'pubkey-hex');
 
         $collection1 = new TagCollection([$tag1, $tag2]);
         $collection2 = new TagCollection([$tag1, $tag2]);

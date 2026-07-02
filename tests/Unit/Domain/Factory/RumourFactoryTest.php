@@ -55,7 +55,7 @@ final class RumourFactoryTest extends TestCase
 
     public function testCanCreateFollowList(): void
     {
-        $tags = new TagCollection([Tag::pubkey('follow-pubkey')]);
+        $tags = new TagCollection([Tag::create('p', 'follow-pubkey')]);
         $event = RumourFactory::createFollowList(
             $this->keyPair->getPublicKey(),
             $tags
@@ -68,7 +68,7 @@ final class RumourFactoryTest extends TestCase
     public function testCanCreateEncryptedDirectMessage(): void
     {
         $encryptedContent = 'encrypted-content';
-        $tags = new TagCollection([Tag::pubkey('recipient-pubkey')]);
+        $tags = new TagCollection([Tag::create('p', 'recipient-pubkey')]);
 
         $event = RumourFactory::createEncryptedDirectMessage(
             $this->keyPair->getPublicKey(),
@@ -83,7 +83,7 @@ final class RumourFactoryTest extends TestCase
 
     public function testCanCreateEventDeletion(): void
     {
-        $tags = new TagCollection([Tag::event('event-to-delete')]);
+        $tags = new TagCollection([Tag::create('e', 'event-to-delete')]);
         $reason = 'spam';
 
         $event = RumourFactory::createEventDeletion(
@@ -256,7 +256,7 @@ final class RumourFactoryTest extends TestCase
     public function testCanCreateMuteList(): void
     {
         $muteTags = new TagCollection([
-            Tag::pubkey(str_repeat('a', 64)),
+            Tag::create('p', str_repeat('a', 64)),
             Tag::hashtag('spam'),
         ]);
 
@@ -270,7 +270,7 @@ final class RumourFactoryTest extends TestCase
     public function testCanCreatePrivateMessage(): void
     {
         $recipientPubkey = str_repeat('b', 64);
-        $tags = new TagCollection([Tag::pubkey($recipientPubkey)]);
+        $tags = new TagCollection([Tag::create('p', $recipientPubkey)]);
 
         $event = RumourFactory::createPrivateMessage(
             $this->keyPair->getPublicKey(),
@@ -394,7 +394,7 @@ final class RumourFactoryTest extends TestCase
 
     public function testCanCreateEventDeletionWithDefaultReason(): void
     {
-        $tags = new TagCollection([Tag::event('event-to-delete')]);
+        $tags = new TagCollection([Tag::create('e', 'event-to-delete')]);
         $event = RumourFactory::createEventDeletion(
             $this->keyPair->getPublicKey(),
             $tags,

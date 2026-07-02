@@ -26,8 +26,10 @@ final class EventCoordinateTest extends TestCase
 
     private function createCoordinate(?string $relayHint = null): EventCoordinate
     {
-        return EventCoordinate::fromParts(self::VALID_KIND, self::VALID_PUBKEY, self::VALID_IDENTIFIER, $relayHint)
+        $coordinate = EventCoordinate::fromParts(self::VALID_KIND, self::VALID_PUBKEY, self::VALID_IDENTIFIER)
             ?? throw new RuntimeException('Failed to create test coordinate');
+
+        return null !== $relayHint ? $coordinate->withRelayHint(RelayUrl::fromString($relayHint)) : $coordinate;
     }
 
     public function testFromPartsCreatesValidCoordinate(): void
@@ -40,7 +42,7 @@ final class EventCoordinateTest extends TestCase
         $this->assertNull($coordinate->getRelayHint());
     }
 
-    public function testFromPartsWithRelayHint(): void
+    public function testCoordinateExposesItsRelayHint(): void
     {
         $coordinate = $this->createCoordinate(self::VALID_RELAY);
 
@@ -69,7 +71,7 @@ final class EventCoordinateTest extends TestCase
         $pubkey = PublicKey::fromHex(self::VALID_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey');
         $relay = RelayUrl::fromString(self::VALID_RELAY) ?? throw new RuntimeException('Invalid test relay');
 
-        $coordinate = EventCoordinate::create($kind, $pubkey, self::VALID_IDENTIFIER, $relay)
+        $coordinate = EventCoordinate::create($kind, $pubkey, self::VALID_IDENTIFIER)?->withRelayHint($relay)
             ?? throw new RuntimeException('Failed to create coordinate');
 
         $this->assertTrue($coordinate->getKind()->equals($kind));

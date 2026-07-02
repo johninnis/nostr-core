@@ -77,7 +77,7 @@ final class TagTest extends TestCase
 
     public function testStaticEventFactory(): void
     {
-        $tag = Tag::event('event-id', 'wss://relay.example.com', 'root');
+        $tag = Tag::create('e', 'event-id', 'wss://relay.example.com', 'root');
 
         $this->assertTrue($tag->getType()->equals(TagType::event()));
         $this->assertSame('event-id', $tag->getValue(0));
@@ -87,7 +87,7 @@ final class TagTest extends TestCase
 
     public function testStaticPubkeyFactory(): void
     {
-        $tag = Tag::pubkey('pubkey-hex', 'wss://relay.example.com', 'alice');
+        $tag = Tag::create('p', 'pubkey-hex', 'wss://relay.example.com', 'alice');
 
         $this->assertTrue($tag->getType()->equals(TagType::pubkey()));
         $this->assertSame('pubkey-hex', $tag->getValue(0));

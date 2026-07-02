@@ -21,16 +21,16 @@ final readonly class EventCoordinate implements Stringable
     ) {
     }
 
-    public static function create(EventKind $kind, PublicKey $pubkey, string $identifier, ?RelayUrl $relayHint = null): ?self
+    public static function create(EventKind $kind, PublicKey $pubkey, string $identifier): ?self
     {
         if (!$kind->isParameterisedReplaceable() || '' === $identifier) {
             return null;
         }
 
-        return new self($kind, $pubkey, $identifier, $relayHint);
+        return new self($kind, $pubkey, $identifier);
     }
 
-    public static function fromParts(int $kind, string $pubkeyHex, string $identifier, ?string $relayHint = null): ?self
+    public static function fromParts(int $kind, string $pubkeyHex, string $identifier): ?self
     {
         $eventKind = EventKind::tryFromInt($kind);
         $pubkey = PublicKey::fromHex($pubkeyHex);
@@ -39,12 +39,7 @@ final readonly class EventCoordinate implements Stringable
             return null;
         }
 
-        return self::create(
-            $eventKind,
-            $pubkey,
-            $identifier,
-            null !== $relayHint ? RelayUrl::fromString($relayHint) : null,
-        );
+        return self::create($eventKind, $pubkey, $identifier);
     }
 
     public static function fromString(string $coordinate, ?string $relayHint = null): ?self
@@ -59,11 +54,13 @@ final readonly class EventCoordinate implements Stringable
             return null;
         }
 
-        $kind = (int) $parts[0];
-        $pubkey = $parts[1];
-        $identifier = implode(':', array_slice($parts, 2));
+        $eventCoordinate = self::fromParts((int) $parts[0], $parts[1], implode(':', array_slice($parts, 2)));
 
-        return self::fromParts($kind, $pubkey, $identifier, $relayHint);
+        if (null === $eventCoordinate || null === $relayHint) {
+            return $eventCoordinate;
+        }
+
+        return $eventCoordinate->withRelayHint(RelayUrl::fromString($relayHint));
     }
 
     /**
@@ -192,11 +189,6 @@ final readonly class EventCoordinate implements Stringable
             return null;
         }
 
-        return self::fromParts(
-            $data['kind'],
-            $data['pubkey'],
-            $data['identifier'],
-            $relayHint,
-        );
+        return self::fromString($data['kind'].':'.$data['pubkey'].':'.$data['identifier'], $relayHint);
     }
 }

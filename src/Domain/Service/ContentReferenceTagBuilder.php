@@ -27,7 +27,7 @@ final readonly class ContentReferenceTagBuilder implements ContentReferenceTagBu
         foreach ($references as $ref) {
             $pubkey = $ref->getPublicKey();
             if (null !== $pubkey) {
-                $tags = $tags->add(Tag::pubkey($pubkey->toHex()));
+                $tags = $tags->add(Tag::pubkey($pubkey));
             }
 
             $eventId = $ref->getEventId();

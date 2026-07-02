@@ -191,7 +191,7 @@ final class FilterTest extends TestCase
         $pubkeyHex = str_repeat('a', 64);
         $tags = new TagCollection([
             Tag::hashtag('nostr'),
-            Tag::pubkey($pubkeyHex),
+            Tag::create('p', $pubkeyHex),
         ]);
         $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
@@ -215,7 +215,7 @@ final class FilterTest extends TestCase
     {
         $pubkey = PublicKey::fromHex(str_repeat('a', 64)) ?? throw new RuntimeException('Invalid test public key');
         $referencedId = str_repeat('c', 64);
-        $tags = new TagCollection([Tag::event($referencedId, 'wss://relay.example', 'reply')]);
+        $tags = new TagCollection([Tag::create('e', $referencedId, 'wss://relay.example', 'reply')]);
         $event = EventMother::fromRumour(new Rumour(
             $pubkey,
             Timestamp::now(),

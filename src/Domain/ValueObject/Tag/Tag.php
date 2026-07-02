@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Tag;
 
+use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use InvalidArgumentException;
 
 final readonly class Tag
@@ -63,25 +66,25 @@ final readonly class Tag
         return $this->type->equals($other->type) && $this->values === $other->values;
     }
 
-    public static function event(string $eventId, ?string $relayUrl = null, ?string $marker = null): self
+    public static function event(EventId $eventId, ?RelayUrl $relayUrl = null, ?string $marker = null): self
     {
-        $values = [$eventId];
+        $values = [$eventId->toHex()];
 
         if (null !== $marker) {
-            $values[] = $relayUrl ?? '';
+            $values[] = null !== $relayUrl ? (string) $relayUrl : '';
             $values[] = $marker;
         } elseif (null !== $relayUrl) {
-            $values[] = $relayUrl;
+            $values[] = (string) $relayUrl;
         }
 
         return new self(TagType::event(), $values);
     }
 
-    public static function pubkey(string $pubkey, ?string $relayUrl = null, ?string $petname = null): self
+    public static function pubkey(PublicKey $pubkey, ?RelayUrl $relayUrl = null, ?string $petname = null): self
     {
-        $values = [$pubkey];
+        $values = [$pubkey->toHex()];
         if (null !== $relayUrl) {
-            $values[] = $relayUrl;
+            $values[] = (string) $relayUrl;
         }
         if (null !== $petname) {
             $values[] = $petname;

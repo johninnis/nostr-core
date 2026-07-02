@@ -20,6 +20,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 
 final class RumourFactory
 {
+    // Deliberate: irreducible event shape; created_at is read directly, not clock-injected — see ADR-0005
     public static function createCustomKind(
         PublicKey $pubkey,
         EventKind $kind,
@@ -68,6 +69,7 @@ final class RumourFactory
         return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::EVENT_DELETION), EventContent::fromString($reason), $tags);
     }
 
+    // Deliberate: irreducible event shape; created_at is read directly, not clock-injected — see ADR-0005
     public static function createFileMetadata(
         PublicKey $pubkey,
         FileMetadata $metadata,
@@ -80,8 +82,8 @@ final class RumourFactory
     public static function createRepost(PublicKey $pubkey, Event $originalEvent): Rumour
     {
         $tags = new TagCollection([
-            Tag::event($originalEvent->getId()->toHex()),
-            Tag::pubkey($originalEvent->getPubkey()->toHex()),
+            Tag::event($originalEvent->getId()),
+            Tag::pubkey($originalEvent->getPubkey()),
         ]);
 
         return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::REPOST), EventContent::fromString(''), $tags);
@@ -93,8 +95,8 @@ final class RumourFactory
         string $reaction = '+',
     ): Rumour {
         $tags = new TagCollection([
-            Tag::event($targetEvent->getId()->toHex()),
-            Tag::pubkey($targetEvent->getPubkey()->toHex()),
+            Tag::event($targetEvent->getId()),
+            Tag::pubkey($targetEvent->getPubkey()),
         ]);
 
         return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::REACTION), EventContent::fromString($reaction), $tags);
@@ -158,6 +160,7 @@ final class RumourFactory
         return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::DM_RELAY_LIST), EventContent::fromString(''), $relayTags);
     }
 
+    // Deliberate: irreducible event shape; created_at is read directly, not clock-injected — see ADR-0005
     public static function createLongformContent(
         PublicKey $pubkey,
         EventContent $content,

@@ -106,7 +106,7 @@ final class GiftWrapperTest extends TestCase
     {
         $recipientPubkey = $this->recipientKeyPair->getPublicKey()->toHex();
         $tags = new TagCollection([
-            Tag::pubkey($recipientPubkey),
+            Tag::pubkey($this->recipientKeyPair->getPublicKey()),
             Tag::create('subject', 'Test conversation'),
         ]);
 
@@ -279,7 +279,7 @@ final class GiftWrapperTest extends TestCase
         return RumourFactory::createPrivateMessage(
             $this->senderKeyPair->getPublicKey(),
             $content,
-            new TagCollection([Tag::pubkey($this->recipientKeyPair->getPublicKey()->toHex())])
+            new TagCollection([Tag::pubkey($this->recipientKeyPair->getPublicKey())])
         );
     }
 
@@ -314,7 +314,7 @@ final class GiftWrapperTest extends TestCase
             $ephemeralKeyPair->getPublicKey(),
             Timestamp::now(),
             EventKind::fromInt(EventKind::GIFT_WRAP),
-            new TagCollection([Tag::pubkey($recipientPublicKey->toHex())]),
+            new TagCollection([Tag::pubkey($recipientPublicKey)]),
             EventContent::fromString($cipher->encrypt($seal->toJson(), $wrapKey)),
         )->sign($ephemeralKeyPair, $signer);
     }

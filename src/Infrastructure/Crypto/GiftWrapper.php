@@ -28,6 +28,7 @@ use Throwable;
 // Deliberate: a composed cryptographic capability, kept with the crypto family despite reaching primitives only through ports — see ADR-0035
 final class GiftWrapper implements GiftWrapServiceInterface
 {
+    // Deliberate: four cohesive crypto collaborators for one NIP-59 operation, not a group to fold into a parameter object — see ADR-0035
     public function __construct(
         private readonly Nip44EncryptionInterface $encryption,
         private readonly SignatureServiceInterface $signatureService,
@@ -70,7 +71,7 @@ final class GiftWrapper implements GiftWrapServiceInterface
                 $ephemeralKeyPair->getPublicKey(),
                 $envelope->getWrapTimestamp(),
                 EventKind::fromInt(EventKind::GIFT_WRAP),
-                new TagCollection([Tag::pubkey($recipientPublicKey->toHex())]),
+                new TagCollection([Tag::pubkey($recipientPublicKey)]),
                 EventContent::fromString($this->encryptFor($seal, $ephemeralKeyPair, $recipientPublicKey)),
             )->sign($ephemeralKeyPair, $this->signatureService);
         } finally {

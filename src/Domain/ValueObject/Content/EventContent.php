@@ -28,6 +28,7 @@ final readonly class EventContent implements Stringable
         return $this->content === $other->content;
     }
 
+    // Deliberate: any string is valid content, construction cannot fail — returns self, not ?self, see ADR-0033
     public static function fromString(string $content): self
     {
         return new self($content);

@@ -23,7 +23,7 @@ $recipient = KeyPair::generate($signer);
 $rumour = RumourFactory::createPrivateMessage(
     $sender->getPublicKey(),
     'This message is sealed and gift-wrapped.',
-    new TagCollection([Tag::pubkey($recipient->getPublicKey()->toHex())]),
+    new TagCollection([Tag::pubkey($recipient->getPublicKey())]),
 );
 
 $giftWrap = $giftWrapper->wrapForRecipient($rumour, $sender->getPrivateKey(), $recipient->getPublicKey());

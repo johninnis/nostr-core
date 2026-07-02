@@ -75,6 +75,7 @@ final readonly class TagReferences
     /**
      * @param array<array-key, mixed> $data
      */
+    // Deliberate: every field optional, construction cannot fail — returns self, not ?self, see ADR-0033
     public static function fromArray(array $data): self
     {
         $challenges = is_array($data['challenges'] ?? null) ? $data['challenges'] : [];

@@ -128,6 +128,7 @@ final class Bech32Codec
      *
      * @return list<int>|null
      */
+    // Deliberate: bit-conversion primitive; fromBits, toBits and pad are independent numeric knobs, not a cohesive parameter object
     private static function convertBits(array $data, int $fromBits, int $toBits, bool $pad): ?array
     {
         $acc = 0;

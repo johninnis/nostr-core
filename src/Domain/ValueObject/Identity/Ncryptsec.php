@@ -50,6 +50,7 @@ final readonly class Ncryptsec implements Stringable
         return new self($bech32, $payload);
     }
 
+    // Deliberate: the five arguments are the irreducible ncryptsec structure (logN, salt, nonce, key-security byte, ciphertext), not a group to fold into a parameter object
     public static function create(
         int $logN,
         string $salt,
