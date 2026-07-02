@@ -13,16 +13,16 @@ use Override;
 
 final readonly class EventMessage extends RelayMessage implements PreSerialisedMessageInterface
 {
-    #[Override]
-    public function type(): RelayMessageType
-    {
-        return RelayMessageType::Event;
-    }
-
     public function __construct(
         private SubscriptionId $subscriptionId,
         private Event $event,
     ) {
+    }
+
+    #[Override]
+    public function type(): RelayMessageType
+    {
+        return RelayMessageType::Event;
     }
 
     public function getSubscriptionId(): SubscriptionId
@@ -64,7 +64,7 @@ final readonly class EventMessage extends RelayMessage implements PreSerialisedM
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (3 !== count($data) || RelayMessageType::Event->value !== $data[0]) {
+        if (3 !== count($data)) {
             return null;
         }
 
@@ -80,9 +80,11 @@ final readonly class EventMessage extends RelayMessage implements PreSerialisedM
             return null;
         }
 
-        return new self(
+        $parsed = new self(
             $subscriptionId,
             $event,
         );
+
+        return $parsed->type()->value === $data[0] ? $parsed : null;
     }
 }

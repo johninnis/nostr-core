@@ -13,17 +13,17 @@ use Override;
 
 final readonly class AuthMessage extends ClientMessage
 {
-    #[Override]
-    public function type(): ClientMessageType
-    {
-        return ClientMessageType::Auth;
-    }
-
     public function __construct(private Event $event)
     {
         if (!$this->event->getKind()->is(EventKind::CLIENT_AUTH)) {
             throw new InvalidArgumentException('AUTH message must contain a kind 22242 event');
         }
+    }
+
+    #[Override]
+    public function type(): ClientMessageType
+    {
+        return ClientMessageType::Auth;
     }
 
     public function getEvent(): Event
@@ -46,7 +46,7 @@ final readonly class AuthMessage extends ClientMessage
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (2 !== count($data) || ClientMessageType::Auth->value !== $data[0]) {
+        if (2 !== count($data)) {
             return null;
         }
 
@@ -60,6 +60,8 @@ final readonly class AuthMessage extends ClientMessage
             return null;
         }
 
-        return new self($event);
+        $parsed = new self($event);
+
+        return $parsed->type()->value === $data[0] ? $parsed : null;
     }
 }

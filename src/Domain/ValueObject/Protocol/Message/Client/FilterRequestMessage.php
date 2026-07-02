@@ -75,8 +75,8 @@ abstract readonly class FilterRequestMessage extends ClientMessage
             return null;
         }
 
-        $message = new static($subscriptionId, $filters);
+        $parsed = new static($subscriptionId, $filters);
 
-        return $message->type()->value === $data[0] ? $message : null;
+        return $parsed->type()->value === $data[0] ? $parsed : null;
     }
 }

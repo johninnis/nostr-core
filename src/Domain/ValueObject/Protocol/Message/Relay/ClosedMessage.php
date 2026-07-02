@@ -11,16 +11,16 @@ use Override;
 
 final readonly class ClosedMessage extends RelayMessage
 {
-    #[Override]
-    public function type(): RelayMessageType
-    {
-        return RelayMessageType::Closed;
-    }
-
     public function __construct(
         private SubscriptionId $subscriptionId,
         private string $message,
     ) {
+    }
+
+    #[Override]
+    public function type(): RelayMessageType
+    {
+        return RelayMessageType::Closed;
     }
 
     public function getSubscriptionId(): SubscriptionId
@@ -48,7 +48,7 @@ final readonly class ClosedMessage extends RelayMessage
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (count($data) < 2 || RelayMessageType::Closed->value !== $data[0]) {
+        if (count($data) < 2) {
             return null;
         }
 
@@ -63,9 +63,11 @@ final readonly class ClosedMessage extends RelayMessage
             return null;
         }
 
-        return new self(
+        $parsed = new self(
             $subscriptionId,
             $message,
         );
+
+        return $parsed->type()->value === $data[0] ? $parsed : null;
     }
 }

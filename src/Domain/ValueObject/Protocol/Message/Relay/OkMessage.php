@@ -11,17 +11,17 @@ use Override;
 
 final readonly class OkMessage extends RelayMessage
 {
-    #[Override]
-    public function type(): RelayMessageType
-    {
-        return RelayMessageType::Ok;
-    }
-
     public function __construct(
         private EventId $eventId,
         private bool $accepted,
         private string $message = '',
     ) {
+    }
+
+    #[Override]
+    public function type(): RelayMessageType
+    {
+        return RelayMessageType::Ok;
     }
 
     public function getEventId(): EventId
@@ -59,7 +59,7 @@ final readonly class OkMessage extends RelayMessage
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (count($data) < 3 || RelayMessageType::Ok->value !== $data[0]) {
+        if (count($data) < 3) {
             return null;
         }
 
@@ -82,10 +82,12 @@ final readonly class OkMessage extends RelayMessage
             return null;
         }
 
-        return new self(
+        $parsed = new self(
             $eventId,
             $data[2],
             $message,
         );
+
+        return $parsed->type()->value === $data[0] ? $parsed : null;
     }
 }

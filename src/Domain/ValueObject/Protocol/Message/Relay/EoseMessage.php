@@ -11,14 +11,14 @@ use Override;
 
 final readonly class EoseMessage extends RelayMessage
 {
+    public function __construct(private SubscriptionId $subscriptionId)
+    {
+    }
+
     #[Override]
     public function type(): RelayMessageType
     {
         return RelayMessageType::Eose;
-    }
-
-    public function __construct(private SubscriptionId $subscriptionId)
-    {
     }
 
     public function getSubscriptionId(): SubscriptionId
@@ -41,7 +41,7 @@ final readonly class EoseMessage extends RelayMessage
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (2 !== count($data) || RelayMessageType::Eose->value !== $data[0]) {
+        if (2 !== count($data)) {
             return null;
         }
 
@@ -51,6 +51,8 @@ final readonly class EoseMessage extends RelayMessage
             return null;
         }
 
-        return new self($subscriptionId);
+        $parsed = new self($subscriptionId);
+
+        return $parsed->type()->value === $data[0] ? $parsed : null;
     }
 }

@@ -10,7 +10,7 @@ A relay message arrives as one of a closed set of seven shapes (event, ok, eose,
 
 A consumer that receives a base-typed message must fan out on which shape it is, and it wants the analyser to force it to handle every shape — forgetting `CLOSED` in a client is a real bug. PHP cannot help here: it has no sealed classes and no type patterns, so a `match (true)` over `instanceof` arms is not checked for exhaustiveness, and neither is a `match` over a plain `string` discriminant — the analyser does not know the string ranges over a closed set.
 
-The discriminant existed only as a `protected const string TYPE` per leaf, surfaced through a `getType(): string`. That string is also the wire tag, and it was spelled twice over: once in each leaf's constant and again in every arm of the deserialiser's `match`. `getType()` itself had no caller.
+The discriminant existed only as a `protected const string TYPE` per leaf, surfaced through a `getType(): string`. That string is also the wire tag, and it was spelled twice over: once in each leaf's constant and again in every arm of the deserialiser's `match`. `getType()` itself had no caller. This is the mechanism ADR-0016 described; that record's inheritance sum-type decision stands, and only its discriminant mechanism is superseded here.
 
 ## Decision
 

@@ -12,12 +12,6 @@ use Override;
 
 final readonly class CountMessage extends RelayMessage
 {
-    #[Override]
-    public function type(): RelayMessageType
-    {
-        return RelayMessageType::Count;
-    }
-
     public function __construct(
         private SubscriptionId $subscriptionId,
         private int $count,
@@ -25,6 +19,12 @@ final readonly class CountMessage extends RelayMessage
         if ($this->count < 0) {
             throw new InvalidArgumentException('Count cannot be negative');
         }
+    }
+
+    #[Override]
+    public function type(): RelayMessageType
+    {
+        return RelayMessageType::Count;
     }
 
     public function getSubscriptionId(): SubscriptionId
@@ -52,7 +52,7 @@ final readonly class CountMessage extends RelayMessage
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (3 !== count($data) || RelayMessageType::Count->value !== $data[0]) {
+        if (3 !== count($data)) {
             return null;
         }
 
@@ -72,9 +72,11 @@ final readonly class CountMessage extends RelayMessage
             return null;
         }
 
-        return new self(
+        $parsed = new self(
             $subscriptionId,
             $count,
         );
+
+        return $parsed->type()->value === $data[0] ? $parsed : null;
     }
 }

@@ -11,17 +11,17 @@ use Override;
 
 final readonly class NoticeMessage extends RelayMessage
 {
-    #[Override]
-    public function type(): RelayMessageType
-    {
-        return RelayMessageType::Notice;
-    }
-
     public function __construct(private string $message)
     {
         if ('' === $this->message) {
             throw new InvalidArgumentException('Notice message cannot be empty');
         }
+    }
+
+    #[Override]
+    public function type(): RelayMessageType
+    {
+        return RelayMessageType::Notice;
     }
 
     public function getMessage(): string
@@ -44,7 +44,7 @@ final readonly class NoticeMessage extends RelayMessage
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (2 !== count($data) || RelayMessageType::Notice->value !== $data[0]) {
+        if (2 !== count($data)) {
             return null;
         }
 
@@ -52,6 +52,8 @@ final readonly class NoticeMessage extends RelayMessage
             return null;
         }
 
-        return new self($data[1]);
+        $parsed = new self($data[1]);
+
+        return $parsed->type()->value === $data[0] ? $parsed : null;
     }
 }

@@ -11,14 +11,14 @@ use Override;
 
 final readonly class EventMessage extends ClientMessage
 {
+    public function __construct(private Event $event)
+    {
+    }
+
     #[Override]
     public function type(): ClientMessageType
     {
         return ClientMessageType::Event;
-    }
-
-    public function __construct(private Event $event)
-    {
     }
 
     public function getEvent(): Event
@@ -41,7 +41,7 @@ final readonly class EventMessage extends ClientMessage
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (2 !== count($data) || ClientMessageType::Event->value !== $data[0]) {
+        if (2 !== count($data)) {
             return null;
         }
 
@@ -51,6 +51,8 @@ final readonly class EventMessage extends ClientMessage
             return null;
         }
 
-        return new self($event->withRawJson());
+        $parsed = new self($event->withRawJson());
+
+        return $parsed->type()->value === $data[0] ? $parsed : null;
     }
 }

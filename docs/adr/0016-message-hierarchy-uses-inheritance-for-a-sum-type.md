@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted. The discriminant mechanism described below — a `protected const string TYPE` per leaf, surfaced through `getType(): string` — is superseded by ADR-0048, which replaces it with a backed-enum `type()`. The decision recorded here, to model the two message families as an inheritance sum type, is unaffected; read the references to `getType`/`TYPE` as that mechanism's earlier form.
 
 ## Context
 
