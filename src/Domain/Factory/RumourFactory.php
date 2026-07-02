@@ -11,6 +11,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Content\FileMetadata;
 use Innis\Nostr\Core\Domain\ValueObject\Content\LongformMetadata;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Nip98Request;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
@@ -127,19 +128,16 @@ final class RumourFactory
         return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::CLIENT_AUTH), EventContent::fromString(''), $tags);
     }
 
-    public static function createHttpAuth(
-        PublicKey $pubkey,
-        string $url,
-        string $method,
-        ?string $payloadHash = null,
-    ): Rumour {
+    public static function createHttpAuth(PublicKey $pubkey, Nip98Request $request): Rumour
+    {
         $tags = [
-            Tag::create(TagType::URL, $url),
-            Tag::create(TagType::METHOD, $method),
+            Tag::create(TagType::URL, $request->getUrl()),
+            Tag::create(TagType::METHOD, $request->getMethod()),
         ];
 
-        if (null !== $payloadHash) {
-            $tags[] = Tag::create(TagType::PAYLOAD, $payloadHash);
+        $bodyHash = $request->getBodyHash();
+        if (null !== $bodyHash) {
+            $tags[] = Tag::create(TagType::PAYLOAD, $bodyHash);
         }
 
         return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::HTTP_AUTH), EventContent::fromString(''), new TagCollection($tags));

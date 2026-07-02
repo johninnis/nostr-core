@@ -11,6 +11,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Content\FileMetadata;
 use Innis\Nostr\Core\Domain\ValueObject\Content\LongformMetadata;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Nip98Request;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
@@ -143,9 +144,7 @@ final class RumourFactoryTest extends TestCase
 
         $event = RumourFactory::createHttpAuth(
             $this->keyPair->getPublicKey(),
-            $url,
-            $method,
-            $payloadHash
+            Nip98Request::withBodyHash($url, $method, $payloadHash)
         );
 
         $this->assertTrue($event->getKind()->is(EventKind::HTTP_AUTH));
@@ -167,8 +166,7 @@ final class RumourFactoryTest extends TestCase
     {
         $event = RumourFactory::createHttpAuth(
             $this->keyPair->getPublicKey(),
-            'https://api.example.com/',
-            'GET'
+            Nip98Request::withBodyHash('https://api.example.com/', 'GET')
         );
 
         $this->assertTrue($event->getKind()->is(EventKind::HTTP_AUTH));

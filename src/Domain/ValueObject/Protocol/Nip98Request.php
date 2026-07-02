@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Application\DTO;
+namespace Innis\Nostr\Core\Domain\ValueObject\Protocol;
 
 final readonly class Nip98Request
 {
