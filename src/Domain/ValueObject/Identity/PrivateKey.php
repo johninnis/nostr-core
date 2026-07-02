@@ -7,6 +7,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 use Closure;
 use Innis\Nostr\Core\Domain\Service\Bech32Codec;
 use Innis\Nostr\Core\Domain\Service\HexCodec;
+use SensitiveParameter;
 
 // Deliberate: rejects scalars outside [1, n-1] so both signing backends agree and no degenerate key is built — see ADR-0029
 final readonly class PrivateKey
@@ -18,19 +19,19 @@ final readonly class PrivateKey
     {
     }
 
-    public static function fromHex(string $hex): ?self
+    public static function fromHex(#[SensitiveParameter] string $hex): ?self
     {
         return self::fromValidatedMaterial(SecretKeyMaterial::fromHex($hex));
     }
 
-    public static function fromBech32(string $bech32): ?self
+    public static function fromBech32(#[SensitiveParameter] string $bech32): ?self
     {
         $bytes = Bech32Codec::decodeWithHrp($bech32, 'nsec');
 
         return null === $bytes ? null : self::fromBytes($bytes);
     }
 
-    public static function fromBytes(string $bytes): ?self
+    public static function fromBytes(#[SensitiveParameter] string $bytes): ?self
     {
         return self::fromValidatedMaterial(SecretKeyMaterial::fromBytes($bytes));
     }

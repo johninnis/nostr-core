@@ -8,6 +8,7 @@ use Closure;
 use Innis\Nostr\Core\Domain\Exception\SecretKeyMaterialZeroedException;
 use Innis\Nostr\Core\Domain\Service\HexCodec;
 use InvalidArgumentException;
+use SensitiveParameter;
 
 // Deliberate: a plain final class, not final readonly, so zero() can null the bytes field to wipe the secret — see ADR-0015
 final class SecretKeyMaterial
@@ -16,7 +17,7 @@ final class SecretKeyMaterial
 
     private ?string $bytes;
 
-    public function __construct(string $bytes)
+    public function __construct(#[SensitiveParameter] string $bytes)
     {
         if (self::BYTE_LENGTH !== strlen($bytes)) {
             throw new InvalidArgumentException(sprintf('Secret key material must be %d bytes', self::BYTE_LENGTH));
@@ -31,12 +32,12 @@ final class SecretKeyMaterial
         return new self(random_bytes(self::BYTE_LENGTH));
     }
 
-    public static function fromHex(string $hex): ?self
+    public static function fromHex(#[SensitiveParameter] string $hex): ?self
     {
         return HexCodec::isValid($hex, self::BYTE_LENGTH) ? new self(HexCodec::decode($hex)) : null;
     }
 
-    public static function fromBytes(string $bytes): ?self
+    public static function fromBytes(#[SensitiveParameter] string $bytes): ?self
     {
         return self::BYTE_LENGTH === strlen($bytes) ? new self($bytes) : null;
     }

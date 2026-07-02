@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
 use Closure;
 use Innis\Nostr\Core\Domain\Service\EcdhServiceInterface;
+use SensitiveParameter;
 
 final readonly class ConversationKey
 {
@@ -23,14 +24,14 @@ final readonly class ConversationKey
         return new self(new SecretKeyMaterial($conversationKey));
     }
 
-    public static function fromHex(string $hex): ?self
+    public static function fromHex(#[SensitiveParameter] string $hex): ?self
     {
         $material = SecretKeyMaterial::fromHex($hex);
 
         return null === $material ? null : new self($material);
     }
 
-    public static function fromBytes(string $bytes): ?self
+    public static function fromBytes(#[SensitiveParameter] string $bytes): ?self
     {
         $material = SecretKeyMaterial::fromBytes($bytes);
 
