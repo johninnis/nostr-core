@@ -9,8 +9,6 @@ use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 // Deliberate: an abstract base with final leaves expresses a closed sum type PHP cannot name, sharing the self-typed fromJson — see ADR-0016
 abstract readonly class Message
 {
-    protected const string TYPE = '';
-
     /**
      * @return array<array-key, mixed>
      */
@@ -20,11 +18,6 @@ abstract readonly class Message
      * @param array<array-key, mixed> $data
      */
     abstract public static function fromArray(array $data): ?static;
-
-    final public function getType(): string
-    {
-        return static::TYPE;
-    }
 
     final public static function fromJson(string $json): ?static
     {

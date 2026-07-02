@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol\Message\Relay;
 
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
@@ -26,7 +27,7 @@ final class EventMessageTest extends TestCase
             $this->createEvent(),
         );
 
-        $this->assertSame('EVENT', $message->getType());
+        $this->assertSame(RelayMessageType::Event, $message->type());
     }
 
     public function testGetSubscriptionIdReturnsConstructedValue(): void
@@ -120,7 +121,7 @@ final class EventMessageTest extends TestCase
 
         $message = EventMessage::fromArray($data) ?? throw new RuntimeException('Expected a valid message');
 
-        $this->assertSame('EVENT', $message->getType());
+        $this->assertSame(RelayMessageType::Event, $message->type());
         $this->assertSame('sub-1', (string) $message->getSubscriptionId());
     }
 

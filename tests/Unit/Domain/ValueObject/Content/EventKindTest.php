@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Content;
 
+use Innis\Nostr\Core\Domain\Enum\EventKindCategory;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -44,49 +45,38 @@ final class EventKindTest extends TestCase
         $this->assertSame(5, EventKind::fromInt(EventKind::EVENT_DELETION)->toInt());
     }
 
-    public function testIsRegular(): void
+    #[DataProvider('categoryProvider')]
+    public function testCategoryClassifiesKind(int $kind, EventKindCategory $expected): void
     {
-        $this->assertTrue(EventKind::fromInt(1)->isRegular());
-        $this->assertTrue(EventKind::fromInt(9999)->isRegular());
-        $this->assertFalse(EventKind::fromInt(EventKind::METADATA)->isRegular());
-        $this->assertFalse(EventKind::fromInt(EventKind::FOLLOW_LIST)->isRegular());
-        $this->assertFalse(EventKind::fromInt(10000)->isRegular());
+        $this->assertSame($expected, EventKind::fromInt($kind)->category());
     }
 
-    public function testIsReplaceable(): void
+    /**
+     * @return iterable<string, array{int, EventKindCategory}>
+     */
+    public static function categoryProvider(): iterable
     {
-        $this->assertTrue(EventKind::fromInt(EventKind::METADATA)->isReplaceable());
-        $this->assertTrue(EventKind::fromInt(EventKind::FOLLOW_LIST)->isReplaceable());
-        $this->assertTrue(EventKind::fromInt(10000)->isReplaceable());
-        $this->assertTrue(EventKind::fromInt(19999)->isReplaceable());
-        $this->assertFalse(EventKind::fromInt(EventKind::TEXT_NOTE)->isReplaceable());
-        $this->assertFalse(EventKind::fromInt(20000)->isReplaceable());
+        yield 'metadata is replaceable' => [EventKind::METADATA, EventKindCategory::Replaceable];
+        yield 'follow list is replaceable' => [EventKind::FOLLOW_LIST, EventKindCategory::Replaceable];
+        yield 'replaceable lower bound' => [10000, EventKindCategory::Replaceable];
+        yield 'replaceable upper bound' => [19999, EventKindCategory::Replaceable];
+        yield 'ephemeral lower bound' => [20000, EventKindCategory::Ephemeral];
+        yield 'ephemeral upper bound' => [29999, EventKindCategory::Ephemeral];
+        yield 'addressable lower bound' => [30000, EventKindCategory::Addressable];
+        yield 'addressable upper bound' => [39999, EventKindCategory::Addressable];
+        yield 'text note is regular' => [EventKind::TEXT_NOTE, EventKindCategory::Regular];
+        yield 'regular convention upper bound' => [9999, EventKindCategory::Regular];
+        yield 'out-of-band low kind defaults to regular' => [54, EventKindCategory::Regular];
+        yield 'out-of-band mls key package defaults to regular' => [EventKind::MLS_KEY_PACKAGE, EventKindCategory::Regular];
+        yield 'out-of-band high kind defaults to regular' => [40000, EventKindCategory::Regular];
+        yield 'max kind defaults to regular' => [65535, EventKindCategory::Regular];
     }
 
-    public function testIsEphemeral(): void
+    public function testClassificationPredicatesRemainRemoved(): void
     {
-        $regularKind = EventKind::fromInt(1);
-        $ephemeralKind = EventKind::fromInt(20000);
-        $upperBoundKind = EventKind::fromInt(29999);
-        $beyondBoundKind = EventKind::fromInt(30000);
-
-        $this->assertFalse($regularKind->isEphemeral());
-        $this->assertTrue($ephemeralKind->isEphemeral());
-        $this->assertTrue($upperBoundKind->isEphemeral());
-        $this->assertFalse($beyondBoundKind->isEphemeral());
-    }
-
-    public function testIsParameterisedReplaceable(): void
-    {
-        $regularKind = EventKind::fromInt(1);
-        $parameterisedKind = EventKind::fromInt(30000);
-        $upperBoundKind = EventKind::fromInt(39999);
-        $beyondBoundKind = EventKind::fromInt(40000);
-
-        $this->assertFalse($regularKind->isParameterisedReplaceable());
-        $this->assertTrue($parameterisedKind->isParameterisedReplaceable());
-        $this->assertTrue($upperBoundKind->isParameterisedReplaceable());
-        $this->assertFalse($beyondBoundKind->isParameterisedReplaceable());
+        foreach (['isRegular', 'isReplaceable', 'isEphemeral', 'isParameterisedReplaceable'] as $method) {
+            $this->assertFalse(method_exists(EventKind::class, $method), "{$method} must not be reintroduced; classify via category()");
+        }
     }
 
     public function testEqualsWorksCorrectly(): void
@@ -262,8 +252,9 @@ final class EventKindTest extends TestCase
         ];
 
         foreach ($listKinds as $kind) {
-            $this->assertTrue(
-                EventKind::fromInt($kind)->isReplaceable(),
+            $this->assertSame(
+                EventKindCategory::Replaceable,
+                EventKind::fromInt($kind)->category(),
                 "Kind {$kind} should be replaceable"
             );
         }
@@ -289,9 +280,10 @@ final class EventKindTest extends TestCase
         ];
 
         foreach ($setKinds as $kind) {
-            $this->assertTrue(
-                EventKind::fromInt($kind)->isParameterisedReplaceable(),
-                "Kind {$kind} should be parameterised replaceable"
+            $this->assertSame(
+                EventKindCategory::Addressable,
+                EventKind::fromInt($kind)->category(),
+                "Kind {$kind} should be addressable"
             );
         }
     }

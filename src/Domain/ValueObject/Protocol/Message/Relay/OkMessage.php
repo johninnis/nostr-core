@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay;
 
+use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
 use Override;
 
 final readonly class OkMessage extends RelayMessage
 {
-    protected const string TYPE = 'OK';
+    #[Override]
+    public function type(): RelayMessageType
+    {
+        return RelayMessageType::Ok;
+    }
 
     public function __construct(
         private EventId $eventId,
@@ -45,7 +50,7 @@ final readonly class OkMessage extends RelayMessage
     #[Override]
     public function toArray(): array
     {
-        return [self::TYPE, $this->eventId->toHex(), $this->accepted, $this->message];
+        return [$this->type()->value, $this->eventId->toHex(), $this->accepted, $this->message];
     }
 
     /**
@@ -54,7 +59,7 @@ final readonly class OkMessage extends RelayMessage
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (count($data) < 3 || self::TYPE !== $data[0]) {
+        if (count($data) < 3 || RelayMessageType::Ok->value !== $data[0]) {
             return null;
         }
 

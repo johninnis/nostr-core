@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client;
 
+use Innis\Nostr\Core\Domain\Enum\ClientMessageType;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\ClientMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
 use Override;
 
 final readonly class CloseMessage extends ClientMessage
 {
-    protected const string TYPE = 'CLOSE';
+    #[Override]
+    public function type(): ClientMessageType
+    {
+        return ClientMessageType::Close;
+    }
 
     public function __construct(private SubscriptionId $subscriptionId)
     {
@@ -27,7 +32,7 @@ final readonly class CloseMessage extends ClientMessage
     #[Override]
     public function toArray(): array
     {
-        return [self::TYPE, (string) $this->subscriptionId];
+        return [$this->type()->value, (string) $this->subscriptionId];
     }
 
     /**
@@ -36,7 +41,7 @@ final readonly class CloseMessage extends ClientMessage
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (2 !== count($data) || self::TYPE !== $data[0]) {
+        if (2 !== count($data) || ClientMessageType::Close->value !== $data[0]) {
             return null;
         }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\PreSerialisedMessageInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
@@ -12,7 +13,11 @@ use Override;
 
 final readonly class EventMessage extends RelayMessage implements PreSerialisedMessageInterface
 {
-    protected const string TYPE = 'EVENT';
+    #[Override]
+    public function type(): RelayMessageType
+    {
+        return RelayMessageType::Event;
+    }
 
     public function __construct(
         private SubscriptionId $subscriptionId,
@@ -36,7 +41,7 @@ final readonly class EventMessage extends RelayMessage implements PreSerialisedM
     #[Override]
     public function toArray(): array
     {
-        return [self::TYPE, (string) $this->subscriptionId, $this->event->toArray()];
+        return [$this->type()->value, (string) $this->subscriptionId, $this->event->toArray()];
     }
 
     #[Override]
@@ -50,7 +55,7 @@ final readonly class EventMessage extends RelayMessage implements PreSerialisedM
 
         $subscriptionId = self::encode((string) $this->subscriptionId);
 
-        return '["'.self::TYPE.'",'.$subscriptionId.','.$rawJson.']';
+        return '["'.$this->type()->value.'",'.$subscriptionId.','.$rawJson.']';
     }
 
     /**
@@ -59,7 +64,7 @@ final readonly class EventMessage extends RelayMessage implements PreSerialisedM
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (3 !== count($data) || self::TYPE !== $data[0]) {
+        if (3 !== count($data) || RelayMessageType::Event->value !== $data[0]) {
             return null;
         }
 

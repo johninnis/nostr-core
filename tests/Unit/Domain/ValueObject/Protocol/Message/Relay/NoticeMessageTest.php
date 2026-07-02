@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol\Message\Relay;
 
+use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\NoticeMessage;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
@@ -15,7 +16,7 @@ final class NoticeMessageTest extends TestCase
     {
         $message = new NoticeMessage('something happened');
 
-        $this->assertSame('NOTICE', $message->getType());
+        $this->assertSame(RelayMessageType::Notice, $message->type());
     }
 
     public function testGetMessageReturnsConstructedValue(): void
@@ -51,7 +52,7 @@ final class NoticeMessageTest extends TestCase
     {
         $message = NoticeMessage::fromArray(['NOTICE', 'rate limited']) ?? throw new RuntimeException('Expected a valid message');
 
-        $this->assertSame('NOTICE', $message->getType());
+        $this->assertSame(RelayMessageType::Notice, $message->type());
         $this->assertSame('rate limited', $message->getMessage());
     }
 

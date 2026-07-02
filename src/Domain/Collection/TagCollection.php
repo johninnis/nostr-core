@@ -55,14 +55,8 @@ final class TagCollection extends TypedCollection
      */
     public function findByType(TagType $type): array
     {
-        return $this->findByName((string) $type);
-    }
+        $name = (string) $type;
 
-    /**
-     * @return list<Tag>
-     */
-    public function findByName(string $name): array
-    {
         return array_values(array_filter(
             $this->items,
             static fn (Tag $tag): bool => (string) $tag->getType() === $name,

@@ -121,7 +121,7 @@ final readonly class TagFilter
      */
     private static function eventHasTagValue(TagCollection $eventTags, string $tagName, array $valueSet): bool
     {
-        foreach ($eventTags->findByName($tagName) as $eventTag) {
+        foreach ($eventTags->findByType(TagType::fromString($tagName)) as $eventTag) {
             $value = $eventTag->getValue();
 
             if (null !== $value && isset($valueSet[$value])) {

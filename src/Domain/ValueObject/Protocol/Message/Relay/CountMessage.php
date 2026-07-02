@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay;
 
+use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
 use InvalidArgumentException;
@@ -11,7 +12,11 @@ use Override;
 
 final readonly class CountMessage extends RelayMessage
 {
-    protected const string TYPE = 'COUNT';
+    #[Override]
+    public function type(): RelayMessageType
+    {
+        return RelayMessageType::Count;
+    }
 
     public function __construct(
         private SubscriptionId $subscriptionId,
@@ -38,7 +43,7 @@ final readonly class CountMessage extends RelayMessage
     #[Override]
     public function toArray(): array
     {
-        return [self::TYPE, (string) $this->subscriptionId, ['count' => $this->count]];
+        return [$this->type()->value, (string) $this->subscriptionId, ['count' => $this->count]];
     }
 
     /**
@@ -47,7 +52,7 @@ final readonly class CountMessage extends RelayMessage
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (3 !== count($data) || self::TYPE !== $data[0]) {
+        if (3 !== count($data) || RelayMessageType::Count->value !== $data[0]) {
             return null;
         }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol\Message\Relay;
 
+use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\EoseMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
 use PHPUnit\Framework\TestCase;
@@ -15,7 +16,7 @@ final class EoseMessageTest extends TestCase
     {
         $message = new EoseMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'));
 
-        $this->assertSame('EOSE', $message->getType());
+        $this->assertSame(RelayMessageType::Eose, $message->type());
     }
 
     public function testGetSubscriptionIdReturnsConstructedValue(): void
@@ -44,7 +45,7 @@ final class EoseMessageTest extends TestCase
     {
         $message = EoseMessage::fromArray(['EOSE', 'sub-1']) ?? throw new RuntimeException('Expected a valid message');
 
-        $this->assertSame('EOSE', $message->getType());
+        $this->assertSame(RelayMessageType::Eose, $message->type());
         $this->assertSame('sub-1', (string) $message->getSubscriptionId());
     }
 

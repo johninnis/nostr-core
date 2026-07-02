@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol\Message\Client
 
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\Enum\ClientMessageType;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
@@ -22,7 +23,7 @@ final class EventMessageTest extends TestCase
     {
         $message = new EventMessage($this->createEvent());
 
-        $this->assertSame('EVENT', $message->getType());
+        $this->assertSame(ClientMessageType::Event, $message->type());
     }
 
     public function testGetEventReturnsConstructedEvent(): void
@@ -65,7 +66,7 @@ final class EventMessageTest extends TestCase
 
         $message = EventMessage::fromArray($data) ?? throw new RuntimeException('Expected a valid message');
 
-        $this->assertSame('EVENT', $message->getType());
+        $this->assertSame(ClientMessageType::Event, $message->type());
         $this->assertSame($event->getPubkey()->toHex(), $message->getEvent()->getPubkey()->toHex());
     }
 

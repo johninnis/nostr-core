@@ -6,6 +6,8 @@ namespace Innis\Nostr\Core\Tests\Integration\Infrastructure\Encoding;
 
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\Enum\ClientMessageType;
+use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
@@ -50,7 +52,7 @@ final class JsonMessageDeserialiserTest extends TestCase
         $message = $this->deserialiser->deserialiseClientMessage($json);
 
         $this->assertInstanceOf(ClientEventMessage::class, $message);
-        $this->assertSame('EVENT', $message->getType());
+        $this->assertSame(ClientMessageType::Event, $message->type());
         $this->assertTrue($message->getEvent()->getId()->equals($this->event->getId()));
     }
 
@@ -62,7 +64,7 @@ final class JsonMessageDeserialiserTest extends TestCase
         $message = $this->deserialiser->deserialiseClientMessage($json);
 
         $this->assertInstanceOf(CloseMessage::class, $message);
-        $this->assertSame('CLOSE', $message->getType());
+        $this->assertSame(ClientMessageType::Close, $message->type());
         $this->assertSame('test-sub', (string) $message->getSubscriptionId());
     }
 
@@ -75,7 +77,7 @@ final class JsonMessageDeserialiserTest extends TestCase
         $message = $this->deserialiser->deserialiseRelayMessage($json);
 
         $this->assertInstanceOf(OkMessage::class, $message);
-        $this->assertSame('OK', $message->getType());
+        $this->assertSame(RelayMessageType::Ok, $message->type());
         $this->assertSame($eventId, $message->getEventId()->toHex());
         $this->assertTrue($message->isAccepted());
         $this->assertSame('accepted', $message->getMessage());
@@ -89,7 +91,7 @@ final class JsonMessageDeserialiserTest extends TestCase
         $message = $this->deserialiser->deserialiseRelayMessage($json);
 
         $this->assertInstanceOf(NoticeMessage::class, $message);
-        $this->assertSame('NOTICE', $message->getType());
+        $this->assertSame(RelayMessageType::Notice, $message->type());
         $this->assertSame('Test notice', $message->getMessage());
     }
 
@@ -101,7 +103,7 @@ final class JsonMessageDeserialiserTest extends TestCase
         $message = $this->deserialiser->deserialiseRelayMessage($json);
 
         $this->assertInstanceOf(ClosedMessage::class, $message);
-        $this->assertSame('CLOSED', $message->getType());
+        $this->assertSame(RelayMessageType::Closed, $message->type());
         $this->assertSame('test-sub', (string) $message->getSubscriptionId());
         $this->assertSame('subscription ended', $message->getMessage());
     }
@@ -166,7 +168,7 @@ final class JsonMessageDeserialiserTest extends TestCase
         $deserialisedMessage = $this->deserialiser->deserialiseClientMessage($json);
 
         $this->assertInstanceOf(ClientEventMessage::class, $deserialisedMessage);
-        $this->assertSame($originalMessage->getType(), $deserialisedMessage->getType());
+        $this->assertSame($originalMessage->type(), $deserialisedMessage->type());
         $this->assertTrue(
             $originalMessage->getEvent()->getId()->equals($deserialisedMessage->getEvent()->getId())
         );

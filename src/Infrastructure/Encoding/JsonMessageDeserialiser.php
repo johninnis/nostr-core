@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Infrastructure\Encoding;
 
+use Innis\Nostr\Core\Domain\Enum\ClientMessageType;
+use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
 use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 use Innis\Nostr\Core\Domain\Service\MessageDeserialiserInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client\AuthMessage as ClientAuthMessage;
@@ -35,13 +37,13 @@ final readonly class JsonMessageDeserialiser implements MessageDeserialiserInter
 
         [$type, $data] = $tagged;
 
-        return match ($type) {
-            'EVENT' => ClientEventMessage::fromArray($data),
-            'REQ' => ReqMessage::fromArray($data),
-            'CLOSE' => CloseMessage::fromArray($data),
-            'AUTH' => ClientAuthMessage::fromArray($data),
-            'COUNT' => CountMessage::fromArray($data),
-            default => null,
+        return match (ClientMessageType::tryFrom($type)) {
+            ClientMessageType::Event => ClientEventMessage::fromArray($data),
+            ClientMessageType::Req => ReqMessage::fromArray($data),
+            ClientMessageType::Close => CloseMessage::fromArray($data),
+            ClientMessageType::Auth => ClientAuthMessage::fromArray($data),
+            ClientMessageType::Count => CountMessage::fromArray($data),
+            null => null,
         };
     }
 
@@ -56,15 +58,15 @@ final readonly class JsonMessageDeserialiser implements MessageDeserialiserInter
 
         [$type, $data] = $tagged;
 
-        return match ($type) {
-            'EVENT' => RelayEventMessage::fromArray($data),
-            'OK' => OkMessage::fromArray($data),
-            'EOSE' => EoseMessage::fromArray($data),
-            'CLOSED' => ClosedMessage::fromArray($data),
-            'NOTICE' => NoticeMessage::fromArray($data),
-            'AUTH' => RelayAuthMessage::fromArray($data),
-            'COUNT' => RelayCountMessage::fromArray($data),
-            default => null,
+        return match (RelayMessageType::tryFrom($type)) {
+            RelayMessageType::Event => RelayEventMessage::fromArray($data),
+            RelayMessageType::Ok => OkMessage::fromArray($data),
+            RelayMessageType::Eose => EoseMessage::fromArray($data),
+            RelayMessageType::Closed => ClosedMessage::fromArray($data),
+            RelayMessageType::Notice => NoticeMessage::fromArray($data),
+            RelayMessageType::Auth => RelayAuthMessage::fromArray($data),
+            RelayMessageType::Count => RelayCountMessage::fromArray($data),
+            null => null,
         };
     }
 

@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol\Message\Client
 
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\Enum\ClientMessageType;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
@@ -23,7 +24,7 @@ final class AuthMessageTest extends TestCase
     {
         $message = new AuthMessage($this->createAuthEvent());
 
-        $this->assertSame('AUTH', $message->getType());
+        $this->assertSame(ClientMessageType::Auth, $message->type());
     }
 
     public function testGetEventReturnsConstructedEvent(): void
@@ -80,7 +81,7 @@ final class AuthMessageTest extends TestCase
 
         $message = AuthMessage::fromArray($data) ?? throw new RuntimeException('Expected a valid message');
 
-        $this->assertSame('AUTH', $message->getType());
+        $this->assertSame(ClientMessageType::Auth, $message->type());
         $this->assertSame(EventKind::CLIENT_AUTH, $message->getEvent()->getKind()->toInt());
     }
 

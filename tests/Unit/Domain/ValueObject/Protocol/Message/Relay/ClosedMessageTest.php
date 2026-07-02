@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol\Message\Relay;
 
+use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\ClosedMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
 use PHPUnit\Framework\TestCase;
@@ -18,7 +19,7 @@ final class ClosedMessageTest extends TestCase
             'error: subscription not found',
         );
 
-        $this->assertSame('CLOSED', $message->getType());
+        $this->assertSame(RelayMessageType::Closed, $message->type());
     }
 
     public function testGetSubscriptionIdReturnsConstructedValue(): void
@@ -75,7 +76,7 @@ final class ClosedMessageTest extends TestCase
 
         $message = ClosedMessage::fromArray($data) ?? throw new RuntimeException('Expected a valid message');
 
-        $this->assertSame('CLOSED', $message->getType());
+        $this->assertSame(RelayMessageType::Closed, $message->type());
         $this->assertSame('sub-1', (string) $message->getSubscriptionId());
         $this->assertSame('error: subscription closed', $message->getMessage());
     }

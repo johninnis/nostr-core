@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay;
 
+use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
 use InvalidArgumentException;
 use Override;
 
 final readonly class AuthMessage extends RelayMessage
 {
-    protected const string TYPE = 'AUTH';
+    #[Override]
+    public function type(): RelayMessageType
+    {
+        return RelayMessageType::Auth;
+    }
 
     public function __construct(private string $challenge)
     {
@@ -30,7 +35,7 @@ final readonly class AuthMessage extends RelayMessage
     #[Override]
     public function toArray(): array
     {
-        return [self::TYPE, $this->challenge];
+        return [$this->type()->value, $this->challenge];
     }
 
     /**
@@ -39,7 +44,7 @@ final readonly class AuthMessage extends RelayMessage
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (2 !== count($data) || self::TYPE !== $data[0]) {
+        if (2 !== count($data) || RelayMessageType::Auth->value !== $data[0]) {
             return null;
         }
 

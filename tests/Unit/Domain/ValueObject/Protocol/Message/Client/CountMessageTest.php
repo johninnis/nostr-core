@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol\Message\Client
 
 use Innis\Nostr\Core\Domain\Collection\EventKindCollection;
 use Innis\Nostr\Core\Domain\Collection\FilterCollection;
+use Innis\Nostr\Core\Domain\Enum\ClientMessageType;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Filter;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client\CountMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
@@ -22,7 +23,7 @@ final class CountMessageTest extends TestCase
             new FilterCollection([new Filter(kinds: EventKindCollection::fromInts([1]))]),
         );
 
-        $this->assertSame('COUNT', $message->getType());
+        $this->assertSame(ClientMessageType::Count, $message->type());
     }
 
     public function testGetSubscriptionIdReturnsConstructedValue(): void
@@ -104,7 +105,7 @@ final class CountMessageTest extends TestCase
 
         $message = CountMessage::fromArray($data) ?? throw new RuntimeException('Expected a valid message');
 
-        $this->assertSame('COUNT', $message->getType());
+        $this->assertSame(ClientMessageType::Count, $message->type());
         $this->assertSame('sub-1', (string) $message->getSubscriptionId());
         $this->assertCount(1, $message->getFilters());
     }

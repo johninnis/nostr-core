@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol\Message\Relay;
 
+use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\CountMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
 use InvalidArgumentException;
@@ -16,7 +17,7 @@ final class CountMessageTest extends TestCase
     {
         $message = new CountMessage(SubscriptionId::fromString('sub1') ?? throw new RuntimeException('Expected a valid subscription ID'), 42);
 
-        $this->assertSame('COUNT', $message->getType());
+        $this->assertSame(RelayMessageType::Count, $message->type());
     }
 
     public function testGetSubscriptionIdReturnsConstructedValue(): void
@@ -80,7 +81,7 @@ final class CountMessageTest extends TestCase
 
         $message = CountMessage::fromArray($data) ?? throw new RuntimeException('Expected a valid message');
 
-        $this->assertSame('COUNT', $message->getType());
+        $this->assertSame(RelayMessageType::Count, $message->type());
         $this->assertSame('sub1', (string) $message->getSubscriptionId());
         $this->assertSame(42, $message->getCount());
     }

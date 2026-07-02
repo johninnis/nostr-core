@@ -5,12 +5,17 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\Enum\ClientMessageType;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\ClientMessage;
 use Override;
 
 final readonly class EventMessage extends ClientMessage
 {
-    protected const string TYPE = 'EVENT';
+    #[Override]
+    public function type(): ClientMessageType
+    {
+        return ClientMessageType::Event;
+    }
 
     public function __construct(private Event $event)
     {
@@ -27,7 +32,7 @@ final readonly class EventMessage extends ClientMessage
     #[Override]
     public function toArray(): array
     {
-        return [self::TYPE, $this->event->toArray()];
+        return [$this->type()->value, $this->event->toArray()];
     }
 
     /**
@@ -36,7 +41,7 @@ final readonly class EventMessage extends ClientMessage
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (2 !== count($data) || self::TYPE !== $data[0]) {
+        if (2 !== count($data) || ClientMessageType::Event->value !== $data[0]) {
             return null;
         }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\Enum\EventKindCategory;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
@@ -23,7 +24,7 @@ final readonly class EventCoordinate implements Stringable
 
     public static function create(EventKind $kind, PublicKey $pubkey, string $identifier): ?self
     {
-        if (!$kind->isParameterisedReplaceable() || '' === $identifier) {
+        if (EventKindCategory::Addressable !== $kind->category() || '' === $identifier) {
             return null;
         }
 

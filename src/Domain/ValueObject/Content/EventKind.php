@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Content;
 
+use Innis\Nostr\Core\Domain\Enum\EventKindCategory;
 use InvalidArgumentException;
 use Override;
 use Stringable;
@@ -61,7 +62,6 @@ final readonly class EventKind implements Stringable
     public const int NOSTR_CONNECT = 24133;
     public const int BLOSSOM_BLOB = 24242;
     public const int HTTP_AUTH = 27235;
-    public const int REPLACEABLE_EVENT_MIN = 10000;
     public const int MUTE_LIST = 10000;
     public const int PIN_LIST = 10001;
     public const int RELAY_LIST = 10002;
@@ -90,10 +90,6 @@ final readonly class EventKind implements Stringable
     public const int ROOM_PRESENCE = 10312;
     public const int WALLET_INFO = 13194;
     public const int CASHU_WALLET = 17375;
-    public const int REPLACEABLE_EVENT_MAX = 19999;
-    public const int EPHEMERAL_EVENT_MIN = 20000;
-    public const int EPHEMERAL_EVENT_MAX = 29999;
-    public const int PARAMETERISED_REPLACEABLE_MIN = 30000;
     public const int FOLLOW_SET = 30000;
     public const int RELAY_SET = 30002;
     public const int BOOKMARK_SET = 30003;
@@ -134,7 +130,11 @@ final readonly class EventKind implements Stringable
     public const int FEDIMINT_ANNOUNCEMENT = 38173;
     public const int STARTER_PACK = 39089;
     public const int MEDIA_STARTER_PACK = 39092;
-    public const int PARAMETERISED_REPLACEABLE_MAX = 39999;
+
+    private const int REPLACEABLE_KIND_MIN = 10000;
+    private const int EPHEMERAL_KIND_MIN = 20000;
+    private const int ADDRESSABLE_KIND_MIN = 30000;
+    private const int ADDRESSABLE_KIND_END = 40000;
 
     private function __construct(private int $kind)
     {
@@ -153,28 +153,16 @@ final readonly class EventKind implements Stringable
         return $this->kind;
     }
 
-    public function isRegular(): bool
+    public function category(): EventKindCategory
     {
-        return $this->kind < self::REPLACEABLE_EVENT_MIN
-            && self::METADATA !== $this->kind
-            && self::FOLLOW_LIST !== $this->kind;
-    }
-
-    public function isReplaceable(): bool
-    {
-        return self::METADATA === $this->kind
-            || self::FOLLOW_LIST === $this->kind
-            || ($this->kind >= self::REPLACEABLE_EVENT_MIN && $this->kind <= self::REPLACEABLE_EVENT_MAX);
-    }
-
-    public function isEphemeral(): bool
-    {
-        return $this->kind >= self::EPHEMERAL_EVENT_MIN && $this->kind <= self::EPHEMERAL_EVENT_MAX;
-    }
-
-    public function isParameterisedReplaceable(): bool
-    {
-        return $this->kind >= self::PARAMETERISED_REPLACEABLE_MIN && $this->kind <= self::PARAMETERISED_REPLACEABLE_MAX;
+        return match (true) {
+            self::METADATA === $this->kind,
+            self::FOLLOW_LIST === $this->kind,
+            $this->kind >= self::REPLACEABLE_KIND_MIN && $this->kind < self::EPHEMERAL_KIND_MIN => EventKindCategory::Replaceable,
+            $this->kind >= self::EPHEMERAL_KIND_MIN && $this->kind < self::ADDRESSABLE_KIND_MIN => EventKindCategory::Ephemeral,
+            $this->kind >= self::ADDRESSABLE_KIND_MIN && $this->kind < self::ADDRESSABLE_KIND_END => EventKindCategory::Addressable,
+            default => EventKindCategory::Regular,
+        };
     }
 
     public function equals(self $other): bool

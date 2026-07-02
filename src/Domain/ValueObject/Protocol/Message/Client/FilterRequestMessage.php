@@ -20,11 +20,11 @@ abstract readonly class FilterRequestMessage extends ClientMessage
         private FilterCollection $filters,
     ) {
         if ($this->filters->isEmpty()) {
-            throw new InvalidArgumentException(sprintf('%s message must have at least one filter', static::TYPE));
+            throw new InvalidArgumentException(sprintf('%s message must have at least one filter', $this->type()->value));
         }
 
         if (count($this->filters) > self::MAX_FILTERS) {
-            throw new InvalidArgumentException(sprintf('%s message may contain at most %d filters', static::TYPE, self::MAX_FILTERS));
+            throw new InvalidArgumentException(sprintf('%s message may contain at most %d filters', $this->type()->value, self::MAX_FILTERS));
         }
     }
 
@@ -45,7 +45,7 @@ abstract readonly class FilterRequestMessage extends ClientMessage
     final public function toArray(): array
     {
         return [
-            static::TYPE,
+            $this->type()->value,
             (string) $this->subscriptionId,
             ...array_map(static fn (Filter $filter) => $filter->jsonSerialize(), $this->filters->toArray()),
         ];
@@ -57,7 +57,7 @@ abstract readonly class FilterRequestMessage extends ClientMessage
     #[Override]
     final public static function fromArray(array $data): ?static
     {
-        if (count($data) < 3 || static::TYPE !== $data[0]) {
+        if (count($data) < 3) {
             return null;
         }
 
@@ -75,6 +75,8 @@ abstract readonly class FilterRequestMessage extends ClientMessage
             return null;
         }
 
-        return new static($subscriptionId, $filters);
+        $message = new static($subscriptionId, $filters);
+
+        return $message->type()->value === $data[0] ? $message : null;
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol\Message\Client;
 
+use Innis\Nostr\Core\Domain\Enum\ClientMessageType;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client\CloseMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
 use PHPUnit\Framework\TestCase;
@@ -15,7 +16,7 @@ final class CloseMessageTest extends TestCase
     {
         $message = new CloseMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'));
 
-        $this->assertSame('CLOSE', $message->getType());
+        $this->assertSame(ClientMessageType::Close, $message->type());
     }
 
     public function testGetSubscriptionIdReturnsConstructedValue(): void
@@ -48,7 +49,7 @@ final class CloseMessageTest extends TestCase
     {
         $message = CloseMessage::fromArray(['CLOSE', 'sub-1']) ?? throw new RuntimeException('Expected a valid message');
 
-        $this->assertSame('CLOSE', $message->getType());
+        $this->assertSame(ClientMessageType::Close, $message->type());
         $this->assertSame('sub-1', (string) $message->getSubscriptionId());
     }
 

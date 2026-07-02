@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol\Message\Relay;
 
+use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\OkMessage;
 use PHPUnit\Framework\TestCase;
@@ -17,7 +18,7 @@ final class OkMessageTest extends TestCase
     {
         $message = new OkMessage(self::createEventId(), true);
 
-        $this->assertSame('OK', $message->getType());
+        $this->assertSame(RelayMessageType::Ok, $message->type());
     }
 
     public function testGetEventIdReturnsConstructedValue(): void
@@ -126,7 +127,7 @@ final class OkMessageTest extends TestCase
 
         $message = OkMessage::fromArray($data) ?? throw new RuntimeException('Expected a valid message');
 
-        $this->assertSame('OK', $message->getType());
+        $this->assertSame(RelayMessageType::Ok, $message->type());
         $this->assertSame(self::VALID_EVENT_ID_HEX, $message->getEventId()->toHex());
         $this->assertTrue($message->isAccepted());
         $this->assertSame('', $message->getMessage());

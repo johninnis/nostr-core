@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay;
 
+use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
 use Override;
 
 final readonly class ClosedMessage extends RelayMessage
 {
-    protected const string TYPE = 'CLOSED';
+    #[Override]
+    public function type(): RelayMessageType
+    {
+        return RelayMessageType::Closed;
+    }
 
     public function __construct(
         private SubscriptionId $subscriptionId,
@@ -34,7 +39,7 @@ final readonly class ClosedMessage extends RelayMessage
     #[Override]
     public function toArray(): array
     {
-        return [self::TYPE, (string) $this->subscriptionId, $this->message];
+        return [$this->type()->value, (string) $this->subscriptionId, $this->message];
     }
 
     /**
@@ -43,7 +48,7 @@ final readonly class ClosedMessage extends RelayMessage
     #[Override]
     public static function fromArray(array $data): ?static
     {
-        if (count($data) < 2 || self::TYPE !== $data[0]) {
+        if (count($data) < 2 || RelayMessageType::Closed->value !== $data[0]) {
             return null;
         }
 

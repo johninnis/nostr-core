@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol\Message\Relay;
 
+use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\AuthMessage;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
@@ -15,7 +16,7 @@ final class AuthMessageTest extends TestCase
     {
         $message = new AuthMessage('challenge-string-123');
 
-        $this->assertSame('AUTH', $message->getType());
+        $this->assertSame(RelayMessageType::Auth, $message->type());
     }
 
     public function testGetChallengeReturnsConstructedValue(): void
@@ -51,7 +52,7 @@ final class AuthMessageTest extends TestCase
     {
         $message = AuthMessage::fromArray(['AUTH', 'challenge-xyz']) ?? throw new RuntimeException('Expected a valid message');
 
-        $this->assertSame('AUTH', $message->getType());
+        $this->assertSame(RelayMessageType::Auth, $message->type());
         $this->assertSame('challenge-xyz', $message->getChallenge());
     }
 
