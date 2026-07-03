@@ -137,12 +137,8 @@ final readonly class Event implements Stringable
     public function toArray(): array
     {
         return [
+            ...$this->rumour->toArray(),
             'id' => $this->id->toHex(),
-            'pubkey' => $this->rumour->getPubkey()->toHex(),
-            'created_at' => $this->rumour->getCreatedAt()->toInt(),
-            'kind' => $this->rumour->getKind()->toInt(),
-            'tags' => $this->rumour->getTags()->toJsonArray(),
-            'content' => (string) $this->rumour->getContent(),
             'sig' => $this->signature->toHex(),
         ];
     }

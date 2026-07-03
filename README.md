@@ -152,7 +152,7 @@ $ncryptsec = $adapter->encrypt(
 
 $stored = (string) $ncryptsec; // ncryptsec1...
 
-$decoded = Ncryptsec::tryFromString($stored);
+$decoded = Ncryptsec::tryFromString($stored) ?? throw new RuntimeException('Malformed ncryptsec');
 $recovered = $adapter->decrypt($decoded, static fn (): string => readPasswordFromUser());
 ```
 

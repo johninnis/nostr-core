@@ -10,7 +10,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\Nip11Info;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Override;
 
-final readonly class Nip11Client implements Nip11FetcherInterface
+final readonly class Nip11Fetcher implements Nip11FetcherInterface
 {
     public function __construct(
         private HttpServiceInterface $httpService,

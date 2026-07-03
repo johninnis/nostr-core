@@ -8,6 +8,7 @@ use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
 use Innis\Nostr\Core\Domain\Exception\EncryptionException;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\SecretKeyMaterial;
 use Innis\Nostr\Core\Infrastructure\Crypto\Nip04Cipher;
+use Override;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\TestCase;
 
@@ -41,7 +42,7 @@ final class Nip04CipherTest extends TestCase
     public function testEncryptIsDeterministicWithPinnedIv(): void
     {
         $adapter = new Nip04Cipher(new class implements RandomBytesGeneratorInterface {
-            #[\Override]
+            #[Override]
             public function bytes(int $length): string
             {
                 return str_repeat("\x10", $length);

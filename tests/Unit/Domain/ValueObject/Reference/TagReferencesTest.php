@@ -79,7 +79,7 @@ final class TagReferencesTest extends TestCase
 
     private function coordinate(): EventCoordinate
     {
-        return EventCoordinate::create(
+        return EventCoordinate::tryFrom(
             EventKind::fromInt(EventKind::LONGFORM_CONTENT),
             $this->pubkey(),
             'my-article',

@@ -30,7 +30,7 @@ final class RelayUrlCollection extends TypedCollection
 
     public static function fromStrings(mixed $values): self
     {
-        return new self(self::parseEach($values, self::tryParse(...)));
+        return self::fromEach($values, self::tryParse(...));
     }
 
     public function unique(): self

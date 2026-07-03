@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Fake;
 
 use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
+use Override;
 use RuntimeException;
 
 final class QueuedRandomBytesGenerator implements RandomBytesGeneratorInterface
@@ -21,7 +22,7 @@ final class QueuedRandomBytesGenerator implements RandomBytesGeneratorInterface
         return new self(array_values($entries));
     }
 
-    #[\Override]
+    #[Override]
     public function bytes(int $length): string
     {
         if ([] === $this->queue) {

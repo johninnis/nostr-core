@@ -81,7 +81,7 @@ final readonly class Nip19Codec implements Nip19CodecInterface
 
         $firstRelay = $decoded->getRelays()->toArray()[0] ?? null;
 
-        return EventCoordinate::create($kind, $publicKey, $identifier)?->withRelayHint($firstRelay);
+        return EventCoordinate::tryFrom($kind, $publicKey, $identifier)?->withRelayHint($firstRelay);
     }
 
     private function decodePubkey(string $data): ?DecodedNip19Entity

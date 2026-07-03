@@ -10,7 +10,7 @@ This package owns the shared Nostr domain vocabulary — `Event`, `SubscriptionI
 
 The package itself performs no relay I/O and runs no connection loop. Nothing inside it implements or calls this port — it is referenced only by downstream packages (a client package's connection manager implements it; its connection layer calls it). To an audit scoped to this repository the interface therefore reads as orphaned: a search finds zero in-package references and the obvious move is to delete it. That conclusion is wrong — deleting it breaks every consumer's connection layer.
 
-This is the one port in the package with no in-package touch at all. The other host-implemented ports are visibly live by contrast: `HttpServiceInterface` is injected into `Nip05Verifier` and `Nip11Client`, and `Nip98ReplayGuardInterface` is injected into `Nip98Validator`, so a search finds each as a dependency type even though neither has an in-package implementer. `EventHandlerInterface` is neither implemented nor consumed here, which is why it alone looks dead.
+This is the one port in the package with no in-package touch at all. The other host-implemented ports are visibly live by contrast: `HttpServiceInterface` is injected into `Nip05Verifier` and `Nip11Fetcher`, and `Nip98ReplayGuardInterface` is injected into `Nip98Validator`, so a search finds each as a dependency type even though neither has an in-package implementer. `EventHandlerInterface` is neither implemented nor consumed here, which is why it alone looks dead.
 
 ## Decision
 

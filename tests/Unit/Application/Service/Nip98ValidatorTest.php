@@ -21,6 +21,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Infrastructure\Time\SystemClock;
 use Innis\Nostr\Core\Tests\Fake\FakeSignatureService;
 use Innis\Nostr\Core\Tests\Support\KeyMother;
+use Override;
 use PHPUnit\Framework\TestCase;
 
 final class Nip98ValidatorTest extends TestCase
@@ -491,7 +492,7 @@ final class Nip98ValidatorTest extends TestCase
             /** @var array<string, int> */
             private array $seen = [];
 
-            #[\Override]
+            #[Override]
             public function recordOnce(EventId $eventId, int $ttlSeconds): bool
             {
                 $key = $eventId->toHex();

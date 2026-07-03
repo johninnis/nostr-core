@@ -30,14 +30,12 @@ final class EventKindCollection extends TypedCollection
 
     public static function fromInts(mixed $values): self
     {
-        return new self(self::parseEach($values, self::tryParse(...)));
+        return self::fromEach($values, self::tryParse(...));
     }
 
     public static function tryFromArray(mixed $values): ?self
     {
-        $kinds = self::parseEachStrict($values, self::tryParse(...));
-
-        return null === $kinds ? null : new self($kinds);
+        return self::tryFromEach($values, self::tryParse(...));
     }
 
     /**

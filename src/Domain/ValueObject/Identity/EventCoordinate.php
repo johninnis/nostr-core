@@ -22,7 +22,7 @@ final readonly class EventCoordinate implements Stringable
     ) {
     }
 
-    public static function create(EventKind $kind, PublicKey $pubkey, string $identifier): ?self
+    public static function tryFrom(EventKind $kind, PublicKey $pubkey, string $identifier): ?self
     {
         if (EventKindCategory::Addressable !== $kind->category() || '' === $identifier) {
             return null;
@@ -40,7 +40,7 @@ final readonly class EventCoordinate implements Stringable
             return null;
         }
 
-        return self::create($eventKind, $pubkey, $identifier);
+        return self::tryFrom($eventKind, $pubkey, $identifier);
     }
 
     public static function tryFromString(string $coordinate, ?string $relayHint = null): ?self

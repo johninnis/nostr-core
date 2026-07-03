@@ -26,9 +26,7 @@ final class FilterCollection extends TypedCollection
 
     public static function tryFromArray(mixed $values): ?self
     {
-        $filters = self::parseEachStrict($values, Filter::tryFromArray(...));
-
-        return null === $filters ? null : new self($filters);
+        return self::tryFromEach($values, Filter::tryFromArray(...));
     }
 
     /**

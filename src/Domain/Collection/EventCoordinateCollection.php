@@ -25,7 +25,7 @@ final class EventCoordinateCollection extends TypedCollection
 
     public static function fromArrays(mixed $values): self
     {
-        return new self(self::parseEach($values, self::tryParse(...)));
+        return self::fromEach($values, self::tryParse(...));
     }
 
     /**

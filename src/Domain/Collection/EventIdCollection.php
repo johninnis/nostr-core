@@ -30,14 +30,12 @@ final class EventIdCollection extends TypedCollection
 
     public static function fromHexValues(mixed $values): self
     {
-        return new self(self::parseEach($values, self::tryParse(...)));
+        return self::fromEach($values, self::tryParse(...));
     }
 
     public static function tryFromArray(mixed $values): ?self
     {
-        $eventIds = self::parseEachStrict($values, self::tryParse(...));
-
-        return null === $eventIds ? null : new self($eventIds);
+        return self::tryFromEach($values, self::tryParse(...));
     }
 
     public function unique(): self

@@ -62,7 +62,7 @@ final class TagReferenceExtractor
 
     private static function eventReference(Tag $tag): ?EventReference
     {
-        if (TagType::EVENT !== (string) $tag->getType()) {
+        if (!$tag->getType()->is(TagType::EVENT)) {
             return null;
         }
 
@@ -85,7 +85,7 @@ final class TagReferenceExtractor
 
     private static function pubkeyReference(Tag $tag): ?PubkeyReference
     {
-        if (TagType::PUBKEY !== (string) $tag->getType()) {
+        if (!$tag->getType()->is(TagType::PUBKEY)) {
             return null;
         }
 
@@ -105,7 +105,7 @@ final class TagReferenceExtractor
 
     private static function quotedEvent(Tag $tag): ?EventReference
     {
-        if (TagType::QUOTE !== (string) $tag->getType()) {
+        if (!$tag->getType()->is(TagType::QUOTE)) {
             return null;
         }
 
@@ -146,7 +146,7 @@ final class TagReferenceExtractor
 
     private static function relayReference(Tag $tag): ?RelayReference
     {
-        if (TagType::REFERENCE !== (string) $tag->getType()) {
+        if (!$tag->getType()->is(TagType::REFERENCE)) {
             return null;
         }
 
@@ -162,6 +162,6 @@ final class TagReferenceExtractor
 
     private static function challenge(Tag $tag): ?string
     {
-        return TagType::CHALLENGE === (string) $tag->getType() ? $tag->getValue(0) : null;
+        return $tag->getType()->is(TagType::CHALLENGE) ? $tag->getValue(0) : null;
     }
 }

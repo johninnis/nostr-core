@@ -134,9 +134,9 @@ abstract class TypedCollection implements IteratorAggregate, Countable
     /**
      * @param callable(mixed): (T|null) $tryParse
      *
-     * @return list<T>
+     * @return static
      */
-    final protected static function parseEach(mixed $values, callable $tryParse): array
+    final protected static function fromEach(mixed $values, callable $tryParse): self
     {
         $items = [];
 
@@ -150,15 +150,18 @@ abstract class TypedCollection implements IteratorAggregate, Countable
             }
         }
 
-        return $items;
+        /** @var static<T> $collection */
+        $collection = new static($items);
+
+        return $collection;
     }
 
     /**
      * @param callable(mixed): (T|null) $tryParse
      *
-     * @return list<T>|null
+     * @return static|null
      */
-    final protected static function parseEachStrict(mixed $values, callable $tryParse): ?array
+    final protected static function tryFromEach(mixed $values, callable $tryParse): ?self
     {
         if (!is_iterable($values)) {
             return null;
@@ -176,6 +179,9 @@ abstract class TypedCollection implements IteratorAggregate, Countable
             $items[] = $parsed;
         }
 
-        return $items;
+        /** @var static<T> $collection */
+        $collection = new static($items);
+
+        return $collection;
     }
 }

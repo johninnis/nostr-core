@@ -137,8 +137,6 @@ final class TagCollection extends TypedCollection
 
     public static function tryFromArray(mixed $values): ?self
     {
-        $tags = self::parseEachStrict($values, self::tryParse(...));
-
-        return null === $tags ? null : new self($tags);
+        return self::tryFromEach($values, self::tryParse(...));
     }
 }

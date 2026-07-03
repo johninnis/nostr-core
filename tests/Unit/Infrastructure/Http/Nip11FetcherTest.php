@@ -6,14 +6,14 @@ namespace Innis\Nostr\Core\Tests\Unit\Infrastructure\Http;
 
 use Innis\Nostr\Core\Application\Port\HttpServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
-use Innis\Nostr\Core\Infrastructure\Http\Nip11Client;
+use Innis\Nostr\Core\Infrastructure\Http\Nip11Fetcher;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Constraint\IsType;
 use PHPUnit\Framework\NativeType;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
-final class Nip11ClientTest extends TestCase
+final class Nip11FetcherTest extends TestCase
 {
     public function testReturnsNullWhenHttpServiceReturnsNull(): void
     {
@@ -128,9 +128,9 @@ final class Nip11ClientTest extends TestCase
         $this->makeAdapter($httpService)->fetchNip11Info($this->relayUrl('wss://relay.example.com'));
     }
 
-    private function makeAdapter(HttpServiceInterface $httpService): Nip11Client
+    private function makeAdapter(HttpServiceInterface $httpService): Nip11Fetcher
     {
-        return new Nip11Client($httpService);
+        return new Nip11Fetcher($httpService);
     }
 
     private function relayUrl(string $url): RelayUrl

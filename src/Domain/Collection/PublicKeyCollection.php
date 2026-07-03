@@ -30,14 +30,12 @@ final class PublicKeyCollection extends TypedCollection
 
     public static function fromHexValues(mixed $values): self
     {
-        return new self(self::parseEach($values, self::tryParse(...)));
+        return self::fromEach($values, self::tryParse(...));
     }
 
     public static function tryFromArray(mixed $values): ?self
     {
-        $publicKeys = self::parseEachStrict($values, self::tryParse(...));
-
-        return null === $publicKeys ? null : new self($publicKeys);
+        return self::tryFromEach($values, self::tryParse(...));
     }
 
     public function unique(): self

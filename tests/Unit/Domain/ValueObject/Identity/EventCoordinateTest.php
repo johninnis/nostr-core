@@ -65,13 +65,13 @@ final class EventCoordinateTest extends TestCase
         $this->assertNull(EventCoordinate::tryFromParts(self::VALID_KIND, self::VALID_PUBKEY, ''));
     }
 
-    public function testCreateBuildsCoordinateFromValueObjects(): void
+    public function testTryFromBuildsCoordinateFromValueObjects(): void
     {
         $kind = EventKind::fromInt(self::VALID_KIND);
         $pubkey = PublicKey::tryFromHex(self::VALID_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey');
         $relay = RelayUrl::tryFromString(self::VALID_RELAY) ?? throw new RuntimeException('Invalid test relay');
 
-        $coordinate = EventCoordinate::create($kind, $pubkey, self::VALID_IDENTIFIER)?->withRelayHint($relay)
+        $coordinate = EventCoordinate::tryFrom($kind, $pubkey, self::VALID_IDENTIFIER)?->withRelayHint($relay)
             ?? throw new RuntimeException('Failed to create coordinate');
 
         $this->assertTrue($coordinate->getKind()->equals($kind));
@@ -80,18 +80,18 @@ final class EventCoordinateTest extends TestCase
         $this->assertSame(self::VALID_RELAY, (string) $coordinate->getRelayHint());
     }
 
-    public function testCreateReturnsNullForNonParameterisedReplaceableKind(): void
+    public function testTryFromReturnsNullForNonParameterisedReplaceableKind(): void
     {
         $pubkey = PublicKey::tryFromHex(self::VALID_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey');
 
-        $this->assertNull(EventCoordinate::create(EventKind::fromInt(1), $pubkey, self::VALID_IDENTIFIER));
+        $this->assertNull(EventCoordinate::tryFrom(EventKind::fromInt(1), $pubkey, self::VALID_IDENTIFIER));
     }
 
-    public function testCreateReturnsNullForEmptyIdentifier(): void
+    public function testTryFromReturnsNullForEmptyIdentifier(): void
     {
         $pubkey = PublicKey::tryFromHex(self::VALID_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey');
 
-        $this->assertNull(EventCoordinate::create(EventKind::fromInt(self::VALID_KIND), $pubkey, ''));
+        $this->assertNull(EventCoordinate::tryFrom(EventKind::fromInt(self::VALID_KIND), $pubkey, ''));
     }
 
     public function testTryFromStringParsesValidCoordinate(): void
