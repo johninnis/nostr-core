@@ -21,13 +21,9 @@ abstract readonly class Message
 
     final public static function fromJson(string $json): ?static
     {
-        $data = JsonWireFormat::decodeArray($json);
+        $data = JsonWireFormat::decodeList($json);
 
-        if (null === $data || [] === $data || !array_is_list($data)) {
-            return null;
-        }
-
-        return static::fromArray($data);
+        return null === $data ? null : static::fromArray($data);
     }
 
     final protected static function encode(mixed $value): string

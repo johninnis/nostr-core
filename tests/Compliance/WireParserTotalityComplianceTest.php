@@ -7,6 +7,7 @@ namespace Innis\Nostr\Core\Tests\Compliance;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Service\Bech32Codec;
+use Innis\Nostr\Core\Domain\Service\JsonMessageDeserialiser;
 use Innis\Nostr\Core\Domain\Service\Nip19Codec;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Ncryptsec;
@@ -17,7 +18,6 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\Filter;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client\EventMessage as ClientEventMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\OkMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
-use Innis\Nostr\Core\Infrastructure\Encoding\JsonMessageDeserialiser;
 use Innis\Nostr\Core\Tests\Support\FuzzInputMother;
 use PHPUnit\Framework\TestCase;
 

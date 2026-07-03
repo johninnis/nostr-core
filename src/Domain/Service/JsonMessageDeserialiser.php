@@ -2,12 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Infrastructure\Encoding;
+namespace Innis\Nostr\Core\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Enum\ClientMessageType;
 use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
-use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
-use Innis\Nostr\Core\Domain\Service\MessageDeserialiserInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client\AuthMessage as ClientAuthMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client\CloseMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client\CountMessage;
@@ -75,9 +73,9 @@ final readonly class JsonMessageDeserialiser implements MessageDeserialiserInter
      */
     private function decodeTagged(string $json): ?array
     {
-        $data = JsonWireFormat::decodeArray($json);
+        $data = JsonWireFormat::decodeList($json);
 
-        if (null === $data || [] === $data || !array_is_list($data)) {
+        if (null === $data) {
             return null;
         }
 

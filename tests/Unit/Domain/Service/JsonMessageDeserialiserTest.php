@@ -2,12 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Innis\Nostr\Core\Tests\Unit\Infrastructure\Encoding;
+namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Enum\ClientMessageType;
 use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
+use Innis\Nostr\Core\Domain\Service\JsonMessageDeserialiser;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
@@ -25,7 +26,6 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\NoticeMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\OkMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
-use Innis\Nostr\Core\Infrastructure\Encoding\JsonMessageDeserialiser;
 use Innis\Nostr\Core\Tests\Support\EventMother;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;

@@ -24,6 +24,7 @@ final readonly class Filter implements JsonSerializable, Stringable
     /** @var list<string>|null */
     private ?array $searchTerms;
 
+    // Deliberate: one cohesive wire selector; the wide constructor and per-field with* methods are not decomposed, and with* is not collapsed onto a nullable-override helper (null means "field absent") — see ADR-0049
     public function __construct(
         private ?EventIdCollection $ids = null,
         private ?PublicKeyCollection $authors = null,

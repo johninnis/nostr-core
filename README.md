@@ -119,7 +119,7 @@ Always construct the adapters through their `::create()` factories. Direct insta
 ### Message Handling
 
 ```php
-use Innis\Nostr\Core\Infrastructure\Encoding\JsonMessageDeserialiser;
+use Innis\Nostr\Core\Domain\Service\JsonMessageDeserialiser;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client\EventMessage;
 
 $deserialiser = new JsonMessageDeserialiser();
@@ -269,7 +269,7 @@ This package follows Clean Architecture principles with strict layer separation:
 
 - **Domain Layer**: Pure business logic, immutable entities and value objects (cryptographic library is the sole external dependency, used directly by identity value objects)
 - **Application Layer**: Port interfaces for external service integration
-- **Infrastructure Layer**: Implementations of the domain and application interfaces, grouped by concern (`Crypto/`, `Encoding/`, `Http/`, `Time/`)
+- **Infrastructure Layer**: Implementations of the domain and application interfaces that reach external technology, grouped by concern (`Crypto/`, `Http/`, `Time/`)
 
 ## Architecture decisions
 

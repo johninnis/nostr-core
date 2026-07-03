@@ -48,6 +48,22 @@ final class JsonWireFormat
     }
 
     /**
+     * @param positive-int $depth
+     *
+     * @return non-empty-list<mixed>|null
+     */
+    public static function decodeList(string $json, int $depth = 512): ?array
+    {
+        $data = self::decodeArray($json, $depth);
+
+        if (null === $data || [] === $data || !array_is_list($data)) {
+            return null;
+        }
+
+        return $data;
+    }
+
+    /**
      * @param array<mixed> $data
      */
     public static function stringField(array $data, string $key): ?string
