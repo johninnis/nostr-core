@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-These three look alike — each wraps a fixed-length binary string and exposes `toHex` / `fromHex` / `equals` — so it is tempting to collapse them onto one `abstract readonly` base.
+These three look alike — each wraps a fixed-length binary string and exposes `toHex` / `tryFromHex` / `equals` — so it is tempting to collapse them onto one `abstract readonly` base.
 
 ## Decision
 

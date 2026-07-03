@@ -49,7 +49,7 @@ so it is not a pass-through that merely reproduces the value it wraps.
 ## Consequences
 
 - `Event` sheds all optionality: non-null id and signature, no `isSigned()`, no `sign()`, no
-  `calculateId()`, no `withTags()`. `verify()` needs no null guard, and `fromArray`/`fromJson`/`fromWire`
+  `calculateId()`, no `withTags()`. `verify()` needs no null guard, and `tryFromArray`/`tryFromJson`
   require an id and a non-empty signature — an unsigned array no longer parses to an `Event` (parse it as
   a `Rumour`).
 - The unsigned-event concept is now one type. The factory that builds event drafts returns `Rumour`; a
@@ -62,12 +62,13 @@ so it is not a pass-through that merely reproduces the value it wraps.
 - `Rumour::sign()` returns an `Event` while `Event` holds a `Rumour`, so the two reference each other.
   Both are domain types and this mirrors the value↔artifact relationship; it is not a layering
   violation.
-- `Rumour`'s only untrusted-input parser is `fromArray(array): ?self`; it deliberately has no
-  `fromWire(mixed)` and no `fromJson(string)`. A rumour is never a bare wire element — it exists only as
-  a seal's decrypted plaintext, which `GiftWrapper` decodes to an `array` (so it can reject a signed
-  payload before parsing) before calling `fromArray`, and `Event::build` likewise hands it an already-
-  decoded `array`. With no `mixed`-narrowing boundary and no in-the-clear JSON rumour anywhere in the
-  flow, the `fromWire`/`fromJson` variants would be unused surface. This is the same rule that governs
-  `fromWire`'s presence elsewhere: it exists where a type is itself a wire field, and its absence here is
-  intended, not a gap. `Rumour`'s serialised form omits the `sig` field entirely (not an empty string),
-  matching the NIP-59 rumour shape.
+- `Rumour`'s only untrusted-input parser is `tryFromArray(array): ?self`; it deliberately takes an
+  already-decoded `array` and has no `mixed`-accepting wire-narrowing variant and no `tryFromJson(string)`.
+  A rumour is never a bare wire element — it exists only as a seal's decrypted plaintext, which
+  `GiftWrapper` decodes to an `array` (so it can reject a signed payload before parsing) before calling
+  `tryFromArray`, and `Event::build` likewise hands it an already-decoded `array`. With no `mixed`-
+  narrowing boundary and no in-the-clear JSON rumour anywhere in the flow, those extra parser variants
+  would be unused surface. It mirrors where a `mixed`-accepting `tryFromArray` and a `tryFromJson` appear
+  elsewhere — on the types that are themselves wire fields (ADR-0051) — so their absence here is intended,
+  not a gap. `Rumour`'s serialised form omits the `sig` field entirely (not an empty string), matching the
+  NIP-59 rumour shape.

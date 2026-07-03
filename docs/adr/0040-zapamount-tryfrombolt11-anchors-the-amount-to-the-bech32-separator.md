@@ -1,4 +1,4 @@
-# 40. `ZapAmount::fromBolt11` anchors the amount to the bech32 separator
+# 40. `ZapAmount::tryFromBolt11` anchors the amount to the bech32 separator
 
 ## Status
 
@@ -19,7 +19,7 @@ an upper-cased invoice also falls through to whole-BTC.
 
 This is a value parser of untrusted input. A parser that returns a plausible-but-wrong value is worse
 than one that returns nothing: a caller cannot tell the fabricated bitcoin from a real one. (The zap
-flow happens to cross-check `bolt11` against the request's `amount` tag, but `fromBolt11` is public and
+flow happens to cross-check `bolt11` against the request's `amount` tag, but `tryFromBolt11` is public and
 must be correct on its own.)
 
 ## Decision
@@ -35,7 +35,7 @@ The pattern is `/^ln[a-z]+?(\d+)([munp])?1/`, applied to the lower-cased input.
 
 ## Consequences
 
-- `fromBolt11` returns `null` for an amount-less invoice rather than fabricating 1 BTC, and parses
+- `tryFromBolt11` returns `null` for an amount-less invoice rather than fabricating 1 BTC, and parses
   upper-cased invoices correctly.
 - A whole-BTC amount (digits with no multiplier) is still parsed: its digit run sits immediately before
   the separator, e.g. `lnbc11...` is one bitcoin.

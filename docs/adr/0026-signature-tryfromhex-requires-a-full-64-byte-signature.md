@@ -1,4 +1,4 @@
-# 26. `Signature::fromHex` requires a complete 64-byte signature
+# 26. `Signature::tryFromHex` requires a complete 64-byte signature
 
 ## Status
 
@@ -25,7 +25,7 @@ those producers' events get dropped. The forces that argue against it:
 - **Every reference implementation rejects short signatures.** `libsecp256k1`, `rust-secp256k1`, and
   `@noble/curves` all require the full 64 bytes. Tolerating short input here makes this library the
   outlier and lets a value through that those libraries — and any cross-checking peer — would refuse.
-- **A parser of untrusted input should return its failure, not paper over it.** `fromHex` parses
+- **A parser of untrusted input should return its failure, not paper over it.** `tryFromHex` parses
   wire data, so a malformed signature is an anticipated "no": it returns `null` and the caller decides
   (drop the event, log, count it). Reconstructing a plausible-looking signature instead turns a
   detectable parse failure into a value that flows downstream and only fails later, at verification,
@@ -33,13 +33,13 @@ those producers' events get dropped. The forces that argue against it:
 
 ## Decision
 
-`Signature::fromHex` requires exactly 128 lowercase hex characters (a full 64-byte signature) and
+`Signature::tryFromHex` requires exactly 128 lowercase hex characters (a full 64-byte signature) and
 returns `null` for anything else — shorter, longer, upper-case, or non-hex. There is no
 zero-padding and no other repair.
 
 If interoperability with a short-signature producer is ever genuinely required, it belongs at a
 higher layer that can try both `r`-stripped and `s`-stripped reconstructions and accept only the one
-that *verifies* — never in `fromHex`, which must not invent signature bytes.
+that *verifies* — never in `tryFromHex`, which must not invent signature bytes.
 
 ## Consequences
 
@@ -48,6 +48,6 @@ that *verifies* — never in `fromHex`, which must not invent signature bytes.
 - Events from producers that strip leading zero bytes from the signature fail to parse and are
   rejected. This is the accepted cost of conformance and of never fabricating signature bytes; it
   matches what every reference secp256k1 library already does.
-- Do not add left-zero-padding to `fromHex` to "accept slightly short signatures" — it can
+- Do not add left-zero-padding to `tryFromHex` to "accept slightly short signatures" — it can
   reconstruct a wrong signature from an `s`-stripped input, and the safe place to handle
   non-conformant producers is a verify-and-pick step above the value object.

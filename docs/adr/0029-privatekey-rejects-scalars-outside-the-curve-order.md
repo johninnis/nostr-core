@@ -17,7 +17,7 @@ A caller-supplied out-of-range key therefore signs on a `gmp`-only host but thro
 
 ## Decision
 
-`PrivateKey`'s parsing constructors (`fromHex`, `fromBytes`, `fromBech32`) return `null` for a scalar that is zero or `>= n`. `generate()` retries until it mints one in range — looping is astronomically rare, since the out-of-range fraction of 32-byte values is about `2^-128`. The range test is a fixed-width lowercase-hex comparison against the curve order, kept inside the Domain value object: it constrains the scalar without reaching into the Infrastructure elliptic-curve maths, so the invariant lives with the type that owns it.
+`PrivateKey`'s parsing constructors (`tryFromHex`, `tryFromBytes`, `tryFromBech32`) return `null` for a scalar that is zero or `>= n`. `generate()` retries until it mints one in range — looping is astronomically rare, since the out-of-range fraction of 32-byte values is about `2^-128`. The range test is a fixed-width lowercase-hex comparison against the curve order, kept inside the Domain value object: it constrains the scalar without reaching into the Infrastructure elliptic-curve maths, so the invariant lives with the type that owns it.
 
 ## Consequences
 

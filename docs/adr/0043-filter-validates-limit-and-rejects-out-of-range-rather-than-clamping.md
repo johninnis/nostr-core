@@ -35,7 +35,7 @@ Two further values sit on the boundary and are easy to get wrong:
   constant — NIP-01 defines no maximum — in the same spirit as the per-field value cap on the array
   fields.
 - A negative value, a non-integer, or a value above `5000` is out of range. The constructor throws
-  `InvalidArgumentException`; `fromArray` returns `null`. The out-of-range limit is an anticipated
+  `InvalidArgumentException`; `tryFromArray` returns `null`. The out-of-range limit is an anticipated
   boundary outcome on the parsing path (ADR-0003, ADR-0033) and a programmer fault on the direct
   constructor path.
 
@@ -48,7 +48,7 @@ Two further values sit on the boundary and are easy to get wrong:
   for `RelayUrl` (ADR-0010), `Signature` (ADR-0026), and `PrivateKey` (ADR-0029). Do not switch to
   clamping — it would silently mutate a caller's filter and make its hashed identity (`FilterHasher`,
   ADR-0020) depend on a hidden ceiling.
-- `matches()` and `matchesEvent()` ignore `limit` entirely: it is a result-set cap, not a per-event
+- `matches()` ignores `limit` entirely: it is a result-set cap, not a per-event
   predicate. `Filter` truncates nothing; applying the limit is the relay's or store's job. Do not add
   `limit` handling to the matching path.
 - `0` and `null` are different filters, and stay different through construction, `hasLimit()`, `toArray`,

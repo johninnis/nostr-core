@@ -89,7 +89,7 @@ final readonly class NipComplianceValidator implements NipComplianceValidatorInt
         }
     }
 
-    // Deliberate: keeps its own signature gate wrapping Event::verify, not merged with EventValidator's distinct wording — see ADR-0017
+    // Deliberate: keeps its own signature gate wrapping Event::verify, scoped to this validator rather than merged into EventValidator — see ADR-0017
     private function validateSignature(Event $event): void
     {
         if (!$event->verify($this->signatureService)) {

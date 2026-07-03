@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-The well-known NIP-01 tag names form a small, named set, so a backed `enum` looks like the obvious model — and the ecosystem rule is "backed enums for closed sets". But NIP-01 tag names are an *open* set: any string is a valid tag name, and `Tag::fromArray` builds a `TagType` from whatever arrives on the wire.
+The well-known NIP-01 tag names form a small, named set, so a backed `enum` looks like the obvious model — and the ecosystem rule is "backed enums for closed sets". But NIP-01 tag names are an *open* set: any string is a valid tag name, and `Tag::tryFromArray` builds a `TagType` from whatever arrives on the wire.
 
 ## Decision
 
