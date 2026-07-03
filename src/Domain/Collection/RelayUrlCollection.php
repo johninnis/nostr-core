@@ -25,7 +25,7 @@ final class RelayUrlCollection extends TypedCollection
 
     private static function tryParse(mixed $value): ?RelayUrl
     {
-        return is_string($value) ? RelayUrl::fromString($value) : null;
+        return is_string($value) ? RelayUrl::tryFromString($value) : null;
     }
 
     public static function fromStrings(mixed $values): self

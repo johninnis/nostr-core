@@ -103,7 +103,7 @@ final class RumourTest extends TestCase
         $this->assertSame($this->rumour->toArray(), $decoded);
     }
 
-    public function testFromArrayParsesTheUnsignedCore(): void
+    public function testTryFromArrayParsesTheUnsignedCore(): void
     {
         $rumour = Rumour::tryFromArray([
             'pubkey' => $this->keyPair->getPublicKey()->toHex(),
@@ -117,7 +117,7 @@ final class RumourTest extends TestCase
         $this->assertSame('Hello', (string) $rumour->getContent());
     }
 
-    public function testFromArrayIgnoresSignatureFields(): void
+    public function testTryFromArrayIgnoresSignatureFields(): void
     {
         $rumour = Rumour::tryFromArray([
             'id' => str_repeat('f', 64),
@@ -133,7 +133,7 @@ final class RumourTest extends TestCase
         $this->assertTrue($rumour->getId()->equals($this->recreateId('Hello')));
     }
 
-    public function testFromArrayReturnsNullForMissingRequiredFields(): void
+    public function testTryFromArrayReturnsNullForMissingRequiredFields(): void
     {
         $this->assertNull(Rumour::tryFromArray([
             'pubkey' => $this->keyPair->getPublicKey()->toHex(),
@@ -141,7 +141,7 @@ final class RumourTest extends TestCase
         ]));
     }
 
-    public function testFromArrayReturnsNullForInvalidUtf8Content(): void
+    public function testTryFromArrayReturnsNullForInvalidUtf8Content(): void
     {
         $this->assertNull(Rumour::tryFromArray([
             'pubkey' => str_repeat('a', 64),
@@ -152,7 +152,7 @@ final class RumourTest extends TestCase
         ]));
     }
 
-    public function testFromArrayHandlesNonStringContent(): void
+    public function testTryFromArrayHandlesNonStringContent(): void
     {
         $rumour = Rumour::tryFromArray([
             'pubkey' => $this->keyPair->getPublicKey()->toHex(),
@@ -170,7 +170,7 @@ final class RumourTest extends TestCase
      * @param array<array-key, mixed> $data
      */
     #[DataProvider('malformedRumourProvider')]
-    public function testFromArrayReturnsNullForMalformedFields(array $data): void
+    public function testTryFromArrayReturnsNullForMalformedFields(array $data): void
     {
         $this->assertNull(Rumour::tryFromArray($data));
     }

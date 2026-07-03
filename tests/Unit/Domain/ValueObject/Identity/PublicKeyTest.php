@@ -47,7 +47,7 @@ final class PublicKeyTest extends TestCase
         $this->assertTrue($publicKey->equals($recreated));
     }
 
-    public function testFromBytesReturnsNullForWrongLength(): void
+    public function testTryFromBytesReturnsNullForWrongLength(): void
     {
         $this->assertNull(PublicKey::tryFromBytes('too-short'));
     }
@@ -82,22 +82,22 @@ final class PublicKeyTest extends TestCase
         $this->assertFalse($publicKey1->equals($publicKey3));
     }
 
-    public function testFromBech32ReturnsNullForInvalidPrefix(): void
+    public function testTryFromBech32ReturnsNullForInvalidPrefix(): void
     {
         $this->assertNull(PublicKey::tryFromBech32('nsec1abc'));
     }
 
-    public function testFromBech32ReturnsNullForInvalidChecksum(): void
+    public function testTryFromBech32ReturnsNullForInvalidChecksum(): void
     {
         $this->assertNull(PublicKey::tryFromBech32('npub1invalidchecksum'));
     }
 
-    public function testFromHexReturnsNullForUppercaseHex(): void
+    public function testTryFromHexReturnsNullForUppercaseHex(): void
     {
         $this->assertNull(PublicKey::tryFromHex(strtoupper(self::VALID_PUBLIC_KEY_HEX)));
     }
 
-    public function testFromNpubOrHexAcceptsHex(): void
+    public function testTryFromNpubOrHexAcceptsHex(): void
     {
         $publicKey = PublicKey::tryFromNpubOrHex(self::VALID_PUBLIC_KEY_HEX);
 
@@ -105,7 +105,7 @@ final class PublicKeyTest extends TestCase
         $this->assertSame(self::VALID_PUBLIC_KEY_HEX, $publicKey->toHex());
     }
 
-    public function testFromNpubOrHexAcceptsNpub(): void
+    public function testTryFromNpubOrHexAcceptsNpub(): void
     {
         $expected = PublicKey::tryFromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
         $publicKey = PublicKey::tryFromNpubOrHex($expected->toBech32());
@@ -114,7 +114,7 @@ final class PublicKeyTest extends TestCase
         $this->assertTrue($expected->equals($publicKey));
     }
 
-    public function testFromNpubOrHexReturnsNullForInvalidInput(): void
+    public function testTryFromNpubOrHexReturnsNullForInvalidInput(): void
     {
         $this->assertNull(PublicKey::tryFromNpubOrHex('not-a-key'));
         $this->assertNull(PublicKey::tryFromNpubOrHex('npub1invalidchecksum'));

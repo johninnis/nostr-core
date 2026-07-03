@@ -25,7 +25,7 @@ final class ContentReferenceExtractorTest extends TestCase
     {
         $relays = [];
         foreach ($relayUrls as $url) {
-            $relay = RelayUrl::fromString($url);
+            $relay = RelayUrl::tryFromString($url);
             if (null !== $relay) {
                 $relays[] = $relay;
             }

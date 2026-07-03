@@ -28,7 +28,7 @@ final class PubkeyReferenceTest extends TestCase
     public function testConstructorWithAllParameters(): void
     {
         $pubkey = PublicKey::tryFromHex(self::VALID_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey');
-        $relay = RelayUrl::fromString(self::VALID_RELAY);
+        $relay = RelayUrl::tryFromString(self::VALID_RELAY);
         $ref = new PubkeyReference($pubkey, $relay, 'alice');
 
         $this->assertSame($pubkey, $ref->getPubkey());
@@ -39,7 +39,7 @@ final class PubkeyReferenceTest extends TestCase
     public function testToArrayReturnsExpectedStructure(): void
     {
         $pubkey = PublicKey::tryFromHex(self::VALID_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey');
-        $relay = RelayUrl::fromString(self::VALID_RELAY);
+        $relay = RelayUrl::tryFromString(self::VALID_RELAY);
         $ref = new PubkeyReference($pubkey, $relay, 'alice');
 
         $array = $ref->toArray();
@@ -59,7 +59,7 @@ final class PubkeyReferenceTest extends TestCase
         $this->assertNull($array['petname']);
     }
 
-    public function testFromArrayCreatesValidReference(): void
+    public function testTryFromArrayCreatesValidReference(): void
     {
         $data = [
             'pubkey' => self::VALID_PUBKEY,
@@ -76,7 +76,7 @@ final class PubkeyReferenceTest extends TestCase
         $this->assertSame('bob', $ref->getPetname());
     }
 
-    public function testFromArrayWithoutOptionalFields(): void
+    public function testTryFromArrayWithoutOptionalFields(): void
     {
         $data = ['pubkey' => self::VALID_PUBKEY];
 
@@ -88,12 +88,12 @@ final class PubkeyReferenceTest extends TestCase
         $this->assertNull($ref->getPetname());
     }
 
-    public function testFromArrayReturnsNullForInvalidPubkey(): void
+    public function testTryFromArrayReturnsNullForInvalidPubkey(): void
     {
         $this->assertNull(PubkeyReference::tryFromArray(['pubkey' => 'invalid']));
     }
 
-    public function testFromArrayReturnsNullWhenPubkeyIsMissingOrNonString(): void
+    public function testTryFromArrayReturnsNullWhenPubkeyIsMissingOrNonString(): void
     {
         $this->assertNull(PubkeyReference::tryFromArray([]));
         $this->assertNull(PubkeyReference::tryFromArray(['pubkey' => 123]));
@@ -102,7 +102,7 @@ final class PubkeyReferenceTest extends TestCase
     public function testRoundTripThroughArray(): void
     {
         $pubkey = PublicKey::tryFromHex(self::VALID_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey');
-        $relay = RelayUrl::fromString(self::VALID_RELAY);
+        $relay = RelayUrl::tryFromString(self::VALID_RELAY);
         $original = new PubkeyReference($pubkey, $relay, 'alice');
 
         $recreated = PubkeyReference::tryFromArray($original->toArray());

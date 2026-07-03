@@ -50,7 +50,7 @@ final readonly class RelayUrl implements Stringable
     }
 
     // Deliberate: rejects ambiguous-but-well-formed URLs it cannot canonicalise, keeping equals()/unique() sound — see ADR-0010
-    public static function fromString(?string $url): ?self
+    public static function tryFromString(?string $url): ?self
     {
         if (null === $url) {
             return null;

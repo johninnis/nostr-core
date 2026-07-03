@@ -160,7 +160,7 @@ final class TagCollectionTest extends TestCase
         $this->assertFalse($collection1->equals($collection4));
     }
 
-    public function testFromWireWorksCorrectly(): void
+    public function testTryFromArrayWorksCorrectly(): void
     {
         $data = [
             ['e', 'event-id'],
@@ -175,17 +175,17 @@ final class TagCollectionTest extends TestCase
         $this->assertTrue($collection->hasType(TagType::pubkey()));
     }
 
-    public function testFromWireReturnsNullWhenAnElementIsNotAnArray(): void
+    public function testTryFromArrayReturnsNullWhenAnElementIsNotAnArray(): void
     {
         $this->assertNull(TagCollection::tryFromArray([['e', 'event-id'], 'not-an-array']));
     }
 
-    public function testFromWireReturnsNullWhenATagIsMalformed(): void
+    public function testTryFromArrayReturnsNullWhenATagIsMalformed(): void
     {
         $this->assertNull(TagCollection::tryFromArray([[]]));
     }
 
-    public function testFromWireReturnsNullWhenGivenANonArray(): void
+    public function testTryFromArrayReturnsNullWhenGivenANonArray(): void
     {
         $this->assertNull(TagCollection::tryFromArray('not even an array'));
     }

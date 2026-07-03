@@ -116,13 +116,13 @@ final class EventReferenceTest extends TestCase
         $this->assertSame($reference->toArray(), $restored->toArray());
     }
 
-    public function testFromArrayReturnsNullWhenEventIdIsMissingOrNonString(): void
+    public function testTryFromArrayReturnsNullWhenEventIdIsMissingOrNonString(): void
     {
         $this->assertNull(EventReference::tryFromArray(['relay_url' => 'wss://relay.example']));
         $this->assertNull(EventReference::tryFromArray(['event_id' => 123]));
     }
 
-    public function testFromArrayReturnsNullWhenEventIdIsNotValidHex(): void
+    public function testTryFromArrayReturnsNullWhenEventIdIsNotValidHex(): void
     {
         $this->assertNull(EventReference::tryFromArray(['event_id' => 'not-valid-hex']));
     }
@@ -144,6 +144,6 @@ final class EventReferenceTest extends TestCase
 
     private function relay(string $url = 'wss://relay.example'): RelayUrl
     {
-        return RelayUrl::fromString($url) ?? throw new RuntimeException('Invalid test relay url');
+        return RelayUrl::tryFromString($url) ?? throw new RuntimeException('Invalid test relay url');
     }
 }

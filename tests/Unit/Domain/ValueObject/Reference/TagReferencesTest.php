@@ -74,7 +74,7 @@ final class TagReferencesTest extends TestCase
 
     private function relay(): RelayUrl
     {
-        return RelayUrl::fromString('wss://relay.example') ?? throw new RuntimeException('Invalid test relay');
+        return RelayUrl::tryFromString('wss://relay.example') ?? throw new RuntimeException('Invalid test relay');
     }
 
     private function coordinate(): EventCoordinate

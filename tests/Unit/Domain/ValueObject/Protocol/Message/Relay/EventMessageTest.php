@@ -114,7 +114,7 @@ final class EventMessageTest extends TestCase
         self::assertNull($fresh->preSerialisedJson());
     }
 
-    public function testFromArrayCreatesValidMessage(): void
+    public function testTryFromArrayCreatesValidMessage(): void
     {
         $event = $this->createEvent();
         $data = ['EVENT', 'sub-1', $event->toArray()];
@@ -125,12 +125,12 @@ final class EventMessageTest extends TestCase
         $this->assertSame('sub-1', (string) $message->getSubscriptionId());
     }
 
-    public function testFromArrayThrowsOnInvalidFormat(): void
+    public function testTryFromArrayReturnsNullOnInvalidFormat(): void
     {
         $this->assertNull(EventMessage::tryFromArray(['EVENT', 'sub-1']));
     }
 
-    public function testFromArrayThrowsOnWrongType(): void
+    public function testTryFromArrayReturnsNullOnWrongType(): void
     {
         $this->assertNull(EventMessage::tryFromArray(['OK', 'sub-1', $this->createEvent()->toArray()]));
     }

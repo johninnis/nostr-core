@@ -135,7 +135,7 @@ final class Nip11ClientTest extends TestCase
 
     private function relayUrl(string $url): RelayUrl
     {
-        return RelayUrl::fromString($url)
+        return RelayUrl::tryFromString($url)
             ?? throw new RuntimeException('Test setup: invalid relay URL '.$url);
     }
 }

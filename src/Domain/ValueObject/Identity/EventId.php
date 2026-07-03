@@ -9,7 +9,6 @@ use Innis\Nostr\Core\Domain\Service\HexCodec;
 use Override;
 use Stringable;
 
-// Deliberate: kept a separate type, not folded into a shared base, so equals() cannot accept a sibling identity — see ADR-0004
 final readonly class EventId implements Stringable
 {
     public const int BYTE_LENGTH = 32;

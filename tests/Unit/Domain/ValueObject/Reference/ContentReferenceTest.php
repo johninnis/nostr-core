@@ -83,7 +83,7 @@ final class ContentReferenceTest extends TestCase
         $this->assertSame($reference->toArray(), $restored->toArray());
     }
 
-    public function testFromArrayReturnsNullWhenTypeIsUnknown(): void
+    public function testTryFromArrayReturnsNullWhenTypeIsUnknown(): void
     {
         $this->assertNull(ContentReference::tryFromArray([
             'type' => 'not-a-real-type',
@@ -93,7 +93,7 @@ final class ContentReferenceTest extends TestCase
         ]));
     }
 
-    public function testFromArrayReturnsNullWhenPositionIsNegative(): void
+    public function testTryFromArrayReturnsNullWhenPositionIsNegative(): void
     {
         $this->assertNull(ContentReference::tryFromArray([
             'type' => ContentReferenceType::LegacyRef->value,

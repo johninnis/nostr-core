@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 
 final class FileMetadataTest extends TestCase
 {
-    public function testFromTagCollectionWithAllFields(): void
+    public function testTryFromTagCollectionWithAllFields(): void
     {
         $tags = TagCollectionMother::fromRaw([
             ['url', 'https://cdn.example.com/abc.png'],
@@ -50,14 +50,14 @@ final class FileMetadataTest extends TestCase
         ], $metadata->getFallbacks());
     }
 
-    public function testFromTagCollectionReturnsNullWithoutUrl(): void
+    public function testTryFromTagCollectionReturnsNullWithoutUrl(): void
     {
         $tags = TagCollectionMother::fromRaw([['m', 'image/png']]);
 
         self::assertNull(FileMetadata::tryFromTagCollection($tags));
     }
 
-    public function testFromTagCollectionIgnoresNonNumericSize(): void
+    public function testTryFromTagCollectionIgnoresNonNumericSize(): void
     {
         $tags = TagCollectionMother::fromRaw([
             ['url', 'https://cdn.example.com/abc.png'],
@@ -116,7 +116,7 @@ final class FileMetadataTest extends TestCase
         self::assertTrue($metadata->equals($restored));
     }
 
-    public function testFromImetaTagRejectsNonImetaTag(): void
+    public function testTryFromImetaTagRejectsNonImetaTag(): void
     {
         $tag = new Tag(TagType::fromString('e'), ['url https://cdn.example.com/abc.png']);
 

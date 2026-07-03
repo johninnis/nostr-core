@@ -61,7 +61,7 @@ final readonly class EventCoordinate implements Stringable
             return $eventCoordinate;
         }
 
-        return $eventCoordinate->withRelayHint(RelayUrl::fromString($relayHint));
+        return $eventCoordinate->withRelayHint(RelayUrl::tryFromString($relayHint));
     }
 
     /**

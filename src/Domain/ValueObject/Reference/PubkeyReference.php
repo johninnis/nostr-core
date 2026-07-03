@@ -60,7 +60,7 @@ final readonly class PubkeyReference
 
         return new self(
             $pubkey,
-            isset($data['relay_url']) && is_string($data['relay_url']) ? RelayUrl::fromString($data['relay_url']) : null,
+            isset($data['relay_url']) && is_string($data['relay_url']) ? RelayUrl::tryFromString($data['relay_url']) : null,
             isset($data['petname']) && is_string($data['petname']) ? $data['petname'] : null,
         );
     }

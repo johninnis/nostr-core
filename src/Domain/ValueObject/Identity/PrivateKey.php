@@ -9,7 +9,6 @@ use Innis\Nostr\Core\Domain\Service\Bech32Codec;
 use Innis\Nostr\Core\Domain\Service\HexCodec;
 use SensitiveParameter;
 
-// Deliberate: rejects scalars outside [1, n-1] so both signing backends agree and no degenerate key is built — see ADR-0029
 final readonly class PrivateKey
 {
     private const string CURVE_ORDER_HEX = 'fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141';

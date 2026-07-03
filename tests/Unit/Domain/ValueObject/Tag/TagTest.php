@@ -111,7 +111,7 @@ final class TagTest extends TestCase
         $this->assertSame('my-id', $tag->getValue(0));
     }
 
-    public function testFromArrayWorksCorrectly(): void
+    public function testTryFromArrayWorksCorrectly(): void
     {
         $data = ['e', 'event-id', 'relay-url'];
         $tag = Tag::tryFromArray($data);
@@ -122,17 +122,17 @@ final class TagTest extends TestCase
         $this->assertSame('relay-url', $tag->getValue(1));
     }
 
-    public function testFromArrayReturnsNullForEmptyArray(): void
+    public function testTryFromArrayReturnsNullForEmptyArray(): void
     {
         $this->assertNull(Tag::tryFromArray([]));
     }
 
-    public function testFromArrayReturnsNullForNonStringValues(): void
+    public function testTryFromArrayReturnsNullForNonStringValues(): void
     {
         $this->assertNull(Tag::tryFromArray(['e', 123]));
     }
 
-    public function testFromArrayReturnsNullForInvalidUtf8Value(): void
+    public function testTryFromArrayReturnsNullForInvalidUtf8Value(): void
     {
         $this->assertNull(Tag::tryFromArray(['e', "bad\xff\xfeutf8"]));
     }

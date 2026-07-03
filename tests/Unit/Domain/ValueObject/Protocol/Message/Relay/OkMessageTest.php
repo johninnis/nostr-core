@@ -121,7 +121,7 @@ final class OkMessageTest extends TestCase
         $this->assertTrue($decoded[2]);
     }
 
-    public function testFromArrayCreatesValidMessage(): void
+    public function testTryFromArrayCreatesValidMessage(): void
     {
         $data = ['OK', self::VALID_EVENT_ID_HEX, true, ''];
 
@@ -133,7 +133,7 @@ final class OkMessageTest extends TestCase
         $this->assertSame('', $message->getMessage());
     }
 
-    public function testFromArrayWithoutOptionalMessage(): void
+    public function testTryFromArrayWithoutOptionalMessage(): void
     {
         $data = ['OK', self::VALID_EVENT_ID_HEX, true];
 
@@ -142,12 +142,12 @@ final class OkMessageTest extends TestCase
         $this->assertSame('', $message->getMessage());
     }
 
-    public function testFromArrayThrowsOnInvalidFormat(): void
+    public function testTryFromArrayReturnsNullOnInvalidFormat(): void
     {
         $this->assertNull(OkMessage::tryFromArray(['OK', self::VALID_EVENT_ID_HEX]));
     }
 
-    public function testFromArrayThrowsOnWrongType(): void
+    public function testTryFromArrayReturnsNullOnWrongType(): void
     {
         $this->assertNull(OkMessage::tryFromArray(['EVENT', self::VALID_EVENT_ID_HEX, true, '']));
     }
@@ -167,7 +167,7 @@ final class OkMessageTest extends TestCase
         $this->assertSame($original->getMessage(), $restored->getMessage());
     }
 
-    public function testFromJsonParsesAKnownMessageType(): void
+    public function testTryFromJsonParsesAKnownMessageType(): void
     {
         $message = OkMessage::tryFromJson('["OK","'.self::VALID_EVENT_ID_HEX.'",false,"blocked: spam"]')
             ?? throw new RuntimeException('Expected a valid message');
@@ -177,12 +177,12 @@ final class OkMessageTest extends TestCase
         $this->assertSame('blocked: spam', $message->getMessage());
     }
 
-    public function testFromJsonReturnsNullOnMalformedJson(): void
+    public function testTryFromJsonReturnsNullOnMalformedJson(): void
     {
         $this->assertNull(OkMessage::tryFromJson('not json'));
     }
 
-    public function testFromJsonReturnsNullOnJsonObject(): void
+    public function testTryFromJsonReturnsNullOnJsonObject(): void
     {
         $this->assertNull(OkMessage::tryFromJson('{"0":"OK","2":true}'));
     }
@@ -192,22 +192,22 @@ final class OkMessageTest extends TestCase
         return EventId::tryFromHex(self::VALID_EVENT_ID_HEX) ?? throw new RuntimeException('Invalid test event ID');
     }
 
-    public function testFromArrayRejectsStringAcceptedFlag(): void
+    public function testTryFromArrayRejectsStringAcceptedFlag(): void
     {
         $this->assertNull(OkMessage::tryFromArray(['OK', self::VALID_EVENT_ID_HEX, 'true', '']));
     }
 
-    public function testFromArrayRejectsIntegerAcceptedFlag(): void
+    public function testTryFromArrayRejectsIntegerAcceptedFlag(): void
     {
         $this->assertNull(OkMessage::tryFromArray(['OK', self::VALID_EVENT_ID_HEX, 1, '']));
     }
 
-    public function testFromArrayRejectsNonStringEventId(): void
+    public function testTryFromArrayRejectsNonStringEventId(): void
     {
         $this->assertNull(OkMessage::tryFromArray(['OK', 42, true, '']));
     }
 
-    public function testFromArrayRejectsNonStringReason(): void
+    public function testTryFromArrayRejectsNonStringReason(): void
     {
         $this->assertNull(OkMessage::tryFromArray(['OK', self::VALID_EVENT_ID_HEX, true, ['array']]));
     }

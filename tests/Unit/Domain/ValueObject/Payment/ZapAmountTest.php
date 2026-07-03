@@ -57,7 +57,7 @@ final class ZapAmountTest extends TestCase
         ZapAmount::fromSats(-1);
     }
 
-    public function testFromBolt11MilliBtc(): void
+    public function testTryFromBolt11MilliBtc(): void
     {
         $amount = ZapAmount::tryFromBolt11('lnbc100m1p...');
 
@@ -65,7 +65,7 @@ final class ZapAmountTest extends TestCase
         $this->assertSame(10_000_000_000, $amount->toMillisats());
     }
 
-    public function testFromBolt11MicroBtc(): void
+    public function testTryFromBolt11MicroBtc(): void
     {
         $amount = ZapAmount::tryFromBolt11('lnbc100u1p...');
 
@@ -74,7 +74,7 @@ final class ZapAmountTest extends TestCase
         $this->assertSame(10_000, $amount->toSats());
     }
 
-    public function testFromBolt11NanoBtc(): void
+    public function testTryFromBolt11NanoBtc(): void
     {
         $amount = ZapAmount::tryFromBolt11('lnbc100n1p...');
 
@@ -83,7 +83,7 @@ final class ZapAmountTest extends TestCase
         $this->assertSame(10, $amount->toSats());
     }
 
-    public function testFromBolt11PicoBtc(): void
+    public function testTryFromBolt11PicoBtc(): void
     {
         $amount = ZapAmount::tryFromBolt11('lnbc100p1p...');
 
@@ -91,7 +91,7 @@ final class ZapAmountTest extends TestCase
         $this->assertSame(10, $amount->toMillisats());
     }
 
-    public function testFromBolt11DefaultMultiplier(): void
+    public function testTryFromBolt11DefaultMultiplier(): void
     {
         $amount = ZapAmount::tryFromBolt11('lnbc11rest');
 
@@ -99,13 +99,13 @@ final class ZapAmountTest extends TestCase
         $this->assertSame(ZapAmount::MAX_MILLISATS, $amount->toMillisats());
     }
 
-    public function testFromBolt11AmountlessInvoiceReturnsNull(): void
+    public function testTryFromBolt11AmountlessInvoiceReturnsNull(): void
     {
         $this->assertNull(ZapAmount::tryFromBolt11('lnbc1rest'));
         $this->assertNull(ZapAmount::tryFromBolt11('lnbc1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5'));
     }
 
-    public function testFromBolt11ParsesUppercaseInvoice(): void
+    public function testTryFromBolt11ParsesUppercaseInvoice(): void
     {
         $amount = ZapAmount::tryFromBolt11('LNBC100M1P...');
 
@@ -113,13 +113,13 @@ final class ZapAmountTest extends TestCase
         $this->assertSame(10_000_000_000, $amount->toMillisats());
     }
 
-    public function testFromBolt11InvalidReturnsNull(): void
+    public function testTryFromBolt11InvalidReturnsNull(): void
     {
         $this->assertNull(ZapAmount::tryFromBolt11('invalid'));
         $this->assertNull(ZapAmount::tryFromBolt11(''));
     }
 
-    public function testFromBolt11AboveMaxReturnsNull(): void
+    public function testTryFromBolt11AboveMaxReturnsNull(): void
     {
         $this->assertNull(ZapAmount::tryFromBolt11('lnbc21rest'));
         $this->assertNull(ZapAmount::tryFromBolt11('lnbc2100m1p...'));
@@ -128,13 +128,13 @@ final class ZapAmountTest extends TestCase
         $this->assertNull(ZapAmount::tryFromBolt11('lnbc2000000000001p1p...'));
     }
 
-    public function testFromBolt11HugeAmountReturnsNullWithoutOverflow(): void
+    public function testTryFromBolt11HugeAmountReturnsNullWithoutOverflow(): void
     {
         $this->assertNull(ZapAmount::tryFromBolt11('lnbc9223372036854775807m1p...'));
         $this->assertNull(ZapAmount::tryFromBolt11('lnbc99999999999999999999999999991p...'));
     }
 
-    public function testFromBolt11AtMaxParses(): void
+    public function testTryFromBolt11AtMaxParses(): void
     {
         $milli = ZapAmount::tryFromBolt11('lnbc1000m1p...');
 

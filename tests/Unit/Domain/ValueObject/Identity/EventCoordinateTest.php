@@ -29,10 +29,10 @@ final class EventCoordinateTest extends TestCase
         $coordinate = EventCoordinate::tryFromParts(self::VALID_KIND, self::VALID_PUBKEY, self::VALID_IDENTIFIER)
             ?? throw new RuntimeException('Failed to create test coordinate');
 
-        return null !== $relayHint ? $coordinate->withRelayHint(RelayUrl::fromString($relayHint)) : $coordinate;
+        return null !== $relayHint ? $coordinate->withRelayHint(RelayUrl::tryFromString($relayHint)) : $coordinate;
     }
 
-    public function testFromPartsCreatesValidCoordinate(): void
+    public function testTryFromPartsCreatesValidCoordinate(): void
     {
         $coordinate = $this->createCoordinate();
 
@@ -50,17 +50,17 @@ final class EventCoordinateTest extends TestCase
         $this->assertSame(self::VALID_RELAY, (string) $coordinate->getRelayHint());
     }
 
-    public function testFromPartsReturnsNullForNonParameterisedReplaceableKind(): void
+    public function testTryFromPartsReturnsNullForNonParameterisedReplaceableKind(): void
     {
         $this->assertNull(EventCoordinate::tryFromParts(1, self::VALID_PUBKEY, self::VALID_IDENTIFIER));
     }
 
-    public function testFromPartsReturnsNullForInvalidPubkey(): void
+    public function testTryFromPartsReturnsNullForInvalidPubkey(): void
     {
         $this->assertNull(EventCoordinate::tryFromParts(self::VALID_KIND, 'invalid', self::VALID_IDENTIFIER));
     }
 
-    public function testFromPartsReturnsNullForEmptyIdentifier(): void
+    public function testTryFromPartsReturnsNullForEmptyIdentifier(): void
     {
         $this->assertNull(EventCoordinate::tryFromParts(self::VALID_KIND, self::VALID_PUBKEY, ''));
     }
@@ -69,7 +69,7 @@ final class EventCoordinateTest extends TestCase
     {
         $kind = EventKind::fromInt(self::VALID_KIND);
         $pubkey = PublicKey::tryFromHex(self::VALID_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey');
-        $relay = RelayUrl::fromString(self::VALID_RELAY) ?? throw new RuntimeException('Invalid test relay');
+        $relay = RelayUrl::tryFromString(self::VALID_RELAY) ?? throw new RuntimeException('Invalid test relay');
 
         $coordinate = EventCoordinate::create($kind, $pubkey, self::VALID_IDENTIFIER)?->withRelayHint($relay)
             ?? throw new RuntimeException('Failed to create coordinate');
@@ -94,7 +94,7 @@ final class EventCoordinateTest extends TestCase
         $this->assertNull(EventCoordinate::create(EventKind::fromInt(self::VALID_KIND), $pubkey, ''));
     }
 
-    public function testFromStringParsesValidCoordinate(): void
+    public function testTryFromStringParsesValidCoordinate(): void
     {
         $coordinateString = self::VALID_KIND.':'.self::VALID_PUBKEY.':'.self::VALID_IDENTIFIER;
         $coordinate = EventCoordinate::tryFromString($coordinateString)
@@ -105,7 +105,7 @@ final class EventCoordinateTest extends TestCase
         $this->assertSame(self::VALID_IDENTIFIER, $coordinate->getIdentifier());
     }
 
-    public function testFromStringHandlesIdentifierWithColons(): void
+    public function testTryFromStringHandlesIdentifierWithColons(): void
     {
         $coordinateString = self::VALID_KIND.':'.self::VALID_PUBKEY.':part1:part2:part3';
         $coordinate = EventCoordinate::tryFromString($coordinateString)
@@ -114,18 +114,18 @@ final class EventCoordinateTest extends TestCase
         $this->assertSame('part1:part2:part3', $coordinate->getIdentifier());
     }
 
-    public function testFromStringReturnsNullForFewerThanThreeParts(): void
+    public function testTryFromStringReturnsNullForFewerThanThreeParts(): void
     {
         $this->assertNull(EventCoordinate::tryFromString('30023:'.self::VALID_PUBKEY));
     }
 
-    public function testFromStringReturnsNullForNonNumericKind(): void
+    public function testTryFromStringReturnsNullForNonNumericKind(): void
     {
         $this->assertNull(EventCoordinate::tryFromString('30023x:'.self::VALID_PUBKEY.':my-article'));
         $this->assertNull(EventCoordinate::tryFromString('abc:'.self::VALID_PUBKEY.':my-article'));
     }
 
-    public function testFromStringWithRelayHint(): void
+    public function testTryFromStringWithRelayHint(): void
     {
         $coordinateString = self::VALID_KIND.':'.self::VALID_PUBKEY.':'.self::VALID_IDENTIFIER;
         $coordinate = EventCoordinate::tryFromString($coordinateString, self::VALID_RELAY)
@@ -134,7 +134,7 @@ final class EventCoordinateTest extends TestCase
         $this->assertNotNull($coordinate->getRelayHint());
     }
 
-    public function testFromATagParsesValidTag(): void
+    public function testTryFromATagParsesValidTag(): void
     {
         $tag = ['a', self::VALID_KIND.':'.self::VALID_PUBKEY.':'.self::VALID_IDENTIFIER];
         $coordinate = EventCoordinate::tryFromATag($tag)
@@ -143,7 +143,7 @@ final class EventCoordinateTest extends TestCase
         $this->assertSame(self::VALID_KIND, $coordinate->getKind()->toInt());
     }
 
-    public function testFromATagWithRelayHint(): void
+    public function testTryFromATagWithRelayHint(): void
     {
         $tag = ['a', self::VALID_KIND.':'.self::VALID_PUBKEY.':'.self::VALID_IDENTIFIER, self::VALID_RELAY];
         $coordinate = EventCoordinate::tryFromATag($tag)
@@ -152,17 +152,17 @@ final class EventCoordinateTest extends TestCase
         $this->assertNotNull($coordinate->getRelayHint());
     }
 
-    public function testFromATagReturnsNullForNonATag(): void
+    public function testTryFromATagReturnsNullForNonATag(): void
     {
         $this->assertNull(EventCoordinate::tryFromATag(['p', self::VALID_PUBKEY]));
     }
 
-    public function testFromATagReturnsNullForMissingValue(): void
+    public function testTryFromATagReturnsNullForMissingValue(): void
     {
         $this->assertNull(EventCoordinate::tryFromATag(['a']));
     }
 
-    public function testFromATagIgnoresEmptyRelayHint(): void
+    public function testTryFromATagIgnoresEmptyRelayHint(): void
     {
         $tag = ['a', self::VALID_KIND.':'.self::VALID_PUBKEY.':'.self::VALID_IDENTIFIER, ''];
         $coordinate = EventCoordinate::tryFromATag($tag)
@@ -201,7 +201,7 @@ final class EventCoordinateTest extends TestCase
     public function testWithRelayHintReturnsNewInstance(): void
     {
         $coordinate = $this->createCoordinate();
-        $relayUrl = RelayUrl::fromString(self::VALID_RELAY);
+        $relayUrl = RelayUrl::tryFromString(self::VALID_RELAY);
 
         $withHint = $coordinate->withRelayHint($relayUrl);
 
@@ -271,7 +271,7 @@ final class EventCoordinateTest extends TestCase
         $this->assertSame(self::VALID_RELAY, $array['relay_hint']);
     }
 
-    public function testFromArrayCreatesValidCoordinate(): void
+    public function testTryFromArrayCreatesValidCoordinate(): void
     {
         $data = [
             'kind' => self::VALID_KIND,
@@ -285,7 +285,7 @@ final class EventCoordinateTest extends TestCase
         $this->assertSame(self::VALID_KIND, $coordinate->getKind()->toInt());
     }
 
-    public function testFromArrayWithRelayHint(): void
+    public function testTryFromArrayWithRelayHint(): void
     {
         $data = [
             'kind' => self::VALID_KIND,
@@ -300,7 +300,7 @@ final class EventCoordinateTest extends TestCase
         $this->assertNotNull($coordinate->getRelayHint());
     }
 
-    public function testFromArrayReturnsNullForMissingKind(): void
+    public function testTryFromArrayReturnsNullForMissingKind(): void
     {
         $this->assertNull(EventCoordinate::tryFromArray([
             'pubkey' => self::VALID_PUBKEY,
@@ -308,7 +308,7 @@ final class EventCoordinateTest extends TestCase
         ]));
     }
 
-    public function testFromArrayReturnsNullForMissingPubkey(): void
+    public function testTryFromArrayReturnsNullForMissingPubkey(): void
     {
         $this->assertNull(EventCoordinate::tryFromArray([
             'kind' => self::VALID_KIND,
@@ -316,7 +316,7 @@ final class EventCoordinateTest extends TestCase
         ]));
     }
 
-    public function testFromArrayReturnsNullForMissingIdentifier(): void
+    public function testTryFromArrayReturnsNullForMissingIdentifier(): void
     {
         $this->assertNull(EventCoordinate::tryFromArray([
             'kind' => self::VALID_KIND,
@@ -324,7 +324,7 @@ final class EventCoordinateTest extends TestCase
         ]));
     }
 
-    public function testFromArrayReturnsNullForNonStringPubkey(): void
+    public function testTryFromArrayReturnsNullForNonStringPubkey(): void
     {
         $this->assertNull(EventCoordinate::tryFromArray([
             'kind' => self::VALID_KIND,
@@ -333,7 +333,7 @@ final class EventCoordinateTest extends TestCase
         ]));
     }
 
-    public function testFromArrayReturnsNullForNonStringIdentifier(): void
+    public function testTryFromArrayReturnsNullForNonStringIdentifier(): void
     {
         $this->assertNull(EventCoordinate::tryFromArray([
             'kind' => self::VALID_KIND,
@@ -342,7 +342,7 @@ final class EventCoordinateTest extends TestCase
         ]));
     }
 
-    public function testFromArrayReturnsNullForNonIntKind(): void
+    public function testTryFromArrayReturnsNullForNonIntKind(): void
     {
         $this->assertNull(EventCoordinate::tryFromArray([
             'kind' => '30023',
@@ -351,7 +351,7 @@ final class EventCoordinateTest extends TestCase
         ]));
     }
 
-    public function testFromArrayReturnsNullForNonStringRelayHint(): void
+    public function testTryFromArrayReturnsNullForNonStringRelayHint(): void
     {
         $this->assertNull(EventCoordinate::tryFromArray([
             'kind' => self::VALID_KIND,
@@ -361,7 +361,7 @@ final class EventCoordinateTest extends TestCase
         ]));
     }
 
-    public function testFromATagReturnsNullForNonStringCoordinate(): void
+    public function testTryFromATagReturnsNullForNonStringCoordinate(): void
     {
         $this->assertNull(EventCoordinate::tryFromATag(['a', 12345]));
     }

@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 
 final class LiveEventMetadataTest extends TestCase
 {
-    public function testFromTagCollectionWithAllFields(): void
+    public function testTryFromTagCollectionWithAllFields(): void
     {
         $tags = TagCollectionMother::fromRaw([
             ['d', 'my-live-stream'],
@@ -32,7 +32,7 @@ final class LiveEventMetadataTest extends TestCase
         $this->assertSame('https://stream.example.com/live.m3u8', $metadata->getStreaming());
     }
 
-    public function testFromTagCollectionWithOnlyIdentifier(): void
+    public function testTryFromTagCollectionWithOnlyIdentifier(): void
     {
         $tags = TagCollectionMother::fromRaw([
             ['d', 'minimal-stream'],
@@ -88,12 +88,12 @@ final class LiveEventMetadataTest extends TestCase
         $this->assertTrue($original->equals($restored));
     }
 
-    public function testFromArrayReturnsNullWhenIdentifierMissing(): void
+    public function testTryFromArrayReturnsNullWhenIdentifierMissing(): void
     {
         $this->assertNull(LiveEventMetadata::tryFromArray(['title' => 'No identifier']));
     }
 
-    public function testFromArrayReturnsNullWhenIdentifierNotString(): void
+    public function testTryFromArrayReturnsNullWhenIdentifierNotString(): void
     {
         $this->assertNull(LiveEventMetadata::tryFromArray(['identifier' => 123]));
     }

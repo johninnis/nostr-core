@@ -81,7 +81,7 @@ final class ReplyChainAnalyser
 
         return new EventReference(
             $eventId,
-            RelayUrl::fromString($tag->getValue(1)),
+            RelayUrl::tryFromString($tag->getValue(1)),
             null,
             (null !== $author && '' !== $author) ? PublicKey::tryFromHex($author) : null,
         );

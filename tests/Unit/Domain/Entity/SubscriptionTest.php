@@ -127,7 +127,7 @@ final class SubscriptionTest extends TestCase
         $this->assertCount(1, $array['filters']);
     }
 
-    public function testFromArrayWithState(): void
+    public function testTryFromArrayWithState(): void
     {
         $data = [
             'id' => 'test-sub',
@@ -143,7 +143,7 @@ final class SubscriptionTest extends TestCase
         $this->assertSame(SubscriptionState::Active, $subscription->getState());
     }
 
-    public function testFromArrayDefaultsToPendingWhenStateAbsent(): void
+    public function testTryFromArrayDefaultsToPendingWhenStateAbsent(): void
     {
         $data = [
             'id' => 'test-sub',
@@ -157,12 +157,12 @@ final class SubscriptionTest extends TestCase
         $this->assertSame(SubscriptionState::Pending, $subscription->getState());
     }
 
-    public function testFromArrayReturnsNullWhenRequiredFieldMissing(): void
+    public function testTryFromArrayReturnsNullWhenRequiredFieldMissing(): void
     {
         $this->assertNull(Subscription::tryFromArray(['id' => 'test']));
     }
 
-    public function testFromArrayReturnsNullWhenStateInvalid(): void
+    public function testTryFromArrayReturnsNullWhenStateInvalid(): void
     {
         $this->assertNull(Subscription::tryFromArray([
             'id' => 'test-sub',
@@ -172,7 +172,7 @@ final class SubscriptionTest extends TestCase
         ]));
     }
 
-    public function testFromArrayReturnsNullWhenFilterMalformed(): void
+    public function testTryFromArrayReturnsNullWhenFilterMalformed(): void
     {
         $this->assertNull(Subscription::tryFromArray([
             'id' => 'test-sub',
@@ -181,7 +181,7 @@ final class SubscriptionTest extends TestCase
         ]));
     }
 
-    public function testFromArrayReturnsNullWhenCreatedAtNotInteger(): void
+    public function testTryFromArrayReturnsNullWhenCreatedAtNotInteger(): void
     {
         $this->assertNull(Subscription::tryFromArray([
             'id' => 'test-sub',
@@ -190,7 +190,7 @@ final class SubscriptionTest extends TestCase
         ]));
     }
 
-    public function testFromArrayReturnsNullWhenCreatedAtNegative(): void
+    public function testTryFromArrayReturnsNullWhenCreatedAtNegative(): void
     {
         $this->assertNull(Subscription::tryFromArray([
             'id' => 'test-sub',

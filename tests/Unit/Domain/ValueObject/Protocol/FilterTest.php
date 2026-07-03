@@ -586,7 +586,7 @@ final class FilterTest extends TestCase
         $this->assertSame([1], $array['kinds']);
     }
 
-    public function testFromArrayHandlesMultipleTagTypes(): void
+    public function testTryFromArrayHandlesMultipleTagTypes(): void
     {
         $data = [
             '#t' => ['nostr'],
@@ -602,7 +602,7 @@ final class FilterTest extends TestCase
         $this->assertSame([str_repeat('a', 64)], $tags->getValues()['p']);
     }
 
-    public function testFromArrayWithoutTagsReturnsNullTags(): void
+    public function testTryFromArrayWithoutTagsReturnsNullTags(): void
     {
         $data = ['kinds' => [1]];
 
@@ -612,23 +612,23 @@ final class FilterTest extends TestCase
         $this->assertNull($filter->getTags());
     }
 
-    public function testFromArrayReturnsNullForInvalidUtf8Search(): void
+    public function testTryFromArrayReturnsNullForInvalidUtf8Search(): void
     {
         $this->assertNull(Filter::tryFromArray(['search' => "bad\xff\xfeutf8"]));
     }
 
-    public function testFromArrayReturnsNullForInvalidUtf8TagValue(): void
+    public function testTryFromArrayReturnsNullForInvalidUtf8TagValue(): void
     {
         $this->assertNull(Filter::tryFromArray(['#e' => ["bad\xff\xfeutf8"]]));
     }
 
-    public function testFromWireParsesAnArrayPayload(): void
+    public function testTryFromArrayParsesAnArrayPayload(): void
     {
         $this->assertEquals(Filter::tryFromArray(['kinds' => [1]]), Filter::tryFromArray(['kinds' => [1]]));
     }
 
     #[DataProvider('nonArrayWireValues')]
-    public function testFromWireReturnsNullForNonArrayPayload(mixed $value): void
+    public function testTryFromArrayReturnsNullForNonArrayPayload(mixed $value): void
     {
         $this->assertNull(Filter::tryFromArray($value));
     }
@@ -675,7 +675,7 @@ final class FilterTest extends TestCase
      * @param array<string, mixed> $data
      */
     #[DataProvider('malformedFilterProvider')]
-    public function testFromArrayReturnsNullForMalformedScalarFields(array $data): void
+    public function testTryFromArrayReturnsNullForMalformedScalarFields(array $data): void
     {
         $this->assertNull(Filter::tryFromArray($data));
     }
@@ -710,7 +710,7 @@ final class FilterTest extends TestCase
         $this->assertSame($data, $filter->toArray());
     }
 
-    public function testFromArrayAcceptsLimitOfZero(): void
+    public function testTryFromArrayAcceptsLimitOfZero(): void
     {
         $filter = Filter::tryFromArray(['limit' => 0]);
 
@@ -931,12 +931,12 @@ final class FilterTest extends TestCase
         TagFilter::fromValues(['e' => $values]);
     }
 
-    public function testFromArrayReturnsNullForEmptyTagName(): void
+    public function testTryFromArrayReturnsNullForEmptyTagName(): void
     {
         $this->assertNull(Filter::tryFromArray(['#' => ['value']]));
     }
 
-    public function testFromArrayReturnsNullForNonArrayTagValues(): void
+    public function testTryFromArrayReturnsNullForNonArrayTagValues(): void
     {
         $this->assertNull(Filter::tryFromArray(['#e' => 'not-an-array']));
     }

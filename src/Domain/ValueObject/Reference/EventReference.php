@@ -94,7 +94,7 @@ final readonly class EventReference
 
         return new self(
             $eventId,
-            isset($data['relay_url']) && is_string($data['relay_url']) ? RelayUrl::fromString($data['relay_url']) : null,
+            isset($data['relay_url']) && is_string($data['relay_url']) ? RelayUrl::tryFromString($data['relay_url']) : null,
             isset($data['marker']) && is_string($data['marker']) ? $data['marker'] : null,
             isset($data['author']) && is_string($data['author']) ? PublicKey::tryFromHex($data['author']) : null,
         );

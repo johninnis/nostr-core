@@ -8,7 +8,6 @@ use InvalidArgumentException;
 use Override;
 use Stringable;
 
-// Deliberate: a value object, not a backed enum, because NIP-01 tag names are an open set any string can join — see ADR-0006
 final readonly class TagType implements Stringable
 {
     public const string EVENT = 'e';

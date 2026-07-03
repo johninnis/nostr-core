@@ -62,7 +62,7 @@ final class PrivateKeyTest extends TestCase
         $this->assertSame($privateKey->toHex(), $recreated->toHex());
     }
 
-    public function testFromBech32ReturnsNullForInvalidPrefix(): void
+    public function testTryFromBech32ReturnsNullForInvalidPrefix(): void
     {
         $this->assertNull(PrivateKey::tryFromBech32('npub1abc'));
     }
@@ -75,12 +75,12 @@ final class PrivateKeyTest extends TestCase
         $this->assertNotEquals($key1->toHex(), $key2->toHex());
     }
 
-    public function testFromBech32ReturnsNullForInvalidChecksum(): void
+    public function testTryFromBech32ReturnsNullForInvalidChecksum(): void
     {
         $this->assertNull(PrivateKey::tryFromBech32('nsec1invalidchecksum'));
     }
 
-    public function testFromHexReturnsNullForUppercaseHex(): void
+    public function testTryFromHexReturnsNullForUppercaseHex(): void
     {
         $this->assertNull(PrivateKey::tryFromHex(strtoupper(self::VALID_PRIVATE_KEY_HEX)));
     }
@@ -122,7 +122,7 @@ final class PrivateKeyTest extends TestCase
         $this->assertTrue($privateKey->isZeroed());
     }
 
-    public function testFromBytesConstructsEquivalentKey(): void
+    public function testTryFromBytesConstructsEquivalentKey(): void
     {
         $bytes = hex2bin(self::VALID_PRIVATE_KEY_HEX);
         assert(false !== $bytes);
@@ -133,7 +133,7 @@ final class PrivateKeyTest extends TestCase
         $this->assertSame($viaHex->toHex(), $viaBytes->toHex());
     }
 
-    public function testFromBytesRejectsWrongLength(): void
+    public function testTryFromBytesRejectsWrongLength(): void
     {
         $this->assertNull(PrivateKey::tryFromBytes('too-short'));
     }
@@ -163,7 +163,7 @@ final class PrivateKeyTest extends TestCase
         $this->assertNotNull(PrivateKey::tryFromHex('0000000000000000000000000000000000000000000000000000000000000001'));
     }
 
-    public function testFromBytesRejectsZeroScalar(): void
+    public function testTryFromBytesRejectsZeroScalar(): void
     {
         $this->assertNull(PrivateKey::tryFromBytes(str_repeat("\x00", 32)));
     }

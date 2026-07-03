@@ -10,7 +10,7 @@ use RuntimeException;
 
 final class Nip05IdentifierTest extends TestCase
 {
-    public function testFromStringParsesValidIdentifier(): void
+    public function testTryFromStringParsesValidIdentifier(): void
     {
         $identifier = Nip05Identifier::tryFromString('alice@example.com') ?? throw new RuntimeException('expected valid identifier');
 
@@ -18,7 +18,7 @@ final class Nip05IdentifierTest extends TestCase
         $this->assertSame('example.com', $identifier->getDomain());
     }
 
-    public function testFromStringTrimsWhitespace(): void
+    public function testTryFromStringTrimsWhitespace(): void
     {
         $identifier = Nip05Identifier::tryFromString(' alice @  example.com ') ?? throw new RuntimeException('expected valid identifier');
 
@@ -26,7 +26,7 @@ final class Nip05IdentifierTest extends TestCase
         $this->assertSame('example.com', $identifier->getDomain());
     }
 
-    public function testFromStringCanonicalisesDomainToLowerCaseButPreservesLocalPart(): void
+    public function testTryFromStringCanonicalisesDomainToLowerCaseButPreservesLocalPart(): void
     {
         $identifier = Nip05Identifier::tryFromString('Alice@Example.COM') ?? throw new RuntimeException('expected valid identifier');
 
@@ -39,17 +39,17 @@ final class Nip05IdentifierTest extends TestCase
         );
     }
 
-    public function testFromStringReturnsNullForMissingAtSymbol(): void
+    public function testTryFromStringReturnsNullForMissingAtSymbol(): void
     {
         $this->assertNull(Nip05Identifier::tryFromString('aliceexample.com'));
     }
 
-    public function testFromStringReturnsNullForEmptyLocalPart(): void
+    public function testTryFromStringReturnsNullForEmptyLocalPart(): void
     {
         $this->assertNull(Nip05Identifier::tryFromString('@example.com'));
     }
 
-    public function testFromStringReturnsNullForEmptyDomain(): void
+    public function testTryFromStringReturnsNullForEmptyDomain(): void
     {
         $this->assertNull(Nip05Identifier::tryFromString('alice@'));
     }
@@ -71,7 +71,7 @@ final class Nip05IdentifierTest extends TestCase
         $this->assertSame('alice@example.com', (string) $identifier);
     }
 
-    public function testFromStringParsesNestedSubdomain(): void
+    public function testTryFromStringParsesNestedSubdomain(): void
     {
         $identifier = Nip05Identifier::tryFromString('user@sub.domain.example.com') ?? throw new RuntimeException('expected valid identifier');
 
@@ -79,57 +79,57 @@ final class Nip05IdentifierTest extends TestCase
         $this->assertSame('sub.domain.example.com', $identifier->getDomain());
     }
 
-    public function testFromStringReturnsNullForQueryParamInjectionInLocalPart(): void
+    public function testTryFromStringReturnsNullForQueryParamInjectionInLocalPart(): void
     {
         $this->assertNull(Nip05Identifier::tryFromString('alice&admin=1@example.com'));
     }
 
-    public function testFromStringReturnsNullForFragmentInjectionInLocalPart(): void
+    public function testTryFromStringReturnsNullForFragmentInjectionInLocalPart(): void
     {
         $this->assertNull(Nip05Identifier::tryFromString('alice#fragment@example.com'));
     }
 
-    public function testFromStringReturnsNullForPathTraversalInLocalPart(): void
+    public function testTryFromStringReturnsNullForPathTraversalInLocalPart(): void
     {
         $this->assertNull(Nip05Identifier::tryFromString('../secrets@example.com'));
     }
 
-    public function testFromStringReturnsNullForSpaceInLocalPart(): void
+    public function testTryFromStringReturnsNullForSpaceInLocalPart(): void
     {
         $this->assertNull(Nip05Identifier::tryFromString('alice bob@example.com'));
     }
 
-    public function testFromStringReturnsNullForPathInDomain(): void
+    public function testTryFromStringReturnsNullForPathInDomain(): void
     {
         $this->assertNull(Nip05Identifier::tryFromString('alice@example.com/../secrets'));
     }
 
-    public function testFromStringReturnsNullForUserInfoInjectionInDomain(): void
+    public function testTryFromStringReturnsNullForUserInfoInjectionInDomain(): void
     {
         $this->assertNull(Nip05Identifier::tryFromString('alice@evil.com:8080@victim.com'));
     }
 
-    public function testFromStringReturnsNullForIpv4Literal(): void
+    public function testTryFromStringReturnsNullForIpv4Literal(): void
     {
         $this->assertNull(Nip05Identifier::tryFromString('alice@169.254.169.254'));
     }
 
-    public function testFromStringReturnsNullForIpv6Literal(): void
+    public function testTryFromStringReturnsNullForIpv6Literal(): void
     {
         $this->assertNull(Nip05Identifier::tryFromString('alice@[::1]'));
     }
 
-    public function testFromStringReturnsNullForSingleLabelHostname(): void
+    public function testTryFromStringReturnsNullForSingleLabelHostname(): void
     {
         $this->assertNull(Nip05Identifier::tryFromString('alice@localhost'));
     }
 
-    public function testFromStringReturnsNullForPortInDomain(): void
+    public function testTryFromStringReturnsNullForPortInDomain(): void
     {
         $this->assertNull(Nip05Identifier::tryFromString('alice@example.com:8080'));
     }
 
-    public function testFromStringAcceptsPunycodeDomain(): void
+    public function testTryFromStringAcceptsPunycodeDomain(): void
     {
         $identifier = Nip05Identifier::tryFromString('alice@xn--nxasmq6b.example.com') ?? throw new RuntimeException('expected valid identifier');
 

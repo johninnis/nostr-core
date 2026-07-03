@@ -25,7 +25,7 @@ final class WireParserTotalityComplianceTest extends TestCase
 {
     private const int ITERATIONS = 256;
 
-    public function testEventFromJsonNeverThrowsOnArbitraryStrings(): void
+    public function testEventTryFromJsonNeverThrowsOnArbitraryStrings(): void
     {
         $this->expectNotToPerformAssertions();
 
@@ -34,7 +34,7 @@ final class WireParserTotalityComplianceTest extends TestCase
         }
     }
 
-    public function testEventFromArrayNeverThrowsOnArbitraryArrays(): void
+    public function testEventTryFromArrayNeverThrowsOnArbitraryArrays(): void
     {
         $this->expectNotToPerformAssertions();
 
@@ -43,7 +43,7 @@ final class WireParserTotalityComplianceTest extends TestCase
         }
     }
 
-    public function testEventFromArrayRoundTripsToSerialisationWithoutThrowing(): void
+    public function testEventTryFromArrayRoundTripsToSerialisationWithoutThrowing(): void
     {
         $baseline = Event::tryFromArray([
             'id' => str_repeat('a', 64),
@@ -66,7 +66,7 @@ final class WireParserTotalityComplianceTest extends TestCase
         }
     }
 
-    public function testFilterFromArrayRoundTripsToSerialisationWithoutThrowing(): void
+    public function testFilterTryFromArrayRoundTripsToSerialisationWithoutThrowing(): void
     {
         $baseline = Filter::tryFromArray(['kinds' => [1]]);
         $this->assertNotNull($baseline);
@@ -95,7 +95,7 @@ final class WireParserTotalityComplianceTest extends TestCase
         }
     }
 
-    public function testMessageFromJsonNeverThrowsOnStructuredOrObjectInput(): void
+    public function testMessageTryFromJsonNeverThrowsOnStructuredOrObjectInput(): void
     {
         $this->expectNotToPerformAssertions();
 
@@ -107,7 +107,7 @@ final class WireParserTotalityComplianceTest extends TestCase
         }
     }
 
-    public function testFilterFromArrayNeverThrowsOnArbitraryArrays(): void
+    public function testFilterTryFromArrayNeverThrowsOnArbitraryArrays(): void
     {
         $this->expectNotToPerformAssertions();
 
@@ -116,7 +116,7 @@ final class WireParserTotalityComplianceTest extends TestCase
         }
     }
 
-    public function testTagCollectionFromWireNeverThrowsOnArbitraryArrays(): void
+    public function testTagCollectionTryFromArrayNeverThrowsOnArbitraryArrays(): void
     {
         $this->expectNotToPerformAssertions();
 
@@ -148,16 +148,16 @@ final class WireParserTotalityComplianceTest extends TestCase
         }
     }
 
-    public function testRelayUrlFromStringNeverThrowsOnArbitraryStrings(): void
+    public function testRelayUrlTryFromStringNeverThrowsOnArbitraryStrings(): void
     {
         $this->expectNotToPerformAssertions();
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            RelayUrl::fromString(FuzzInputMother::hostileString());
+            RelayUrl::tryFromString(FuzzInputMother::hostileString());
         }
     }
 
-    public function testNcryptsecFromStringNeverThrowsOnArbitraryStrings(): void
+    public function testNcryptsecTryFromStringNeverThrowsOnArbitraryStrings(): void
     {
         $this->expectNotToPerformAssertions();
 

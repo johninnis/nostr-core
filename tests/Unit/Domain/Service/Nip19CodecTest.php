@@ -205,7 +205,7 @@ final class Nip19CodecTest extends TestCase
     {
         $naddr = $this->codec->encodeAddressableEvent(
             $this->coordinate(),
-            new RelayUrlCollection([RelayUrl::fromString('wss://relay.example.com') ?? throw new RuntimeException('Invalid test relay')]),
+            new RelayUrlCollection([RelayUrl::tryFromString('wss://relay.example.com') ?? throw new RuntimeException('Invalid test relay')]),
         );
 
         $entity = $this->codec->decodeComplexEntity($naddr);

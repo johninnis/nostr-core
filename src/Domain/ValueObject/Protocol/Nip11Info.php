@@ -7,7 +7,6 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Protocol;
 use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 
-// Deliberate: a thin typed view over the raw NIP-11 document, not a fully-parsed value object — see ADR-0036
 final readonly class Nip11Info
 {
     /**

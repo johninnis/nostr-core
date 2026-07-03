@@ -77,7 +77,7 @@ final class TagReferenceExtractor
 
         return new EventReference(
             $eventId,
-            RelayUrl::fromString($tag->getValue(1)),
+            RelayUrl::tryFromString($tag->getValue(1)),
             $tag->getValue(2),
             null !== $author ? PublicKey::tryFromHex($author) : null,
         );
@@ -98,7 +98,7 @@ final class TagReferenceExtractor
 
         return new PubkeyReference(
             $pubkey,
-            RelayUrl::fromString($tag->getValue(1)),
+            RelayUrl::tryFromString($tag->getValue(1)),
             $tag->getValue(2),
         );
     }
@@ -125,7 +125,7 @@ final class TagReferenceExtractor
 
         return new EventReference(
             $eventId,
-            RelayUrl::fromString($tag->getValue(1)),
+            RelayUrl::tryFromString($tag->getValue(1)),
             null,
             null !== $author ? PublicKey::tryFromHex($author) : null,
         );
@@ -151,7 +151,7 @@ final class TagReferenceExtractor
         }
 
         $value = $tag->getValue(0);
-        $relayUrl = null !== $value ? RelayUrl::fromString($value) : null;
+        $relayUrl = null !== $value ? RelayUrl::tryFromString($value) : null;
 
         if (null === $relayUrl) {
             return null;

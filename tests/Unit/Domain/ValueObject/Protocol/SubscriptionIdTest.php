@@ -10,24 +10,24 @@ use RuntimeException;
 
 final class SubscriptionIdTest extends TestCase
 {
-    public function testFromStringCreatesValidInstance(): void
+    public function testTryFromStringCreatesValidInstance(): void
     {
         $id = SubscriptionId::tryFromString('my-sub-id') ?? throw new RuntimeException('Expected a valid subscription ID');
 
         $this->assertSame('my-sub-id', (string) $id);
     }
 
-    public function testFromStringReturnsNullForEmptyString(): void
+    public function testTryFromStringReturnsNullForEmptyString(): void
     {
         $this->assertNull(SubscriptionId::tryFromString(''));
     }
 
-    public function testFromStringReturnsNullForStringExceeding64Characters(): void
+    public function testTryFromStringReturnsNullForStringExceeding64Characters(): void
     {
         $this->assertNull(SubscriptionId::tryFromString(str_repeat('a', 65)));
     }
 
-    public function testFromStringAllows64CharacterString(): void
+    public function testTryFromStringAllows64CharacterString(): void
     {
         $id = SubscriptionId::tryFromString(str_repeat('a', 64)) ?? throw new RuntimeException('Expected a valid subscription ID');
 
@@ -74,37 +74,37 @@ final class SubscriptionIdTest extends TestCase
         $this->assertFalse($id1->equals($id2));
     }
 
-    public function testFromStringReturnsNullForNullByte(): void
+    public function testTryFromStringReturnsNullForNullByte(): void
     {
         $this->assertNull(SubscriptionId::tryFromString("sub\x00id"));
     }
 
-    public function testFromStringReturnsNullForNewline(): void
+    public function testTryFromStringReturnsNullForNewline(): void
     {
         $this->assertNull(SubscriptionId::tryFromString("sub\nid"));
     }
 
-    public function testFromStringReturnsNullForTrailingNewline(): void
+    public function testTryFromStringReturnsNullForTrailingNewline(): void
     {
         $this->assertNull(SubscriptionId::tryFromString("subid\n"));
     }
 
-    public function testFromStringReturnsNullForControlCharacter(): void
+    public function testTryFromStringReturnsNullForControlCharacter(): void
     {
         $this->assertNull(SubscriptionId::tryFromString("sub\x01id"));
     }
 
-    public function testFromStringReturnsNullForSpace(): void
+    public function testTryFromStringReturnsNullForSpace(): void
     {
         $this->assertNull(SubscriptionId::tryFromString('sub id'));
     }
 
-    public function testFromStringReturnsNullForDelCharacter(): void
+    public function testTryFromStringReturnsNullForDelCharacter(): void
     {
         $this->assertNull(SubscriptionId::tryFromString("sub\x7Fid"));
     }
 
-    public function testFromStringAcceptsPrintableAsciiRange(): void
+    public function testTryFromStringAcceptsPrintableAsciiRange(): void
     {
         $id = SubscriptionId::tryFromString('sub-1.0_alpha:abc/def') ?? throw new RuntimeException('Expected a valid subscription ID');
 

@@ -45,7 +45,7 @@ final readonly class RelayReference
             return null;
         }
 
-        $relayUrl = RelayUrl::fromString($url);
+        $relayUrl = RelayUrl::tryFromString($url);
         if (null === $relayUrl) {
             return null;
         }

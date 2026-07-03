@@ -12,31 +12,31 @@ use PHPUnit\Framework\TestCase;
 
 final class ConversationKeyTest extends TestCase
 {
-    public function testFromHexAcceptsValidHex(): void
+    public function testTryFromHexAcceptsValidHex(): void
     {
         $key = ConversationKey::tryFromHex(str_repeat('ab', 32));
 
         $this->assertNotNull($key);
     }
 
-    public function testFromHexReturnsNullForInvalidCharacters(): void
+    public function testTryFromHexReturnsNullForInvalidCharacters(): void
     {
         $this->assertNull(ConversationKey::tryFromHex('invalid'));
     }
 
-    public function testFromHexReturnsNullForWrongLength(): void
+    public function testTryFromHexReturnsNullForWrongLength(): void
     {
         $this->assertNull(ConversationKey::tryFromHex(str_repeat('ab', 16)));
     }
 
-    public function testFromBytesAcceptsCorrectLength(): void
+    public function testTryFromBytesAcceptsCorrectLength(): void
     {
         $key = ConversationKey::tryFromBytes(random_bytes(32));
 
         $this->assertNotNull($key);
     }
 
-    public function testFromBytesReturnsNullForWrongLength(): void
+    public function testTryFromBytesReturnsNullForWrongLength(): void
     {
         $this->assertNull(ConversationKey::tryFromBytes(random_bytes(16)));
     }

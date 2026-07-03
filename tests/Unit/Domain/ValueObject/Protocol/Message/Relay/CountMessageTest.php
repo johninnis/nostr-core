@@ -75,7 +75,7 @@ final class CountMessageTest extends TestCase
         $this->assertSame(['count' => 42], $array[2]);
     }
 
-    public function testFromArrayCreatesValidMessage(): void
+    public function testTryFromArrayCreatesValidMessage(): void
     {
         $data = ['COUNT', 'sub1', ['count' => 42]];
 
@@ -86,22 +86,22 @@ final class CountMessageTest extends TestCase
         $this->assertSame(42, $message->getCount());
     }
 
-    public function testFromArrayThrowsOnInvalidFormat(): void
+    public function testTryFromArrayReturnsNullOnInvalidFormat(): void
     {
         $this->assertNull(CountMessage::tryFromArray(['COUNT', 'sub1']));
     }
 
-    public function testFromArrayThrowsOnWrongType(): void
+    public function testTryFromArrayReturnsNullOnWrongType(): void
     {
         $this->assertNull(CountMessage::tryFromArray(['EVENT', 'sub1', ['count' => 42]]));
     }
 
-    public function testFromArrayThrowsOnMissingCountKey(): void
+    public function testTryFromArrayReturnsNullOnMissingCountKey(): void
     {
         $this->assertNull(CountMessage::tryFromArray(['COUNT', 'sub1', ['total' => 42]]));
     }
 
-    public function testFromArrayThrowsOnNonArrayPayload(): void
+    public function testTryFromArrayReturnsNullOnNonArrayPayload(): void
     {
         $this->assertNull(CountMessage::tryFromArray(['COUNT', 'sub1', 42]));
     }

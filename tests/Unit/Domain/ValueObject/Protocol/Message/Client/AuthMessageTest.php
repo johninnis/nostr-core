@@ -74,7 +74,7 @@ final class AuthMessageTest extends TestCase
         $this->assertIsArray($decoded[1]);
     }
 
-    public function testFromArrayCreatesValidMessage(): void
+    public function testTryFromArrayCreatesValidMessage(): void
     {
         $event = $this->createAuthEvent();
         $data = ['AUTH', $event->toArray()];
@@ -85,12 +85,12 @@ final class AuthMessageTest extends TestCase
         $this->assertSame(EventKind::CLIENT_AUTH, $message->getEvent()->getKind()->toInt());
     }
 
-    public function testFromArrayThrowsOnInvalidFormat(): void
+    public function testTryFromArrayReturnsNullOnInvalidFormat(): void
     {
         $this->assertNull(AuthMessage::tryFromArray(['AUTH']));
     }
 
-    public function testFromArrayThrowsOnWrongType(): void
+    public function testTryFromArrayReturnsNullOnWrongType(): void
     {
         $this->assertNull(AuthMessage::tryFromArray(['EVENT', $this->createAuthEvent()->toArray()]));
     }

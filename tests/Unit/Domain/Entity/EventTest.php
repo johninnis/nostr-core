@@ -114,7 +114,7 @@ final class EventTest extends TestCase
         $this->assertSame($this->event->toArray(), $recreated->toArray());
     }
 
-    public function testFromArrayRequiresId(): void
+    public function testTryFromArrayRequiresId(): void
     {
         $array = $this->event->toArray();
         unset($array['id']);
@@ -122,7 +122,7 @@ final class EventTest extends TestCase
         $this->assertNull(Event::tryFromArray($array));
     }
 
-    public function testFromArrayRejectsMissingSignature(): void
+    public function testTryFromArrayRejectsMissingSignature(): void
     {
         $array = $this->event->toArray();
         unset($array['sig']);
@@ -130,7 +130,7 @@ final class EventTest extends TestCase
         $this->assertNull(Event::tryFromArray($array));
     }
 
-    public function testFromArrayRejectsEmptySignature(): void
+    public function testTryFromArrayRejectsEmptySignature(): void
     {
         $array = $this->event->toArray();
         $array['sig'] = '';
@@ -138,7 +138,7 @@ final class EventTest extends TestCase
         $this->assertNull(Event::tryFromArray($array));
     }
 
-    public function testFromArrayRejectsMalformedCoreFields(): void
+    public function testTryFromArrayRejectsMalformedCoreFields(): void
     {
         $array = $this->event->toArray();
         $array['pubkey'] = 'zz';
@@ -146,7 +146,7 @@ final class EventTest extends TestCase
         $this->assertNull(Event::tryFromArray($array));
     }
 
-    public function testFromWireParsesAnArrayPayload(): void
+    public function testTryFromArrayParsesAnArrayPayload(): void
     {
         $array = $this->event->toArray();
 
@@ -154,7 +154,7 @@ final class EventTest extends TestCase
     }
 
     #[DataProvider('nonArrayWireValues')]
-    public function testFromWireReturnsNullForNonArrayPayload(mixed $value): void
+    public function testTryFromArrayReturnsNullForNonArrayPayload(mixed $value): void
     {
         $this->assertNull(Event::tryFromArray($value));
     }
@@ -170,7 +170,7 @@ final class EventTest extends TestCase
         yield 'null' => [null];
     }
 
-    public function testFromJsonRetainsTheVerbatimJson(): void
+    public function testTryFromJsonRetainsTheVerbatimJson(): void
     {
         $json = json_encode($this->event->toArray(), JSON_THROW_ON_ERROR);
 
@@ -181,7 +181,7 @@ final class EventTest extends TestCase
         $this->assertSame($this->event->getId()->toHex(), $parsed->getId()->toHex());
     }
 
-    public function testFromArrayLeavesRawJsonNull(): void
+    public function testTryFromArrayLeavesRawJsonNull(): void
     {
         $parsed = Event::tryFromArray($this->event->toArray());
 
@@ -235,12 +235,12 @@ final class EventTest extends TestCase
      * @param array<array-key, mixed> $data
      */
     #[DataProvider('malformedSignedEventProvider')]
-    public function testFromArrayReturnsNullForMalformedFields(array $data): void
+    public function testTryFromArrayReturnsNullForMalformedFields(array $data): void
     {
         $this->assertNull(Event::tryFromArray($data));
     }
 
-    public function testFromArrayParsesTheValidBaselineUsedByMalformedCases(): void
+    public function testTryFromArrayParsesTheValidBaselineUsedByMalformedCases(): void
     {
         $this->assertNotNull(Event::tryFromArray(self::validSignedEventArray()));
     }

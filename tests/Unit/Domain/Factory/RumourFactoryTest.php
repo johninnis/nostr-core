@@ -114,7 +114,7 @@ final class RumourFactoryTest extends TestCase
 
     public function testCanCreateAuth(): void
     {
-        $relayUrl = RelayUrl::fromString('wss://relay.example.com');
+        $relayUrl = RelayUrl::tryFromString('wss://relay.example.com');
         $this->assertNotNull($relayUrl);
         $challenge = 'test-challenge-string';
 

@@ -38,7 +38,7 @@ final class PaymentReceiptParserTest extends TestCase
             ['bolt11', 'lnbc210n1p...'],
         ]);
 
-        $this->assertInstanceOf(ZapReceipt::class, PaymentReceiptParser::fromEvent($event));
+        $this->assertInstanceOf(ZapReceipt::class, PaymentReceiptParser::tryFromEvent($event));
     }
 
     public function testParsesNutzapEvent(): void
@@ -47,14 +47,14 @@ final class PaymentReceiptParserTest extends TestCase
             ['p', self::RECIPIENT_PUBKEY],
         ]);
 
-        $this->assertInstanceOf(Nutzap::class, PaymentReceiptParser::fromEvent($event));
+        $this->assertInstanceOf(Nutzap::class, PaymentReceiptParser::tryFromEvent($event));
     }
 
     public function testReturnsNullForNonPaymentEvent(): void
     {
         $event = $this->buildEvent(EventKind::TEXT_NOTE, []);
 
-        $this->assertNull(PaymentReceiptParser::fromEvent($event));
+        $this->assertNull(PaymentReceiptParser::tryFromEvent($event));
     }
 
     /**

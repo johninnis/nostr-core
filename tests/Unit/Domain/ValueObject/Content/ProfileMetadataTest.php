@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 
 final class ProfileMetadataTest extends TestCase
 {
-    public function testFromJsonStringWithAllFields(): void
+    public function testTryFromJsonStringWithAllFields(): void
     {
         $json = json_encode([
             'name' => 'alice',
@@ -35,7 +35,7 @@ final class ProfileMetadataTest extends TestCase
         $this->assertSame('alice@walletofsatoshi.com', $metadata->getLud16());
     }
 
-    public function testFromJsonStringWithMinimalFields(): void
+    public function testTryFromJsonStringWithMinimalFields(): void
     {
         $json = json_encode(['name' => 'bob'], JSON_THROW_ON_ERROR);
 

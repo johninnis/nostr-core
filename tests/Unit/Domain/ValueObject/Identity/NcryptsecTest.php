@@ -14,17 +14,17 @@ final class NcryptsecTest extends TestCase
 {
     private const SPEC_VECTOR_NCRYPTSEC = 'ncryptsec1qgg9947rlpvqu76pj5ecreduf9jxhselq2nae2kghhvd5g7dgjtcxfqtd67p9m0w57lspw8gsq6yphnm8623nsl8xn9j4jdzz84zm3frztj3z7s35vpzmqf6ksu8r89qk5z2zxfmu5gv8th8wclt0h4p';
 
-    public function testFromStringAcceptsValidNcryptsec(): void
+    public function testTryFromStringAcceptsValidNcryptsec(): void
     {
         $this->assertNotNull(Ncryptsec::tryFromString(self::SPEC_VECTOR_NCRYPTSEC));
     }
 
-    public function testFromStringRejectsWrongPayloadLength(): void
+    public function testTryFromStringRejectsWrongPayloadLength(): void
     {
         $this->assertNull(Ncryptsec::tryFromString(Bech32Codec::encode(Ncryptsec::HRP, str_repeat("\0", 10))));
     }
 
-    public function testFromStringRejectsWrongVersionByte(): void
+    public function testTryFromStringRejectsWrongVersionByte(): void
     {
         $wrongVersion = chr(0x01).str_repeat("\0", Ncryptsec::PAYLOAD_LENGTH - 1);
 
@@ -59,24 +59,24 @@ final class NcryptsecTest extends TestCase
         Ncryptsec::create(16, str_repeat('s', 16), str_repeat('n', 24), KeySecurityByte::ClientSideOnly, str_repeat('a', 47));
     }
 
-    public function testFromStringRejectsWrongHrpNsec(): void
+    public function testTryFromStringRejectsWrongHrpNsec(): void
     {
         $this->assertNull(Ncryptsec::tryFromString('nsec1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq2kdzv5'));
     }
 
-    public function testFromStringRejectsWrongHrpNpub(): void
+    public function testTryFromStringRejectsWrongHrpNpub(): void
     {
         $this->assertNull(Ncryptsec::tryFromString('npub1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqwvfd7z'));
     }
 
-    public function testFromStringRejectsInvalidChecksum(): void
+    public function testTryFromStringRejectsInvalidChecksum(): void
     {
         $tampered = substr(self::SPEC_VECTOR_NCRYPTSEC, 0, -6).'xxxxxx';
 
         $this->assertNull(Ncryptsec::tryFromString($tampered));
     }
 
-    public function testFromStringRejectsGarbage(): void
+    public function testTryFromStringRejectsGarbage(): void
     {
         $this->assertNull(Ncryptsec::tryFromString('not-a-bech32-string'));
     }

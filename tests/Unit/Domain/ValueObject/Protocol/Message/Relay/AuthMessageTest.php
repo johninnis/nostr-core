@@ -48,7 +48,7 @@ final class AuthMessageTest extends TestCase
         $this->assertSame('["AUTH","challenge-abc"]', $message->toJson());
     }
 
-    public function testFromArrayCreatesValidMessage(): void
+    public function testTryFromArrayCreatesValidMessage(): void
     {
         $message = AuthMessage::tryFromArray(['AUTH', 'challenge-xyz']) ?? throw new RuntimeException('Expected a valid message');
 
@@ -56,12 +56,12 @@ final class AuthMessageTest extends TestCase
         $this->assertSame('challenge-xyz', $message->getChallenge());
     }
 
-    public function testFromArrayThrowsOnInvalidFormat(): void
+    public function testTryFromArrayReturnsNullOnInvalidFormat(): void
     {
         $this->assertNull(AuthMessage::tryFromArray(['AUTH']));
     }
 
-    public function testFromArrayThrowsOnWrongType(): void
+    public function testTryFromArrayReturnsNullOnWrongType(): void
     {
         $this->assertNull(AuthMessage::tryFromArray(['NOTICE', 'challenge-xyz']));
     }
@@ -75,7 +75,7 @@ final class AuthMessageTest extends TestCase
         $this->assertSame($original->getChallenge(), $restored->getChallenge());
     }
 
-    public function testFromArrayRejectsNonStringChallenge(): void
+    public function testTryFromArrayRejectsNonStringChallenge(): void
     {
         $this->assertNull(AuthMessage::tryFromArray(['AUTH', 42]));
     }

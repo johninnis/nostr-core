@@ -59,7 +59,7 @@ final class EventMessageTest extends TestCase
         $this->assertIsArray($decoded[1]);
     }
 
-    public function testFromArrayCreatesValidMessage(): void
+    public function testTryFromArrayCreatesValidMessage(): void
     {
         $event = $this->createEvent();
         $data = ['EVENT', $event->toArray()];
@@ -70,7 +70,7 @@ final class EventMessageTest extends TestCase
         $this->assertSame($event->getPubkey()->toHex(), $message->getEvent()->getPubkey()->toHex());
     }
 
-    public function testFromArrayCapturesRawJson(): void
+    public function testTryFromArrayCapturesRawJson(): void
     {
         $event = $this->createEvent();
 
@@ -79,12 +79,12 @@ final class EventMessageTest extends TestCase
         $this->assertSame($event->toJson(), $message->getEvent()->getRawJson());
     }
 
-    public function testFromArrayThrowsOnInvalidFormat(): void
+    public function testTryFromArrayReturnsNullOnInvalidFormat(): void
     {
         $this->assertNull(EventMessage::tryFromArray(['EVENT']));
     }
 
-    public function testFromArrayThrowsOnWrongType(): void
+    public function testTryFromArrayReturnsNullOnWrongType(): void
     {
         $this->assertNull(EventMessage::tryFromArray(['REQ', $this->createEvent()->toArray()]));
     }

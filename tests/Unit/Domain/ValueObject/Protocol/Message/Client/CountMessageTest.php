@@ -99,7 +99,7 @@ final class CountMessageTest extends TestCase
         $this->assertSame('sub-1', $decoded[1]);
     }
 
-    public function testFromArrayCreatesValidMessage(): void
+    public function testTryFromArrayCreatesValidMessage(): void
     {
         $data = ['COUNT', 'sub-1', ['kinds' => [1]]];
 
@@ -110,7 +110,7 @@ final class CountMessageTest extends TestCase
         $this->assertCount(1, $message->getFilters());
     }
 
-    public function testFromArrayWithMultipleFilters(): void
+    public function testTryFromArrayWithMultipleFilters(): void
     {
         $data = ['COUNT', 'sub-1', ['kinds' => [1]], ['kinds' => [0]]];
 
@@ -119,12 +119,12 @@ final class CountMessageTest extends TestCase
         $this->assertCount(2, $message->getFilters());
     }
 
-    public function testFromArrayThrowsOnInvalidFormat(): void
+    public function testTryFromArrayReturnsNullOnInvalidFormat(): void
     {
         $this->assertNull(CountMessage::tryFromArray(['COUNT', 'sub-1']));
     }
 
-    public function testFromArrayThrowsOnWrongType(): void
+    public function testTryFromArrayReturnsNullOnWrongType(): void
     {
         $this->assertNull(CountMessage::tryFromArray(['REQ', 'sub-1', ['kinds' => [1]]]));
     }
@@ -145,7 +145,7 @@ final class CountMessageTest extends TestCase
         $this->assertCount(count($original->getFilters()), $restored->getFilters());
     }
 
-    public function testFromArrayRejectsMoreThanMaxFilters(): void
+    public function testTryFromArrayRejectsMoreThanMaxFilters(): void
     {
         $payload = ['COUNT', 'sub-1'];
         for ($i = 0; $i < CountMessage::MAX_FILTERS + 1; ++$i) {

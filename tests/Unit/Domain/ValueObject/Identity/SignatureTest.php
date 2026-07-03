@@ -12,7 +12,7 @@ final class SignatureTest extends TestCase
 {
     private const VALID_SIGNATURE_HEX = '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
 
-    public function testFromBytesReturnsNullForWrongLength(): void
+    public function testTryFromBytesReturnsNullForWrongLength(): void
     {
         $this->assertNull(Signature::tryFromBytes(str_repeat("\0", 10)));
     }

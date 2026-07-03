@@ -48,7 +48,7 @@ final class NoticeMessageTest extends TestCase
         $this->assertSame('["NOTICE","hello world"]', $message->toJson());
     }
 
-    public function testFromArrayCreatesValidMessage(): void
+    public function testTryFromArrayCreatesValidMessage(): void
     {
         $message = NoticeMessage::tryFromArray(['NOTICE', 'rate limited']) ?? throw new RuntimeException('Expected a valid message');
 
@@ -56,12 +56,12 @@ final class NoticeMessageTest extends TestCase
         $this->assertSame('rate limited', $message->getMessage());
     }
 
-    public function testFromArrayThrowsOnInvalidFormat(): void
+    public function testTryFromArrayReturnsNullOnInvalidFormat(): void
     {
         $this->assertNull(NoticeMessage::tryFromArray(['NOTICE']));
     }
 
-    public function testFromArrayThrowsOnWrongType(): void
+    public function testTryFromArrayReturnsNullOnWrongType(): void
     {
         $this->assertNull(NoticeMessage::tryFromArray(['AUTH', 'some message']));
     }
@@ -75,7 +75,7 @@ final class NoticeMessageTest extends TestCase
         $this->assertSame($original->getMessage(), $restored->getMessage());
     }
 
-    public function testFromArrayRejectsNonStringPayload(): void
+    public function testTryFromArrayRejectsNonStringPayload(): void
     {
         $this->assertNull(NoticeMessage::tryFromArray(['NOTICE', ['structured' => 'object']]));
     }

@@ -15,7 +15,7 @@ final class RelayReferenceTest extends TestCase
 
     public function testConstructorWithRelayUrlOnly(): void
     {
-        $relay = RelayUrl::fromString(self::VALID_RELAY) ?? throw new RuntimeException('Invalid test relay');
+        $relay = RelayUrl::tryFromString(self::VALID_RELAY) ?? throw new RuntimeException('Invalid test relay');
         $ref = new RelayReference($relay);
 
         $this->assertSame($relay, $ref->getRelayUrl());
@@ -24,7 +24,7 @@ final class RelayReferenceTest extends TestCase
 
     public function testConstructorWithMode(): void
     {
-        $relay = RelayUrl::fromString(self::VALID_RELAY) ?? throw new RuntimeException('Invalid test relay');
+        $relay = RelayUrl::tryFromString(self::VALID_RELAY) ?? throw new RuntimeException('Invalid test relay');
         $ref = new RelayReference($relay, 'read');
 
         $this->assertSame($relay, $ref->getRelayUrl());
@@ -33,7 +33,7 @@ final class RelayReferenceTest extends TestCase
 
     public function testToArrayReturnsExpectedStructure(): void
     {
-        $relay = RelayUrl::fromString(self::VALID_RELAY) ?? throw new RuntimeException('Invalid test relay');
+        $relay = RelayUrl::tryFromString(self::VALID_RELAY) ?? throw new RuntimeException('Invalid test relay');
         $ref = new RelayReference($relay, 'write');
 
         $array = $ref->toArray();
@@ -43,7 +43,7 @@ final class RelayReferenceTest extends TestCase
 
     public function testToArrayWithNullMode(): void
     {
-        $relay = RelayUrl::fromString(self::VALID_RELAY) ?? throw new RuntimeException('Invalid test relay');
+        $relay = RelayUrl::tryFromString(self::VALID_RELAY) ?? throw new RuntimeException('Invalid test relay');
         $ref = new RelayReference($relay);
 
         $array = $ref->toArray();
@@ -51,7 +51,7 @@ final class RelayReferenceTest extends TestCase
         $this->assertNull($array['mode']);
     }
 
-    public function testFromArrayCreatesValidReference(): void
+    public function testTryFromArrayCreatesValidReference(): void
     {
         $data = [
             'url' => self::VALID_RELAY,
@@ -65,7 +65,7 @@ final class RelayReferenceTest extends TestCase
         $this->assertSame('read', $ref->getMode());
     }
 
-    public function testFromArrayWithoutMode(): void
+    public function testTryFromArrayWithoutMode(): void
     {
         $data = ['url' => self::VALID_RELAY];
 
@@ -76,12 +76,12 @@ final class RelayReferenceTest extends TestCase
         $this->assertNull($ref->getMode());
     }
 
-    public function testFromArrayReturnsNullForInvalidUrl(): void
+    public function testTryFromArrayReturnsNullForInvalidUrl(): void
     {
         $this->assertNull(RelayReference::tryFromArray(['url' => 'not-a-valid-url']));
     }
 
-    public function testFromArrayReturnsNullWhenUrlIsMissingOrNonString(): void
+    public function testTryFromArrayReturnsNullWhenUrlIsMissingOrNonString(): void
     {
         $this->assertNull(RelayReference::tryFromArray([]));
         $this->assertNull(RelayReference::tryFromArray(['url' => 123]));
@@ -89,7 +89,7 @@ final class RelayReferenceTest extends TestCase
 
     public function testRoundTripThroughArray(): void
     {
-        $relay = RelayUrl::fromString(self::VALID_RELAY) ?? throw new RuntimeException('Invalid test relay');
+        $relay = RelayUrl::tryFromString(self::VALID_RELAY) ?? throw new RuntimeException('Invalid test relay');
         $original = new RelayReference($relay, 'write');
 
         $recreated = RelayReference::tryFromArray($original->toArray());

@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 
 final class LongformMetadataTest extends TestCase
 {
-    public function testFromTagCollectionWithAllFields(): void
+    public function testTryFromTagCollectionWithAllFields(): void
     {
         $tags = TagCollectionMother::fromRaw([
             ['d', 'my-article-slug'],
@@ -35,7 +35,7 @@ final class LongformMetadataTest extends TestCase
         $this->assertSame(['nostr', 'protocol'], $metadata->getTopics());
     }
 
-    public function testFromTagCollectionWithOnlyIdentifier(): void
+    public function testTryFromTagCollectionWithOnlyIdentifier(): void
     {
         $tags = TagCollectionMother::fromRaw([
             ['d', 'minimal-article'],
@@ -80,12 +80,12 @@ final class LongformMetadataTest extends TestCase
         $this->assertTrue($original->equals($restored));
     }
 
-    public function testFromArrayReturnsNullWhenIdentifierMissing(): void
+    public function testTryFromArrayReturnsNullWhenIdentifierMissing(): void
     {
         $this->assertNull(LongformMetadata::tryFromArray(['title' => 'No identifier']));
     }
 
-    public function testFromArrayIgnoresMalformedPublishedAtAndTopics(): void
+    public function testTryFromArrayIgnoresMalformedPublishedAtAndTopics(): void
     {
         $restored = LongformMetadata::tryFromArray([
             'identifier' => 'slug',

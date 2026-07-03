@@ -70,7 +70,7 @@ final class ClosedMessageTest extends TestCase
         $this->assertSame('reason', $decoded[2]);
     }
 
-    public function testFromArrayCreatesValidMessage(): void
+    public function testTryFromArrayCreatesValidMessage(): void
     {
         $data = ['CLOSED', 'sub-1', 'error: subscription closed'];
 
@@ -81,7 +81,7 @@ final class ClosedMessageTest extends TestCase
         $this->assertSame('error: subscription closed', $message->getMessage());
     }
 
-    public function testFromArrayWithoutMessageUsesEmptyString(): void
+    public function testTryFromArrayWithoutMessageUsesEmptyString(): void
     {
         $data = ['CLOSED', 'sub-1'];
 
@@ -90,12 +90,12 @@ final class ClosedMessageTest extends TestCase
         $this->assertSame('', $message->getMessage());
     }
 
-    public function testFromArrayThrowsOnInvalidFormat(): void
+    public function testTryFromArrayReturnsNullOnInvalidFormat(): void
     {
         $this->assertNull(ClosedMessage::tryFromArray(['CLOSED']));
     }
 
-    public function testFromArrayThrowsOnWrongType(): void
+    public function testTryFromArrayReturnsNullOnWrongType(): void
     {
         $this->assertNull(ClosedMessage::tryFromArray(['EOSE', 'sub-1', 'reason']));
     }
@@ -116,12 +116,12 @@ final class ClosedMessageTest extends TestCase
         $this->assertSame($original->getMessage(), $restored->getMessage());
     }
 
-    public function testFromArrayRejectsNonStringSubscriptionId(): void
+    public function testTryFromArrayRejectsNonStringSubscriptionId(): void
     {
         $this->assertNull(ClosedMessage::tryFromArray(['CLOSED', 42, 'reason']));
     }
 
-    public function testFromArrayRejectsNonStringReason(): void
+    public function testTryFromArrayRejectsNonStringReason(): void
     {
         $this->assertNull(ClosedMessage::tryFromArray(['CLOSED', 'sub-1', ['structured']]));
     }

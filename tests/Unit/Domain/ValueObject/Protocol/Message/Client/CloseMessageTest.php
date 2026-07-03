@@ -45,7 +45,7 @@ final class CloseMessageTest extends TestCase
         $this->assertSame('["CLOSE","sub-1"]', $json);
     }
 
-    public function testFromArrayCreatesValidMessage(): void
+    public function testTryFromArrayCreatesValidMessage(): void
     {
         $message = CloseMessage::tryFromArray(['CLOSE', 'sub-1']) ?? throw new RuntimeException('Expected a valid message');
 
@@ -53,17 +53,17 @@ final class CloseMessageTest extends TestCase
         $this->assertSame('sub-1', (string) $message->getSubscriptionId());
     }
 
-    public function testFromArrayThrowsOnInvalidFormat(): void
+    public function testTryFromArrayReturnsNullOnInvalidFormat(): void
     {
         $this->assertNull(CloseMessage::tryFromArray(['CLOSE']));
     }
 
-    public function testFromArrayThrowsOnWrongType(): void
+    public function testTryFromArrayReturnsNullOnWrongType(): void
     {
         $this->assertNull(CloseMessage::tryFromArray(['EVENT', 'sub-1']));
     }
 
-    public function testFromArrayThrowsOnTooManyElements(): void
+    public function testTryFromArrayReturnsNullOnTooManyElements(): void
     {
         $this->assertNull(CloseMessage::tryFromArray(['CLOSE', 'sub-1', 'extra']));
     }

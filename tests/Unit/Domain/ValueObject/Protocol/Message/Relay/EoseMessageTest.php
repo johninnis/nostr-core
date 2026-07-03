@@ -41,7 +41,7 @@ final class EoseMessageTest extends TestCase
         $this->assertSame('["EOSE","sub-1"]', $message->toJson());
     }
 
-    public function testFromArrayCreatesValidMessage(): void
+    public function testTryFromArrayCreatesValidMessage(): void
     {
         $message = EoseMessage::tryFromArray(['EOSE', 'sub-1']) ?? throw new RuntimeException('Expected a valid message');
 
@@ -49,17 +49,17 @@ final class EoseMessageTest extends TestCase
         $this->assertSame('sub-1', (string) $message->getSubscriptionId());
     }
 
-    public function testFromArrayThrowsOnInvalidFormat(): void
+    public function testTryFromArrayReturnsNullOnInvalidFormat(): void
     {
         $this->assertNull(EoseMessage::tryFromArray(['EOSE']));
     }
 
-    public function testFromArrayThrowsOnWrongType(): void
+    public function testTryFromArrayReturnsNullOnWrongType(): void
     {
         $this->assertNull(EoseMessage::tryFromArray(['CLOSED', 'sub-1']));
     }
 
-    public function testFromArrayThrowsOnTooManyElements(): void
+    public function testTryFromArrayReturnsNullOnTooManyElements(): void
     {
         $this->assertNull(EoseMessage::tryFromArray(['EOSE', 'sub-1', 'extra']));
     }

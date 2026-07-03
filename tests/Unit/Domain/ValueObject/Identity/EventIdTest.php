@@ -60,12 +60,12 @@ final class EventIdTest extends TestCase
         $this->assertTrue($eventId->equals($recreated));
     }
 
-    public function testFromBech32ReturnsNullForInvalidPrefix(): void
+    public function testTryFromBech32ReturnsNullForInvalidPrefix(): void
     {
         $this->assertNull(EventId::tryFromBech32('npub1abc'));
     }
 
-    public function testFromBech32ReturnsNullForInvalidData(): void
+    public function testTryFromBech32ReturnsNullForInvalidData(): void
     {
         $this->assertNull(EventId::tryFromBech32('note1invaliddata'));
     }

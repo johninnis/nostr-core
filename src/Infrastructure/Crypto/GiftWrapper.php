@@ -25,7 +25,6 @@ use InvalidArgumentException;
 use Override;
 use Throwable;
 
-// Deliberate: a composed cryptographic capability, kept with the crypto family despite reaching primitives only through ports — see ADR-0035
 final class GiftWrapper implements GiftWrapServiceInterface
 {
     // Deliberate: four cohesive crypto collaborators for one NIP-59 operation, not a group to fold into a parameter object — see ADR-0035
