@@ -491,6 +491,7 @@ final class Nip98ValidatorTest extends TestCase
             /** @var array<string, int> */
             private array $seen = [];
 
+            #[\Override]
             public function recordOnce(EventId $eventId, int $ttlSeconds): bool
             {
                 $key = $eventId->toHex();

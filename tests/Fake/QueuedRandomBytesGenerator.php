@@ -21,6 +21,7 @@ final class QueuedRandomBytesGenerator implements RandomBytesGeneratorInterface
         return new self(array_values($entries));
     }
 
+    #[\Override]
     public function bytes(int $length): string
     {
         if ([] === $this->queue) {

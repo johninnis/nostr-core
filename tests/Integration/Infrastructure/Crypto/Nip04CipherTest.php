@@ -41,6 +41,7 @@ final class Nip04CipherTest extends TestCase
     public function testEncryptIsDeterministicWithPinnedIv(): void
     {
         $adapter = new Nip04Cipher(new class implements RandomBytesGeneratorInterface {
+            #[\Override]
             public function bytes(int $length): string
             {
                 return str_repeat("\x10", $length);
