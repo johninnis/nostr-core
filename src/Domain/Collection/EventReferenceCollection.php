@@ -20,7 +20,7 @@ final class EventReferenceCollection extends TypedCollection
 
     private static function tryParse(mixed $value): ?EventReference
     {
-        return is_array($value) ? EventReference::fromArray($value) : null;
+        return is_array($value) ? EventReference::tryFromArray($value) : null;
     }
 
     public static function fromArrays(mixed $values): self

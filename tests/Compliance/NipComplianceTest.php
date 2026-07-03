@@ -188,7 +188,7 @@ final class NipComplianceTest extends TestCase
 
     public function testEventIdCalculationMatchesNip01Specification(): void
     {
-        $rumour = Rumour::fromArray([
+        $rumour = Rumour::tryFromArray([
             'pubkey' => str_repeat('a', 64),
             'created_at' => 1234567890,
             'kind' => 1,

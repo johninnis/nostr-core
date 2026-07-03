@@ -14,14 +14,14 @@ final class EoseMessageTest extends TestCase
 {
     public function testGetTypeReturnsEose(): void
     {
-        $message = new EoseMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'));
+        $message = new EoseMessage(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'));
 
         $this->assertSame(RelayMessageType::Eose, $message->type());
     }
 
     public function testGetSubscriptionIdReturnsConstructedValue(): void
     {
-        $subId = SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID');
+        $subId = SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID');
         $message = new EoseMessage($subId);
 
         $this->assertTrue($subId->equals($message->getSubscriptionId()));
@@ -29,21 +29,21 @@ final class EoseMessageTest extends TestCase
 
     public function testToArrayReturnsCorrectFormat(): void
     {
-        $message = new EoseMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'));
+        $message = new EoseMessage(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'));
 
         $this->assertSame(['EOSE', 'sub-1'], $message->toArray());
     }
 
     public function testToJsonReturnsValidJson(): void
     {
-        $message = new EoseMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'));
+        $message = new EoseMessage(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'));
 
         $this->assertSame('["EOSE","sub-1"]', $message->toJson());
     }
 
     public function testFromArrayCreatesValidMessage(): void
     {
-        $message = EoseMessage::fromArray(['EOSE', 'sub-1']) ?? throw new RuntimeException('Expected a valid message');
+        $message = EoseMessage::tryFromArray(['EOSE', 'sub-1']) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame(RelayMessageType::Eose, $message->type());
         $this->assertSame('sub-1', (string) $message->getSubscriptionId());
@@ -51,24 +51,24 @@ final class EoseMessageTest extends TestCase
 
     public function testFromArrayThrowsOnInvalidFormat(): void
     {
-        $this->assertNull(EoseMessage::fromArray(['EOSE']));
+        $this->assertNull(EoseMessage::tryFromArray(['EOSE']));
     }
 
     public function testFromArrayThrowsOnWrongType(): void
     {
-        $this->assertNull(EoseMessage::fromArray(['CLOSED', 'sub-1']));
+        $this->assertNull(EoseMessage::tryFromArray(['CLOSED', 'sub-1']));
     }
 
     public function testFromArrayThrowsOnTooManyElements(): void
     {
-        $this->assertNull(EoseMessage::fromArray(['EOSE', 'sub-1', 'extra']));
+        $this->assertNull(EoseMessage::tryFromArray(['EOSE', 'sub-1', 'extra']));
     }
 
     public function testRoundTripPreservesData(): void
     {
-        $original = new EoseMessage(SubscriptionId::fromString('my-subscription') ?? throw new RuntimeException('Expected a valid subscription ID'));
+        $original = new EoseMessage(SubscriptionId::tryFromString('my-subscription') ?? throw new RuntimeException('Expected a valid subscription ID'));
 
-        $restored = EoseMessage::fromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
+        $restored = EoseMessage::tryFromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame(
             (string) $original->getSubscriptionId(),

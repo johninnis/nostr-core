@@ -152,7 +152,7 @@ $ncryptsec = $adapter->encrypt(
 
 $stored = (string) $ncryptsec; // ncryptsec1...
 
-$decoded = Ncryptsec::fromString($stored);
+$decoded = Ncryptsec::tryFromString($stored);
 $recovered = $adapter->decrypt($decoded, static fn (): string => readPasswordFromUser());
 ```
 

@@ -48,7 +48,7 @@ final class Secp256k1Signer implements SignatureServiceInterface
             if (null !== $this->ffi) {
                 $auxRand = $this->randomBytes->bytes(self::AUX_RAND_LENGTH);
 
-                return Signature::fromBytes($this->ffi->sign($message, $privkeyBytes, $auxRand))
+                return Signature::tryFromBytes($this->ffi->sign($message, $privkeyBytes, $auxRand))
                     ?? throw new CryptoException('FFI signing produced invalid signature');
             }
 
@@ -78,7 +78,7 @@ final class Secp256k1Signer implements SignatureServiceInterface
         return $privateKey->expose(function (string $privkeyBytes): PublicKey {
             // Deliberate: native libsecp256k1 when present, pure-PHP fallback otherwise — see ADR-0025
             if (null !== $this->ffi) {
-                return PublicKey::fromBytes($this->ffi->derivePublicKey($privkeyBytes))
+                return PublicKey::tryFromBytes($this->ffi->derivePublicKey($privkeyBytes))
                     ?? throw new CryptoException('Key derivation produced invalid public key');
             }
 
@@ -98,7 +98,7 @@ final class Secp256k1Signer implements SignatureServiceInterface
             $publicKeyPoint = $generator->mul($privateKeyInt);
         }
 
-        return PublicKey::fromHex(Secp256k1Math::gmpToHex($publicKeyPoint->getX(), 32))
+        return PublicKey::tryFromHex(Secp256k1Math::gmpToHex($publicKeyPoint->getX(), 32))
             ?? throw new CryptoException('Key derivation produced invalid public key');
     }
 
@@ -139,7 +139,7 @@ final class Secp256k1Signer implements SignatureServiceInterface
         $rHex = Secp256k1Math::gmpToHex($R->getX(), 32);
         $sHex = Secp256k1Math::gmpToHex($s, 32);
 
-        return Signature::fromHex($rHex.$sHex)
+        return Signature::tryFromHex($rHex.$sHex)
             ?? throw new CryptoException('Schnorr signing produced invalid signature');
     }
 

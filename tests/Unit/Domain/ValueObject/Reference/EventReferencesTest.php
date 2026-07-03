@@ -101,7 +101,7 @@ final class EventReferencesTest extends TestCase
 
     private function tagReferencesWithOneEvent(): TagReferences
     {
-        $eventId = EventId::fromHex(self::ID_A) ?? throw new RuntimeException('Invalid test event id');
+        $eventId = EventId::tryFromHex(self::ID_A) ?? throw new RuntimeException('Invalid test event id');
 
         return new TagReferences(
             new EventReferenceCollection([new EventReference($eventId)]),

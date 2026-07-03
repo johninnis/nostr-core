@@ -114,7 +114,7 @@ final class SubscriptionTest extends TestCase
 
     public function testToArray(): void
     {
-        $id = SubscriptionId::fromString('test-sub') ?? throw new RuntimeException('Expected a valid subscription ID');
+        $id = SubscriptionId::tryFromString('test-sub') ?? throw new RuntimeException('Expected a valid subscription ID');
         $filter = new Filter(kinds: EventKindCollection::fromInts([EventKind::TEXT_NOTE]));
         $subscription = new Subscription($id, new FilterCollection([$filter]), Timestamp::fromInt(1700000000), SubscriptionState::Live);
 
@@ -136,7 +136,7 @@ final class SubscriptionTest extends TestCase
             'state' => 'active',
         ];
 
-        $subscription = Subscription::fromArray($data);
+        $subscription = Subscription::tryFromArray($data);
 
         $this->assertNotNull($subscription);
         $this->assertSame('test-sub', (string) $subscription->getId());
@@ -151,7 +151,7 @@ final class SubscriptionTest extends TestCase
             'created_at' => 1700000000,
         ];
 
-        $subscription = Subscription::fromArray($data);
+        $subscription = Subscription::tryFromArray($data);
 
         $this->assertNotNull($subscription);
         $this->assertSame(SubscriptionState::Pending, $subscription->getState());
@@ -159,12 +159,12 @@ final class SubscriptionTest extends TestCase
 
     public function testFromArrayReturnsNullWhenRequiredFieldMissing(): void
     {
-        $this->assertNull(Subscription::fromArray(['id' => 'test']));
+        $this->assertNull(Subscription::tryFromArray(['id' => 'test']));
     }
 
     public function testFromArrayReturnsNullWhenStateInvalid(): void
     {
-        $this->assertNull(Subscription::fromArray([
+        $this->assertNull(Subscription::tryFromArray([
             'id' => 'test-sub',
             'filters' => [['kinds' => [1]]],
             'created_at' => 1700000000,
@@ -174,7 +174,7 @@ final class SubscriptionTest extends TestCase
 
     public function testFromArrayReturnsNullWhenFilterMalformed(): void
     {
-        $this->assertNull(Subscription::fromArray([
+        $this->assertNull(Subscription::tryFromArray([
             'id' => 'test-sub',
             'filters' => ['not-an-array'],
             'created_at' => 1700000000,
@@ -183,7 +183,7 @@ final class SubscriptionTest extends TestCase
 
     public function testFromArrayReturnsNullWhenCreatedAtNotInteger(): void
     {
-        $this->assertNull(Subscription::fromArray([
+        $this->assertNull(Subscription::tryFromArray([
             'id' => 'test-sub',
             'filters' => [['kinds' => [1]]],
             'created_at' => 'soon',
@@ -192,7 +192,7 @@ final class SubscriptionTest extends TestCase
 
     public function testFromArrayReturnsNullWhenCreatedAtNegative(): void
     {
-        $this->assertNull(Subscription::fromArray([
+        $this->assertNull(Subscription::tryFromArray([
             'id' => 'test-sub',
             'filters' => [['kinds' => [1]]],
             'created_at' => -1,

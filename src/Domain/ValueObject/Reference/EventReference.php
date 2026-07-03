@@ -80,14 +80,14 @@ final readonly class EventReference
     /**
      * @param array<array-key, mixed> $data
      */
-    public static function fromArray(array $data): ?self
+    public static function tryFromArray(array $data): ?self
     {
         $eventIdHex = $data['event_id'] ?? null;
         if (!is_string($eventIdHex)) {
             return null;
         }
 
-        $eventId = EventId::fromHex($eventIdHex);
+        $eventId = EventId::tryFromHex($eventIdHex);
         if (null === $eventId) {
             return null;
         }
@@ -96,7 +96,7 @@ final readonly class EventReference
             $eventId,
             isset($data['relay_url']) && is_string($data['relay_url']) ? RelayUrl::fromString($data['relay_url']) : null,
             isset($data['marker']) && is_string($data['marker']) ? $data['marker'] : null,
-            isset($data['author']) && is_string($data['author']) ? PublicKey::fromHex($data['author']) : null,
+            isset($data['author']) && is_string($data['author']) ? PublicKey::tryFromHex($data['author']) : null,
         );
     }
 }

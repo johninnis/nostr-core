@@ -182,7 +182,7 @@ final class TagReferenceExtractorTest extends TestCase
 
     private function tag(string ...$parts): Tag
     {
-        return Tag::fromArray($parts) ?? throw new RuntimeException('Invalid tag fixture');
+        return Tag::tryFromArray($parts) ?? throw new RuntimeException('Invalid tag fixture');
     }
 
     private function assertReferencesAreEmpty(TagReferences $references): void

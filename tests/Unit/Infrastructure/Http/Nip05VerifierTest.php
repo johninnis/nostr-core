@@ -73,13 +73,13 @@ final class Nip05VerifierTest extends TestCase
 
     private function identifier(): Nip05Identifier
     {
-        return Nip05Identifier::fromString('alice@example.com')
+        return Nip05Identifier::tryFromString('alice@example.com')
             ?? throw new RuntimeException('Test setup: invalid identifier');
     }
 
     private function pubkey(): PublicKey
     {
-        return PublicKey::fromHex(self::VALID_PUBKEY_HEX)
+        return PublicKey::tryFromHex(self::VALID_PUBKEY_HEX)
             ?? throw new RuntimeException('Test setup: invalid pubkey hex');
     }
 }

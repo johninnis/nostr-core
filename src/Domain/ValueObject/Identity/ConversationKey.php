@@ -24,16 +24,16 @@ final readonly class ConversationKey
         return new self(new SecretKeyMaterial($conversationKey));
     }
 
-    public static function fromHex(#[SensitiveParameter] string $hex): ?self
+    public static function tryFromHex(#[SensitiveParameter] string $hex): ?self
     {
-        $material = SecretKeyMaterial::fromHex($hex);
+        $material = SecretKeyMaterial::tryFromHex($hex);
 
         return null === $material ? null : new self($material);
     }
 
-    public static function fromBytes(#[SensitiveParameter] string $bytes): ?self
+    public static function tryFromBytes(#[SensitiveParameter] string $bytes): ?self
     {
-        $material = SecretKeyMaterial::fromBytes($bytes);
+        $material = SecretKeyMaterial::tryFromBytes($bytes);
 
         return null === $material ? null : new self($material);
     }

@@ -20,7 +20,7 @@ final class CommentMetadataTest extends TestCase
             ['e', 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc', 'wss://relay.com', 'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd'],
         ]);
 
-        $metadata = CommentMetadata::fromTagCollection($tags);
+        $metadata = CommentMetadata::tryFromTagCollection($tags);
 
         $this->assertNotNull($metadata);
         $this->assertSame('1', $metadata->getRootKind());
@@ -36,7 +36,7 @@ final class CommentMetadataTest extends TestCase
             ['A', '30023:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:my-article', 'wss://relay.com'],
         ]);
 
-        $metadata = CommentMetadata::fromTagCollection($tags);
+        $metadata = CommentMetadata::tryFromTagCollection($tags);
 
         $this->assertNotNull($metadata);
         $this->assertSame(CommentScope::Address, $metadata->getRootScope());
@@ -50,7 +50,7 @@ final class CommentMetadataTest extends TestCase
             ['I', 'https://example.com/article'],
         ]);
 
-        $metadata = CommentMetadata::fromTagCollection($tags);
+        $metadata = CommentMetadata::tryFromTagCollection($tags);
 
         $this->assertNotNull($metadata);
         $this->assertSame(CommentScope::External, $metadata->getRootScope());
@@ -65,7 +65,7 @@ final class CommentMetadataTest extends TestCase
             ['A', '30023:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:slug'],
         ]);
 
-        $metadata = CommentMetadata::fromTagCollection($tags);
+        $metadata = CommentMetadata::tryFromTagCollection($tags);
 
         $this->assertNotNull($metadata);
         $this->assertSame(CommentScope::Event, $metadata->getRootScope());
@@ -78,7 +78,7 @@ final class CommentMetadataTest extends TestCase
             ['E', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
         ]);
 
-        $this->assertNull(CommentMetadata::fromTagCollection($tags));
+        $this->assertNull(CommentMetadata::tryFromTagCollection($tags));
     }
 
     public function testReturnsNullWhenParentKindMissing(): void
@@ -88,7 +88,7 @@ final class CommentMetadataTest extends TestCase
             ['E', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
         ]);
 
-        $this->assertNull(CommentMetadata::fromTagCollection($tags));
+        $this->assertNull(CommentMetadata::tryFromTagCollection($tags));
     }
 
     public function testReturnsNullWhenScopeTagMissing(): void
@@ -98,7 +98,7 @@ final class CommentMetadataTest extends TestCase
             ['k', '1111'],
         ]);
 
-        $this->assertNull(CommentMetadata::fromTagCollection($tags));
+        $this->assertNull(CommentMetadata::tryFromTagCollection($tags));
     }
 
     public function testNonNumericKindValues(): void
@@ -109,7 +109,7 @@ final class CommentMetadataTest extends TestCase
             ['I', 'https://example.com/podcast/episode-1'],
         ]);
 
-        $metadata = CommentMetadata::fromTagCollection($tags);
+        $metadata = CommentMetadata::tryFromTagCollection($tags);
 
         $this->assertNotNull($metadata);
         $this->assertSame('web', $metadata->getRootKind());
@@ -121,7 +121,7 @@ final class CommentMetadataTest extends TestCase
         $original = new CommentMetadata('1', '1111', CommentScope::Event);
 
         $array = $original->toArray();
-        $restored = CommentMetadata::fromArray($array);
+        $restored = CommentMetadata::tryFromArray($array);
 
         $this->assertNotNull($restored);
         $this->assertTrue($original->equals($restored));
@@ -132,12 +132,12 @@ final class CommentMetadataTest extends TestCase
 
     public function testFromArrayReturnsNullWhenFieldMissing(): void
     {
-        $this->assertNull(CommentMetadata::fromArray(['root_kind' => '1', 'parent_kind' => '1111']));
+        $this->assertNull(CommentMetadata::tryFromArray(['root_kind' => '1', 'parent_kind' => '1111']));
     }
 
     public function testFromArrayReturnsNullWhenScopeUnrecognised(): void
     {
-        $this->assertNull(CommentMetadata::fromArray([
+        $this->assertNull(CommentMetadata::tryFromArray([
             'root_kind' => '1',
             'parent_kind' => '1111',
             'root_scope' => 'bogus',

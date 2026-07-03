@@ -13,7 +13,7 @@ final class EventIdTest extends TestCase
     public function testCanCreateValidEventId(): void
     {
         $hex = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
-        $eventId = EventId::fromHex($hex);
+        $eventId = EventId::tryFromHex($hex);
 
         $this->assertNotNull($eventId);
         $this->assertSame($hex, $eventId->toHex());
@@ -22,20 +22,20 @@ final class EventIdTest extends TestCase
 
     public function testReturnsNullForInvalidHexFormat(): void
     {
-        $this->assertNull(EventId::fromHex('invalid-hex'));
+        $this->assertNull(EventId::tryFromHex('invalid-hex'));
     }
 
     public function testReturnsNullForWrongLength(): void
     {
-        $this->assertNull(EventId::fromHex('123456'));
+        $this->assertNull(EventId::tryFromHex('123456'));
     }
 
     public function testEqualsWorksCorrectly(): void
     {
         $hex = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
-        $eventId1 = EventId::fromHex($hex) ?? throw new RuntimeException('Invalid test event ID');
-        $eventId2 = EventId::fromHex($hex);
-        $eventId3 = EventId::fromHex('fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210');
+        $eventId1 = EventId::tryFromHex($hex) ?? throw new RuntimeException('Invalid test event ID');
+        $eventId2 = EventId::tryFromHex($hex);
+        $eventId3 = EventId::tryFromHex('fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210');
         $this->assertNotNull($eventId3);
 
         $this->assertTrue($eventId1->equals($eventId2));
@@ -44,7 +44,7 @@ final class EventIdTest extends TestCase
 
     public function testCanConvertToBech32(): void
     {
-        $eventId = EventId::fromHex('0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef') ?? throw new RuntimeException('Invalid test event ID');
+        $eventId = EventId::tryFromHex('0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef') ?? throw new RuntimeException('Invalid test event ID');
         $bech32 = $eventId->toBech32();
 
         $this->assertStringStartsWith('note1', $bech32);
@@ -52,9 +52,9 @@ final class EventIdTest extends TestCase
 
     public function testCanCreateFromBech32(): void
     {
-        $eventId = EventId::fromHex('0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef') ?? throw new RuntimeException('Invalid test event ID');
+        $eventId = EventId::tryFromHex('0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef') ?? throw new RuntimeException('Invalid test event ID');
         $bech32 = $eventId->toBech32();
-        $recreated = EventId::fromBech32($bech32);
+        $recreated = EventId::tryFromBech32($bech32);
 
         $this->assertNotNull($recreated);
         $this->assertTrue($eventId->equals($recreated));
@@ -62,11 +62,11 @@ final class EventIdTest extends TestCase
 
     public function testFromBech32ReturnsNullForInvalidPrefix(): void
     {
-        $this->assertNull(EventId::fromBech32('npub1abc'));
+        $this->assertNull(EventId::tryFromBech32('npub1abc'));
     }
 
     public function testFromBech32ReturnsNullForInvalidData(): void
     {
-        $this->assertNull(EventId::fromBech32('note1invaliddata'));
+        $this->assertNull(EventId::tryFromBech32('note1invaliddata'));
     }
 }

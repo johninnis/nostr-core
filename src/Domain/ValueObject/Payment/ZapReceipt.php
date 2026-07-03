@@ -46,7 +46,7 @@ final readonly class ZapReceipt implements PaymentReceiptInterface
         return $this->message;
     }
 
-    public static function fromEvent(Event $event): ?self
+    public static function tryFromEvent(Event $event): ?self
     {
         if (!$event->getKind()->is(EventKind::ZAP_RECEIPT)) {
             return null;
@@ -101,7 +101,7 @@ final readonly class ZapReceipt implements PaymentReceiptInterface
 
         $pubkey = JsonWireFormat::stringField($zapRequest, 'pubkey');
 
-        return null !== $pubkey ? PublicKey::fromHex($pubkey) : null;
+        return null !== $pubkey ? PublicKey::tryFromHex($pubkey) : null;
     }
 
     /**
@@ -126,7 +126,7 @@ final readonly class ZapReceipt implements PaymentReceiptInterface
     private static function extractBolt11Amount(TagCollection $tags): ?ZapAmount
     {
         foreach ($tags->getValuesByType(TagType::bolt11()) as $value) {
-            $parsed = ZapAmount::fromBolt11($value);
+            $parsed = ZapAmount::tryFromBolt11($value);
             if (null !== $parsed) {
                 return $parsed;
             }

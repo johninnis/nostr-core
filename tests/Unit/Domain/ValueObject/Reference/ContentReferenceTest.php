@@ -67,7 +67,7 @@ final class ContentReferenceTest extends TestCase
             $this->decodedAddress('my-article'),
         );
 
-        $restored = ContentReference::fromArray($reference->toArray());
+        $restored = ContentReference::tryFromArray($reference->toArray());
 
         $this->assertNotNull($restored);
         $this->assertSame($reference->toArray(), $restored->toArray());
@@ -77,7 +77,7 @@ final class ContentReferenceTest extends TestCase
     {
         $reference = new ContentReference(ContentReferenceType::LegacyRef, '#[0]', 'identifier', 0);
 
-        $restored = ContentReference::fromArray($reference->toArray());
+        $restored = ContentReference::tryFromArray($reference->toArray());
 
         $this->assertNotNull($restored);
         $this->assertSame($reference->toArray(), $restored->toArray());
@@ -85,7 +85,7 @@ final class ContentReferenceTest extends TestCase
 
     public function testFromArrayReturnsNullWhenTypeIsUnknown(): void
     {
-        $this->assertNull(ContentReference::fromArray([
+        $this->assertNull(ContentReference::tryFromArray([
             'type' => 'not-a-real-type',
             'raw_text' => 'raw',
             'identifier' => 'id',
@@ -95,7 +95,7 @@ final class ContentReferenceTest extends TestCase
 
     public function testFromArrayReturnsNullWhenPositionIsNegative(): void
     {
-        $this->assertNull(ContentReference::fromArray([
+        $this->assertNull(ContentReference::tryFromArray([
             'type' => ContentReferenceType::LegacyRef->value,
             'raw_text' => 'raw',
             'identifier' => 'id',
@@ -105,7 +105,7 @@ final class ContentReferenceTest extends TestCase
 
     public function testIsEventReferenceWhenDecodedEntityCarriesAnEventId(): void
     {
-        $eventId = EventId::fromHex(self::EVENT_ID) ?? throw new RuntimeException('Invalid test event id');
+        $eventId = EventId::tryFromHex(self::EVENT_ID) ?? throw new RuntimeException('Invalid test event id');
 
         $reference = new ContentReference(
             ContentReferenceType::BareNevent,
@@ -129,7 +129,7 @@ final class ContentReferenceTest extends TestCase
     {
         return new DecodedNip19Entity(
             type: Nip19EntityType::Address,
-            publicKey: PublicKey::fromHex(self::PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
+            publicKey: PublicKey::tryFromHex(self::PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             eventId: null,
             identifier: $identifier,
             kind: EventKind::fromInt(EventKind::LONGFORM_CONTENT),

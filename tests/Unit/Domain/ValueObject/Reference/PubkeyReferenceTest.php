@@ -17,7 +17,7 @@ final class PubkeyReferenceTest extends TestCase
 
     public function testConstructorWithPubkeyOnly(): void
     {
-        $pubkey = PublicKey::fromHex(self::VALID_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey');
+        $pubkey = PublicKey::tryFromHex(self::VALID_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey');
         $ref = new PubkeyReference($pubkey);
 
         $this->assertSame($pubkey, $ref->getPubkey());
@@ -27,7 +27,7 @@ final class PubkeyReferenceTest extends TestCase
 
     public function testConstructorWithAllParameters(): void
     {
-        $pubkey = PublicKey::fromHex(self::VALID_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey');
+        $pubkey = PublicKey::tryFromHex(self::VALID_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey');
         $relay = RelayUrl::fromString(self::VALID_RELAY);
         $ref = new PubkeyReference($pubkey, $relay, 'alice');
 
@@ -38,7 +38,7 @@ final class PubkeyReferenceTest extends TestCase
 
     public function testToArrayReturnsExpectedStructure(): void
     {
-        $pubkey = PublicKey::fromHex(self::VALID_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey');
+        $pubkey = PublicKey::tryFromHex(self::VALID_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey');
         $relay = RelayUrl::fromString(self::VALID_RELAY);
         $ref = new PubkeyReference($pubkey, $relay, 'alice');
 
@@ -50,7 +50,7 @@ final class PubkeyReferenceTest extends TestCase
 
     public function testToArrayWithNullOptionalFields(): void
     {
-        $pubkey = PublicKey::fromHex(self::VALID_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey');
+        $pubkey = PublicKey::tryFromHex(self::VALID_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey');
         $ref = new PubkeyReference($pubkey);
 
         $array = $ref->toArray();
@@ -67,7 +67,7 @@ final class PubkeyReferenceTest extends TestCase
             'petname' => 'bob',
         ];
 
-        $ref = PubkeyReference::fromArray($data);
+        $ref = PubkeyReference::tryFromArray($data);
 
         $this->assertNotNull($ref);
         $this->assertSame(self::VALID_PUBKEY, $ref->getPubkey()->toHex());
@@ -80,7 +80,7 @@ final class PubkeyReferenceTest extends TestCase
     {
         $data = ['pubkey' => self::VALID_PUBKEY];
 
-        $ref = PubkeyReference::fromArray($data);
+        $ref = PubkeyReference::tryFromArray($data);
 
         $this->assertNotNull($ref);
         $this->assertSame(self::VALID_PUBKEY, $ref->getPubkey()->toHex());
@@ -90,22 +90,22 @@ final class PubkeyReferenceTest extends TestCase
 
     public function testFromArrayReturnsNullForInvalidPubkey(): void
     {
-        $this->assertNull(PubkeyReference::fromArray(['pubkey' => 'invalid']));
+        $this->assertNull(PubkeyReference::tryFromArray(['pubkey' => 'invalid']));
     }
 
     public function testFromArrayReturnsNullWhenPubkeyIsMissingOrNonString(): void
     {
-        $this->assertNull(PubkeyReference::fromArray([]));
-        $this->assertNull(PubkeyReference::fromArray(['pubkey' => 123]));
+        $this->assertNull(PubkeyReference::tryFromArray([]));
+        $this->assertNull(PubkeyReference::tryFromArray(['pubkey' => 123]));
     }
 
     public function testRoundTripThroughArray(): void
     {
-        $pubkey = PublicKey::fromHex(self::VALID_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey');
+        $pubkey = PublicKey::tryFromHex(self::VALID_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey');
         $relay = RelayUrl::fromString(self::VALID_RELAY);
         $original = new PubkeyReference($pubkey, $relay, 'alice');
 
-        $recreated = PubkeyReference::fromArray($original->toArray());
+        $recreated = PubkeyReference::tryFromArray($original->toArray());
 
         $this->assertNotNull($recreated);
         $this->assertSame($original->getPubkey()->toHex(), $recreated->getPubkey()->toHex());

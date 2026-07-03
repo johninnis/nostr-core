@@ -32,7 +32,7 @@ final readonly class Signature implements Stringable
         return $this->signature === $other->signature;
     }
 
-    public static function fromHex(string $hex): ?self
+    public static function tryFromHex(string $hex): ?self
     {
         if (!HexCodec::isValid($hex, self::BYTE_LENGTH)) {
             return null;
@@ -41,7 +41,7 @@ final readonly class Signature implements Stringable
         return new self($hex);
     }
 
-    public static function fromBytes(string $bytes): ?self
+    public static function tryFromBytes(string $bytes): ?self
     {
         if (self::BYTE_LENGTH !== strlen($bytes)) {
             return null;

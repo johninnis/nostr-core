@@ -19,21 +19,21 @@ final readonly class PrivateKey
     {
     }
 
-    public static function fromHex(#[SensitiveParameter] string $hex): ?self
+    public static function tryFromHex(#[SensitiveParameter] string $hex): ?self
     {
-        return self::fromValidatedMaterial(SecretKeyMaterial::fromHex($hex));
+        return self::fromValidatedMaterial(SecretKeyMaterial::tryFromHex($hex));
     }
 
-    public static function fromBech32(#[SensitiveParameter] string $bech32): ?self
+    public static function tryFromBech32(#[SensitiveParameter] string $bech32): ?self
     {
         $bytes = Bech32Codec::decodeWithHrp($bech32, 'nsec');
 
-        return null === $bytes ? null : self::fromBytes($bytes);
+        return null === $bytes ? null : self::tryFromBytes($bytes);
     }
 
-    public static function fromBytes(#[SensitiveParameter] string $bytes): ?self
+    public static function tryFromBytes(#[SensitiveParameter] string $bytes): ?self
     {
-        return self::fromValidatedMaterial(SecretKeyMaterial::fromBytes($bytes));
+        return self::fromValidatedMaterial(SecretKeyMaterial::tryFromBytes($bytes));
     }
 
     public static function generate(): self

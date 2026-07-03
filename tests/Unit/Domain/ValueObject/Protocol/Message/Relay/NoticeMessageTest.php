@@ -50,7 +50,7 @@ final class NoticeMessageTest extends TestCase
 
     public function testFromArrayCreatesValidMessage(): void
     {
-        $message = NoticeMessage::fromArray(['NOTICE', 'rate limited']) ?? throw new RuntimeException('Expected a valid message');
+        $message = NoticeMessage::tryFromArray(['NOTICE', 'rate limited']) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame(RelayMessageType::Notice, $message->type());
         $this->assertSame('rate limited', $message->getMessage());
@@ -58,25 +58,25 @@ final class NoticeMessageTest extends TestCase
 
     public function testFromArrayThrowsOnInvalidFormat(): void
     {
-        $this->assertNull(NoticeMessage::fromArray(['NOTICE']));
+        $this->assertNull(NoticeMessage::tryFromArray(['NOTICE']));
     }
 
     public function testFromArrayThrowsOnWrongType(): void
     {
-        $this->assertNull(NoticeMessage::fromArray(['AUTH', 'some message']));
+        $this->assertNull(NoticeMessage::tryFromArray(['AUTH', 'some message']));
     }
 
     public function testRoundTripPreservesData(): void
     {
         $original = new NoticeMessage('error: could not connect');
 
-        $restored = NoticeMessage::fromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
+        $restored = NoticeMessage::tryFromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame($original->getMessage(), $restored->getMessage());
     }
 
     public function testFromArrayRejectsNonStringPayload(): void
     {
-        $this->assertNull(NoticeMessage::fromArray(['NOTICE', ['structured' => 'object']]));
+        $this->assertNull(NoticeMessage::tryFromArray(['NOTICE', ['structured' => 'object']]));
     }
 }

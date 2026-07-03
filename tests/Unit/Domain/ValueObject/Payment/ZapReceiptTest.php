@@ -38,7 +38,7 @@ final class ZapReceiptTest extends TestCase
             ['bolt11', 'lnbc210n1p...'],
         ]);
 
-        $receipt = ZapReceipt::fromEvent($event);
+        $receipt = ZapReceipt::tryFromEvent($event);
 
         $this->assertNotNull($receipt);
         $senderPubkey = $receipt->getSenderPubkey();
@@ -65,7 +65,7 @@ final class ZapReceiptTest extends TestCase
             ['bolt11', 'lnbc50n1p...'],
         ]);
 
-        $receipt = ZapReceipt::fromEvent($event);
+        $receipt = ZapReceipt::tryFromEvent($event);
 
         $this->assertNotNull($receipt);
         $senderPubkey = $receipt->getSenderPubkey();
@@ -87,7 +87,7 @@ final class ZapReceiptTest extends TestCase
             ['bolt11', 'lnbc10n1p...'],
         ]);
 
-        $receipt = ZapReceipt::fromEvent($event);
+        $receipt = ZapReceipt::tryFromEvent($event);
 
         $this->assertNotNull($receipt);
         $this->assertNull($receipt->getRecipientPubkey());
@@ -107,7 +107,7 @@ final class ZapReceiptTest extends TestCase
             ['bolt11', 'lnbc100n1p...'],
         ]);
 
-        $receipt = ZapReceipt::fromEvent($event);
+        $receipt = ZapReceipt::tryFromEvent($event);
 
         $this->assertNotNull($receipt);
         $this->assertSame(10000, $receipt->getAmount()->toMillisats());
@@ -128,7 +128,7 @@ final class ZapReceiptTest extends TestCase
             ['bolt11', 'lnbc100n1p...'],
         ]);
 
-        $receipt = ZapReceipt::fromEvent($event);
+        $receipt = ZapReceipt::tryFromEvent($event);
 
         $this->assertNotNull($receipt);
         $this->assertSame(10000, $receipt->getAmount()->toMillisats());
@@ -148,7 +148,7 @@ final class ZapReceiptTest extends TestCase
             ['bolt11', 'lnbc100n1p...'],
         ]);
 
-        $this->assertNull(ZapReceipt::fromEvent($event));
+        $this->assertNull(ZapReceipt::tryFromEvent($event));
     }
 
     public function testForgedZapRequestAmountWithoutBolt11ReturnsNull(): void
@@ -164,7 +164,7 @@ final class ZapReceiptTest extends TestCase
             ['description', $zapRequest],
         ]);
 
-        $this->assertNull(ZapReceipt::fromEvent($event));
+        $this->assertNull(ZapReceipt::tryFromEvent($event));
     }
 
     public function testReceiptLevelAmountTagIsIgnored(): void
@@ -182,7 +182,7 @@ final class ZapReceiptTest extends TestCase
             ['bolt11', 'lnbc100n1p...'],
         ]);
 
-        $receipt = ZapReceipt::fromEvent($event);
+        $receipt = ZapReceipt::tryFromEvent($event);
 
         $this->assertNotNull($receipt);
         $this->assertSame(10000, $receipt->getAmount()->toMillisats());
@@ -202,7 +202,7 @@ final class ZapReceiptTest extends TestCase
             ['bolt11', 'lnbc21m1p...'],
         ]);
 
-        $this->assertNotNull(ZapReceipt::fromEvent($event));
+        $this->assertNotNull(ZapReceipt::tryFromEvent($event));
 
         $oversized = $this->buildReceiptEvent([
             ['p', self::RECIPIENT_PUBKEY],
@@ -210,7 +210,7 @@ final class ZapReceiptTest extends TestCase
             ['bolt11', 'lnbc2100m1p...'],
         ]);
 
-        $this->assertNull(ZapReceipt::fromEvent($oversized));
+        $this->assertNull(ZapReceipt::tryFromEvent($oversized));
     }
 
     public function testNoBolt11ReturnsNull(): void
@@ -226,7 +226,7 @@ final class ZapReceiptTest extends TestCase
             ['description', $zapRequest],
         ]);
 
-        $this->assertNull(ZapReceipt::fromEvent($event));
+        $this->assertNull(ZapReceipt::tryFromEvent($event));
     }
 
     public function testMessageExtraction(): void
@@ -243,7 +243,7 @@ final class ZapReceiptTest extends TestCase
             ['bolt11', 'lnbc10n1p...'],
         ]);
 
-        $receipt = ZapReceipt::fromEvent($event);
+        $receipt = ZapReceipt::tryFromEvent($event);
 
         $this->assertNotNull($receipt);
         $this->assertSame('Keep up the good work!', $receipt->getMessage());
@@ -263,7 +263,7 @@ final class ZapReceiptTest extends TestCase
             ['bolt11', 'lnbc10n1p...'],
         ]);
 
-        $receipt = ZapReceipt::fromEvent($event);
+        $receipt = ZapReceipt::tryFromEvent($event);
 
         $this->assertNotNull($receipt);
         $this->assertNull($receipt->getMessage());
@@ -272,14 +272,14 @@ final class ZapReceiptTest extends TestCase
     public function testNonZapReceiptReturnsNull(): void
     {
         $event = EventMother::fromRumour(new Rumour(
-            PublicKey::fromHex(self::RECEIPT_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
+            PublicKey::tryFromHex(self::RECEIPT_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1700000000),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('hello'),
         ));
 
-        $this->assertNull(ZapReceipt::fromEvent($event));
+        $this->assertNull(ZapReceipt::tryFromEvent($event));
     }
 
     public function testMalformedDescriptionJsonReturnsGracefulDefaults(): void
@@ -290,7 +290,7 @@ final class ZapReceiptTest extends TestCase
             ['bolt11', 'lnbc100n1p...'],
         ]);
 
-        $receipt = ZapReceipt::fromEvent($event);
+        $receipt = ZapReceipt::tryFromEvent($event);
 
         $this->assertNotNull($receipt);
         $this->assertNull($receipt->getSenderPubkey());
@@ -308,7 +308,7 @@ final class ZapReceiptTest extends TestCase
             ['bolt11', 'lnbc100n1p...'],
         ]);
 
-        $receipt = ZapReceipt::fromEvent($event);
+        $receipt = ZapReceipt::tryFromEvent($event);
 
         $this->assertNotNull($receipt);
         $this->assertNull($receipt->getSenderPubkey());
@@ -322,7 +322,7 @@ final class ZapReceiptTest extends TestCase
     private function buildReceiptEvent(array $rawTags): Event
     {
         return EventMother::fromRumour(new Rumour(
-            PublicKey::fromHex(self::RECEIPT_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
+            PublicKey::tryFromHex(self::RECEIPT_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1700000000),
             EventKind::fromInt(EventKind::ZAP_RECEIPT),
             TagCollectionMother::fromRaw($rawTags),

@@ -22,10 +22,10 @@ final class ReplyChainAnalyserTest extends TestCase
     public function testNip10MarkedChainResolvesRootReplyAndMention(): void
     {
         $tags = new TagCollection([
-            Tag::fromArray(['e', self::ROOT_ID, 'wss://relay.example', 'root']),
-            Tag::fromArray(['e', self::PARENT_ID, 'wss://relay.example', 'reply']),
-            Tag::fromArray(['e', self::MENTION_ID, 'wss://relay.example', 'mention']),
-            Tag::fromArray(['p', self::PARENT_AUTHOR]),
+            Tag::tryFromArray(['e', self::ROOT_ID, 'wss://relay.example', 'root']),
+            Tag::tryFromArray(['e', self::PARENT_ID, 'wss://relay.example', 'reply']),
+            Tag::tryFromArray(['e', self::MENTION_ID, 'wss://relay.example', 'mention']),
+            Tag::tryFromArray(['p', self::PARENT_AUTHOR]),
         ]);
 
         $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::TEXT_NOTE));
@@ -41,9 +41,9 @@ final class ReplyChainAnalyserTest extends TestCase
     public function testNip10PositionalChainUsesFirstAsRootAndLastAsParent(): void
     {
         $tags = new TagCollection([
-            Tag::fromArray(['e', self::ROOT_ID]),
-            Tag::fromArray(['e', self::MENTION_ID]),
-            Tag::fromArray(['e', self::PARENT_ID]),
+            Tag::tryFromArray(['e', self::ROOT_ID]),
+            Tag::tryFromArray(['e', self::MENTION_ID]),
+            Tag::tryFromArray(['e', self::PARENT_ID]),
         ]);
 
         $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::TEXT_NOTE));
@@ -56,7 +56,7 @@ final class ReplyChainAnalyserTest extends TestCase
     public function testNip10SingleEventTagIsTreatedAsParent(): void
     {
         $tags = new TagCollection([
-            Tag::fromArray(['e', self::PARENT_ID]),
+            Tag::tryFromArray(['e', self::PARENT_ID]),
         ]);
 
         $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::TEXT_NOTE));
@@ -68,7 +68,7 @@ final class ReplyChainAnalyserTest extends TestCase
     public function testEventWithoutEventTagsIsARootPost(): void
     {
         $tags = new TagCollection([
-            Tag::fromArray(['p', self::PARENT_AUTHOR]),
+            Tag::tryFromArray(['p', self::PARENT_AUTHOR]),
         ]);
 
         $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::TEXT_NOTE));
@@ -82,12 +82,12 @@ final class ReplyChainAnalyserTest extends TestCase
     public function testNip22CommentCollectsBothRootAndParentAuthors(): void
     {
         $tags = new TagCollection([
-            Tag::fromArray(['E', self::ROOT_ID, 'wss://relay.example', self::ROOT_AUTHOR]),
-            Tag::fromArray(['K', '1']),
-            Tag::fromArray(['P', self::ROOT_AUTHOR, 'wss://relay.example']),
-            Tag::fromArray(['e', self::PARENT_ID, 'wss://relay.example', self::PARENT_AUTHOR]),
-            Tag::fromArray(['k', '1111']),
-            Tag::fromArray(['p', self::PARENT_AUTHOR]),
+            Tag::tryFromArray(['E', self::ROOT_ID, 'wss://relay.example', self::ROOT_AUTHOR]),
+            Tag::tryFromArray(['K', '1']),
+            Tag::tryFromArray(['P', self::ROOT_AUTHOR, 'wss://relay.example']),
+            Tag::tryFromArray(['e', self::PARENT_ID, 'wss://relay.example', self::PARENT_AUTHOR]),
+            Tag::tryFromArray(['k', '1111']),
+            Tag::tryFromArray(['p', self::PARENT_AUTHOR]),
         ]);
 
         $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::COMMENT));
@@ -114,9 +114,9 @@ final class ReplyChainAnalyserTest extends TestCase
     public function testNip22CommentRootedOnAddressableEventDoesNotYetResolveARoot(): void
     {
         $tags = new TagCollection([
-            Tag::fromArray(['A', '30023:'.self::ROOT_AUTHOR.':my-article', 'wss://relay.example']),
-            Tag::fromArray(['K', '30023']),
-            Tag::fromArray(['P', self::ROOT_AUTHOR]),
+            Tag::tryFromArray(['A', '30023:'.self::ROOT_AUTHOR.':my-article', 'wss://relay.example']),
+            Tag::tryFromArray(['K', '30023']),
+            Tag::tryFromArray(['P', self::ROOT_AUTHOR]),
         ]);
 
         $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::COMMENT));

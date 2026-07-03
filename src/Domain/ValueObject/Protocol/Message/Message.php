@@ -6,7 +6,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message;
 
 use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 
-// Deliberate: an abstract base with final leaves expresses a closed sum type PHP cannot name, sharing the self-typed fromJson — see ADR-0016
+// Deliberate: an abstract base with final leaves expresses a closed sum type PHP cannot name, sharing the self-typed tryFromJson — see ADR-0016
 abstract readonly class Message
 {
     /**
@@ -17,13 +17,13 @@ abstract readonly class Message
     /**
      * @param array<array-key, mixed> $data
      */
-    abstract public static function fromArray(array $data): ?static;
+    abstract public static function tryFromArray(array $data): ?static;
 
-    final public static function fromJson(string $json): ?static
+    final public static function tryFromJson(string $json): ?static
     {
         $data = JsonWireFormat::decodeList($json);
 
-        return null === $data ? null : static::fromArray($data);
+        return null === $data ? null : static::tryFromArray($data);
     }
 
     final protected static function encode(mixed $value): string

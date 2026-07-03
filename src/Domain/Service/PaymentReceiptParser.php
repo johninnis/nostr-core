@@ -17,6 +17,6 @@ final class PaymentReceiptParser
 
     public static function fromEvent(Event $event): ?PaymentReceiptInterface
     {
-        return ZapReceipt::fromEvent($event) ?? Nutzap::fromEvent($event);
+        return ZapReceipt::tryFromEvent($event) ?? Nutzap::tryFromEvent($event);
     }
 }

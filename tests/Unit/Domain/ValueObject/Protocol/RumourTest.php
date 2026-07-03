@@ -105,7 +105,7 @@ final class RumourTest extends TestCase
 
     public function testFromArrayParsesTheUnsignedCore(): void
     {
-        $rumour = Rumour::fromArray([
+        $rumour = Rumour::tryFromArray([
             'pubkey' => $this->keyPair->getPublicKey()->toHex(),
             'created_at' => 1700000000,
             'kind' => 1,
@@ -119,7 +119,7 @@ final class RumourTest extends TestCase
 
     public function testFromArrayIgnoresSignatureFields(): void
     {
-        $rumour = Rumour::fromArray([
+        $rumour = Rumour::tryFromArray([
             'id' => str_repeat('f', 64),
             'pubkey' => $this->keyPair->getPublicKey()->toHex(),
             'created_at' => 1700000000,
@@ -135,7 +135,7 @@ final class RumourTest extends TestCase
 
     public function testFromArrayReturnsNullForMissingRequiredFields(): void
     {
-        $this->assertNull(Rumour::fromArray([
+        $this->assertNull(Rumour::tryFromArray([
             'pubkey' => $this->keyPair->getPublicKey()->toHex(),
             'created_at' => 1700000000,
         ]));
@@ -143,7 +143,7 @@ final class RumourTest extends TestCase
 
     public function testFromArrayReturnsNullForInvalidUtf8Content(): void
     {
-        $this->assertNull(Rumour::fromArray([
+        $this->assertNull(Rumour::tryFromArray([
             'pubkey' => str_repeat('a', 64),
             'created_at' => 1700000000,
             'kind' => 1,
@@ -154,7 +154,7 @@ final class RumourTest extends TestCase
 
     public function testFromArrayHandlesNonStringContent(): void
     {
-        $rumour = Rumour::fromArray([
+        $rumour = Rumour::tryFromArray([
             'pubkey' => $this->keyPair->getPublicKey()->toHex(),
             'created_at' => 1234567890,
             'kind' => 1,
@@ -172,7 +172,7 @@ final class RumourTest extends TestCase
     #[DataProvider('malformedRumourProvider')]
     public function testFromArrayReturnsNullForMalformedFields(array $data): void
     {
-        $this->assertNull(Rumour::fromArray($data));
+        $this->assertNull(Rumour::tryFromArray($data));
     }
 
     /**
@@ -397,10 +397,10 @@ final class RumourTest extends TestCase
      */
     private function rumourWithKindAndContent(int $kind, string $content, array $tagArrays): Rumour
     {
-        $tags = array_map(Tag::fromArray(...), $tagArrays);
+        $tags = array_map(Tag::tryFromArray(...), $tagArrays);
 
         return new Rumour(
-            PublicKey::fromHex('fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210') ?? throw new RuntimeException('Invalid test pubkey'),
+            PublicKey::tryFromHex('fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210') ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1234567890),
             EventKind::fromInt($kind),
             new TagCollection($tags),

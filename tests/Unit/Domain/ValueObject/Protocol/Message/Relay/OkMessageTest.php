@@ -125,7 +125,7 @@ final class OkMessageTest extends TestCase
     {
         $data = ['OK', self::VALID_EVENT_ID_HEX, true, ''];
 
-        $message = OkMessage::fromArray($data) ?? throw new RuntimeException('Expected a valid message');
+        $message = OkMessage::tryFromArray($data) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame(RelayMessageType::Ok, $message->type());
         $this->assertSame(self::VALID_EVENT_ID_HEX, $message->getEventId()->toHex());
@@ -137,19 +137,19 @@ final class OkMessageTest extends TestCase
     {
         $data = ['OK', self::VALID_EVENT_ID_HEX, true];
 
-        $message = OkMessage::fromArray($data) ?? throw new RuntimeException('Expected a valid message');
+        $message = OkMessage::tryFromArray($data) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame('', $message->getMessage());
     }
 
     public function testFromArrayThrowsOnInvalidFormat(): void
     {
-        $this->assertNull(OkMessage::fromArray(['OK', self::VALID_EVENT_ID_HEX]));
+        $this->assertNull(OkMessage::tryFromArray(['OK', self::VALID_EVENT_ID_HEX]));
     }
 
     public function testFromArrayThrowsOnWrongType(): void
     {
-        $this->assertNull(OkMessage::fromArray(['EVENT', self::VALID_EVENT_ID_HEX, true, '']));
+        $this->assertNull(OkMessage::tryFromArray(['EVENT', self::VALID_EVENT_ID_HEX, true, '']));
     }
 
     public function testRoundTripPreservesData(): void
@@ -160,7 +160,7 @@ final class OkMessageTest extends TestCase
             'error: something went wrong',
         );
 
-        $restored = OkMessage::fromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
+        $restored = OkMessage::tryFromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame($original->getEventId()->toHex(), $restored->getEventId()->toHex());
         $this->assertSame($original->isAccepted(), $restored->isAccepted());
@@ -169,7 +169,7 @@ final class OkMessageTest extends TestCase
 
     public function testFromJsonParsesAKnownMessageType(): void
     {
-        $message = OkMessage::fromJson('["OK","'.self::VALID_EVENT_ID_HEX.'",false,"blocked: spam"]')
+        $message = OkMessage::tryFromJson('["OK","'.self::VALID_EVENT_ID_HEX.'",false,"blocked: spam"]')
             ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame(self::VALID_EVENT_ID_HEX, $message->getEventId()->toHex());
@@ -179,36 +179,36 @@ final class OkMessageTest extends TestCase
 
     public function testFromJsonReturnsNullOnMalformedJson(): void
     {
-        $this->assertNull(OkMessage::fromJson('not json'));
+        $this->assertNull(OkMessage::tryFromJson('not json'));
     }
 
     public function testFromJsonReturnsNullOnJsonObject(): void
     {
-        $this->assertNull(OkMessage::fromJson('{"0":"OK","2":true}'));
+        $this->assertNull(OkMessage::tryFromJson('{"0":"OK","2":true}'));
     }
 
     private static function createEventId(): EventId
     {
-        return EventId::fromHex(self::VALID_EVENT_ID_HEX) ?? throw new RuntimeException('Invalid test event ID');
+        return EventId::tryFromHex(self::VALID_EVENT_ID_HEX) ?? throw new RuntimeException('Invalid test event ID');
     }
 
     public function testFromArrayRejectsStringAcceptedFlag(): void
     {
-        $this->assertNull(OkMessage::fromArray(['OK', self::VALID_EVENT_ID_HEX, 'true', '']));
+        $this->assertNull(OkMessage::tryFromArray(['OK', self::VALID_EVENT_ID_HEX, 'true', '']));
     }
 
     public function testFromArrayRejectsIntegerAcceptedFlag(): void
     {
-        $this->assertNull(OkMessage::fromArray(['OK', self::VALID_EVENT_ID_HEX, 1, '']));
+        $this->assertNull(OkMessage::tryFromArray(['OK', self::VALID_EVENT_ID_HEX, 1, '']));
     }
 
     public function testFromArrayRejectsNonStringEventId(): void
     {
-        $this->assertNull(OkMessage::fromArray(['OK', 42, true, '']));
+        $this->assertNull(OkMessage::tryFromArray(['OK', 42, true, '']));
     }
 
     public function testFromArrayRejectsNonStringReason(): void
     {
-        $this->assertNull(OkMessage::fromArray(['OK', self::VALID_EVENT_ID_HEX, true, ['array']]));
+        $this->assertNull(OkMessage::tryFromArray(['OK', self::VALID_EVENT_ID_HEX, true, ['array']]));
     }
 }

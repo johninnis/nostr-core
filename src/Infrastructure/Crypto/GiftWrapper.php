@@ -87,7 +87,7 @@ final class GiftWrapper implements GiftWrapServiceInterface
         $this->validateGiftWrap($giftWrap);
 
         $sealJson = $this->decrypt($giftWrap, $recipientPrivateKey, 'gift wrap');
-        $seal = Event::fromJson($sealJson)
+        $seal = Event::tryFromJson($sealJson)
             ?? throw new GiftWrapException('Failed to parse decrypted gift wrap');
         $this->validateSeal($seal);
 
@@ -187,7 +187,7 @@ final class GiftWrapper implements GiftWrapServiceInterface
             throw new GiftWrapException('Decrypted rumour must not be signed');
         }
 
-        return Rumour::fromArray($data)
+        return Rumour::tryFromArray($data)
             ?? throw new GiftWrapException('Failed to parse decrypted seal');
     }
 }

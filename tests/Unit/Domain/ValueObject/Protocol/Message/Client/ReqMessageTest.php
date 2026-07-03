@@ -19,7 +19,7 @@ final class ReqMessageTest extends TestCase
     public function testGetTypeReturnsReq(): void
     {
         $message = new ReqMessage(
-            SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
+            SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
             new FilterCollection([new Filter(kinds: EventKindCollection::fromInts([1]))]),
         );
 
@@ -28,7 +28,7 @@ final class ReqMessageTest extends TestCase
 
     public function testGetSubscriptionIdReturnsConstructedValue(): void
     {
-        $subId = SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID');
+        $subId = SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID');
         $message = new ReqMessage($subId, new FilterCollection([new Filter(kinds: EventKindCollection::fromInts([1]))]));
 
         $this->assertTrue($subId->equals($message->getSubscriptionId()));
@@ -37,7 +37,7 @@ final class ReqMessageTest extends TestCase
     public function testGetFiltersReturnsConstructedFilters(): void
     {
         $filter = new Filter(kinds: EventKindCollection::fromInts([1]));
-        $message = new ReqMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), new FilterCollection([$filter]));
+        $message = new ReqMessage(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), new FilterCollection([$filter]));
 
         $this->assertCount(1, $message->getFilters());
         $this->assertSame($filter, $message->getFilters()->toArray()[0]);
@@ -48,7 +48,7 @@ final class ReqMessageTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('REQ message must have at least one filter');
 
-        new ReqMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), new FilterCollection([]));
+        new ReqMessage(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), new FilterCollection([]));
     }
 
     public function testConstructorThrowsOnNonFilterInstances(): void
@@ -62,7 +62,7 @@ final class ReqMessageTest extends TestCase
     public function testToArrayReturnsCorrectFormat(): void
     {
         $filter = new Filter(kinds: EventKindCollection::fromInts([1]));
-        $message = new ReqMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), new FilterCollection([$filter]));
+        $message = new ReqMessage(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), new FilterCollection([$filter]));
 
         $result = $message->toArray();
 
@@ -76,7 +76,7 @@ final class ReqMessageTest extends TestCase
     {
         $filter1 = new Filter(kinds: EventKindCollection::fromInts([1]));
         $filter2 = new Filter(kinds: EventKindCollection::fromInts([0]), limit: 10);
-        $message = new ReqMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), new FilterCollection([$filter1, $filter2]));
+        $message = new ReqMessage(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), new FilterCollection([$filter1, $filter2]));
 
         $result = $message->toArray();
 
@@ -88,7 +88,7 @@ final class ReqMessageTest extends TestCase
     public function testToJsonReturnsValidJson(): void
     {
         $message = new ReqMessage(
-            SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
+            SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
             new FilterCollection([new Filter(kinds: EventKindCollection::fromInts([1]))]),
         );
 
@@ -101,7 +101,7 @@ final class ReqMessageTest extends TestCase
 
     public function testEmptyFilterSerialisesAsAJsonObjectOnTheWire(): void
     {
-        $message = new ReqMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), new FilterCollection([new Filter()]));
+        $message = new ReqMessage(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), new FilterCollection([new Filter()]));
 
         $this->assertSame('["REQ","sub-1",{}]', $message->toJson());
     }
@@ -110,7 +110,7 @@ final class ReqMessageTest extends TestCase
     {
         $data = ['REQ', 'sub-1', ['kinds' => [1]]];
 
-        $message = ReqMessage::fromArray($data) ?? throw new RuntimeException('Expected a valid message');
+        $message = ReqMessage::tryFromArray($data) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame(ClientMessageType::Req, $message->type());
         $this->assertSame('sub-1', (string) $message->getSubscriptionId());
@@ -121,29 +121,29 @@ final class ReqMessageTest extends TestCase
     {
         $data = ['REQ', 'sub-1', ['kinds' => [1]], ['kinds' => [0]]];
 
-        $message = ReqMessage::fromArray($data) ?? throw new RuntimeException('Expected a valid message');
+        $message = ReqMessage::tryFromArray($data) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertCount(2, $message->getFilters());
     }
 
     public function testFromArrayThrowsOnInvalidFormat(): void
     {
-        $this->assertNull(ReqMessage::fromArray(['REQ', 'sub-1']));
+        $this->assertNull(ReqMessage::tryFromArray(['REQ', 'sub-1']));
     }
 
     public function testFromArrayThrowsOnWrongType(): void
     {
-        $this->assertNull(ReqMessage::fromArray(['CLOSE', 'sub-1', ['kinds' => [1]]]));
+        $this->assertNull(ReqMessage::tryFromArray(['CLOSE', 'sub-1', ['kinds' => [1]]]));
     }
 
     public function testRoundTripPreservesData(): void
     {
         $original = new ReqMessage(
-            SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
+            SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
             new FilterCollection([new Filter(kinds: EventKindCollection::fromInts([1])), new Filter(limit: 50)]),
         );
 
-        $restored = ReqMessage::fromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
+        $restored = ReqMessage::tryFromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame(
             (string) $original->getSubscriptionId(),
@@ -159,7 +159,7 @@ final class ReqMessageTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('may contain at most');
 
-        new ReqMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), new FilterCollection($filters));
+        new ReqMessage(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), new FilterCollection($filters));
     }
 
     public function testFromArrayRejectsMoreThanMaxFilters(): void
@@ -169,6 +169,6 @@ final class ReqMessageTest extends TestCase
             $payload[] = ['kinds' => [1]];
         }
 
-        $this->assertNull(ReqMessage::fromArray($payload));
+        $this->assertNull(ReqMessage::tryFromArray($payload));
     }
 }

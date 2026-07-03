@@ -36,11 +36,11 @@ final readonly class JsonMessageDeserialiser implements MessageDeserialiserInter
         [$type, $data] = $tagged;
 
         return match (ClientMessageType::tryFrom($type)) {
-            ClientMessageType::Event => ClientEventMessage::fromArray($data),
-            ClientMessageType::Req => ReqMessage::fromArray($data),
-            ClientMessageType::Close => CloseMessage::fromArray($data),
-            ClientMessageType::Auth => ClientAuthMessage::fromArray($data),
-            ClientMessageType::Count => CountMessage::fromArray($data),
+            ClientMessageType::Event => ClientEventMessage::tryFromArray($data),
+            ClientMessageType::Req => ReqMessage::tryFromArray($data),
+            ClientMessageType::Close => CloseMessage::tryFromArray($data),
+            ClientMessageType::Auth => ClientAuthMessage::tryFromArray($data),
+            ClientMessageType::Count => CountMessage::tryFromArray($data),
             null => null,
         };
     }
@@ -57,13 +57,13 @@ final readonly class JsonMessageDeserialiser implements MessageDeserialiserInter
         [$type, $data] = $tagged;
 
         return match (RelayMessageType::tryFrom($type)) {
-            RelayMessageType::Event => RelayEventMessage::fromArray($data),
-            RelayMessageType::Ok => OkMessage::fromArray($data),
-            RelayMessageType::Eose => EoseMessage::fromArray($data),
-            RelayMessageType::Closed => ClosedMessage::fromArray($data),
-            RelayMessageType::Notice => NoticeMessage::fromArray($data),
-            RelayMessageType::Auth => RelayAuthMessage::fromArray($data),
-            RelayMessageType::Count => RelayCountMessage::fromArray($data),
+            RelayMessageType::Event => RelayEventMessage::tryFromArray($data),
+            RelayMessageType::Ok => OkMessage::tryFromArray($data),
+            RelayMessageType::Eose => EoseMessage::tryFromArray($data),
+            RelayMessageType::Closed => ClosedMessage::tryFromArray($data),
+            RelayMessageType::Notice => NoticeMessage::tryFromArray($data),
+            RelayMessageType::Auth => RelayAuthMessage::tryFromArray($data),
+            RelayMessageType::Count => RelayCountMessage::tryFromArray($data),
             null => null,
         };
     }

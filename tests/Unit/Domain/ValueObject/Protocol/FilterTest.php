@@ -213,7 +213,7 @@ final class FilterTest extends TestCase
 
     public function testTagFilterMatchesOnlyTheTagValuePosition(): void
     {
-        $pubkey = PublicKey::fromHex(str_repeat('a', 64)) ?? throw new RuntimeException('Invalid test public key');
+        $pubkey = PublicKey::tryFromHex(str_repeat('a', 64)) ?? throw new RuntimeException('Invalid test public key');
         $referencedId = str_repeat('c', 64);
         $tags = new TagCollection([Tag::create('e', $referencedId, 'wss://relay.example', 'reply')]);
         $event = EventMother::fromRumour(new Rumour(
@@ -311,7 +311,7 @@ final class FilterTest extends TestCase
             'limit' => 10,
         ];
 
-        $filter = Filter::fromArray($data);
+        $filter = Filter::tryFromArray($data);
 
         $this->assertNotNull($filter);
         $this->assertIdHexes([str_repeat('a', 64)], $filter->getIds());
@@ -593,7 +593,7 @@ final class FilterTest extends TestCase
             '#p' => [str_repeat('a', 64)],
         ];
 
-        $filter = Filter::fromArray($data);
+        $filter = Filter::tryFromArray($data);
 
         $this->assertNotNull($filter);
         $tags = $filter->getTags();
@@ -606,7 +606,7 @@ final class FilterTest extends TestCase
     {
         $data = ['kinds' => [1]];
 
-        $filter = Filter::fromArray($data);
+        $filter = Filter::tryFromArray($data);
 
         $this->assertNotNull($filter);
         $this->assertNull($filter->getTags());
@@ -614,23 +614,23 @@ final class FilterTest extends TestCase
 
     public function testFromArrayReturnsNullForInvalidUtf8Search(): void
     {
-        $this->assertNull(Filter::fromArray(['search' => "bad\xff\xfeutf8"]));
+        $this->assertNull(Filter::tryFromArray(['search' => "bad\xff\xfeutf8"]));
     }
 
     public function testFromArrayReturnsNullForInvalidUtf8TagValue(): void
     {
-        $this->assertNull(Filter::fromArray(['#e' => ["bad\xff\xfeutf8"]]));
+        $this->assertNull(Filter::tryFromArray(['#e' => ["bad\xff\xfeutf8"]]));
     }
 
     public function testFromWireParsesAnArrayPayload(): void
     {
-        $this->assertEquals(Filter::fromArray(['kinds' => [1]]), Filter::fromWire(['kinds' => [1]]));
+        $this->assertEquals(Filter::tryFromArray(['kinds' => [1]]), Filter::tryFromArray(['kinds' => [1]]));
     }
 
     #[DataProvider('nonArrayWireValues')]
     public function testFromWireReturnsNullForNonArrayPayload(mixed $value): void
     {
-        $this->assertNull(Filter::fromWire($value));
+        $this->assertNull(Filter::tryFromArray($value));
     }
 
     /**
@@ -677,7 +677,7 @@ final class FilterTest extends TestCase
     #[DataProvider('malformedFilterProvider')]
     public function testFromArrayReturnsNullForMalformedScalarFields(array $data): void
     {
-        $this->assertNull(Filter::fromArray($data));
+        $this->assertNull(Filter::tryFromArray($data));
     }
 
     public function testToStringReturnsJsonRepresentation(): void
@@ -704,7 +704,7 @@ final class FilterTest extends TestCase
             'limit' => 50,
         ];
 
-        $filter = Filter::fromArray($data);
+        $filter = Filter::tryFromArray($data);
 
         $this->assertNotNull($filter);
         $this->assertSame($data, $filter->toArray());
@@ -712,7 +712,7 @@ final class FilterTest extends TestCase
 
     public function testFromArrayAcceptsLimitOfZero(): void
     {
-        $filter = Filter::fromArray(['limit' => 0]);
+        $filter = Filter::tryFromArray(['limit' => 0]);
 
         $this->assertNotNull($filter);
         $this->assertSame(0, $filter->getLimit());
@@ -840,7 +840,7 @@ final class FilterTest extends TestCase
             'search' => 'nostr protocol',
         ];
 
-        $filter = Filter::fromArray($data);
+        $filter = Filter::tryFromArray($data);
 
         $this->assertNotNull($filter);
         $this->assertSame($data, $filter->toArray());
@@ -933,12 +933,12 @@ final class FilterTest extends TestCase
 
     public function testFromArrayReturnsNullForEmptyTagName(): void
     {
-        $this->assertNull(Filter::fromArray(['#' => ['value']]));
+        $this->assertNull(Filter::tryFromArray(['#' => ['value']]));
     }
 
     public function testFromArrayReturnsNullForNonArrayTagValues(): void
     {
-        $this->assertNull(Filter::fromArray(['#e' => 'not-an-array']));
+        $this->assertNull(Filter::tryFromArray(['#e' => 'not-an-array']));
     }
 
     public function testEmptyFilterJsonSerialisesAsAnObject(): void
@@ -965,7 +965,7 @@ final class FilterTest extends TestCase
 
     public function testEmptyFilterRoundTripsThroughTheJsonForm(): void
     {
-        $restored = Filter::fromArray((new Filter())->jsonSerialize());
+        $restored = Filter::tryFromArray((new Filter())->jsonSerialize());
 
         $this->assertNotNull($restored);
         $this->assertSame([], $restored->toArray());

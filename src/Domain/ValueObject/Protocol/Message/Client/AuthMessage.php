@@ -44,13 +44,13 @@ final readonly class AuthMessage extends ClientMessage
      * @param array<array-key, mixed> $data
      */
     #[Override]
-    public static function fromArray(array $data): ?static
+    public static function tryFromArray(array $data): ?static
     {
         if (2 !== count($data)) {
             return null;
         }
 
-        $event = Event::fromWire($data[1]);
+        $event = Event::tryFromArray($data[1]);
 
         if (null === $event) {
             return null;

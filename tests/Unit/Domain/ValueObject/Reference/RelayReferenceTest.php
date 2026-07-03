@@ -58,7 +58,7 @@ final class RelayReferenceTest extends TestCase
             'mode' => 'read',
         ];
 
-        $ref = RelayReference::fromArray($data);
+        $ref = RelayReference::tryFromArray($data);
 
         $this->assertNotNull($ref);
         $this->assertSame(self::VALID_RELAY, (string) $ref->getRelayUrl());
@@ -69,7 +69,7 @@ final class RelayReferenceTest extends TestCase
     {
         $data = ['url' => self::VALID_RELAY];
 
-        $ref = RelayReference::fromArray($data);
+        $ref = RelayReference::tryFromArray($data);
 
         $this->assertNotNull($ref);
         $this->assertSame(self::VALID_RELAY, (string) $ref->getRelayUrl());
@@ -78,13 +78,13 @@ final class RelayReferenceTest extends TestCase
 
     public function testFromArrayReturnsNullForInvalidUrl(): void
     {
-        $this->assertNull(RelayReference::fromArray(['url' => 'not-a-valid-url']));
+        $this->assertNull(RelayReference::tryFromArray(['url' => 'not-a-valid-url']));
     }
 
     public function testFromArrayReturnsNullWhenUrlIsMissingOrNonString(): void
     {
-        $this->assertNull(RelayReference::fromArray([]));
-        $this->assertNull(RelayReference::fromArray(['url' => 123]));
+        $this->assertNull(RelayReference::tryFromArray([]));
+        $this->assertNull(RelayReference::tryFromArray(['url' => 123]));
     }
 
     public function testRoundTripThroughArray(): void
@@ -92,7 +92,7 @@ final class RelayReferenceTest extends TestCase
         $relay = RelayUrl::fromString(self::VALID_RELAY) ?? throw new RuntimeException('Invalid test relay');
         $original = new RelayReference($relay, 'write');
 
-        $recreated = RelayReference::fromArray($original->toArray());
+        $recreated = RelayReference::tryFromArray($original->toArray());
 
         $this->assertNotNull($recreated);
         $this->assertSame((string) $original->getRelayUrl(), (string) $recreated->getRelayUrl());

@@ -113,7 +113,7 @@ final readonly class ContentReference
     /**
      * @param array<array-key, mixed> $data
      */
-    public static function fromArray(array $data): ?self
+    public static function tryFromArray(array $data): ?self
     {
         $type = ContentReferenceType::tryFrom(is_string($data['type'] ?? null) ? $data['type'] : '');
         $rawText = $data['raw_text'] ?? null;
@@ -130,8 +130,8 @@ final readonly class ContentReference
 
         $decoded = null === $decodedType ? null : new DecodedNip19Entity(
             type: $decodedType,
-            publicKey: isset($data['public_key']) && is_string($data['public_key']) ? PublicKey::fromHex($data['public_key']) : null,
-            eventId: isset($data['event_id']) && is_string($data['event_id']) ? EventId::fromHex($data['event_id']) : null,
+            publicKey: isset($data['public_key']) && is_string($data['public_key']) ? PublicKey::tryFromHex($data['public_key']) : null,
+            eventId: isset($data['event_id']) && is_string($data['event_id']) ? EventId::tryFromHex($data['event_id']) : null,
             identifier: is_string($addressableIdentifier) ? $addressableIdentifier : null,
             kind: isset($data['kind']) && is_int($data['kind']) ? EventKind::tryFromInt($data['kind']) : null,
             relays: RelayUrlCollection::fromStrings($data['relays'] ?? null),

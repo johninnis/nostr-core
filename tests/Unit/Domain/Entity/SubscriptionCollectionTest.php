@@ -26,7 +26,7 @@ final class SubscriptionCollectionTest extends TestCase
 
     private static function subscriptionId(string $id): SubscriptionId
     {
-        return SubscriptionId::fromString($id) ?? throw new RuntimeException('Expected a valid subscription ID');
+        return SubscriptionId::tryFromString($id) ?? throw new RuntimeException('Expected a valid subscription ID');
     }
 
     public function testEmptyCollection(): void

@@ -46,14 +46,14 @@ final readonly class PubkeyReference
     /**
      * @param array<array-key, mixed> $data
      */
-    public static function fromArray(array $data): ?self
+    public static function tryFromArray(array $data): ?self
     {
         $pubkeyHex = $data['pubkey'] ?? null;
         if (!is_string($pubkeyHex)) {
             return null;
         }
 
-        $pubkey = PublicKey::fromHex($pubkeyHex);
+        $pubkey = PublicKey::tryFromHex($pubkeyHex);
         if (null === $pubkey) {
             return null;
         }

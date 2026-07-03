@@ -46,7 +46,7 @@ final readonly class Nutzap implements PaymentReceiptInterface
         return $this->message;
     }
 
-    public static function fromEvent(Event $event): ?self
+    public static function tryFromEvent(Event $event): ?self
     {
         if (!$event->getKind()->is(EventKind::NUTZAP)) {
             return null;

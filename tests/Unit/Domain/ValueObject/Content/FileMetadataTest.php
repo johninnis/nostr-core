@@ -30,7 +30,7 @@ final class FileMetadataTest extends TestCase
             ['fallback', 'https://mirror2.example.com/abc.png'],
         ]);
 
-        $metadata = FileMetadata::fromTagCollection($tags);
+        $metadata = FileMetadata::tryFromTagCollection($tags);
 
         self::assertNotNull($metadata);
         self::assertSame('https://cdn.example.com/abc.png', $metadata->getUrl());
@@ -54,7 +54,7 @@ final class FileMetadataTest extends TestCase
     {
         $tags = TagCollectionMother::fromRaw([['m', 'image/png']]);
 
-        self::assertNull(FileMetadata::fromTagCollection($tags));
+        self::assertNull(FileMetadata::tryFromTagCollection($tags));
     }
 
     public function testFromTagCollectionIgnoresNonNumericSize(): void
@@ -64,7 +64,7 @@ final class FileMetadataTest extends TestCase
             ['size', 'not-a-number'],
         ]);
 
-        $metadata = FileMetadata::fromTagCollection($tags);
+        $metadata = FileMetadata::tryFromTagCollection($tags);
 
         self::assertNotNull($metadata);
         self::assertNull($metadata->getSize());
@@ -80,7 +80,7 @@ final class FileMetadataTest extends TestCase
             fallbacks: ['https://mirror.example.com/abc.png'],
         );
 
-        $restored = FileMetadata::fromTagCollection($metadata->toTags());
+        $restored = FileMetadata::tryFromTagCollection($metadata->toTags());
 
         self::assertNotNull($restored);
         self::assertTrue($metadata->equals($restored));
@@ -110,7 +110,7 @@ final class FileMetadataTest extends TestCase
 
         self::assertSame('imeta', (string) $tag->getType());
 
-        $restored = FileMetadata::fromImetaTag($tag);
+        $restored = FileMetadata::tryFromImetaTag($tag);
 
         self::assertNotNull($restored);
         self::assertTrue($metadata->equals($restored));
@@ -120,6 +120,6 @@ final class FileMetadataTest extends TestCase
     {
         $tag = new Tag(TagType::fromString('e'), ['url https://cdn.example.com/abc.png']);
 
-        self::assertNull(FileMetadata::fromImetaTag($tag));
+        self::assertNull(FileMetadata::tryFromImetaTag($tag));
     }
 }

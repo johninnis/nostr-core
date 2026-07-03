@@ -20,7 +20,7 @@ final readonly class ProfileMetadata
     ) {
     }
 
-    public static function fromJsonString(string $json): ?self
+    public static function tryFromJsonString(string $json): ?self
     {
         $data = JsonWireFormat::decodeArray($json);
 

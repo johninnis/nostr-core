@@ -64,12 +64,12 @@ final class TagReferencesTest extends TestCase
 
     private function eventId(): EventId
     {
-        return EventId::fromHex(self::EVENT_ID) ?? throw new RuntimeException('Invalid test event id');
+        return EventId::tryFromHex(self::EVENT_ID) ?? throw new RuntimeException('Invalid test event id');
     }
 
     private function pubkey(): PublicKey
     {
-        return PublicKey::fromHex(self::PUBKEY) ?? throw new RuntimeException('Invalid test pubkey');
+        return PublicKey::tryFromHex(self::PUBKEY) ?? throw new RuntimeException('Invalid test pubkey');
     }
 
     private function relay(): RelayUrl

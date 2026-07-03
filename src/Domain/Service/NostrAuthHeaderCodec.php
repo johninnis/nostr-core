@@ -37,7 +37,7 @@ final class NostrAuthHeaderCodec
             return AuthHeaderDecodeFailure::BadJson;
         }
 
-        $event = Event::fromArray($data);
+        $event = Event::tryFromArray($data);
 
         return $event ?? AuthHeaderDecodeFailure::InvalidEvent;
     }

@@ -20,7 +20,7 @@ final class EventCoordinateCollection extends TypedCollection
 
     private static function tryParse(mixed $value): ?EventCoordinate
     {
-        return is_array($value) ? EventCoordinate::fromArray($value) : null;
+        return is_array($value) ? EventCoordinate::tryFromArray($value) : null;
     }
 
     public static function fromArrays(mixed $values): self

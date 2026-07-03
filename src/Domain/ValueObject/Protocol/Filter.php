@@ -295,19 +295,15 @@ final readonly class Filter implements JsonSerializable, Stringable
         return $this->toArray() ?: new stdClass();
     }
 
-    public static function fromWire(mixed $value): ?self
+    public static function tryFromArray(mixed $value): ?self
     {
-        return is_array($value) || $value instanceof stdClass ? self::fromArray($value) : null;
-    }
+        if (!is_array($value) && !$value instanceof stdClass) {
+            return null;
+        }
 
-    /**
-     * @param array<array-key, mixed>|stdClass $data
-     */
-    public static function fromArray(array|stdClass $data): ?self
-    {
-        $data = (array) $data;
+        $data = (array) $value;
 
-        $tags = TagFilter::fromWire($data);
+        $tags = TagFilter::tryFromArray($data);
         if (null === $tags) {
             return null;
         }
@@ -334,7 +330,7 @@ final readonly class Filter implements JsonSerializable, Stringable
 
         $idCollection = null;
         if (null !== $ids) {
-            $idCollection = EventIdCollection::fromWire($ids);
+            $idCollection = EventIdCollection::tryFromArray($ids);
             if (null === $idCollection) {
                 return null;
             }
@@ -342,7 +338,7 @@ final readonly class Filter implements JsonSerializable, Stringable
 
         $authorCollection = null;
         if (null !== $authors) {
-            $authorCollection = PublicKeyCollection::fromWire($authors);
+            $authorCollection = PublicKeyCollection::tryFromArray($authors);
             if (null === $authorCollection) {
                 return null;
             }
@@ -350,7 +346,7 @@ final readonly class Filter implements JsonSerializable, Stringable
 
         $kindCollection = null;
         if (null !== $kinds) {
-            $kindCollection = EventKindCollection::fromWire($kinds);
+            $kindCollection = EventKindCollection::tryFromArray($kinds);
             if (null === $kindCollection) {
                 return null;
             }

@@ -221,17 +221,17 @@ final class Nip19CodecTest extends TestCase
 
     private function pubkey(): PublicKey
     {
-        return PublicKey::fromHex(self::PUBKEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
+        return PublicKey::tryFromHex(self::PUBKEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
     }
 
     private function coordinate(): EventCoordinate
     {
-        return EventCoordinate::fromParts(self::ADDRESSABLE_KIND, self::PUBKEY_HEX, self::IDENTIFIER)
+        return EventCoordinate::tryFromParts(self::ADDRESSABLE_KIND, self::PUBKEY_HEX, self::IDENTIFIER)
             ?? throw new RuntimeException('Invalid test coordinate');
     }
 
     private function eventId(): EventId
     {
-        return EventId::fromHex(self::EVENT_ID_HEX) ?? throw new RuntimeException('Invalid test event id');
+        return EventId::tryFromHex(self::EVENT_ID_HEX) ?? throw new RuntimeException('Invalid test event id');
     }
 }

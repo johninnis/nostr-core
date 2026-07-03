@@ -98,7 +98,7 @@ final class EventReferenceTest extends TestCase
     {
         $reference = new EventReference($this->eventId(), $this->relay(), Nip10Marker::Reply->value, $this->author());
 
-        $restored = EventReference::fromArray($reference->toArray());
+        $restored = EventReference::tryFromArray($reference->toArray());
 
         $this->assertNotNull($restored);
         $this->assertTrue($reference->equals($restored));
@@ -109,7 +109,7 @@ final class EventReferenceTest extends TestCase
     {
         $reference = new EventReference($this->eventId());
 
-        $restored = EventReference::fromArray($reference->toArray());
+        $restored = EventReference::tryFromArray($reference->toArray());
 
         $this->assertNotNull($restored);
         $this->assertTrue($reference->equals($restored));
@@ -118,28 +118,28 @@ final class EventReferenceTest extends TestCase
 
     public function testFromArrayReturnsNullWhenEventIdIsMissingOrNonString(): void
     {
-        $this->assertNull(EventReference::fromArray(['relay_url' => 'wss://relay.example']));
-        $this->assertNull(EventReference::fromArray(['event_id' => 123]));
+        $this->assertNull(EventReference::tryFromArray(['relay_url' => 'wss://relay.example']));
+        $this->assertNull(EventReference::tryFromArray(['event_id' => 123]));
     }
 
     public function testFromArrayReturnsNullWhenEventIdIsNotValidHex(): void
     {
-        $this->assertNull(EventReference::fromArray(['event_id' => 'not-valid-hex']));
+        $this->assertNull(EventReference::tryFromArray(['event_id' => 'not-valid-hex']));
     }
 
     private function eventId(): EventId
     {
-        return EventId::fromHex(self::EVENT_ID) ?? throw new RuntimeException('Invalid test event id');
+        return EventId::tryFromHex(self::EVENT_ID) ?? throw new RuntimeException('Invalid test event id');
     }
 
     private function otherEventId(): EventId
     {
-        return EventId::fromHex(self::OTHER_EVENT_ID) ?? throw new RuntimeException('Invalid test event id');
+        return EventId::tryFromHex(self::OTHER_EVENT_ID) ?? throw new RuntimeException('Invalid test event id');
     }
 
     private function author(): PublicKey
     {
-        return PublicKey::fromHex(self::AUTHOR_HEX) ?? throw new RuntimeException('Invalid test author');
+        return PublicKey::tryFromHex(self::AUTHOR_HEX) ?? throw new RuntimeException('Invalid test author');
     }
 
     private function relay(string $url = 'wss://relay.example'): RelayUrl

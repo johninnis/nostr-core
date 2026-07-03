@@ -86,13 +86,12 @@ final readonly class ReplyChain
     /**
      * @param array<array-key, mixed> $data
      */
-    // Deliberate: every field optional, construction cannot fail — returns self, not ?self, see ADR-0033
     public static function fromArray(array $data): self
     {
         return new self(
             (bool) ($data['is_reply'] ?? false),
-            isset($data['root_event']) && is_array($data['root_event']) ? EventReference::fromArray($data['root_event']) : null,
-            isset($data['parent_event']) && is_array($data['parent_event']) ? EventReference::fromArray($data['parent_event']) : null,
+            isset($data['root_event']) && is_array($data['root_event']) ? EventReference::tryFromArray($data['root_event']) : null,
+            isset($data['parent_event']) && is_array($data['parent_event']) ? EventReference::tryFromArray($data['parent_event']) : null,
             PublicKeyCollection::fromHexValues($data['conversation_participants'] ?? null),
             EventReferenceCollection::fromArrays($data['mentioned_events'] ?? null)
         );

@@ -99,7 +99,7 @@ final class EventValidatorTest extends TestCase
     {
         $event = $this->createValidSignedEvent();
 
-        $invalidEvent = Event::fromArray([
+        $invalidEvent = Event::tryFromArray([
             'id' => $event->getId()->toHex(),
             'pubkey' => $event->getPubkey()->toHex(),
             'created_at' => $event->getCreatedAt()->toInt(),
@@ -134,7 +134,7 @@ final class EventValidatorTest extends TestCase
     {
         $signed = $this->createValidSignedEvent();
 
-        $forged = Event::fromArray([
+        $forged = Event::tryFromArray([
             'id' => $signed->getId()->toHex(),
             'pubkey' => $signed->getPubkey()->toHex(),
             'created_at' => $signed->getCreatedAt()->toInt(),

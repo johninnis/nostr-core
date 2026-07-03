@@ -94,7 +94,7 @@ final readonly class FileMetadata
         return $this->fallbacks;
     }
 
-    public static function fromTagCollection(TagCollection $tags): ?self
+    public static function tryFromTagCollection(TagCollection $tags): ?self
     {
         $fields = [];
         foreach ($tags as $tag) {
@@ -107,7 +107,7 @@ final readonly class FileMetadata
         return self::fromFields($fields);
     }
 
-    public static function fromImetaTag(Tag $tag): ?self
+    public static function tryFromImetaTag(Tag $tag): ?self
     {
         if (!$tag->getType()->is(self::IMETA_TYPE)) {
             return null;

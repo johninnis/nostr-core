@@ -58,7 +58,7 @@ final readonly class LongformMetadata
         return $this->topics;
     }
 
-    public static function fromTagCollection(TagCollection $tags): ?self
+    public static function tryFromTagCollection(TagCollection $tags): ?self
     {
         $identifier = $tags->getFirstValueByType(TagType::identifier());
         if (null === $identifier) {
@@ -121,7 +121,7 @@ final readonly class LongformMetadata
     /**
      * @param array<string, mixed> $data
      */
-    public static function fromArray(array $data): ?self
+    public static function tryFromArray(array $data): ?self
     {
         $identifier = JsonWireFormat::stringField($data, 'identifier');
         if (null === $identifier) {

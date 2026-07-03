@@ -50,7 +50,7 @@ final class Nip49CipherTest extends TestCase
 
     public function testKnownSpecVectorDecrypts(): void
     {
-        $ncryptsec = Ncryptsec::fromString(self::SPEC_VECTOR_NCRYPTSEC)
+        $ncryptsec = Ncryptsec::tryFromString(self::SPEC_VECTOR_NCRYPTSEC)
             ?? throw new RuntimeException('Spec vector failed HRP/checksum validation');
 
         $decrypted = $this->adapter->decrypt($ncryptsec, static fn (): string => self::SPEC_VECTOR_PASSWORD);
@@ -232,7 +232,7 @@ final class Nip49CipherTest extends TestCase
         $data[$offset] = chr($mutate(ord($data[$offset])));
         $bech32 = Bech32Codec::encode(Ncryptsec::HRP, $data);
 
-        return Ncryptsec::fromString($bech32)
+        return Ncryptsec::tryFromString($bech32)
             ?? throw new RuntimeException('Tampered payload failed Ncryptsec parse - fix test setup');
     }
 }

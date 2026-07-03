@@ -38,7 +38,7 @@ final readonly class PublicKey implements Stringable
         return $this->key === $other->key;
     }
 
-    public static function fromHex(string $hex): ?self
+    public static function tryFromHex(string $hex): ?self
     {
         if (!HexCodec::isValid($hex, self::BYTE_LENGTH)) {
             return null;
@@ -47,7 +47,7 @@ final readonly class PublicKey implements Stringable
         return new self($hex);
     }
 
-    public static function fromBytes(string $bytes): ?self
+    public static function tryFromBytes(string $bytes): ?self
     {
         if (self::BYTE_LENGTH !== strlen($bytes)) {
             return null;
@@ -56,16 +56,16 @@ final readonly class PublicKey implements Stringable
         return new self(HexCodec::encode($bytes));
     }
 
-    public static function fromBech32(string $bech32): ?self
+    public static function tryFromBech32(string $bech32): ?self
     {
         $bytes = Bech32Codec::decodeWithHrp($bech32, 'npub');
 
-        return null === $bytes ? null : self::fromBytes($bytes);
+        return null === $bytes ? null : self::tryFromBytes($bytes);
     }
 
-    public static function fromNpubOrHex(string $value): ?self
+    public static function tryFromNpubOrHex(string $value): ?self
     {
-        return str_starts_with($value, 'npub') ? self::fromBech32($value) : self::fromHex($value);
+        return str_starts_with($value, 'npub') ? self::tryFromBech32($value) : self::tryFromHex($value);
     }
 
     #[Override]

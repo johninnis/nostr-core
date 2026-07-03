@@ -22,7 +22,7 @@ final class ProfileMetadataTest extends TestCase
             'lud16' => 'alice@walletofsatoshi.com',
         ], JSON_THROW_ON_ERROR);
 
-        $metadata = ProfileMetadata::fromJsonString($json);
+        $metadata = ProfileMetadata::tryFromJsonString($json);
 
         $this->assertNotNull($metadata);
         $this->assertSame('alice', $metadata->getName());
@@ -39,7 +39,7 @@ final class ProfileMetadataTest extends TestCase
     {
         $json = json_encode(['name' => 'bob'], JSON_THROW_ON_ERROR);
 
-        $metadata = ProfileMetadata::fromJsonString($json);
+        $metadata = ProfileMetadata::tryFromJsonString($json);
 
         $this->assertNotNull($metadata);
         $this->assertSame('bob', $metadata->getName());
@@ -54,7 +54,7 @@ final class ProfileMetadataTest extends TestCase
 
     public function testFromInvalidJsonReturnsNull(): void
     {
-        $this->assertNull(ProfileMetadata::fromJsonString('not valid json'));
+        $this->assertNull(ProfileMetadata::tryFromJsonString('not valid json'));
     }
 
     public function testToArrayFromArrayRoundTrip(): void
@@ -109,7 +109,7 @@ final class ProfileMetadataTest extends TestCase
             'lud16' => 0,
         ], JSON_THROW_ON_ERROR);
 
-        $metadata = ProfileMetadata::fromJsonString($json);
+        $metadata = ProfileMetadata::tryFromJsonString($json);
 
         $this->assertNotNull($metadata);
         $this->assertSame('alice', $metadata->getName());

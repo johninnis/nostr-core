@@ -21,26 +21,25 @@ final readonly class SubscriptionId implements Stringable
         return $this->id === $other->id;
     }
 
-    public static function fromString(string $id): ?self
+    public static function tryFromString(mixed $value): ?self
     {
-        if ('' === $id) {
+        if (!is_string($value)) {
             return null;
         }
 
-        if (strlen($id) > self::MAX_LENGTH) {
+        if ('' === $value) {
             return null;
         }
 
-        if (!preg_match(self::ALLOWED_PATTERN, $id)) {
+        if (strlen($value) > self::MAX_LENGTH) {
             return null;
         }
 
-        return new self($id);
-    }
+        if (!preg_match(self::ALLOWED_PATTERN, $value)) {
+            return null;
+        }
 
-    public static function fromWire(mixed $value): ?self
-    {
-        return is_string($value) ? self::fromString($value) : null;
+        return new self($value);
     }
 
     // Deliberate: reads the entropy source directly, not via an injected port; no random-dependent output under test — see ADR-0018

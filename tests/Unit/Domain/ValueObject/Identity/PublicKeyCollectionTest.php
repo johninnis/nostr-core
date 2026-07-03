@@ -50,6 +50,6 @@ final class PublicKeyCollectionTest extends TestCase
 
     private static function key(string $char): PublicKey
     {
-        return PublicKey::fromHex(str_repeat($char, 64)) ?? throw new RuntimeException('Invalid test pubkey');
+        return PublicKey::tryFromHex(str_repeat($char, 64)) ?? throw new RuntimeException('Invalid test pubkey');
     }
 }

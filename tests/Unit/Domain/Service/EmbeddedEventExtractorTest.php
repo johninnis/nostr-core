@@ -81,7 +81,7 @@ final class EmbeddedEventExtractorTest extends TestCase
     public function testExtractionGateIsTheEventParserAlone(): void
     {
         $rumour = new Rumour(
-            PublicKey::fromHex(self::PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
+            PublicKey::tryFromHex(self::PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1700000000),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
@@ -107,7 +107,7 @@ final class EmbeddedEventExtractorTest extends TestCase
     private function buildEvent(int $kind, string $content): Event
     {
         return EventMother::fromRumour(new Rumour(
-            PublicKey::fromHex(self::PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
+            PublicKey::tryFromHex(self::PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1700000000),
             EventKind::fromInt($kind),
             new TagCollection(),

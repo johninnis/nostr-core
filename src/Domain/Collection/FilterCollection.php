@@ -24,9 +24,9 @@ final class FilterCollection extends TypedCollection
         return array_any($this->items, static fn (Filter $filter): bool => $filter->matches($event));
     }
 
-    public static function fromWire(mixed $values): ?self
+    public static function tryFromArray(mixed $values): ?self
     {
-        $filters = self::parseEachStrict($values, Filter::fromWire(...));
+        $filters = self::parseEachStrict($values, Filter::tryFromArray(...));
 
         return null === $filters ? null : new self($filters);
     }

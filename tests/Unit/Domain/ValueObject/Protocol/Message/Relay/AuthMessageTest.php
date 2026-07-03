@@ -50,7 +50,7 @@ final class AuthMessageTest extends TestCase
 
     public function testFromArrayCreatesValidMessage(): void
     {
-        $message = AuthMessage::fromArray(['AUTH', 'challenge-xyz']) ?? throw new RuntimeException('Expected a valid message');
+        $message = AuthMessage::tryFromArray(['AUTH', 'challenge-xyz']) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame(RelayMessageType::Auth, $message->type());
         $this->assertSame('challenge-xyz', $message->getChallenge());
@@ -58,25 +58,25 @@ final class AuthMessageTest extends TestCase
 
     public function testFromArrayThrowsOnInvalidFormat(): void
     {
-        $this->assertNull(AuthMessage::fromArray(['AUTH']));
+        $this->assertNull(AuthMessage::tryFromArray(['AUTH']));
     }
 
     public function testFromArrayThrowsOnWrongType(): void
     {
-        $this->assertNull(AuthMessage::fromArray(['NOTICE', 'challenge-xyz']));
+        $this->assertNull(AuthMessage::tryFromArray(['NOTICE', 'challenge-xyz']));
     }
 
     public function testRoundTripPreservesData(): void
     {
         $original = new AuthMessage('my-challenge-string');
 
-        $restored = AuthMessage::fromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
+        $restored = AuthMessage::tryFromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame($original->getChallenge(), $restored->getChallenge());
     }
 
     public function testFromArrayRejectsNonStringChallenge(): void
     {
-        $this->assertNull(AuthMessage::fromArray(['AUTH', 42]));
+        $this->assertNull(AuthMessage::tryFromArray(['AUTH', 42]));
     }
 }

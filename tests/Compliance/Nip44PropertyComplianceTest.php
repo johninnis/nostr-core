@@ -22,7 +22,7 @@ final class Nip44PropertyComplianceTest extends TestCase
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
             $plaintextLength = random_int(self::MIN_PLAINTEXT_LENGTH, self::MAX_PLAINTEXT_LENGTH);
             $plaintext = random_bytes($plaintextLength);
-            $conversationKey = ConversationKey::fromBytes(random_bytes(32));
+            $conversationKey = ConversationKey::tryFromBytes(random_bytes(32));
             $this->assertNotNull($conversationKey);
 
             $encrypted = $adapter->encrypt($plaintext, $conversationKey);
@@ -43,7 +43,7 @@ final class Nip44PropertyComplianceTest extends TestCase
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
             $plaintextLength = random_int(self::MIN_PLAINTEXT_LENGTH, 256);
             $plaintext = random_bytes($plaintextLength);
-            $conversationKey = ConversationKey::fromBytes(random_bytes(32));
+            $conversationKey = ConversationKey::tryFromBytes(random_bytes(32));
             $this->assertNotNull($conversationKey);
 
             $encrypted = $adapter->encrypt($plaintext, $conversationKey);
@@ -68,7 +68,7 @@ final class Nip44PropertyComplianceTest extends TestCase
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
             $plaintext = random_bytes(random_int(1, 256));
-            $conversationKey = ConversationKey::fromBytes(random_bytes(32));
+            $conversationKey = ConversationKey::tryFromBytes(random_bytes(32));
             $this->assertNotNull($conversationKey);
 
             $encrypted = $adapter->encrypt($plaintext, $conversationKey);
@@ -89,8 +89,8 @@ final class Nip44PropertyComplianceTest extends TestCase
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
             $plaintext = random_bytes(random_int(1, 256));
-            $correctKey = ConversationKey::fromBytes(random_bytes(32));
-            $wrongKey = ConversationKey::fromBytes(random_bytes(32));
+            $correctKey = ConversationKey::tryFromBytes(random_bytes(32));
+            $wrongKey = ConversationKey::tryFromBytes(random_bytes(32));
             $this->assertNotNull($correctKey);
             $this->assertNotNull($wrongKey);
 

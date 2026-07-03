@@ -57,7 +57,7 @@ final class Bip340ComplianceTest extends TestCase
         $problems = [];
 
         foreach ($this->signingVectors() as $vector) {
-            $privateKey = PrivateKey::fromHex(strtolower($vector['secret']));
+            $privateKey = PrivateKey::tryFromHex(strtolower($vector['secret']));
             $this->assertNotNull($privateKey);
 
             $ffiSig = $ffiService->sign($privateKey, $vector['message']);
@@ -106,7 +106,7 @@ final class Bip340ComplianceTest extends TestCase
             $auxBytes = hex2bin($vector['aux']);
             $this->assertNotFalse($auxBytes, sprintf('Vector %d: aux_rand hex decode failed', $vector['index']));
 
-            $privateKey = PrivateKey::fromHex(strtolower($vector['secret']));
+            $privateKey = PrivateKey::tryFromHex(strtolower($vector['secret']));
             $this->assertNotNull($privateKey);
 
             foreach ([['FFI', $this->ffiServiceWithFixedAux($auxBytes)], ['pure-PHP', $this->purePhpServiceWithFixedAux($auxBytes)]] as [$label, $service]) {
@@ -135,7 +135,7 @@ final class Bip340ComplianceTest extends TestCase
         $purePhpService = $this->purePhpService();
 
         foreach ($this->signingVectors() as $vector) {
-            $privateKey = PrivateKey::fromHex(strtolower($vector['secret']));
+            $privateKey = PrivateKey::tryFromHex(strtolower($vector['secret']));
             $this->assertNotNull($privateKey);
 
             $ffiPub = $ffiService->derivePublicKey($privateKey)->toHex();
@@ -159,7 +159,7 @@ final class Bip340ComplianceTest extends TestCase
      */
     private function collectVerifyMismatch(SignatureServiceInterface $service, array $vector, string $pathLabel): ?string
     {
-        $publicKey = PublicKey::fromHex(strtolower($vector['public']));
+        $publicKey = PublicKey::tryFromHex(strtolower($vector['public']));
 
         if (null === $publicKey) {
             if ($vector['expected']) {
@@ -169,7 +169,7 @@ final class Bip340ComplianceTest extends TestCase
             return null;
         }
 
-        $signature = Signature::fromHex(strtolower($vector['signature']));
+        $signature = Signature::tryFromHex(strtolower($vector['signature']));
 
         if (null === $signature) {
             if ($vector['expected']) {

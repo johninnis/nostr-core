@@ -67,7 +67,7 @@ final class TagReferenceExtractor
         }
 
         $value = $tag->getValue(0);
-        $eventId = null !== $value ? EventId::fromHex($value) : null;
+        $eventId = null !== $value ? EventId::tryFromHex($value) : null;
 
         if (null === $eventId) {
             return null;
@@ -79,7 +79,7 @@ final class TagReferenceExtractor
             $eventId,
             RelayUrl::fromString($tag->getValue(1)),
             $tag->getValue(2),
-            null !== $author ? PublicKey::fromHex($author) : null,
+            null !== $author ? PublicKey::tryFromHex($author) : null,
         );
     }
 
@@ -90,7 +90,7 @@ final class TagReferenceExtractor
         }
 
         $value = $tag->getValue(0);
-        $pubkey = null !== $value ? PublicKey::fromHex($value) : null;
+        $pubkey = null !== $value ? PublicKey::tryFromHex($value) : null;
 
         if (null === $pubkey) {
             return null;
@@ -115,7 +115,7 @@ final class TagReferenceExtractor
             return null;
         }
 
-        $eventId = EventId::fromHex($value);
+        $eventId = EventId::tryFromHex($value);
 
         if (null === $eventId) {
             return null;
@@ -127,7 +127,7 @@ final class TagReferenceExtractor
             $eventId,
             RelayUrl::fromString($tag->getValue(1)),
             null,
-            null !== $author ? PublicKey::fromHex($author) : null,
+            null !== $author ? PublicKey::tryFromHex($author) : null,
         );
     }
 
@@ -136,9 +136,9 @@ final class TagReferenceExtractor
         $value = $tag->getValue(0);
 
         return match ((string) $tag->getType()) {
-            TagType::ADDRESSABLE => null !== $value ? EventCoordinate::fromATag($tag->toArray()) : null,
+            TagType::ADDRESSABLE => null !== $value ? EventCoordinate::tryFromATag($tag->toArray()) : null,
             TagType::QUOTE => null !== $value && str_contains($value, ':')
-                ? EventCoordinate::fromString($value, $tag->getValue(1))
+                ? EventCoordinate::tryFromString($value, $tag->getValue(1))
                 : null,
             default => null,
         };

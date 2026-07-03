@@ -12,7 +12,7 @@ final class EventTest extends TestCase
 {
     public function testCalculateIdAndVerifyHandleParagraphSeparatorInContent(): void
     {
-        $event = Event::fromArray([
+        $event = Event::tryFromArray([
             'id' => 'ebb6b3d01d4f5ade21554c70ccc18d663a9765573ba42eac6ff4c504a0b81111',
             'pubkey' => '910a1d5c845b9eb04787fa339651e05883eca8045d804d5a40e9d7e2737ff460',
             'created_at' => 1773410433,

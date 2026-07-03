@@ -57,7 +57,7 @@ final readonly class OkMessage extends RelayMessage
      * @param array<array-key, mixed> $data
      */
     #[Override]
-    public static function fromArray(array $data): ?static
+    public static function tryFromArray(array $data): ?static
     {
         if (count($data) < 3) {
             return null;
@@ -76,7 +76,7 @@ final readonly class OkMessage extends RelayMessage
             return null;
         }
 
-        $eventId = EventId::fromHex($data[1]);
+        $eventId = EventId::tryFromHex($data[1]);
 
         if (null === $eventId) {
             return null;

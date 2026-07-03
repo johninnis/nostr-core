@@ -30,7 +30,7 @@ final class WireParserTotalityComplianceTest extends TestCase
         $this->expectNotToPerformAssertions();
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            Event::fromJson(FuzzInputMother::hostileString());
+            Event::tryFromJson(FuzzInputMother::hostileString());
         }
     }
 
@@ -39,13 +39,13 @@ final class WireParserTotalityComplianceTest extends TestCase
         $this->expectNotToPerformAssertions();
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            Event::fromArray(FuzzInputMother::hostileArray());
+            Event::tryFromArray(FuzzInputMother::hostileArray());
         }
     }
 
     public function testEventFromArrayRoundTripsToSerialisationWithoutThrowing(): void
     {
-        $baseline = Event::fromArray([
+        $baseline = Event::tryFromArray([
             'id' => str_repeat('a', 64),
             'pubkey' => str_repeat('a', 64),
             'created_at' => 1700000000,
@@ -58,7 +58,7 @@ final class WireParserTotalityComplianceTest extends TestCase
         $this->assertJson($baseline->toJson());
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            $event = Event::fromArray(FuzzInputMother::nearValidEventArray());
+            $event = Event::tryFromArray(FuzzInputMother::nearValidEventArray());
 
             if (null !== $event) {
                 $this->assertJson($event->toJson());
@@ -68,12 +68,12 @@ final class WireParserTotalityComplianceTest extends TestCase
 
     public function testFilterFromArrayRoundTripsToSerialisationWithoutThrowing(): void
     {
-        $baseline = Filter::fromArray(['kinds' => [1]]);
+        $baseline = Filter::tryFromArray(['kinds' => [1]]);
         $this->assertNotNull($baseline);
         $this->assertJson((string) $baseline);
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            $filter = Filter::fromArray(FuzzInputMother::nearValidFilterArray());
+            $filter = Filter::tryFromArray(FuzzInputMother::nearValidFilterArray());
 
             if (null !== $filter) {
                 $this->assertJson((string) $filter);
@@ -100,10 +100,10 @@ final class WireParserTotalityComplianceTest extends TestCase
         $this->expectNotToPerformAssertions();
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            ClientEventMessage::fromJson(FuzzInputMother::messageJson(['EVENT']));
-            ClientEventMessage::fromJson(FuzzInputMother::sparseObjectJson());
-            OkMessage::fromJson(FuzzInputMother::messageJson(['OK']));
-            OkMessage::fromJson(FuzzInputMother::sparseObjectJson());
+            ClientEventMessage::tryFromJson(FuzzInputMother::messageJson(['EVENT']));
+            ClientEventMessage::tryFromJson(FuzzInputMother::sparseObjectJson());
+            OkMessage::tryFromJson(FuzzInputMother::messageJson(['OK']));
+            OkMessage::tryFromJson(FuzzInputMother::sparseObjectJson());
         }
     }
 
@@ -112,7 +112,7 @@ final class WireParserTotalityComplianceTest extends TestCase
         $this->expectNotToPerformAssertions();
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            Filter::fromArray(FuzzInputMother::hostileArray());
+            Filter::tryFromArray(FuzzInputMother::hostileArray());
         }
     }
 
@@ -121,7 +121,7 @@ final class WireParserTotalityComplianceTest extends TestCase
         $this->expectNotToPerformAssertions();
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            TagCollection::fromWire(FuzzInputMother::hostileArray());
+            TagCollection::tryFromArray(FuzzInputMother::hostileArray());
         }
     }
 
@@ -130,10 +130,10 @@ final class WireParserTotalityComplianceTest extends TestCase
         $this->expectNotToPerformAssertions();
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            PublicKey::fromHex(FuzzInputMother::hostileString());
-            EventId::fromHex(FuzzInputMother::hostileString());
-            Signature::fromHex(FuzzInputMother::hostileString());
-            PrivateKey::fromHex(FuzzInputMother::hostileString());
+            PublicKey::tryFromHex(FuzzInputMother::hostileString());
+            EventId::tryFromHex(FuzzInputMother::hostileString());
+            Signature::tryFromHex(FuzzInputMother::hostileString());
+            PrivateKey::tryFromHex(FuzzInputMother::hostileString());
         }
     }
 
@@ -142,9 +142,9 @@ final class WireParserTotalityComplianceTest extends TestCase
         $this->expectNotToPerformAssertions();
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            PublicKey::fromBech32(FuzzInputMother::hostileString());
-            EventId::fromBech32(FuzzInputMother::hostileString());
-            PrivateKey::fromBech32(FuzzInputMother::hostileString());
+            PublicKey::tryFromBech32(FuzzInputMother::hostileString());
+            EventId::tryFromBech32(FuzzInputMother::hostileString());
+            PrivateKey::tryFromBech32(FuzzInputMother::hostileString());
         }
     }
 
@@ -162,7 +162,7 @@ final class WireParserTotalityComplianceTest extends TestCase
         $this->expectNotToPerformAssertions();
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            Ncryptsec::fromString(FuzzInputMother::hostileString());
+            Ncryptsec::tryFromString(FuzzInputMother::hostileString());
         }
     }
 

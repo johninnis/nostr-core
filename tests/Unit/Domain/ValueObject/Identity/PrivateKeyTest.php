@@ -15,7 +15,7 @@ final class PrivateKeyTest extends TestCase
 
     public function testCanCreateFromValidHex(): void
     {
-        $privateKey = PrivateKey::fromHex(self::VALID_PRIVATE_KEY_HEX);
+        $privateKey = PrivateKey::tryFromHex(self::VALID_PRIVATE_KEY_HEX);
 
         $this->assertNotNull($privateKey);
         $this->assertSame(self::VALID_PRIVATE_KEY_HEX, $privateKey->toHex());
@@ -23,17 +23,17 @@ final class PrivateKeyTest extends TestCase
 
     public function testReturnsNullForInvalidHexFormat(): void
     {
-        $this->assertNull(PrivateKey::fromHex('invalid-hex'));
+        $this->assertNull(PrivateKey::tryFromHex('invalid-hex'));
     }
 
     public function testReturnsNullForWrongLength(): void
     {
-        $this->assertNull(PrivateKey::fromHex('123456'));
+        $this->assertNull(PrivateKey::tryFromHex('123456'));
     }
 
     public function testReturnsNullForTrailingNewlineRatherThanThrowing(): void
     {
-        $this->assertNull(PrivateKey::fromHex(self::VALID_PRIVATE_KEY_HEX."\n"));
+        $this->assertNull(PrivateKey::tryFromHex(self::VALID_PRIVATE_KEY_HEX."\n"));
     }
 
     public function testCanGeneratePrivateKey(): void
@@ -46,7 +46,7 @@ final class PrivateKeyTest extends TestCase
 
     public function testCanConvertToBech32(): void
     {
-        $privateKey = PrivateKey::fromHex(self::VALID_PRIVATE_KEY_HEX) ?? throw new RuntimeException('Invalid test key');
+        $privateKey = PrivateKey::tryFromHex(self::VALID_PRIVATE_KEY_HEX) ?? throw new RuntimeException('Invalid test key');
         $bech32 = $privateKey->toBech32();
 
         $this->assertStringStartsWith('nsec1', $bech32);
@@ -54,9 +54,9 @@ final class PrivateKeyTest extends TestCase
 
     public function testCanCreateFromBech32(): void
     {
-        $privateKey = PrivateKey::fromHex(self::VALID_PRIVATE_KEY_HEX) ?? throw new RuntimeException('Invalid test key');
+        $privateKey = PrivateKey::tryFromHex(self::VALID_PRIVATE_KEY_HEX) ?? throw new RuntimeException('Invalid test key');
         $bech32 = $privateKey->toBech32();
-        $recreated = PrivateKey::fromBech32($bech32);
+        $recreated = PrivateKey::tryFromBech32($bech32);
 
         $this->assertNotNull($recreated);
         $this->assertSame($privateKey->toHex(), $recreated->toHex());
@@ -64,7 +64,7 @@ final class PrivateKeyTest extends TestCase
 
     public function testFromBech32ReturnsNullForInvalidPrefix(): void
     {
-        $this->assertNull(PrivateKey::fromBech32('npub1abc'));
+        $this->assertNull(PrivateKey::tryFromBech32('npub1abc'));
     }
 
     public function testGeneratedKeysAreUnique(): void
@@ -77,12 +77,12 @@ final class PrivateKeyTest extends TestCase
 
     public function testFromBech32ReturnsNullForInvalidChecksum(): void
     {
-        $this->assertNull(PrivateKey::fromBech32('nsec1invalidchecksum'));
+        $this->assertNull(PrivateKey::tryFromBech32('nsec1invalidchecksum'));
     }
 
     public function testFromHexReturnsNullForUppercaseHex(): void
     {
-        $this->assertNull(PrivateKey::fromHex(strtoupper(self::VALID_PRIVATE_KEY_HEX)));
+        $this->assertNull(PrivateKey::tryFromHex(strtoupper(self::VALID_PRIVATE_KEY_HEX)));
     }
 
     public function testZeroMakesToHexThrow(): void
@@ -127,44 +127,44 @@ final class PrivateKeyTest extends TestCase
         $bytes = hex2bin(self::VALID_PRIVATE_KEY_HEX);
         assert(false !== $bytes);
 
-        $viaHex = PrivateKey::fromHex(self::VALID_PRIVATE_KEY_HEX) ?? throw new RuntimeException('Invalid test key');
-        $viaBytes = PrivateKey::fromBytes($bytes) ?? throw new RuntimeException('Valid bytes rejected');
+        $viaHex = PrivateKey::tryFromHex(self::VALID_PRIVATE_KEY_HEX) ?? throw new RuntimeException('Invalid test key');
+        $viaBytes = PrivateKey::tryFromBytes($bytes) ?? throw new RuntimeException('Valid bytes rejected');
 
         $this->assertSame($viaHex->toHex(), $viaBytes->toHex());
     }
 
     public function testFromBytesRejectsWrongLength(): void
     {
-        $this->assertNull(PrivateKey::fromBytes('too-short'));
+        $this->assertNull(PrivateKey::tryFromBytes('too-short'));
     }
 
     public function testRejectsZeroScalar(): void
     {
-        $this->assertNull(PrivateKey::fromHex(str_repeat('0', 64)));
+        $this->assertNull(PrivateKey::tryFromHex(str_repeat('0', 64)));
     }
 
     public function testRejectsScalarEqualToCurveOrder(): void
     {
-        $this->assertNull(PrivateKey::fromHex('fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141'));
+        $this->assertNull(PrivateKey::tryFromHex('fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141'));
     }
 
     public function testRejectsScalarAboveCurveOrder(): void
     {
-        $this->assertNull(PrivateKey::fromHex(str_repeat('f', 64)));
+        $this->assertNull(PrivateKey::tryFromHex(str_repeat('f', 64)));
     }
 
     public function testAcceptsScalarOneBelowCurveOrder(): void
     {
-        $this->assertNotNull(PrivateKey::fromHex('fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364140'));
+        $this->assertNotNull(PrivateKey::tryFromHex('fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364140'));
     }
 
     public function testAcceptsScalarOfOne(): void
     {
-        $this->assertNotNull(PrivateKey::fromHex('0000000000000000000000000000000000000000000000000000000000000001'));
+        $this->assertNotNull(PrivateKey::tryFromHex('0000000000000000000000000000000000000000000000000000000000000001'));
     }
 
     public function testFromBytesRejectsZeroScalar(): void
     {
-        $this->assertNull(PrivateKey::fromBytes(str_repeat("\x00", 32)));
+        $this->assertNull(PrivateKey::tryFromBytes(str_repeat("\x00", 32)));
     }
 }

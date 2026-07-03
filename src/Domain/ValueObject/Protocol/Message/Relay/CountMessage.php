@@ -50,7 +50,7 @@ final readonly class CountMessage extends RelayMessage
      * @param array<array-key, mixed> $data
      */
     #[Override]
-    public static function fromArray(array $data): ?static
+    public static function tryFromArray(array $data): ?static
     {
         if (3 !== count($data)) {
             return null;
@@ -66,7 +66,7 @@ final readonly class CountMessage extends RelayMessage
             return null;
         }
 
-        $subscriptionId = SubscriptionId::fromWire($data[1]);
+        $subscriptionId = SubscriptionId::tryFromString($data[1]);
 
         if (null === $subscriptionId) {
             return null;

@@ -19,7 +19,7 @@ final class CountMessageTest extends TestCase
     public function testGetTypeReturnsCount(): void
     {
         $message = new CountMessage(
-            SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
+            SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
             new FilterCollection([new Filter(kinds: EventKindCollection::fromInts([1]))]),
         );
 
@@ -28,7 +28,7 @@ final class CountMessageTest extends TestCase
 
     public function testGetSubscriptionIdReturnsConstructedValue(): void
     {
-        $subId = SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID');
+        $subId = SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID');
         $message = new CountMessage($subId, new FilterCollection([new Filter(kinds: EventKindCollection::fromInts([1]))]));
 
         $this->assertTrue($subId->equals($message->getSubscriptionId()));
@@ -37,7 +37,7 @@ final class CountMessageTest extends TestCase
     public function testGetFiltersReturnsConstructedFilters(): void
     {
         $filter = new Filter(kinds: EventKindCollection::fromInts([1]));
-        $message = new CountMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), new FilterCollection([$filter]));
+        $message = new CountMessage(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), new FilterCollection([$filter]));
 
         $this->assertCount(1, $message->getFilters());
         $this->assertSame($filter, $message->getFilters()->toArray()[0]);
@@ -48,7 +48,7 @@ final class CountMessageTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('COUNT message must have at least one filter');
 
-        new CountMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), new FilterCollection([]));
+        new CountMessage(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), new FilterCollection([]));
     }
 
     public function testConstructorThrowsOnNonFilterInstances(): void
@@ -62,7 +62,7 @@ final class CountMessageTest extends TestCase
     public function testToArrayReturnsCorrectFormat(): void
     {
         $filter = new Filter(kinds: EventKindCollection::fromInts([1]));
-        $message = new CountMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), new FilterCollection([$filter]));
+        $message = new CountMessage(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), new FilterCollection([$filter]));
 
         $result = $message->toArray();
 
@@ -76,7 +76,7 @@ final class CountMessageTest extends TestCase
     {
         $filter1 = new Filter(kinds: EventKindCollection::fromInts([1]));
         $filter2 = new Filter(kinds: EventKindCollection::fromInts([0]), limit: 10);
-        $message = new CountMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), new FilterCollection([$filter1, $filter2]));
+        $message = new CountMessage(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), new FilterCollection([$filter1, $filter2]));
 
         $result = $message->toArray();
 
@@ -88,7 +88,7 @@ final class CountMessageTest extends TestCase
     public function testToJsonReturnsValidJson(): void
     {
         $message = new CountMessage(
-            SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
+            SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
             new FilterCollection([new Filter(kinds: EventKindCollection::fromInts([1]))]),
         );
 
@@ -103,7 +103,7 @@ final class CountMessageTest extends TestCase
     {
         $data = ['COUNT', 'sub-1', ['kinds' => [1]]];
 
-        $message = CountMessage::fromArray($data) ?? throw new RuntimeException('Expected a valid message');
+        $message = CountMessage::tryFromArray($data) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame(ClientMessageType::Count, $message->type());
         $this->assertSame('sub-1', (string) $message->getSubscriptionId());
@@ -114,29 +114,29 @@ final class CountMessageTest extends TestCase
     {
         $data = ['COUNT', 'sub-1', ['kinds' => [1]], ['kinds' => [0]]];
 
-        $message = CountMessage::fromArray($data) ?? throw new RuntimeException('Expected a valid message');
+        $message = CountMessage::tryFromArray($data) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertCount(2, $message->getFilters());
     }
 
     public function testFromArrayThrowsOnInvalidFormat(): void
     {
-        $this->assertNull(CountMessage::fromArray(['COUNT', 'sub-1']));
+        $this->assertNull(CountMessage::tryFromArray(['COUNT', 'sub-1']));
     }
 
     public function testFromArrayThrowsOnWrongType(): void
     {
-        $this->assertNull(CountMessage::fromArray(['REQ', 'sub-1', ['kinds' => [1]]]));
+        $this->assertNull(CountMessage::tryFromArray(['REQ', 'sub-1', ['kinds' => [1]]]));
     }
 
     public function testRoundTripPreservesData(): void
     {
         $original = new CountMessage(
-            SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
+            SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
             new FilterCollection([new Filter(kinds: EventKindCollection::fromInts([1])), new Filter(limit: 50)]),
         );
 
-        $restored = CountMessage::fromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
+        $restored = CountMessage::tryFromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame(
             (string) $original->getSubscriptionId(),
@@ -152,6 +152,6 @@ final class CountMessageTest extends TestCase
             $payload[] = ['kinds' => [1]];
         }
 
-        $this->assertNull(CountMessage::fromArray($payload));
+        $this->assertNull(CountMessage::tryFromArray($payload));
     }
 }

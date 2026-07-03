@@ -95,7 +95,7 @@ final class Secp256k1SignerTest extends TestCase
         $privateKey = PrivateKey::generate();
         $publicKey = $service->derivePublicKey($privateKey);
 
-        $invalidSignature = Signature::fromHex(str_repeat('a', 128))
+        $invalidSignature = Signature::tryFromHex(str_repeat('a', 128))
             ?? throw new RuntimeException('test setup: valid-length hex not accepted by Signature::fromHex');
 
         $this->assertFalse($service->verify($publicKey, random_bytes(32), $invalidSignature));
@@ -112,10 +112,10 @@ final class Secp256k1SignerTest extends TestCase
 
     public function testVerifyRejectsOffCurvePublicKeyViaPurePhp(): void
     {
-        $offCurvePublicKey = PublicKey::fromHex('eefdea4cdb677750a420fee807eacf21eb9898ae79b9768766e4faa04a2d4a34')
+        $offCurvePublicKey = PublicKey::tryFromHex('eefdea4cdb677750a420fee807eacf21eb9898ae79b9768766e4faa04a2d4a34')
             ?? throw new RuntimeException('test setup: off-curve x not accepted by PublicKey::fromHex');
 
-        $signature = Signature::fromHex(str_repeat('a', 128))
+        $signature = Signature::tryFromHex(str_repeat('a', 128))
             ?? throw new RuntimeException('test setup: valid-length hex not accepted by Signature::fromHex');
 
         $this->assertFalse($this->purePhpService()->verify($offCurvePublicKey, str_repeat("\x00", 32), $signature));
@@ -123,10 +123,10 @@ final class Secp256k1SignerTest extends TestCase
 
     public function testVerifyRejectsOffCurvePublicKeyViaFfi(): void
     {
-        $offCurvePublicKey = PublicKey::fromHex('eefdea4cdb677750a420fee807eacf21eb9898ae79b9768766e4faa04a2d4a34')
+        $offCurvePublicKey = PublicKey::tryFromHex('eefdea4cdb677750a420fee807eacf21eb9898ae79b9768766e4faa04a2d4a34')
             ?? throw new RuntimeException('test setup: off-curve x not accepted by PublicKey::fromHex');
 
-        $signature = Signature::fromHex(str_repeat('a', 128))
+        $signature = Signature::tryFromHex(str_repeat('a', 128))
             ?? throw new RuntimeException('test setup: valid-length hex not accepted by Signature::fromHex');
 
         $this->assertFalse($this->ffiService()->verify($offCurvePublicKey, str_repeat("\x00", 32), $signature));

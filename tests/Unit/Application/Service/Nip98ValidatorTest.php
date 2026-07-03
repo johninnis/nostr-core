@@ -83,7 +83,7 @@ final class Nip98ValidatorTest extends TestCase
     public function testRejectsMissingUrlTag(): void
     {
         $tags = new TagCollection([
-            Tag::fromArray(['method', 'POST']),
+            Tag::tryFromArray(['method', 'POST']),
         ]);
         $event = $this->createSignedEventWithTags($tags);
 
@@ -106,7 +106,7 @@ final class Nip98ValidatorTest extends TestCase
     public function testRejectsMissingMethodTag(): void
     {
         $tags = new TagCollection([
-            Tag::fromArray(['u', 'https://relay.example.com/']),
+            Tag::tryFromArray(['u', 'https://relay.example.com/']),
         ]);
         $event = $this->createSignedEventWithTags($tags);
 
@@ -129,8 +129,8 @@ final class Nip98ValidatorTest extends TestCase
     public function testRejectsMissingPayloadTag(): void
     {
         $tags = new TagCollection([
-            Tag::fromArray(['u', 'https://relay.example.com/']),
-            Tag::fromArray(['method', 'POST']),
+            Tag::tryFromArray(['u', 'https://relay.example.com/']),
+            Tag::tryFromArray(['method', 'POST']),
         ]);
         $event = $this->createSignedEventWithTags($tags);
 
@@ -159,8 +159,8 @@ final class Nip98ValidatorTest extends TestCase
     public function testSkipsPayloadValidationWhenHashNotProvided(): void
     {
         $tags = new TagCollection([
-            Tag::fromArray(['u', 'https://relay.example.com/']),
-            Tag::fromArray(['method', 'POST']),
+            Tag::tryFromArray(['u', 'https://relay.example.com/']),
+            Tag::tryFromArray(['method', 'POST']),
         ]);
         $event = $this->createSignedEventWithTags($tags);
 
@@ -176,8 +176,8 @@ final class Nip98ValidatorTest extends TestCase
     public function testUrlNormalisationMatchesWithTrailingSlash(): void
     {
         $tags = new TagCollection([
-            Tag::fromArray(['u', 'https://relay.example.com']),
-            Tag::fromArray(['method', 'GET']),
+            Tag::tryFromArray(['u', 'https://relay.example.com']),
+            Tag::tryFromArray(['method', 'GET']),
         ]);
         $event = $this->createSignedEventWithTags($tags);
 
@@ -193,8 +193,8 @@ final class Nip98ValidatorTest extends TestCase
     public function testUrlNormalisationPreservesQueryString(): void
     {
         $tags = new TagCollection([
-            Tag::fromArray(['u', 'https://relay.example.com/api?token=abc&page=1']),
-            Tag::fromArray(['method', 'GET']),
+            Tag::tryFromArray(['u', 'https://relay.example.com/api?token=abc&page=1']),
+            Tag::tryFromArray(['method', 'GET']),
         ]);
         $event = $this->createSignedEventWithTags($tags);
 
@@ -210,8 +210,8 @@ final class Nip98ValidatorTest extends TestCase
     public function testUrlNormalisationRejectsDifferentQueryStrings(): void
     {
         $tags = new TagCollection([
-            Tag::fromArray(['u', 'https://relay.example.com/api?token=abc']),
-            Tag::fromArray(['method', 'GET']),
+            Tag::tryFromArray(['u', 'https://relay.example.com/api?token=abc']),
+            Tag::tryFromArray(['method', 'GET']),
         ]);
         $event = $this->createSignedEventWithTags($tags);
 
@@ -227,8 +227,8 @@ final class Nip98ValidatorTest extends TestCase
     public function testMethodComparisonIsCaseInsensitive(): void
     {
         $tags = new TagCollection([
-            Tag::fromArray(['u', 'https://relay.example.com/']),
-            Tag::fromArray(['method', 'post']),
+            Tag::tryFromArray(['u', 'https://relay.example.com/']),
+            Tag::tryFromArray(['method', 'post']),
         ]);
         $event = $this->createSignedEventWithTags($tags);
 
@@ -244,9 +244,9 @@ final class Nip98ValidatorTest extends TestCase
     public function testRejectsDuplicateUrlTag(): void
     {
         $tags = new TagCollection([
-            Tag::fromArray(['u', 'https://relay.example.com/']),
-            Tag::fromArray(['u', 'https://decoy.example.com/']),
-            Tag::fromArray(['method', 'POST']),
+            Tag::tryFromArray(['u', 'https://relay.example.com/']),
+            Tag::tryFromArray(['u', 'https://decoy.example.com/']),
+            Tag::tryFromArray(['method', 'POST']),
         ]);
         $event = $this->createSignedEventWithTags($tags);
 
@@ -259,9 +259,9 @@ final class Nip98ValidatorTest extends TestCase
     public function testRejectsDuplicateMethodTag(): void
     {
         $tags = new TagCollection([
-            Tag::fromArray(['u', 'https://relay.example.com/']),
-            Tag::fromArray(['method', 'POST']),
-            Tag::fromArray(['method', 'GET']),
+            Tag::tryFromArray(['u', 'https://relay.example.com/']),
+            Tag::tryFromArray(['method', 'POST']),
+            Tag::tryFromArray(['method', 'GET']),
         ]);
         $event = $this->createSignedEventWithTags($tags);
 
@@ -275,10 +275,10 @@ final class Nip98ValidatorTest extends TestCase
     {
         $body = '{"method":"test"}';
         $tags = new TagCollection([
-            Tag::fromArray(['u', 'https://relay.example.com/']),
-            Tag::fromArray(['method', 'POST']),
-            Tag::fromArray(['payload', hash('sha256', $body)]),
-            Tag::fromArray(['payload', hash('sha256', 'something else')]),
+            Tag::tryFromArray(['u', 'https://relay.example.com/']),
+            Tag::tryFromArray(['method', 'POST']),
+            Tag::tryFromArray(['payload', hash('sha256', $body)]),
+            Tag::tryFromArray(['payload', hash('sha256', 'something else')]),
         ]);
         $event = $this->createSignedEventWithTags($tags);
 
@@ -301,8 +301,8 @@ final class Nip98ValidatorTest extends TestCase
     public function testRejectsMalformedEventUrl(): void
     {
         $tags = new TagCollection([
-            Tag::fromArray(['u', 'http://:/bad']),
-            Tag::fromArray(['method', 'POST']),
+            Tag::tryFromArray(['u', 'http://:/bad']),
+            Tag::tryFromArray(['method', 'POST']),
         ]);
         $event = $this->createSignedEventWithTags($tags);
 
@@ -361,8 +361,8 @@ final class Nip98ValidatorTest extends TestCase
     public function testValidateAuthHeaderAllowsEmptyBodyWithoutPayloadTag(): void
     {
         $tags = new TagCollection([
-            Tag::fromArray(['u', 'https://relay.example.com/']),
-            Tag::fromArray(['method', 'GET']),
+            Tag::tryFromArray(['u', 'https://relay.example.com/']),
+            Tag::tryFromArray(['method', 'GET']),
         ]);
         $event = $this->createSignedEventWithTags($tags);
         $authHeader = 'Nostr '.base64_encode((string) json_encode($event->toArray(), JSON_THROW_ON_ERROR));
@@ -440,9 +440,9 @@ final class Nip98ValidatorTest extends TestCase
     private function createValidSignedEvent(): Event
     {
         $tags = new TagCollection([
-            Tag::fromArray(['u', 'https://relay.example.com/']),
-            Tag::fromArray(['method', 'POST']),
-            Tag::fromArray(['payload', hash('sha256', '{"method":"test"}')]),
+            Tag::tryFromArray(['u', 'https://relay.example.com/']),
+            Tag::tryFromArray(['method', 'POST']),
+            Tag::tryFromArray(['payload', hash('sha256', '{"method":"test"}')]),
         ]);
 
         return $this->createSignedEventWithTags($tags);
@@ -451,8 +451,8 @@ final class Nip98ValidatorTest extends TestCase
     private function createSignedEvent(EventKind $kind): Event
     {
         $tags = new TagCollection([
-            Tag::fromArray(['u', 'https://relay.example.com/']),
-            Tag::fromArray(['method', 'POST']),
+            Tag::tryFromArray(['u', 'https://relay.example.com/']),
+            Tag::tryFromArray(['method', 'POST']),
         ]);
 
         $rumour = new Rumour(
@@ -469,9 +469,9 @@ final class Nip98ValidatorTest extends TestCase
     private function createSignedEventWithTimestamp(Timestamp $timestamp): Event
     {
         $tags = new TagCollection([
-            Tag::fromArray(['u', 'https://relay.example.com/']),
-            Tag::fromArray(['method', 'POST']),
-            Tag::fromArray(['payload', hash('sha256', '{"method":"test"}')]),
+            Tag::tryFromArray(['u', 'https://relay.example.com/']),
+            Tag::tryFromArray(['method', 'POST']),
+            Tag::tryFromArray(['payload', hash('sha256', '{"method":"test"}')]),
         ]);
 
         $rumour = new Rumour(

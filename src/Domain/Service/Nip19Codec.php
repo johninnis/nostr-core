@@ -65,7 +65,7 @@ final readonly class Nip19Codec implements Nip19CodecInterface
             return $this->decodeComplexEntity($input)?->getEventId();
         }
 
-        return EventId::fromHex($input);
+        return EventId::tryFromHex($input);
     }
 
     private function parseAddressableReference(string $input): ?EventCoordinate
@@ -86,14 +86,14 @@ final readonly class Nip19Codec implements Nip19CodecInterface
 
     private function decodePubkey(string $data): ?DecodedNip19Entity
     {
-        $publicKey = PublicKey::fromBytes($data);
+        $publicKey = PublicKey::tryFromBytes($data);
 
         return null !== $publicKey ? new DecodedNip19Entity(Nip19EntityType::Pubkey, publicKey: $publicKey) : null;
     }
 
     private function decodeNote(string $data): ?DecodedNip19Entity
     {
-        $eventId = EventId::fromBytes($data);
+        $eventId = EventId::tryFromBytes($data);
 
         return null !== $eventId ? new DecodedNip19Entity(Nip19EntityType::Event, eventId: $eventId) : null;
     }
@@ -107,7 +107,7 @@ final readonly class Nip19Codec implements Nip19CodecInterface
 
         return new DecodedNip19Entity(
             Nip19EntityType::Profile,
-            publicKey: isset($tlv[self::TLV_SPECIAL][0]) ? PublicKey::fromBytes($tlv[self::TLV_SPECIAL][0]) : null,
+            publicKey: isset($tlv[self::TLV_SPECIAL][0]) ? PublicKey::tryFromBytes($tlv[self::TLV_SPECIAL][0]) : null,
             relays: RelayUrlCollection::fromStrings($tlv[self::TLV_RELAY] ?? []),
         );
     }
@@ -121,8 +121,8 @@ final readonly class Nip19Codec implements Nip19CodecInterface
 
         return new DecodedNip19Entity(
             Nip19EntityType::Event,
-            publicKey: isset($tlv[self::TLV_AUTHOR][0]) ? PublicKey::fromBytes($tlv[self::TLV_AUTHOR][0]) : null,
-            eventId: isset($tlv[self::TLV_SPECIAL][0]) ? EventId::fromBytes($tlv[self::TLV_SPECIAL][0]) : null,
+            publicKey: isset($tlv[self::TLV_AUTHOR][0]) ? PublicKey::tryFromBytes($tlv[self::TLV_AUTHOR][0]) : null,
+            eventId: isset($tlv[self::TLV_SPECIAL][0]) ? EventId::tryFromBytes($tlv[self::TLV_SPECIAL][0]) : null,
             kind: self::decodeKind($tlv),
             relays: RelayUrlCollection::fromStrings($tlv[self::TLV_RELAY] ?? []),
         );
@@ -137,7 +137,7 @@ final readonly class Nip19Codec implements Nip19CodecInterface
 
         return new DecodedNip19Entity(
             Nip19EntityType::Address,
-            publicKey: isset($tlv[self::TLV_AUTHOR][0]) ? PublicKey::fromBytes($tlv[self::TLV_AUTHOR][0]) : null,
+            publicKey: isset($tlv[self::TLV_AUTHOR][0]) ? PublicKey::tryFromBytes($tlv[self::TLV_AUTHOR][0]) : null,
             identifier: $tlv[self::TLV_SPECIAL][0] ?? null,
             kind: self::decodeKind($tlv),
             relays: RelayUrlCollection::fromStrings($tlv[self::TLV_RELAY] ?? []),

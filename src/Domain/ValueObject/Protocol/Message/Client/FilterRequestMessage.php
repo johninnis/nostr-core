@@ -55,7 +55,7 @@ abstract readonly class FilterRequestMessage extends ClientMessage
      * @param array<array-key, mixed> $data
      */
     #[Override]
-    final public static function fromArray(array $data): ?static
+    final public static function tryFromArray(array $data): ?static
     {
         if (count($data) < 3) {
             return null;
@@ -65,12 +65,12 @@ abstract readonly class FilterRequestMessage extends ClientMessage
             return null;
         }
 
-        $subscriptionId = SubscriptionId::fromWire($data[1]);
+        $subscriptionId = SubscriptionId::tryFromString($data[1]);
         if (null === $subscriptionId) {
             return null;
         }
 
-        $filters = FilterCollection::fromWire(array_slice($data, 2));
+        $filters = FilterCollection::tryFromArray(array_slice($data, 2));
         if (null === $filters) {
             return null;
         }

@@ -52,7 +52,7 @@ final class ReplyChainAnalyser
             } elseif ($type->is(TagType::EVENT)) {
                 $parentEvent = self::commentEventReference($value, $tag) ?? $parentEvent;
             } elseif ($type->is(TagType::PUBKEY) || $type->is(TagType::SENDER_PUBKEY)) {
-                $pubkey = PublicKey::fromHex($value);
+                $pubkey = PublicKey::tryFromHex($value);
                 if (null !== $pubkey) {
                     $conversationParticipants[] = $pubkey;
                 }
@@ -72,7 +72,7 @@ final class ReplyChainAnalyser
 
     private static function commentEventReference(string $eventIdHex, Tag $tag): ?EventReference
     {
-        $eventId = EventId::fromHex($eventIdHex);
+        $eventId = EventId::tryFromHex($eventIdHex);
         if (null === $eventId) {
             return null;
         }
@@ -83,7 +83,7 @@ final class ReplyChainAnalyser
             $eventId,
             RelayUrl::fromString($tag->getValue(1)),
             null,
-            (null !== $author && '' !== $author) ? PublicKey::fromHex($author) : null,
+            (null !== $author && '' !== $author) ? PublicKey::tryFromHex($author) : null,
         );
     }
 

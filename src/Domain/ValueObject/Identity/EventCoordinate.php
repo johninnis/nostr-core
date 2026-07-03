@@ -31,10 +31,10 @@ final readonly class EventCoordinate implements Stringable
         return new self($kind, $pubkey, $identifier);
     }
 
-    public static function fromParts(int $kind, string $pubkeyHex, string $identifier): ?self
+    public static function tryFromParts(int $kind, string $pubkeyHex, string $identifier): ?self
     {
         $eventKind = EventKind::tryFromInt($kind);
-        $pubkey = PublicKey::fromHex($pubkeyHex);
+        $pubkey = PublicKey::tryFromHex($pubkeyHex);
 
         if (null === $eventKind || null === $pubkey) {
             return null;
@@ -43,7 +43,7 @@ final readonly class EventCoordinate implements Stringable
         return self::create($eventKind, $pubkey, $identifier);
     }
 
-    public static function fromString(string $coordinate, ?string $relayHint = null): ?self
+    public static function tryFromString(string $coordinate, ?string $relayHint = null): ?self
     {
         $parts = explode(':', $coordinate);
 
@@ -55,7 +55,7 @@ final readonly class EventCoordinate implements Stringable
             return null;
         }
 
-        $eventCoordinate = self::fromParts((int) $parts[0], $parts[1], implode(':', array_slice($parts, 2)));
+        $eventCoordinate = self::tryFromParts((int) $parts[0], $parts[1], implode(':', array_slice($parts, 2)));
 
         if (null === $eventCoordinate || null === $relayHint) {
             return $eventCoordinate;
@@ -67,7 +67,7 @@ final readonly class EventCoordinate implements Stringable
     /**
      * @param array<array-key, mixed> $tag
      */
-    public static function fromATag(array $tag): ?self
+    public static function tryFromATag(array $tag): ?self
     {
         if (!isset($tag[0]) || TagType::ADDRESSABLE !== $tag[0] || !isset($tag[1]) || !is_string($tag[1])) {
             return null;
@@ -75,7 +75,7 @@ final readonly class EventCoordinate implements Stringable
 
         $relayHint = isset($tag[2]) && is_string($tag[2]) && '' !== $tag[2] ? $tag[2] : null;
 
-        return self::fromString($tag[1], $relayHint);
+        return self::tryFromString($tag[1], $relayHint);
     }
 
     public function getKind(): EventKind
@@ -175,7 +175,7 @@ final readonly class EventCoordinate implements Stringable
     /**
      * @param array<array-key, mixed> $data
      */
-    public static function fromArray(array $data): ?self
+    public static function tryFromArray(array $data): ?self
     {
         if (!isset($data['kind'], $data['pubkey'], $data['identifier'])) {
             return null;
@@ -190,6 +190,6 @@ final readonly class EventCoordinate implements Stringable
             return null;
         }
 
-        return self::fromString($data['kind'].':'.$data['pubkey'].':'.$data['identifier'], $relayHint);
+        return self::tryFromString($data['kind'].':'.$data['pubkey'].':'.$data['identifier'], $relayHint);
     }
 }

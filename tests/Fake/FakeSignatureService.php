@@ -33,7 +33,7 @@ final class FakeSignatureService implements SignatureServiceInterface
     #[Override]
     public function sign(PrivateKey $privateKey, string $message): Signature
     {
-        return Signature::fromHex(self::SIGNATURE_HEX) ?? throw new RuntimeException('Invalid fake signature');
+        return Signature::tryFromHex(self::SIGNATURE_HEX) ?? throw new RuntimeException('Invalid fake signature');
     }
 
     #[Override]

@@ -68,9 +68,9 @@ final class WireParserRoundTripComplianceTest extends TestCase
     public function testNpubRoundTripsRandomPublicKeys(): void
     {
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            $publicKey = PublicKey::fromHex(bin2hex(random_bytes(32))) ?? throw new RuntimeException('invalid test pubkey');
+            $publicKey = PublicKey::tryFromHex(bin2hex(random_bytes(32))) ?? throw new RuntimeException('invalid test pubkey');
 
-            $recovered = PublicKey::fromBech32($publicKey->toBech32());
+            $recovered = PublicKey::tryFromBech32($publicKey->toBech32());
 
             $this->assertNotNull($recovered);
             $this->assertTrue($recovered->equals($publicKey));
@@ -80,9 +80,9 @@ final class WireParserRoundTripComplianceTest extends TestCase
     public function testNoteRoundTripsRandomEventIds(): void
     {
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            $eventId = EventId::fromHex(bin2hex(random_bytes(32))) ?? throw new RuntimeException('invalid test id');
+            $eventId = EventId::tryFromHex(bin2hex(random_bytes(32))) ?? throw new RuntimeException('invalid test id');
 
-            $recovered = EventId::fromBech32($eventId->toBech32());
+            $recovered = EventId::tryFromBech32($eventId->toBech32());
 
             $this->assertNotNull($recovered);
             $this->assertTrue($recovered->equals($eventId));
@@ -94,7 +94,7 @@ final class WireParserRoundTripComplianceTest extends TestCase
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
             $privateKey = PrivateKey::generate();
 
-            $recovered = PrivateKey::fromBech32($privateKey->toBech32());
+            $recovered = PrivateKey::tryFromBech32($privateKey->toBech32());
 
             $this->assertNotNull($recovered);
             $this->assertSame($privateKey->toBech32(), $recovered->toBech32());
@@ -116,7 +116,7 @@ final class WireParserRoundTripComplianceTest extends TestCase
             )->sign($keyPair, $signer);
 
             $array = $event->toArray();
-            $recovered = Event::fromArray($array);
+            $recovered = Event::tryFromArray($array);
 
             $this->assertNotNull($recovered);
             $this->assertSame($array, $recovered->toArray());
@@ -137,7 +137,7 @@ final class WireParserRoundTripComplianceTest extends TestCase
             );
 
             $array = $rumour->toArray();
-            $recovered = Rumour::fromArray($array);
+            $recovered = Rumour::tryFromArray($array);
 
             $this->assertNotNull($recovered);
             $this->assertSame($array, $recovered->toArray());
@@ -150,7 +150,7 @@ final class WireParserRoundTripComplianceTest extends TestCase
             $filter = $this->randomFilter();
 
             $array = $filter->toArray();
-            $recovered = Filter::fromArray($array);
+            $recovered = Filter::tryFromArray($array);
 
             $this->assertNotNull($recovered);
             $this->assertEquals($array, $recovered->toArray());
@@ -178,7 +178,7 @@ final class WireParserRoundTripComplianceTest extends TestCase
     {
         $tags = [];
         for ($i = 0, $count = random_int(0, 3); $i < $count; ++$i) {
-            $tags[] = Tag::fromArray(['t', bin2hex(random_bytes(4))]) ?? throw new RuntimeException('invalid test tag');
+            $tags[] = Tag::tryFromArray(['t', bin2hex(random_bytes(4))]) ?? throw new RuntimeException('invalid test tag');
         }
 
         return new TagCollection($tags);

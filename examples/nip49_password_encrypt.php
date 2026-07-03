@@ -16,7 +16,7 @@ $password = static fn (): string => 'correct horse battery staple';
 $ncryptsec = $cipher->encrypt($privateKey, $password, logN: 16, keySecurity: KeySecurityByte::ClientSideOnly);
 $stored = (string) $ncryptsec;
 
-$decoded = Ncryptsec::fromString($stored) ?? throw new RuntimeException('Failed to parse ncryptsec');
+$decoded = Ncryptsec::tryFromString($stored) ?? throw new RuntimeException('Failed to parse ncryptsec');
 $recovered = $cipher->decrypt($decoded, $password);
 
 echo 'ncryptsec:      '.$stored.PHP_EOL;

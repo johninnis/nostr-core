@@ -101,7 +101,7 @@ final class TagCollection extends TypedCollection
     public function getFirstPubkeyByType(TagType $type): ?PublicKey
     {
         foreach ($this->getValuesByType($type) as $value) {
-            $pubkey = PublicKey::fromHex($value);
+            $pubkey = PublicKey::tryFromHex($value);
             if (null !== $pubkey) {
                 return $pubkey;
             }
@@ -132,11 +132,10 @@ final class TagCollection extends TypedCollection
 
     private static function tryParse(mixed $value): ?Tag
     {
-        return is_array($value) ? Tag::fromArray($value) : null;
+        return is_array($value) ? Tag::tryFromArray($value) : null;
     }
 
-    // Deliberate: the strict wire parser is fromWire(mixed), not fromArray — it takes the raw decoded value and narrows itself — see ADR-0044
-    public static function fromWire(mixed $values): ?self
+    public static function tryFromArray(mixed $values): ?self
     {
         $tags = self::parseEachStrict($values, self::tryParse(...));
 

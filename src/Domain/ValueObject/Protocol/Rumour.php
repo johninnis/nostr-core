@@ -54,7 +54,7 @@ final readonly class Rumour
             (string) $this->content,
         ], JsonWireFormat::EVENT);
 
-        return EventId::fromBytes(hash('sha256', $serialised, true))
+        return EventId::tryFromBytes(hash('sha256', $serialised, true))
             ?? throw new InvalidEventException('Hashed event ID was not a valid 32-byte value');
     }
 
@@ -160,7 +160,7 @@ final readonly class Rumour
     /**
      * @param array<array-key, mixed> $data
      */
-    public static function fromArray(array $data): ?self
+    public static function tryFromArray(array $data): ?self
     {
         foreach (['pubkey', 'created_at', 'kind', 'tags', 'content'] as $field) {
             if (!array_key_exists($field, $data)) {
@@ -172,7 +172,7 @@ final readonly class Rumour
             return null;
         }
 
-        $pubkey = PublicKey::fromHex($data['pubkey']);
+        $pubkey = PublicKey::tryFromHex($data['pubkey']);
         if (null === $pubkey) {
             return null;
         }
@@ -187,7 +187,7 @@ final readonly class Rumour
             return null;
         }
 
-        $tags = TagCollection::fromWire($data['tags']);
+        $tags = TagCollection::tryFromArray($data['tags']);
         if (null === $tags) {
             return null;
         }

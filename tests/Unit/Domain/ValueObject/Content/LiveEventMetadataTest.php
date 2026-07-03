@@ -21,7 +21,7 @@ final class LiveEventMetadataTest extends TestCase
             ['streaming', 'https://stream.example.com/live.m3u8'],
         ]);
 
-        $metadata = LiveEventMetadata::fromTagCollection($tags);
+        $metadata = LiveEventMetadata::tryFromTagCollection($tags);
 
         $this->assertNotNull($metadata);
         $this->assertSame('my-live-stream', $metadata->getIdentifier());
@@ -38,7 +38,7 @@ final class LiveEventMetadataTest extends TestCase
             ['d', 'minimal-stream'],
         ]);
 
-        $metadata = LiveEventMetadata::fromTagCollection($tags);
+        $metadata = LiveEventMetadata::tryFromTagCollection($tags);
 
         $this->assertNotNull($metadata);
         $this->assertSame('minimal-stream', $metadata->getIdentifier());
@@ -56,7 +56,7 @@ final class LiveEventMetadataTest extends TestCase
             ['status', 'live'],
         ]);
 
-        $this->assertNull(LiveEventMetadata::fromTagCollection($tags));
+        $this->assertNull(LiveEventMetadata::tryFromTagCollection($tags));
     }
 
     public function testToArrayFromArrayRoundTrip(): void
@@ -71,7 +71,7 @@ final class LiveEventMetadataTest extends TestCase
         );
 
         $array = $original->toArray();
-        $restored = LiveEventMetadata::fromArray($array);
+        $restored = LiveEventMetadata::tryFromArray($array);
 
         $this->assertNotNull($restored);
         $this->assertTrue($original->equals($restored));
@@ -82,7 +82,7 @@ final class LiveEventMetadataTest extends TestCase
         $original = new LiveEventMetadata('slug', null, null, null, null, null);
 
         $array = $original->toArray();
-        $restored = LiveEventMetadata::fromArray($array);
+        $restored = LiveEventMetadata::tryFromArray($array);
 
         $this->assertNotNull($restored);
         $this->assertTrue($original->equals($restored));
@@ -90,12 +90,12 @@ final class LiveEventMetadataTest extends TestCase
 
     public function testFromArrayReturnsNullWhenIdentifierMissing(): void
     {
-        $this->assertNull(LiveEventMetadata::fromArray(['title' => 'No identifier']));
+        $this->assertNull(LiveEventMetadata::tryFromArray(['title' => 'No identifier']));
     }
 
     public function testFromArrayReturnsNullWhenIdentifierNotString(): void
     {
-        $this->assertNull(LiveEventMetadata::fromArray(['identifier' => 123]));
+        $this->assertNull(LiveEventMetadata::tryFromArray(['identifier' => 123]));
     }
 
     public function testEquals(): void

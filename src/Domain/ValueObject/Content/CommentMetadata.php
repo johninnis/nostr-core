@@ -33,7 +33,7 @@ final readonly class CommentMetadata
         return $this->rootScope;
     }
 
-    public static function fromTagCollection(TagCollection $tags): ?self
+    public static function tryFromTagCollection(TagCollection $tags): ?self
     {
         $rootKind = $tags->getFirstValueByType(TagType::rootKind());
         if (null === $rootKind) {
@@ -85,7 +85,7 @@ final readonly class CommentMetadata
     /**
      * @param array<string, mixed> $data
      */
-    public static function fromArray(array $data): ?self
+    public static function tryFromArray(array $data): ?self
     {
         $rootKind = JsonWireFormat::stringField($data, 'root_kind');
         $parentKind = JsonWireFormat::stringField($data, 'parent_kind');

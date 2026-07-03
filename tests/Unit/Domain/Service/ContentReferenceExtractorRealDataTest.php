@@ -17,7 +17,7 @@ final class ContentReferenceExtractorRealDataTest extends TestCase
 {
     private static function decoded(Nip19EntityType $type, string $eventIdHex): DecodedNip19Entity
     {
-        return new DecodedNip19Entity($type, eventId: EventId::fromHex($eventIdHex));
+        return new DecodedNip19Entity($type, eventId: EventId::tryFromHex($eventIdHex));
     }
 
     public function testExtractFromTestEventWithNevent(): void

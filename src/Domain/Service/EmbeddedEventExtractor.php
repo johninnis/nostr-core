@@ -28,6 +28,6 @@ final class EmbeddedEventExtractor
             return null;
         }
 
-        return Event::fromArray($embeddedData);
+        return Event::tryFromArray($embeddedData);
     }
 }

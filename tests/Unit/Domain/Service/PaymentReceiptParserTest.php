@@ -63,7 +63,7 @@ final class PaymentReceiptParserTest extends TestCase
     private function buildEvent(int $kind, array $rawTags): Event
     {
         return EventMother::fromRumour(new Rumour(
-            PublicKey::fromHex(self::SENDER_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
+            PublicKey::tryFromHex(self::SENDER_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1700000000),
             EventKind::fromInt($kind),
             [] === $rawTags ? new TagCollection() : TagCollectionMother::fromRaw($rawTags),

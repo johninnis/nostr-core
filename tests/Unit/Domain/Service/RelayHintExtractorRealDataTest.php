@@ -111,7 +111,7 @@ final class RelayHintExtractorRealDataTest extends TestCase
     public function testExtractRelayHintsFromFullSecondTestEvent(): void
     {
         $event = EventMother::fromRumour(new Rumour(
-            PublicKey::fromHex(self::TEST_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
+            PublicKey::tryFromHex(self::TEST_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1756903083),
             EventKind::fromInt(1),
             TagCollectionMother::fromRaw([
@@ -141,7 +141,7 @@ final class RelayHintExtractorRealDataTest extends TestCase
     private function makeEvent(TagCollection $tags, string $content = ''): Event
     {
         return EventMother::fromRumour(new Rumour(
-            PublicKey::fromHex(self::TEST_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
+            PublicKey::tryFromHex(self::TEST_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1756903083),
             EventKind::fromInt(1),
             $tags,

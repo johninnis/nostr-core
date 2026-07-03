@@ -37,7 +37,7 @@ final readonly class TagFilter
     /**
      * @param array<array-key, mixed> $data
      */
-    public static function fromWire(array $data): ?self
+    public static function tryFromArray(array $data): ?self
     {
         $values = [];
 

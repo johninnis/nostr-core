@@ -23,7 +23,7 @@ final class EventMessageTest extends TestCase
     public function testGetTypeReturnsEvent(): void
     {
         $message = new EventMessage(
-            SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
+            SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
             $this->createEvent(),
         );
 
@@ -32,7 +32,7 @@ final class EventMessageTest extends TestCase
 
     public function testGetSubscriptionIdReturnsConstructedValue(): void
     {
-        $subId = SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID');
+        $subId = SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID');
         $message = new EventMessage($subId, $this->createEvent());
 
         $this->assertTrue($subId->equals($message->getSubscriptionId()));
@@ -41,7 +41,7 @@ final class EventMessageTest extends TestCase
     public function testGetEventReturnsConstructedEvent(): void
     {
         $event = $this->createEvent();
-        $message = new EventMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), $event);
+        $message = new EventMessage(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), $event);
 
         $this->assertSame($event, $message->getEvent());
     }
@@ -49,7 +49,7 @@ final class EventMessageTest extends TestCase
     public function testToArrayReturnsCorrectFormat(): void
     {
         $event = $this->createEvent();
-        $message = new EventMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), $event);
+        $message = new EventMessage(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), $event);
 
         $result = $message->toArray();
 
@@ -62,7 +62,7 @@ final class EventMessageTest extends TestCase
     public function testToJsonReturnsValidJson(): void
     {
         $message = new EventMessage(
-            SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
+            SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
             $this->createEvent(),
         );
 
@@ -80,7 +80,7 @@ final class EventMessageTest extends TestCase
             $this->createEvent()->toArray(),
             JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
         );
-        $message = new EventMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), Event::fromJson($rawEvent) ?? throw new RuntimeException('Expected a valid event'));
+        $message = new EventMessage(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), Event::tryFromJson($rawEvent) ?? throw new RuntimeException('Expected a valid event'));
 
         $this->assertSame('["EVENT","sub-1",'.$rawEvent.']', $message->toJson());
     }
@@ -93,9 +93,9 @@ final class EventMessageTest extends TestCase
             JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
         );
 
-        $subscriptionId = SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID');
+        $subscriptionId = SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID');
         $withoutRaw = new EventMessage($subscriptionId, $event);
-        $withRaw = new EventMessage($subscriptionId, Event::fromJson($rawEvent) ?? throw new RuntimeException('Expected a valid event'));
+        $withRaw = new EventMessage($subscriptionId, Event::tryFromJson($rawEvent) ?? throw new RuntimeException('Expected a valid event'));
 
         $this->assertSame($withoutRaw->toJson(), $withRaw->toJson());
     }
@@ -107,8 +107,8 @@ final class EventMessageTest extends TestCase
             JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
         );
 
-        $stored = new EventMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), Event::fromJson($rawEvent) ?? throw new RuntimeException('Expected a valid event'));
-        $fresh = new EventMessage(SubscriptionId::fromString('sub-1'), $this->createEvent());
+        $stored = new EventMessage(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), Event::tryFromJson($rawEvent) ?? throw new RuntimeException('Expected a valid event'));
+        $fresh = new EventMessage(SubscriptionId::tryFromString('sub-1'), $this->createEvent());
 
         self::assertSame('["EVENT","sub-1",'.$rawEvent.']', $stored->preSerialisedJson());
         self::assertNull($fresh->preSerialisedJson());
@@ -119,7 +119,7 @@ final class EventMessageTest extends TestCase
         $event = $this->createEvent();
         $data = ['EVENT', 'sub-1', $event->toArray()];
 
-        $message = EventMessage::fromArray($data) ?? throw new RuntimeException('Expected a valid message');
+        $message = EventMessage::tryFromArray($data) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame(RelayMessageType::Event, $message->type());
         $this->assertSame('sub-1', (string) $message->getSubscriptionId());
@@ -127,20 +127,20 @@ final class EventMessageTest extends TestCase
 
     public function testFromArrayThrowsOnInvalidFormat(): void
     {
-        $this->assertNull(EventMessage::fromArray(['EVENT', 'sub-1']));
+        $this->assertNull(EventMessage::tryFromArray(['EVENT', 'sub-1']));
     }
 
     public function testFromArrayThrowsOnWrongType(): void
     {
-        $this->assertNull(EventMessage::fromArray(['OK', 'sub-1', $this->createEvent()->toArray()]));
+        $this->assertNull(EventMessage::tryFromArray(['OK', 'sub-1', $this->createEvent()->toArray()]));
     }
 
     public function testRoundTripPreservesData(): void
     {
         $event = $this->createEvent();
-        $original = new EventMessage(SubscriptionId::fromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), $event);
+        $original = new EventMessage(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), $event);
 
-        $restored = EventMessage::fromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
+        $restored = EventMessage::tryFromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame(
             (string) $original->getSubscriptionId(),
@@ -154,7 +154,7 @@ final class EventMessageTest extends TestCase
 
     private static function createPublicKey(): PublicKey
     {
-        return PublicKey::fromHex(str_repeat('ab', 32)) ?? throw new RuntimeException('Invalid test public key');
+        return PublicKey::tryFromHex(str_repeat('ab', 32)) ?? throw new RuntimeException('Invalid test public key');
     }
 
     private function createEvent(): Event

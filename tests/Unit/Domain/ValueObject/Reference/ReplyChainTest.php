@@ -76,6 +76,6 @@ final class ReplyChainTest extends TestCase
 
     private function eventId(string $hex): EventId
     {
-        return EventId::fromHex($hex) ?? throw new RuntimeException('Invalid test event id');
+        return EventId::tryFromHex($hex) ?? throw new RuntimeException('Invalid test event id');
     }
 }

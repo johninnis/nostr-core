@@ -256,7 +256,7 @@ final class JsonMessageDeserialiserTest extends TestCase
 
     private static function createPublicKey(): PublicKey
     {
-        return PublicKey::fromHex(str_repeat('ab', 32)) ?? throw new RuntimeException('Invalid test public key');
+        return PublicKey::tryFromHex(str_repeat('ab', 32)) ?? throw new RuntimeException('Invalid test public key');
     }
 
     private function createEvent(): Event

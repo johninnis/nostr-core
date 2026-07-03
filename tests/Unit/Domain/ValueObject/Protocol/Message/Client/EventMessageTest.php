@@ -64,7 +64,7 @@ final class EventMessageTest extends TestCase
         $event = $this->createEvent();
         $data = ['EVENT', $event->toArray()];
 
-        $message = EventMessage::fromArray($data) ?? throw new RuntimeException('Expected a valid message');
+        $message = EventMessage::tryFromArray($data) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame(ClientMessageType::Event, $message->type());
         $this->assertSame($event->getPubkey()->toHex(), $message->getEvent()->getPubkey()->toHex());
@@ -74,19 +74,19 @@ final class EventMessageTest extends TestCase
     {
         $event = $this->createEvent();
 
-        $message = EventMessage::fromArray(['EVENT', $event->toArray()]) ?? throw new RuntimeException('Expected a valid message');
+        $message = EventMessage::tryFromArray(['EVENT', $event->toArray()]) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame($event->toJson(), $message->getEvent()->getRawJson());
     }
 
     public function testFromArrayThrowsOnInvalidFormat(): void
     {
-        $this->assertNull(EventMessage::fromArray(['EVENT']));
+        $this->assertNull(EventMessage::tryFromArray(['EVENT']));
     }
 
     public function testFromArrayThrowsOnWrongType(): void
     {
-        $this->assertNull(EventMessage::fromArray(['REQ', $this->createEvent()->toArray()]));
+        $this->assertNull(EventMessage::tryFromArray(['REQ', $this->createEvent()->toArray()]));
     }
 
     public function testRoundTripPreservesData(): void
@@ -94,7 +94,7 @@ final class EventMessageTest extends TestCase
         $event = $this->createEvent();
         $original = new EventMessage($event);
 
-        $restored = EventMessage::fromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
+        $restored = EventMessage::tryFromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame($original->getEvent()->getPubkey()->toHex(), $restored->getEvent()->getPubkey()->toHex());
         $this->assertSame($original->getEvent()->getKind()->toInt(), $restored->getEvent()->getKind()->toInt());
@@ -103,7 +103,7 @@ final class EventMessageTest extends TestCase
 
     private static function createPublicKey(): PublicKey
     {
-        return PublicKey::fromHex(str_repeat('ab', 32)) ?? throw new RuntimeException('Invalid test public key');
+        return PublicKey::tryFromHex(str_repeat('ab', 32)) ?? throw new RuntimeException('Invalid test public key');
     }
 
     private function createEvent(): Event

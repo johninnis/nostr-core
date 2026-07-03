@@ -32,7 +32,7 @@ final class NutzapTest extends TestCase
             'Great post!',
         );
 
-        $nutzap = Nutzap::fromEvent($event);
+        $nutzap = Nutzap::tryFromEvent($event);
 
         $this->assertNotNull($nutzap);
         $senderPubkey = $nutzap->getSenderPubkey();
@@ -56,7 +56,7 @@ final class NutzapTest extends TestCase
             ['proof', json_encode(['amount' => 7, 'id' => 'c', 'secret' => 's3', 'C' => '02c'])],
         ]);
 
-        $nutzap = Nutzap::fromEvent($event);
+        $nutzap = Nutzap::tryFromEvent($event);
 
         $this->assertNotNull($nutzap);
         $amount = $nutzap->getAmount();
@@ -70,7 +70,7 @@ final class NutzapTest extends TestCase
             ['p', self::RECIPIENT_PUBKEY],
         ]);
 
-        $nutzap = Nutzap::fromEvent($event);
+        $nutzap = Nutzap::tryFromEvent($event);
 
         $this->assertNotNull($nutzap);
         $this->assertNull($nutzap->getAmount());
@@ -83,7 +83,7 @@ final class NutzapTest extends TestCase
             ['proof', json_encode(['amount' => 1, 'id' => 'a', 'secret' => 's', 'C' => '02a'])],
         ]);
 
-        $nutzap = Nutzap::fromEvent($event);
+        $nutzap = Nutzap::tryFromEvent($event);
 
         $this->assertNotNull($nutzap);
         $this->assertNull($nutzap->getMessage());
@@ -92,14 +92,14 @@ final class NutzapTest extends TestCase
     public function testWrongKindReturnsNull(): void
     {
         $event = EventMother::fromRumour(new Rumour(
-            PublicKey::fromHex(self::SENDER_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
+            PublicKey::tryFromHex(self::SENDER_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1700000000),
             EventKind::fromInt(EventKind::TEXT_NOTE),
             new TagCollection(),
             EventContent::fromString('hello'),
         ));
 
-        $this->assertNull(Nutzap::fromEvent($event));
+        $this->assertNull(Nutzap::tryFromEvent($event));
     }
 
     public function testMsatUnit(): void
@@ -110,7 +110,7 @@ final class NutzapTest extends TestCase
             ['unit', 'msat'],
         ]);
 
-        $nutzap = Nutzap::fromEvent($event);
+        $nutzap = Nutzap::tryFromEvent($event);
 
         $this->assertNotNull($nutzap);
         $amount = $nutzap->getAmount();
@@ -127,7 +127,7 @@ final class NutzapTest extends TestCase
             ['proof', json_encode(['amount' => 5, 'id' => 'a', 'secret' => 's', 'C' => '02a'])],
         ]);
 
-        $nutzap = Nutzap::fromEvent($event);
+        $nutzap = Nutzap::tryFromEvent($event);
 
         $this->assertNotNull($nutzap);
         $amount = $nutzap->getAmount();
@@ -143,7 +143,7 @@ final class NutzapTest extends TestCase
             ['proof', json_encode(['amount' => 1, 'id' => 'b', 'secret' => 's2', 'C' => '02b'])],
         ]);
 
-        $this->assertNull(Nutzap::fromEvent($event));
+        $this->assertNull(Nutzap::tryFromEvent($event));
     }
 
     public function testForgedHugeProofAmountReturnsNull(): void
@@ -153,7 +153,7 @@ final class NutzapTest extends TestCase
             ['proof', json_encode(['amount' => '9223372036854775807', 'id' => 'a', 'secret' => 's', 'C' => '02a'])],
         ]);
 
-        $this->assertNull(Nutzap::fromEvent($event));
+        $this->assertNull(Nutzap::tryFromEvent($event));
     }
 
     public function testNegativeProofAmountReturnsNull(): void
@@ -163,7 +163,7 @@ final class NutzapTest extends TestCase
             ['proof', json_encode(['amount' => -5, 'id' => 'a', 'secret' => 's', 'C' => '02a'])],
         ]);
 
-        $this->assertNull(Nutzap::fromEvent($event));
+        $this->assertNull(Nutzap::tryFromEvent($event));
     }
 
     public function testTotalAtCapParses(): void
@@ -173,7 +173,7 @@ final class NutzapTest extends TestCase
             ['proof', json_encode(['amount' => 100_000_000, 'id' => 'a', 'secret' => 's', 'C' => '02a'])],
         ]);
 
-        $nutzap = Nutzap::fromEvent($event);
+        $nutzap = Nutzap::tryFromEvent($event);
 
         $this->assertNotNull($nutzap);
         $amount = $nutzap->getAmount();
@@ -187,7 +187,7 @@ final class NutzapTest extends TestCase
             ['proof', json_encode(['amount' => 10, 'id' => 'a', 'secret' => 's', 'C' => '02a'])],
         ]);
 
-        $nutzap = Nutzap::fromEvent($event);
+        $nutzap = Nutzap::tryFromEvent($event);
 
         $this->assertNotNull($nutzap);
         $this->assertNull($nutzap->getRecipientPubkey());
@@ -199,7 +199,7 @@ final class NutzapTest extends TestCase
     private function buildNutzapEvent(array $rawTags, string $content = ''): Event
     {
         return EventMother::fromRumour(new Rumour(
-            PublicKey::fromHex(self::SENDER_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
+            PublicKey::tryFromHex(self::SENDER_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1700000000),
             EventKind::fromInt(EventKind::NUTZAP),
             TagCollectionMother::fromRaw($rawTags),

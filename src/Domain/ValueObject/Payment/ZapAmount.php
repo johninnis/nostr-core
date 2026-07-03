@@ -46,7 +46,7 @@ final readonly class ZapAmount
         return new self($sats * self::MILLISATS_PER_SAT);
     }
 
-    public static function fromBolt11(string $bolt11): ?self
+    public static function tryFromBolt11(string $bolt11): ?self
     {
         // Deliberate: the trailing '1' anchors the amount to the bech32 separator so an amount-less invoice is rejected, not read as 1 BTC; lowercase because the multipliers are case-sensitive — see ADR-0040
         if (!preg_match('/^ln[a-z]+?(\d+)([munp])?1/', strtolower($bolt11), $matches)) {

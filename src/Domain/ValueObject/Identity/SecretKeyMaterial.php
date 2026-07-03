@@ -32,12 +32,12 @@ final class SecretKeyMaterial
         return new self(random_bytes(self::BYTE_LENGTH));
     }
 
-    public static function fromHex(#[SensitiveParameter] string $hex): ?self
+    public static function tryFromHex(#[SensitiveParameter] string $hex): ?self
     {
         return HexCodec::isValid($hex, self::BYTE_LENGTH) ? new self(HexCodec::decode($hex)) : null;
     }
 
-    public static function fromBytes(#[SensitiveParameter] string $bytes): ?self
+    public static function tryFromBytes(#[SensitiveParameter] string $bytes): ?self
     {
         return self::BYTE_LENGTH === strlen($bytes) ? new self($bytes) : null;
     }

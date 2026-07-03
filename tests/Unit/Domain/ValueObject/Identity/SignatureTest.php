@@ -14,12 +14,12 @@ final class SignatureTest extends TestCase
 
     public function testFromBytesReturnsNullForWrongLength(): void
     {
-        $this->assertNull(Signature::fromBytes(str_repeat("\0", 10)));
+        $this->assertNull(Signature::tryFromBytes(str_repeat("\0", 10)));
     }
 
     public function testCanCreateFromValidHex(): void
     {
-        $signature = Signature::fromHex(self::VALID_SIGNATURE_HEX);
+        $signature = Signature::tryFromHex(self::VALID_SIGNATURE_HEX);
 
         $this->assertNotNull($signature);
         $this->assertSame(self::VALID_SIGNATURE_HEX, $signature->toHex());
@@ -28,29 +28,29 @@ final class SignatureTest extends TestCase
 
     public function testReturnsNullForInvalidHexFormat(): void
     {
-        $this->assertNull(Signature::fromHex('invalid-hex'));
+        $this->assertNull(Signature::tryFromHex('invalid-hex'));
     }
 
     public function testReturnsNullForWrongLength(): void
     {
-        $this->assertNull(Signature::fromHex('123456'));
+        $this->assertNull(Signature::tryFromHex('123456'));
     }
 
     public function testReturnsNullForTooShort(): void
     {
-        $this->assertNull(Signature::fromHex(str_repeat('a', 64)));
+        $this->assertNull(Signature::tryFromHex(str_repeat('a', 64)));
     }
 
     public function testRejectsShortSignatureRatherThanZeroPadding(): void
     {
-        $this->assertNull(Signature::fromHex(str_repeat('a', 126)));
+        $this->assertNull(Signature::tryFromHex(str_repeat('a', 126)));
     }
 
     public function testEqualsWorksCorrectly(): void
     {
-        $signature1 = Signature::fromHex(self::VALID_SIGNATURE_HEX) ?? throw new RuntimeException('Invalid test sig');
-        $signature2 = Signature::fromHex(self::VALID_SIGNATURE_HEX);
-        $signature3 = Signature::fromHex(str_repeat('f', 128));
+        $signature1 = Signature::tryFromHex(self::VALID_SIGNATURE_HEX) ?? throw new RuntimeException('Invalid test sig');
+        $signature2 = Signature::tryFromHex(self::VALID_SIGNATURE_HEX);
+        $signature3 = Signature::tryFromHex(str_repeat('f', 128));
         $this->assertNotNull($signature3);
 
         $this->assertTrue($signature1->equals($signature2));

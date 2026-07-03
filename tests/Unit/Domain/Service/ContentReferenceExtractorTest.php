@@ -33,8 +33,8 @@ final class ContentReferenceExtractorTest extends TestCase
 
         return new DecodedNip19Entity(
             $type,
-            null !== $pubkeyHex ? PublicKey::fromHex($pubkeyHex) : null,
-            null !== $eventIdHex ? EventId::fromHex($eventIdHex) : null,
+            null !== $pubkeyHex ? PublicKey::tryFromHex($pubkeyHex) : null,
+            null !== $eventIdHex ? EventId::tryFromHex($eventIdHex) : null,
             relays: new RelayUrlCollection($relays),
         );
     }

@@ -42,13 +42,13 @@ final class EventReferenceExtractorTest extends TestCase
     public function testMergesAllReferencesCorrectly(): void
     {
         $tags = [
-            Tag::fromArray(['e', '1111111111111111111111111111111111111111111111111111111111111111', 'wss://relay.com', 'root']),
-            Tag::fromArray(['p', '2222222222222222222222222222222222222222222222222222222222222222']),
-            Tag::fromArray(['q', '3333333333333333333333333333333333333333333333333333333333333333', '', '4444444444444444444444444444444444444444444444444444444444444444']),
+            Tag::tryFromArray(['e', '1111111111111111111111111111111111111111111111111111111111111111', 'wss://relay.com', 'root']),
+            Tag::tryFromArray(['p', '2222222222222222222222222222222222222222222222222222222222222222']),
+            Tag::tryFromArray(['q', '3333333333333333333333333333333333333333333333333333333333333333', '', '4444444444444444444444444444444444444444444444444444444444444444']),
         ];
 
         $event = EventMother::fromRumour(new Rumour(
-            PublicKey::fromHex('1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef') ?? throw new RuntimeException('Invalid test pubkey'),
+            PublicKey::tryFromHex('1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef') ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1234567890),
             EventKind::fromInt(1),
             new TagCollection($tags),
@@ -77,14 +77,14 @@ final class EventReferenceExtractorTest extends TestCase
     public function testDeduplicatesReferences(): void
     {
         $tags = [
-            Tag::fromArray(['e', '1111111111111111111111111111111111111111111111111111111111111111', 'wss://relay1.com']),
-            Tag::fromArray(['e', '1111111111111111111111111111111111111111111111111111111111111111', 'wss://relay2.com']),
-            Tag::fromArray(['p', '2222222222222222222222222222222222222222222222222222222222222222']),
-            Tag::fromArray(['p', '2222222222222222222222222222222222222222222222222222222222222222']),
+            Tag::tryFromArray(['e', '1111111111111111111111111111111111111111111111111111111111111111', 'wss://relay1.com']),
+            Tag::tryFromArray(['e', '1111111111111111111111111111111111111111111111111111111111111111', 'wss://relay2.com']),
+            Tag::tryFromArray(['p', '2222222222222222222222222222222222222222222222222222222222222222']),
+            Tag::tryFromArray(['p', '2222222222222222222222222222222222222222222222222222222222222222']),
         ];
 
         $event = EventMother::fromRumour(new Rumour(
-            PublicKey::fromHex('1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef') ?? throw new RuntimeException('Invalid test pubkey'),
+            PublicKey::tryFromHex('1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef') ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1234567890),
             EventKind::fromInt(1),
             new TagCollection($tags),
@@ -108,7 +108,7 @@ final class EventReferenceExtractorTest extends TestCase
     public function testGenericRepostKind16IsReportedAsRepost(): void
     {
         $event = EventMother::fromRumour(new Rumour(
-            PublicKey::fromHex('1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef') ?? throw new RuntimeException('Invalid test pubkey'),
+            PublicKey::tryFromHex('1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef') ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1234567890),
             EventKind::fromInt(EventKind::GENERIC_REPOST),
             new TagCollection(),
@@ -126,12 +126,12 @@ final class EventReferenceExtractorTest extends TestCase
     private function createTestEvent(): Event
     {
         $tags = [
-            Tag::fromArray(['e', '1111111111111111111111111111111111111111111111111111111111111111', 'wss://relay.com']),
-            Tag::fromArray(['p', '2222222222222222222222222222222222222222222222222222222222222222']),
+            Tag::tryFromArray(['e', '1111111111111111111111111111111111111111111111111111111111111111', 'wss://relay.com']),
+            Tag::tryFromArray(['p', '2222222222222222222222222222222222222222222222222222222222222222']),
         ];
 
         return EventMother::fromRumour(new Rumour(
-            PublicKey::fromHex('1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef') ?? throw new RuntimeException('Invalid test pubkey'),
+            PublicKey::tryFromHex('1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef') ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1234567890),
             EventKind::fromInt(1),
             new TagCollection($tags),

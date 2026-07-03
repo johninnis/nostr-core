@@ -209,11 +209,11 @@ final class RelayHintExtractorTest extends TestCase
     {
         $tags = [];
         foreach ($tagArrays as $tagArray) {
-            $tags[] = Tag::fromArray($tagArray);
+            $tags[] = Tag::tryFromArray($tagArray);
         }
 
         return EventMother::fromRumour(new Rumour(
-            PublicKey::fromHex('fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210') ?? throw new RuntimeException('Invalid test pubkey'),
+            PublicKey::tryFromHex('fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210') ?? throw new RuntimeException('Invalid test pubkey'),
             Timestamp::fromInt(1234567890),
             EventKind::fromInt($kind),
             new TagCollection($tags),

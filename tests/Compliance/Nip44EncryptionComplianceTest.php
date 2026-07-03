@@ -20,8 +20,8 @@ final class Nip44EncryptionComplianceTest extends TestCase
     #[DataProvider('conversationKeyVectorsProvider')]
     public function testConversationKeyDerivation(string $sec1, string $pub2, string $expectedKey): void
     {
-        $privateKey = PrivateKey::fromHex($sec1);
-        $publicKey = PublicKey::fromHex($pub2);
+        $privateKey = PrivateKey::tryFromHex($sec1);
+        $publicKey = PublicKey::tryFromHex($pub2);
 
         self::assertNotNull($privateKey);
         self::assertNotNull($publicKey);
@@ -43,7 +43,7 @@ final class Nip44EncryptionComplianceTest extends TestCase
         self::assertNotFalse($nonce);
 
         $adapter = new Nip44Cipher(QueuedRandomBytesGenerator::withBytes($nonce));
-        $conversationKey = ConversationKey::fromHex($conversationKeyHex);
+        $conversationKey = ConversationKey::tryFromHex($conversationKeyHex);
         self::assertNotNull($conversationKey);
 
         $encrypted = $adapter->encrypt($plaintext, $conversationKey);
@@ -59,7 +59,7 @@ final class Nip44EncryptionComplianceTest extends TestCase
         string $expectedPayload,
     ): void {
         $adapter = new Nip44Cipher();
-        $conversationKey = ConversationKey::fromHex($conversationKeyHex);
+        $conversationKey = ConversationKey::tryFromHex($conversationKeyHex);
         self::assertNotNull($conversationKey);
 
         $decrypted = $adapter->decrypt($expectedPayload, $conversationKey);
@@ -82,7 +82,7 @@ final class Nip44EncryptionComplianceTest extends TestCase
     public function testInvalidDecryptionVectors(string $conversationKeyHex, string $payload): void
     {
         $adapter = new Nip44Cipher();
-        $conversationKey = ConversationKey::fromHex($conversationKeyHex);
+        $conversationKey = ConversationKey::tryFromHex($conversationKeyHex);
         self::assertNotNull($conversationKey);
 
         $this->expectException(EncryptionException::class);

@@ -132,7 +132,7 @@ final class Nip44CipherTest extends TestCase
     public function testDecryptRejectsWrongKey(): void
     {
         $conversationKey = $this->createTestKey();
-        $wrongKey = ConversationKey::fromHex(str_repeat('cd', 32));
+        $wrongKey = ConversationKey::tryFromHex(str_repeat('cd', 32));
         self::assertNotNull($wrongKey);
 
         $encrypted = $this->adapter->encrypt('secret', $conversationKey);
@@ -249,7 +249,7 @@ final class Nip44CipherTest extends TestCase
 
     private function createTestKey(): ConversationKey
     {
-        $key = ConversationKey::fromHex(str_repeat('ab', 32));
+        $key = ConversationKey::tryFromHex(str_repeat('ab', 32));
         self::assertNotNull($key);
 
         return $key;

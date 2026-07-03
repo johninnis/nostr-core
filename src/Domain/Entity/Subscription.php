@@ -80,7 +80,7 @@ final readonly class Subscription
     /**
      * @param array<array-key, mixed> $data
      */
-    public static function fromArray(array $data): ?self
+    public static function tryFromArray(array $data): ?self
     {
         if (!isset($data['id'], $data['filters'], $data['created_at'])) {
             return null;
@@ -95,12 +95,12 @@ final readonly class Subscription
             return null;
         }
 
-        $id = SubscriptionId::fromWire($data['id']);
+        $id = SubscriptionId::tryFromString($data['id']);
         if (null === $id) {
             return null;
         }
 
-        $filters = FilterCollection::fromWire($data['filters']);
+        $filters = FilterCollection::tryFromArray($data['filters']);
         if (null === $filters) {
             return null;
         }

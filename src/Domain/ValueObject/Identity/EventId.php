@@ -38,7 +38,7 @@ final readonly class EventId implements Stringable
         return $this->id === $other->id;
     }
 
-    public static function fromHex(string $hex): ?self
+    public static function tryFromHex(string $hex): ?self
     {
         if (!HexCodec::isValid($hex, self::BYTE_LENGTH)) {
             return null;
@@ -47,7 +47,7 @@ final readonly class EventId implements Stringable
         return new self($hex);
     }
 
-    public static function fromBytes(string $bytes): ?self
+    public static function tryFromBytes(string $bytes): ?self
     {
         if (self::BYTE_LENGTH !== strlen($bytes)) {
             return null;
@@ -56,11 +56,11 @@ final readonly class EventId implements Stringable
         return new self(HexCodec::encode($bytes));
     }
 
-    public static function fromBech32(string $bech32): ?self
+    public static function tryFromBech32(string $bech32): ?self
     {
         $bytes = Bech32Codec::decodeWithHrp($bech32, 'note');
 
-        return null === $bytes ? null : self::fromBytes($bytes);
+        return null === $bytes ? null : self::tryFromBytes($bytes);
     }
 
     #[Override]

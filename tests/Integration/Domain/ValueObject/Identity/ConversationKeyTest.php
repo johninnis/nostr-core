@@ -14,37 +14,37 @@ final class ConversationKeyTest extends TestCase
 {
     public function testFromHexAcceptsValidHex(): void
     {
-        $key = ConversationKey::fromHex(str_repeat('ab', 32));
+        $key = ConversationKey::tryFromHex(str_repeat('ab', 32));
 
         $this->assertNotNull($key);
     }
 
     public function testFromHexReturnsNullForInvalidCharacters(): void
     {
-        $this->assertNull(ConversationKey::fromHex('invalid'));
+        $this->assertNull(ConversationKey::tryFromHex('invalid'));
     }
 
     public function testFromHexReturnsNullForWrongLength(): void
     {
-        $this->assertNull(ConversationKey::fromHex(str_repeat('ab', 16)));
+        $this->assertNull(ConversationKey::tryFromHex(str_repeat('ab', 16)));
     }
 
     public function testFromBytesAcceptsCorrectLength(): void
     {
-        $key = ConversationKey::fromBytes(random_bytes(32));
+        $key = ConversationKey::tryFromBytes(random_bytes(32));
 
         $this->assertNotNull($key);
     }
 
     public function testFromBytesReturnsNullForWrongLength(): void
     {
-        $this->assertNull(ConversationKey::fromBytes(random_bytes(16)));
+        $this->assertNull(ConversationKey::tryFromBytes(random_bytes(16)));
     }
 
     public function testExposePassesBytesToClosure(): void
     {
         $bytes = random_bytes(32);
-        $key = ConversationKey::fromBytes($bytes);
+        $key = ConversationKey::tryFromBytes($bytes);
         $this->assertNotNull($key);
 
         $received = $key->expose(static fn (string $b): string => $b);
@@ -96,7 +96,7 @@ final class ConversationKeyTest extends TestCase
 
     public function testZeroMakesExposeThrow(): void
     {
-        $key = ConversationKey::fromBytes(random_bytes(32));
+        $key = ConversationKey::tryFromBytes(random_bytes(32));
         $this->assertNotNull($key);
 
         $key->zero();
@@ -107,7 +107,7 @@ final class ConversationKeyTest extends TestCase
 
     public function testZeroIsIdempotent(): void
     {
-        $key = ConversationKey::fromBytes(random_bytes(32));
+        $key = ConversationKey::tryFromBytes(random_bytes(32));
         $this->assertNotNull($key);
 
         $key->zero();
@@ -118,7 +118,7 @@ final class ConversationKeyTest extends TestCase
 
     public function testIsZeroedReflectsState(): void
     {
-        $key = ConversationKey::fromBytes(random_bytes(32));
+        $key = ConversationKey::tryFromBytes(random_bytes(32));
         $this->assertNotNull($key);
 
         $this->assertFalse($key->isZeroed());

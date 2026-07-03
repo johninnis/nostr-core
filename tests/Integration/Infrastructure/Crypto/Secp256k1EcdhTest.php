@@ -82,7 +82,7 @@ final class Secp256k1EcdhTest extends TestCase
     public function testComputeSharedXRejectsInFieldOffCurvePublicKeyOnPurePhpPath(): void
     {
         $ecdh = new Secp256k1Ecdh(null);
-        $offCurveKey = PublicKey::fromHex(self::OFF_CURVE_X_HEX);
+        $offCurveKey = PublicKey::tryFromHex(self::OFF_CURVE_X_HEX);
         $this->assertNotNull($offCurveKey);
 
         $this->expectException(EcdhException::class);
@@ -92,7 +92,7 @@ final class Secp256k1EcdhTest extends TestCase
     public function testComputeSharedXRejectsInFieldOffCurvePublicKeyOnDefaultPath(): void
     {
         $ecdh = Secp256k1Ecdh::create();
-        $offCurveKey = PublicKey::fromHex(self::OFF_CURVE_X_HEX);
+        $offCurveKey = PublicKey::tryFromHex(self::OFF_CURVE_X_HEX);
         $this->assertNotNull($offCurveKey);
 
         $this->expectException(EcdhException::class);
@@ -121,7 +121,7 @@ final class Secp256k1EcdhTest extends TestCase
 
     private function assertFieldRangeRejection(Secp256k1Ecdh $ecdh, string $xHex): void
     {
-        $outOfRangeKey = PublicKey::fromHex($xHex);
+        $outOfRangeKey = PublicKey::tryFromHex($xHex);
         $this->assertNotNull($outOfRangeKey);
 
         $this->expectException(EcdhException::class);

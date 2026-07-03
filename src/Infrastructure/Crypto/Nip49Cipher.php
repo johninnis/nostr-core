@@ -103,7 +103,7 @@ final class Nip49Cipher implements Nip49EncryptionInterface
         }
 
         try {
-            return PrivateKey::fromBytes($plaintext) ?? throw new Nip49DecryptionFailedException();
+            return PrivateKey::tryFromBytes($plaintext) ?? throw new Nip49DecryptionFailedException();
         } finally {
             sodium_memzero($plaintext);
         }

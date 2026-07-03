@@ -14,7 +14,7 @@ final class PublicKeyTest extends TestCase
 
     public function testCanCreateFromValidHex(): void
     {
-        $publicKey = PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX);
+        $publicKey = PublicKey::tryFromHex(self::VALID_PUBLIC_KEY_HEX);
 
         $this->assertNotNull($publicKey);
         $this->assertSame(self::VALID_PUBLIC_KEY_HEX, $publicKey->toHex());
@@ -23,24 +23,24 @@ final class PublicKeyTest extends TestCase
 
     public function testReturnsNullForInvalidHexFormat(): void
     {
-        $this->assertNull(PublicKey::fromHex('invalid-hex'));
+        $this->assertNull(PublicKey::tryFromHex('invalid-hex'));
     }
 
     public function testReturnsNullForWrongLength(): void
     {
-        $this->assertNull(PublicKey::fromHex('123456'));
+        $this->assertNull(PublicKey::tryFromHex('123456'));
     }
 
     public function testReturnsNullForTrailingNewline(): void
     {
-        $this->assertNull(PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX."\n"));
+        $this->assertNull(PublicKey::tryFromHex(self::VALID_PUBLIC_KEY_HEX."\n"));
     }
 
     public function testToBytesRoundTripsThroughFromBytes(): void
     {
-        $publicKey = PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
+        $publicKey = PublicKey::tryFromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
         $bytes = $publicKey->toBytes();
-        $recreated = PublicKey::fromBytes($bytes);
+        $recreated = PublicKey::tryFromBytes($bytes);
 
         $this->assertSame(32, strlen($bytes));
         $this->assertNotNull($recreated);
@@ -49,12 +49,12 @@ final class PublicKeyTest extends TestCase
 
     public function testFromBytesReturnsNullForWrongLength(): void
     {
-        $this->assertNull(PublicKey::fromBytes('too-short'));
+        $this->assertNull(PublicKey::tryFromBytes('too-short'));
     }
 
     public function testCanConvertToBech32(): void
     {
-        $publicKey = PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
+        $publicKey = PublicKey::tryFromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
         $bech32 = $publicKey->toBech32();
 
         $this->assertStringStartsWith('npub1', $bech32);
@@ -63,9 +63,9 @@ final class PublicKeyTest extends TestCase
 
     public function testCanCreateFromBech32(): void
     {
-        $publicKey = PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
+        $publicKey = PublicKey::tryFromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
         $bech32 = $publicKey->toBech32();
-        $recreatedKey = PublicKey::fromBech32($bech32);
+        $recreatedKey = PublicKey::tryFromBech32($bech32);
 
         $this->assertNotNull($recreatedKey);
         $this->assertTrue($publicKey->equals($recreatedKey));
@@ -73,9 +73,9 @@ final class PublicKeyTest extends TestCase
 
     public function testEqualsWorksCorrectly(): void
     {
-        $publicKey1 = PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
-        $publicKey2 = PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX);
-        $publicKey3 = PublicKey::fromHex(str_repeat('a', 64));
+        $publicKey1 = PublicKey::tryFromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
+        $publicKey2 = PublicKey::tryFromHex(self::VALID_PUBLIC_KEY_HEX);
+        $publicKey3 = PublicKey::tryFromHex(str_repeat('a', 64));
         $this->assertNotNull($publicKey3);
 
         $this->assertTrue($publicKey1->equals($publicKey2));
@@ -84,22 +84,22 @@ final class PublicKeyTest extends TestCase
 
     public function testFromBech32ReturnsNullForInvalidPrefix(): void
     {
-        $this->assertNull(PublicKey::fromBech32('nsec1abc'));
+        $this->assertNull(PublicKey::tryFromBech32('nsec1abc'));
     }
 
     public function testFromBech32ReturnsNullForInvalidChecksum(): void
     {
-        $this->assertNull(PublicKey::fromBech32('npub1invalidchecksum'));
+        $this->assertNull(PublicKey::tryFromBech32('npub1invalidchecksum'));
     }
 
     public function testFromHexReturnsNullForUppercaseHex(): void
     {
-        $this->assertNull(PublicKey::fromHex(strtoupper(self::VALID_PUBLIC_KEY_HEX)));
+        $this->assertNull(PublicKey::tryFromHex(strtoupper(self::VALID_PUBLIC_KEY_HEX)));
     }
 
     public function testFromNpubOrHexAcceptsHex(): void
     {
-        $publicKey = PublicKey::fromNpubOrHex(self::VALID_PUBLIC_KEY_HEX);
+        $publicKey = PublicKey::tryFromNpubOrHex(self::VALID_PUBLIC_KEY_HEX);
 
         $this->assertNotNull($publicKey);
         $this->assertSame(self::VALID_PUBLIC_KEY_HEX, $publicKey->toHex());
@@ -107,8 +107,8 @@ final class PublicKeyTest extends TestCase
 
     public function testFromNpubOrHexAcceptsNpub(): void
     {
-        $expected = PublicKey::fromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
-        $publicKey = PublicKey::fromNpubOrHex($expected->toBech32());
+        $expected = PublicKey::tryFromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
+        $publicKey = PublicKey::tryFromNpubOrHex($expected->toBech32());
 
         $this->assertNotNull($publicKey);
         $this->assertTrue($expected->equals($publicKey));
@@ -116,7 +116,7 @@ final class PublicKeyTest extends TestCase
 
     public function testFromNpubOrHexReturnsNullForInvalidInput(): void
     {
-        $this->assertNull(PublicKey::fromNpubOrHex('not-a-key'));
-        $this->assertNull(PublicKey::fromNpubOrHex('npub1invalidchecksum'));
+        $this->assertNull(PublicKey::tryFromNpubOrHex('not-a-key'));
+        $this->assertNull(PublicKey::tryFromNpubOrHex('npub1invalidchecksum'));
     }
 }

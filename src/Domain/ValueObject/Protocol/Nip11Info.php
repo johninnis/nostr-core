@@ -38,7 +38,7 @@ final readonly class Nip11Info
     {
         $pubkey = JsonWireFormat::stringField($this->rawData, 'pubkey');
 
-        return null === $pubkey ? null : PublicKey::fromHex($pubkey);
+        return null === $pubkey ? null : PublicKey::tryFromHex($pubkey);
     }
 
     public function getContact(): ?string

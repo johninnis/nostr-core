@@ -23,7 +23,7 @@ final class LongformMetadataTest extends TestCase
             ['t', 'protocol'],
         ]);
 
-        $metadata = LongformMetadata::fromTagCollection($tags);
+        $metadata = LongformMetadata::tryFromTagCollection($tags);
 
         $this->assertNotNull($metadata);
         $this->assertSame('my-article-slug', $metadata->getIdentifier());
@@ -41,7 +41,7 @@ final class LongformMetadataTest extends TestCase
             ['d', 'minimal-article'],
         ]);
 
-        $metadata = LongformMetadata::fromTagCollection($tags);
+        $metadata = LongformMetadata::tryFromTagCollection($tags);
 
         $this->assertNotNull($metadata);
         $this->assertSame('minimal-article', $metadata->getIdentifier());
@@ -59,7 +59,7 @@ final class LongformMetadataTest extends TestCase
             ['t', 'nostr'],
         ]);
 
-        $this->assertNull(LongformMetadata::fromTagCollection($tags));
+        $this->assertNull(LongformMetadata::tryFromTagCollection($tags));
     }
 
     public function testToArrayFromArrayRoundTrip(): void
@@ -74,7 +74,7 @@ final class LongformMetadataTest extends TestCase
         );
 
         $array = $original->toArray();
-        $restored = LongformMetadata::fromArray($array);
+        $restored = LongformMetadata::tryFromArray($array);
 
         $this->assertNotNull($restored);
         $this->assertTrue($original->equals($restored));
@@ -82,12 +82,12 @@ final class LongformMetadataTest extends TestCase
 
     public function testFromArrayReturnsNullWhenIdentifierMissing(): void
     {
-        $this->assertNull(LongformMetadata::fromArray(['title' => 'No identifier']));
+        $this->assertNull(LongformMetadata::tryFromArray(['title' => 'No identifier']));
     }
 
     public function testFromArrayIgnoresMalformedPublishedAtAndTopics(): void
     {
-        $restored = LongformMetadata::fromArray([
+        $restored = LongformMetadata::tryFromArray([
             'identifier' => 'slug',
             'published_at' => 'not-an-int',
             'topics' => ['ok', 123, 'fine'],
@@ -103,7 +103,7 @@ final class LongformMetadataTest extends TestCase
         $original = new LongformMetadata('slug', null, null, null, null, []);
 
         $array = $original->toArray();
-        $restored = LongformMetadata::fromArray($array);
+        $restored = LongformMetadata::tryFromArray($array);
 
         $this->assertNotNull($restored);
         $this->assertTrue($original->equals($restored));

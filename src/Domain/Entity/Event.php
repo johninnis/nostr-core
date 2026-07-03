@@ -147,20 +147,12 @@ final readonly class Event implements Stringable
         ];
     }
 
-    /**
-     * @param array<array-key, mixed> $data
-     */
-    public static function fromArray(array $data): ?self
+    public static function tryFromArray(mixed $value): ?self
     {
-        return self::build($data, null);
+        return is_array($value) ? self::build($value, null) : null;
     }
 
-    public static function fromWire(mixed $value): ?self
-    {
-        return is_array($value) ? self::fromArray($value) : null;
-    }
-
-    public static function fromJson(string $json): ?self
+    public static function tryFromJson(string $json): ?self
     {
         $data = JsonWireFormat::decodeArray($json);
 
@@ -176,7 +168,7 @@ final readonly class Event implements Stringable
      */
     private static function build(array $data, ?string $rawJson): ?self
     {
-        $rumour = Rumour::fromArray($data);
+        $rumour = Rumour::tryFromArray($data);
         if (null === $rumour) {
             return null;
         }
@@ -185,7 +177,7 @@ final readonly class Event implements Stringable
             return null;
         }
 
-        $id = EventId::fromHex($data['id']);
+        $id = EventId::tryFromHex($data['id']);
         if (null === $id) {
             return null;
         }
@@ -194,7 +186,7 @@ final readonly class Event implements Stringable
             return null;
         }
 
-        $signature = Signature::fromHex($data['sig']);
+        $signature = Signature::tryFromHex($data['sig']);
         if (null === $signature) {
             return null;
         }

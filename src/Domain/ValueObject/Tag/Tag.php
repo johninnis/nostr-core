@@ -111,7 +111,7 @@ final readonly class Tag
     /**
      * @param array<array-key, mixed> $data
      */
-    public static function fromArray(array $data): ?self
+    public static function tryFromArray(array $data): ?self
     {
         $strings = array_values(array_filter($data, is_string(...)));
 

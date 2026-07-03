@@ -18,7 +18,7 @@ final readonly class Nip05Identifier implements Stringable
     ) {
     }
 
-    public static function fromString(string $identifier): ?self
+    public static function tryFromString(string $identifier): ?self
     {
         $parts = explode('@', $identifier, 2);
 

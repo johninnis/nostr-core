@@ -242,8 +242,8 @@ final class RumourFactoryTest extends TestCase
     public function testCanCreateRelayList(): void
     {
         $relayTags = new TagCollection([
-            Tag::fromArray(['r', 'wss://relay1.example.com']),
-            Tag::fromArray(['r', 'wss://relay2.example.com', 'read']),
+            Tag::tryFromArray(['r', 'wss://relay1.example.com']),
+            Tag::tryFromArray(['r', 'wss://relay2.example.com', 'read']),
         ]);
 
         $event = RumourFactory::createRelayList($this->keyPair->getPublicKey(), $relayTags);
@@ -289,8 +289,8 @@ final class RumourFactoryTest extends TestCase
     public function testCanCreateDmRelayList(): void
     {
         $relayTags = new TagCollection([
-            Tag::fromArray(['relay', 'wss://dm.relay.example.com']),
-            Tag::fromArray(['relay', 'wss://dm.relay2.example.com']),
+            Tag::tryFromArray(['relay', 'wss://dm.relay.example.com']),
+            Tag::tryFromArray(['relay', 'wss://dm.relay2.example.com']),
         ]);
 
         $event = RumourFactory::createDmRelayList(
@@ -382,7 +382,7 @@ final class RumourFactoryTest extends TestCase
 
     public function testCanCreateMetadataWithTags(): void
     {
-        $tags = new TagCollection([Tag::fromArray(['alt', 'metadata event'])]);
+        $tags = new TagCollection([Tag::tryFromArray(['alt', 'metadata event'])]);
         $event = RumourFactory::createMetadata(
             $this->keyPair->getPublicKey(),
             '{"name":"Alice"}',

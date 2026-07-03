@@ -98,7 +98,7 @@ final class Bip340PropertyComplianceTest extends TestCase
         $byte = hexdec(substr($hex, 0, 2));
         $flipped = sprintf('%02x', $byte ^ 0xFF).substr($hex, 2);
 
-        return Signature::fromHex($flipped)
+        return Signature::tryFromHex($flipped)
             ?? throw new RuntimeException('Failed to build tampered signature');
     }
 
