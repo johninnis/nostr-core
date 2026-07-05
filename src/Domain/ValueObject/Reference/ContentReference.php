@@ -46,9 +46,9 @@ final readonly class ContentReference
         return $this->position;
     }
 
-    public function getDecodedType(): string
+    public function getDecodedType(): ?Nip19EntityType
     {
-        return $this->decoded?->getType()->value ?? 'unknown';
+        return $this->decoded?->getType();
     }
 
     public function getEventId(): ?EventId
@@ -101,7 +101,7 @@ final readonly class ContentReference
             'raw_text' => $this->rawText,
             'identifier' => $this->identifier,
             'position' => $this->position,
-            'decoded_type' => $this->getDecodedType(),
+            'decoded_type' => $this->getDecodedType()?->value,
             'event_id' => $this->getEventId()?->toHex(),
             'public_key' => $this->getPublicKey()?->toHex(),
             'relays' => $this->getRelays()->toStrings(),

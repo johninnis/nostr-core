@@ -178,7 +178,7 @@ final readonly class Event implements Stringable
             return null;
         }
 
-        if (!isset($data['sig']) || !is_string($data['sig']) || '' === $data['sig']) {
+        if (!isset($data['sig']) || !is_string($data['sig'])) {
             return null;
         }
 

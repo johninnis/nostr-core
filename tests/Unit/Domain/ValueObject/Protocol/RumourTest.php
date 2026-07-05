@@ -383,13 +383,13 @@ final class RumourTest extends TestCase
 
     private function recreateId(string $content): EventId
     {
-        return (new Rumour(
+        return new Rumour(
             $this->keyPair->getPublicKey(),
             Timestamp::fromInt(1700000000),
             EventKind::fromInt(1),
             new TagCollection(),
             EventContent::fromString($content),
-        ))->getId();
+        )->getId();
     }
 
     /**

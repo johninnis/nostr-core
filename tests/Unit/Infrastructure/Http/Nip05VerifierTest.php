@@ -14,7 +14,7 @@ use RuntimeException;
 
 final class Nip05VerifierTest extends TestCase
 {
-    private const VALID_PUBKEY_HEX = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+    private const string VALID_PUBKEY_HEX = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 
     public function testReturnsFailureWhenHttpServiceReturnsNull(): void
     {

@@ -11,7 +11,7 @@ use RuntimeException;
 
 final class PrivateKeyTest extends TestCase
 {
-    private const VALID_PRIVATE_KEY_HEX = '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
+    private const string VALID_PRIVATE_KEY_HEX = '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
 
     public function testCanCreateFromValidHex(): void
     {

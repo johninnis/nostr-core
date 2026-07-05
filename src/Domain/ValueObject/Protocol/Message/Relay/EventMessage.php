@@ -64,7 +64,7 @@ final readonly class EventMessage extends RelayMessage implements PreSerialisedM
     #[Override]
     public static function tryFromArray(array $data): ?static
     {
-        if (3 !== count($data)) {
+        if (!array_is_list($data) || 3 !== count($data)) {
             return null;
         }
 

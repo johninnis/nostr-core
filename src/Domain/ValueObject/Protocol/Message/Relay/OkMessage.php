@@ -59,7 +59,7 @@ final readonly class OkMessage extends RelayMessage
     #[Override]
     public static function tryFromArray(array $data): ?static
     {
-        if (count($data) < 3) {
+        if (!array_is_list($data) || count($data) < 3 || count($data) > 4) {
             return null;
         }
 

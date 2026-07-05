@@ -98,6 +98,10 @@ final readonly class Nutzap implements PaymentReceiptInterface
         $unitValues = $tags->getValuesByType(TagType::unit());
         $unit = $unitValues[0] ?? 'sat';
 
+        if ('sat' !== $unit && 'msat' !== $unit) {
+            return null;
+        }
+
         $maxTotal = 'msat' === $unit
             ? ZapAmount::MAX_MILLISATS
             : intdiv(ZapAmount::MAX_MILLISATS, ZapAmount::MILLISATS_PER_SAT);

@@ -4,21 +4,37 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Compliance;
 
+use Innis\Nostr\Core\Domain\Exception\EcdhException;
 use Innis\Nostr\Core\Domain\Exception\EncryptionException;
+use Innis\Nostr\Core\Domain\Service\EcdhServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Infrastructure\Crypto\Nip44Cipher;
+use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Ecdh;
 use Innis\Nostr\Core\Tests\Fake\QueuedRandomBytesGenerator;
 use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use ReflectionMethod;
 
 final class Nip44EncryptionComplianceTest extends TestCase
 {
+    private const int PAYLOAD_OVERHEAD = 67;
+    private const int MAX_PLAINTEXT_LENGTH = 65535;
+
     #[DataProvider('conversationKeyVectorsProvider')]
-    public function testConversationKeyDerivation(string $sec1, string $pub2, string $expectedKey): void
+    public function testConversationKeyDerivationFfi(string $sec1, string $pub2, string $expectedKey): void
+    {
+        $this->assertConversationKey(CryptoFixtures::ecdh(), $sec1, $pub2, $expectedKey);
+    }
+
+    #[DataProvider('conversationKeyVectorsProvider')]
+    public function testConversationKeyDerivationPurePhp(string $sec1, string $pub2, string $expectedKey): void
+    {
+        $this->assertConversationKey(new Secp256k1Ecdh(null), $sec1, $pub2, $expectedKey);
+    }
+
+    private function assertConversationKey(EcdhServiceInterface $ecdh, string $sec1, string $pub2, string $expectedKey): void
     {
         $privateKey = PrivateKey::tryFromHex($sec1);
         $publicKey = PublicKey::tryFromHex($pub2);
@@ -26,7 +42,7 @@ final class Nip44EncryptionComplianceTest extends TestCase
         self::assertNotNull($privateKey);
         self::assertNotNull($publicKey);
 
-        $conversationKey = ConversationKey::derive($privateKey, $publicKey, CryptoFixtures::ecdh());
+        $conversationKey = ConversationKey::derive($privateKey, $publicKey, $ecdh);
         $derivedHex = $conversationKey->expose(static fn (string $bytes): string => bin2hex($bytes));
 
         self::assertSame($expectedKey, $derivedHex);
@@ -67,15 +83,54 @@ final class Nip44EncryptionComplianceTest extends TestCase
         self::assertSame($plaintext, $decrypted);
     }
 
+    #[DataProvider('longMessageVectorsProvider')]
+    public function testEncryptDecryptLongMessage(
+        string $conversationKeyHex,
+        string $nonceHex,
+        string $pattern,
+        int $repeat,
+        string $plaintextSha256,
+        string $payloadSha256,
+    ): void {
+        $plaintext = str_repeat($pattern, $repeat);
+        self::assertSame($plaintextSha256, hash('sha256', $plaintext));
+
+        $nonce = hex2bin($nonceHex);
+        self::assertNotFalse($nonce);
+
+        $conversationKey = ConversationKey::tryFromHex($conversationKeyHex);
+        self::assertNotNull($conversationKey);
+
+        $encrypted = new Nip44Cipher(QueuedRandomBytesGenerator::withBytes($nonce))->encrypt($plaintext, $conversationKey);
+
+        self::assertSame($payloadSha256, hash('sha256', $encrypted));
+        self::assertSame($plaintext, new Nip44Cipher()->decrypt($encrypted, $conversationKey));
+    }
+
     #[DataProvider('paddedLengthVectorsProvider')]
-    public function testCalculatePaddedLength(int $unpaddedLength, int $expectedPaddedLength): void
+    public function testPaddedLengthMatchesSpec(int $unpaddedLength, int $expectedPaddedLength): void
     {
-        $adapter = new Nip44Cipher();
-        $reflection = new ReflectionMethod($adapter, 'calculatePaddedLength');
+        $adapter = new Nip44Cipher(QueuedRandomBytesGenerator::withBytes(str_repeat("\0", 32)));
+        $conversationKey = ConversationKey::tryFromHex(str_repeat('11', 32));
+        self::assertNotNull($conversationKey);
 
-        $result = $reflection->invoke($adapter, $unpaddedLength);
+        $payload = $adapter->encrypt(str_repeat('a', $unpaddedLength), $conversationKey);
 
-        self::assertSame($expectedPaddedLength, $result);
+        $decoded = base64_decode($payload, true);
+        self::assertNotFalse($decoded);
+
+        self::assertSame($expectedPaddedLength, strlen($decoded) - self::PAYLOAD_OVERHEAD);
+    }
+
+    #[DataProvider('invalidPlaintextLengthProvider')]
+    public function testRejectsInvalidPlaintextLength(int $length): void
+    {
+        $conversationKey = ConversationKey::tryFromHex(str_repeat('11', 32));
+        self::assertNotNull($conversationKey);
+
+        $this->expectException(EncryptionException::class);
+
+        new Nip44Cipher()->encrypt(str_repeat('a', $length), $conversationKey);
     }
 
     #[DataProvider('invalidDecryptVectorsProvider')]
@@ -90,19 +145,30 @@ final class Nip44EncryptionComplianceTest extends TestCase
         $adapter->decrypt($payload, $conversationKey);
     }
 
+    #[DataProvider('invalidConversationKeyVectorsProvider')]
+    public function testRejectsInvalidConversationKeyVectors(string $sec1, string $pub2): void
+    {
+        $privateKey = PrivateKey::tryFromHex($sec1);
+        $publicKey = PublicKey::tryFromHex($pub2);
+
+        if (null === $privateKey || null === $publicKey) {
+            $this->addToAssertionCount(1);
+
+            return;
+        }
+
+        $this->expectException(EcdhException::class);
+
+        ConversationKey::derive($privateKey, $publicKey, new Secp256k1Ecdh(null));
+    }
+
     /**
      * @return iterable<string, array{string, string, string}>
      */
     public static function conversationKeyVectorsProvider(): iterable
     {
-        $vectors = self::loadVectors()['valid']['get_conversation_key'];
-
-        foreach ($vectors as $i => $vector) {
-            yield "vector_{$i}" => [
-                $vector['sec1'],
-                $vector['pub2'],
-                $vector['conversation_key'],
-            ];
+        foreach (self::loadVectors()['valid']['get_conversation_key'] as $i => $vector) {
+            yield "vector_{$i}" => [$vector['sec1'], $vector['pub2'], $vector['conversation_key']];
         }
     }
 
@@ -111,9 +177,7 @@ final class Nip44EncryptionComplianceTest extends TestCase
      */
     public static function encryptDecryptVectorsProvider(): iterable
     {
-        $vectors = self::loadVectors()['valid']['encrypt_decrypt'];
-
-        foreach ($vectors as $i => $vector) {
+        foreach (self::loadVectors()['valid']['encrypt_decrypt'] as $i => $vector) {
             yield "vector_{$i}" => [
                 $vector['conversation_key'],
                 $vector['nonce'],
@@ -124,17 +188,43 @@ final class Nip44EncryptionComplianceTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, string, string, int, string, string}>
+     */
+    public static function longMessageVectorsProvider(): iterable
+    {
+        foreach (self::loadVectors()['valid']['encrypt_decrypt_long_msg'] as $i => $vector) {
+            yield "long_msg_{$i}" => [
+                $vector['conversation_key'],
+                $vector['nonce'],
+                $vector['pattern'],
+                $vector['repeat'],
+                $vector['plaintext_sha256'],
+                $vector['payload_sha256'],
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{int, int}>
      */
     public static function paddedLengthVectorsProvider(): iterable
     {
-        $vectors = self::loadVectors()['valid']['calc_padded_len'];
+        foreach (self::loadVectors()['valid']['calc_padded_len'] as $i => $vector) {
+            if ($vector[0] < 1 || $vector[0] > self::MAX_PLAINTEXT_LENGTH) {
+                continue;
+            }
 
-        foreach ($vectors as $i => $vector) {
-            yield "padded_len_{$i}" => [
-                $vector[0],
-                $vector[1],
-            ];
+            yield "padded_len_{$i}" => [$vector[0], $vector[1]];
+        }
+    }
+
+    /**
+     * @return iterable<string, array{int}>
+     */
+    public static function invalidPlaintextLengthProvider(): iterable
+    {
+        foreach (self::loadVectors()['invalid']['encrypt_msg_lengths'] as $i => $length) {
+            yield "length_{$i}_{$length}" => [$length];
         }
     }
 
@@ -143,13 +233,18 @@ final class Nip44EncryptionComplianceTest extends TestCase
      */
     public static function invalidDecryptVectorsProvider(): iterable
     {
-        $vectors = self::loadVectors()['invalid']['decrypt'];
+        foreach (self::loadVectors()['invalid']['decrypt'] as $i => $vector) {
+            yield "invalid_{$i}_".($vector['note'] ?? 'unknown') => [$vector['conversation_key'], $vector['payload']];
+        }
+    }
 
-        foreach ($vectors as $i => $vector) {
-            yield "invalid_{$i}_".($vector['note'] ?? 'unknown') => [
-                $vector['conversation_key'],
-                $vector['payload'],
-            ];
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function invalidConversationKeyVectorsProvider(): iterable
+    {
+        foreach (self::loadVectors()['invalid']['get_conversation_key'] as $i => $vector) {
+            yield "invalid_{$i}_".($vector['note'] ?? 'unknown') => [$vector['sec1'], $vector['pub2']];
         }
     }
 
@@ -158,9 +253,12 @@ final class Nip44EncryptionComplianceTest extends TestCase
      *     valid: array{
      *         get_conversation_key: list<array{sec1: string, pub2: string, conversation_key: string}>,
      *         encrypt_decrypt: list<array{conversation_key: string, nonce: string, plaintext: string, payload: string}>,
+     *         encrypt_decrypt_long_msg: list<array{conversation_key: string, nonce: string, pattern: string, repeat: int, plaintext_sha256: string, payload_sha256: string}>,
      *         calc_padded_len: list<array{int, int}>,
      *     },
      *     invalid: array{
+     *         encrypt_msg_lengths: list<int>,
+     *         get_conversation_key: list<array{sec1: string, pub2: string, note?: string}>,
      *         decrypt: list<array{conversation_key: string, payload: string, note?: string}>,
      *     },
      * }
@@ -179,9 +277,12 @@ final class Nip44EncryptionComplianceTest extends TestCase
          *     valid: array{
          *         get_conversation_key: list<array{sec1: string, pub2: string, conversation_key: string}>,
          *         encrypt_decrypt: list<array{conversation_key: string, nonce: string, plaintext: string, payload: string}>,
+         *         encrypt_decrypt_long_msg: list<array{conversation_key: string, nonce: string, pattern: string, repeat: int, plaintext_sha256: string, payload_sha256: string}>,
          *         calc_padded_len: list<array{int, int}>,
          *     },
          *     invalid: array{
+         *         encrypt_msg_lengths: list<int>,
+         *         get_conversation_key: list<array{sec1: string, pub2: string, note?: string}>,
          *         decrypt: list<array{conversation_key: string, payload: string, note?: string}>,
          *     },
          * } $vectors

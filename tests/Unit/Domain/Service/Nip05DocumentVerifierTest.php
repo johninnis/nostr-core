@@ -13,7 +13,7 @@ use RuntimeException;
 
 final class Nip05DocumentVerifierTest extends TestCase
 {
-    private const VALID_PUBKEY_HEX = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+    private const string VALID_PUBKEY_HEX = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 
     public function testReturnsMissingNamesWhenDocumentLacksNamesKey(): void
     {

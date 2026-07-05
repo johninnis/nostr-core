@@ -14,7 +14,7 @@ use RuntimeException;
 
 final class Bip340PropertyComplianceTest extends TestCase
 {
-    private const ITERATIONS = 100;
+    private const int ITERATIONS = 100;
 
     public function testPubkeyDerivationParityAcrossRandomInputs(): void
     {

@@ -13,12 +13,12 @@ final readonly class Nip98Request
     ) {
     }
 
-    public static function withBodyHash(string $url, string $method, ?string $bodyHash = null): self
+    public static function fromBodyHash(string $url, string $method, ?string $bodyHash = null): self
     {
         return new self($url, $method, $bodyHash);
     }
 
-    public static function withBody(string $url, string $method, string $body): self
+    public static function fromBody(string $url, string $method, string $body): self
     {
         return new self($url, $method, '' === $body ? null : hash('sha256', $body));
     }

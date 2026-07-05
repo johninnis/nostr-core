@@ -41,7 +41,7 @@ final class Nip98ValidatorTest extends TestCase
 
         $result = $this->service->validate(
             $event,
-            Nip98Request::withBodyHash('https://relay.example.com/', 'POST', hash('sha256', '{"method":"test"}')),
+            Nip98Request::fromBodyHash('https://relay.example.com/', 'POST', hash('sha256', '{"method":"test"}')),
         );
 
         $this->assertInstanceOf(PublicKey::class, $result);
@@ -54,7 +54,7 @@ final class Nip98ValidatorTest extends TestCase
 
         $this->assertSame(
             Nip98ValidationFailure::WrongKind,
-            $this->service->validate($event, Nip98Request::withBodyHash('https://relay.example.com/', 'POST'))
+            $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST'))
         );
     }
 
@@ -64,7 +64,7 @@ final class Nip98ValidatorTest extends TestCase
 
         $this->assertSame(
             Nip98ValidationFailure::TimestampOutsideTolerance,
-            $this->service->validate($event, Nip98Request::withBodyHash('https://relay.example.com/', 'POST'))
+            $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST'))
         );
     }
 
@@ -74,7 +74,7 @@ final class Nip98ValidatorTest extends TestCase
 
         $result = $this->service->validate(
             $event,
-            Nip98Request::withBodyHash('https://relay.example.com/', 'POST', hash('sha256', '{"method":"test"}')),
+            Nip98Request::fromBodyHash('https://relay.example.com/', 'POST', hash('sha256', '{"method":"test"}')),
         );
 
         $this->assertInstanceOf(PublicKey::class, $result);
@@ -90,7 +90,7 @@ final class Nip98ValidatorTest extends TestCase
 
         $this->assertSame(
             Nip98ValidationFailure::MissingUrlTag,
-            $this->service->validate($event, Nip98Request::withBodyHash('https://relay.example.com/', 'POST'))
+            $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST'))
         );
     }
 
@@ -100,7 +100,7 @@ final class Nip98ValidatorTest extends TestCase
 
         $this->assertSame(
             Nip98ValidationFailure::UrlMismatch,
-            $this->service->validate($event, Nip98Request::withBodyHash('https://other-relay.example.com/', 'POST'))
+            $this->service->validate($event, Nip98Request::fromBodyHash('https://other-relay.example.com/', 'POST'))
         );
     }
 
@@ -113,7 +113,7 @@ final class Nip98ValidatorTest extends TestCase
 
         $this->assertSame(
             Nip98ValidationFailure::MissingMethodTag,
-            $this->service->validate($event, Nip98Request::withBodyHash('https://relay.example.com/', 'POST'))
+            $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST'))
         );
     }
 
@@ -123,7 +123,7 @@ final class Nip98ValidatorTest extends TestCase
 
         $this->assertSame(
             Nip98ValidationFailure::MethodMismatch,
-            $this->service->validate($event, Nip98Request::withBodyHash('https://relay.example.com/', 'GET'))
+            $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'GET'))
         );
     }
 
@@ -139,7 +139,7 @@ final class Nip98ValidatorTest extends TestCase
             Nip98ValidationFailure::MissingPayloadTag,
             $this->service->validate(
                 $event,
-                Nip98Request::withBodyHash('https://relay.example.com/', 'POST', hash('sha256', 'body')),
+                Nip98Request::fromBodyHash('https://relay.example.com/', 'POST', hash('sha256', 'body')),
             )
         );
     }
@@ -152,7 +152,7 @@ final class Nip98ValidatorTest extends TestCase
             Nip98ValidationFailure::PayloadMismatch,
             $this->service->validate(
                 $event,
-                Nip98Request::withBodyHash('https://relay.example.com/', 'POST', hash('sha256', 'different body')),
+                Nip98Request::fromBodyHash('https://relay.example.com/', 'POST', hash('sha256', 'different body')),
             )
         );
     }
@@ -167,7 +167,7 @@ final class Nip98ValidatorTest extends TestCase
 
         $result = $this->service->validate(
             $event,
-            Nip98Request::withBodyHash('https://relay.example.com/', 'POST'),
+            Nip98Request::fromBodyHash('https://relay.example.com/', 'POST'),
         );
 
         $this->assertInstanceOf(PublicKey::class, $result);
@@ -184,7 +184,7 @@ final class Nip98ValidatorTest extends TestCase
 
         $result = $this->service->validate(
             $event,
-            Nip98Request::withBodyHash('https://relay.example.com', 'GET'),
+            Nip98Request::fromBodyHash('https://relay.example.com', 'GET'),
         );
 
         $this->assertInstanceOf(PublicKey::class, $result);
@@ -201,7 +201,7 @@ final class Nip98ValidatorTest extends TestCase
 
         $result = $this->service->validate(
             $event,
-            Nip98Request::withBodyHash('https://relay.example.com/api?token=abc&page=1', 'GET'),
+            Nip98Request::fromBodyHash('https://relay.example.com/api?token=abc&page=1', 'GET'),
         );
 
         $this->assertInstanceOf(PublicKey::class, $result);
@@ -220,7 +220,7 @@ final class Nip98ValidatorTest extends TestCase
             Nip98ValidationFailure::UrlMismatch,
             $this->service->validate(
                 $event,
-                Nip98Request::withBodyHash('https://relay.example.com/api?token=xyz', 'GET'),
+                Nip98Request::fromBodyHash('https://relay.example.com/api?token=xyz', 'GET'),
             )
         );
     }
@@ -235,7 +235,7 @@ final class Nip98ValidatorTest extends TestCase
 
         $result = $this->service->validate(
             $event,
-            Nip98Request::withBodyHash('https://relay.example.com/', 'POST'),
+            Nip98Request::fromBodyHash('https://relay.example.com/', 'POST'),
         );
 
         $this->assertInstanceOf(PublicKey::class, $result);
@@ -253,7 +253,7 @@ final class Nip98ValidatorTest extends TestCase
 
         $this->assertSame(
             Nip98ValidationFailure::MultipleUrlTags,
-            $this->service->validate($event, Nip98Request::withBodyHash('https://relay.example.com/', 'POST'))
+            $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST'))
         );
     }
 
@@ -268,7 +268,7 @@ final class Nip98ValidatorTest extends TestCase
 
         $this->assertSame(
             Nip98ValidationFailure::MultipleMethodTags,
-            $this->service->validate($event, Nip98Request::withBodyHash('https://relay.example.com/', 'POST'))
+            $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST'))
         );
     }
 
@@ -285,7 +285,7 @@ final class Nip98ValidatorTest extends TestCase
 
         $this->assertSame(
             Nip98ValidationFailure::MultiplePayloadTags,
-            $this->service->validate($event, Nip98Request::withBodyHash('https://relay.example.com/', 'POST', hash('sha256', $body)))
+            $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST', hash('sha256', $body)))
         );
     }
 
@@ -295,7 +295,7 @@ final class Nip98ValidatorTest extends TestCase
 
         $this->assertSame(
             Nip98ValidationFailure::MalformedUrl,
-            $this->service->validate($event, Nip98Request::withBodyHash('http://:/bad', 'POST', hash('sha256', '{"method":"test"}')))
+            $this->service->validate($event, Nip98Request::fromBodyHash('http://:/bad', 'POST', hash('sha256', '{"method":"test"}')))
         );
     }
 
@@ -309,7 +309,7 @@ final class Nip98ValidatorTest extends TestCase
 
         $this->assertSame(
             Nip98ValidationFailure::MalformedUrl,
-            $this->service->validate($event, Nip98Request::withBodyHash('https://relay.example.com/', 'POST'))
+            $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST'))
         );
     }
 
@@ -318,11 +318,11 @@ final class Nip98ValidatorTest extends TestCase
         $event = $this->createValidSignedEvent();
         $body = hash('sha256', '{"method":"test"}');
 
-        $this->service->validate($event, Nip98Request::withBodyHash('https://relay.example.com/', 'POST', $body));
+        $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST', $body));
 
         $this->assertSame(
             Nip98ValidationFailure::Replayed,
-            $this->service->validate($event, Nip98Request::withBodyHash('https://relay.example.com/', 'POST', $body))
+            $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST', $body))
         );
     }
 
@@ -333,7 +333,7 @@ final class Nip98ValidatorTest extends TestCase
 
         $this->assertSame(
             Nip98ValidationFailure::TimestampOutsideTolerance,
-            $service->validate($event, Nip98Request::withBodyHash('https://relay.example.com/', 'POST'))
+            $service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST'))
         );
     }
 
@@ -343,7 +343,7 @@ final class Nip98ValidatorTest extends TestCase
 
         $this->assertSame(
             Nip98ValidationFailure::PayloadTagWithoutBodyHash,
-            $this->service->validate($event, Nip98Request::withBodyHash('https://relay.example.com/', 'POST'))
+            $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST'))
         );
     }
 
@@ -353,7 +353,7 @@ final class Nip98ValidatorTest extends TestCase
         $event = $this->createValidSignedEvent();
         $authHeader = 'Nostr '.base64_encode((string) json_encode($event->toArray(), JSON_THROW_ON_ERROR));
 
-        $result = $this->service->validateAuthHeader($authHeader, Nip98Request::withBody('https://relay.example.com/', 'POST', $body));
+        $result = $this->service->validateAuthHeader($authHeader, Nip98Request::fromBody('https://relay.example.com/', 'POST', $body));
 
         $this->assertInstanceOf(PublicKey::class, $result);
         $this->assertTrue($result->equals($this->keyPair->getPublicKey()));
@@ -368,7 +368,7 @@ final class Nip98ValidatorTest extends TestCase
         $event = $this->createSignedEventWithTags($tags);
         $authHeader = 'Nostr '.base64_encode((string) json_encode($event->toArray(), JSON_THROW_ON_ERROR));
 
-        $result = $this->service->validateAuthHeader($authHeader, Nip98Request::withBody('https://relay.example.com/', 'GET', ''));
+        $result = $this->service->validateAuthHeader($authHeader, Nip98Request::fromBody('https://relay.example.com/', 'GET', ''));
 
         $this->assertInstanceOf(PublicKey::class, $result);
         $this->assertTrue($result->equals($this->keyPair->getPublicKey()));
@@ -380,7 +380,7 @@ final class Nip98ValidatorTest extends TestCase
 
         $this->assertSame(
             Nip98ValidationFailure::HeaderTooLong,
-            $this->service->validateAuthHeader($oversized, Nip98Request::withBody('https://relay.example.com/', 'POST', ''))
+            $this->service->validateAuthHeader($oversized, Nip98Request::fromBody('https://relay.example.com/', 'POST', ''))
         );
     }
 
@@ -388,7 +388,7 @@ final class Nip98ValidatorTest extends TestCase
     {
         $this->assertSame(
             Nip98ValidationFailure::HeaderBadFormat,
-            $this->service->validateAuthHeader('Bearer token', Nip98Request::withBody('https://relay.example.com/', 'POST', ''))
+            $this->service->validateAuthHeader('Bearer token', Nip98Request::fromBody('https://relay.example.com/', 'POST', ''))
         );
     }
 
@@ -396,7 +396,7 @@ final class Nip98ValidatorTest extends TestCase
     {
         $this->assertSame(
             Nip98ValidationFailure::HeaderBadBase64,
-            $this->service->validateAuthHeader('Nostr !!!not-base64!!!', Nip98Request::withBody('https://relay.example.com/', 'POST', ''))
+            $this->service->validateAuthHeader('Nostr !!!not-base64!!!', Nip98Request::fromBody('https://relay.example.com/', 'POST', ''))
         );
     }
 
@@ -404,7 +404,7 @@ final class Nip98ValidatorTest extends TestCase
     {
         $this->assertSame(
             Nip98ValidationFailure::HeaderBadJson,
-            $this->service->validateAuthHeader('Nostr '.base64_encode('not-json'), Nip98Request::withBody('https://relay.example.com/', 'POST', ''))
+            $this->service->validateAuthHeader('Nostr '.base64_encode('not-json'), Nip98Request::fromBody('https://relay.example.com/', 'POST', ''))
         );
     }
 
@@ -412,7 +412,7 @@ final class Nip98ValidatorTest extends TestCase
     {
         $this->assertSame(
             Nip98ValidationFailure::HeaderBadJson,
-            $this->service->validateAuthHeader('Nostr '.base64_encode('"a string"'), Nip98Request::withBody('https://relay.example.com/', 'POST', ''))
+            $this->service->validateAuthHeader('Nostr '.base64_encode('"a string"'), Nip98Request::fromBody('https://relay.example.com/', 'POST', ''))
         );
     }
 
@@ -422,7 +422,7 @@ final class Nip98ValidatorTest extends TestCase
             Nip98ValidationFailure::HeaderInvalidEvent,
             $this->service->validateAuthHeader(
                 'Nostr '.base64_encode((string) json_encode(['kind' => 27235])),
-                Nip98Request::withBody('https://relay.example.com/', 'POST', ''),
+                Nip98Request::fromBody('https://relay.example.com/', 'POST', ''),
             )
         );
     }
@@ -434,7 +434,7 @@ final class Nip98ValidatorTest extends TestCase
 
         $this->assertSame(
             Nip98ValidationFailure::PayloadMismatch,
-            $this->service->validateAuthHeader($authHeader, Nip98Request::withBody('https://relay.example.com/', 'POST', '{"different":"body"}'))
+            $this->service->validateAuthHeader($authHeader, Nip98Request::fromBody('https://relay.example.com/', 'POST', '{"different":"body"}'))
         );
     }
 

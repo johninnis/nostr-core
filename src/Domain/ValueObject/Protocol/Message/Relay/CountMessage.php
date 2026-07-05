@@ -15,6 +15,7 @@ final readonly class CountMessage extends RelayMessage
     public function __construct(
         private SubscriptionId $subscriptionId,
         private int $count,
+        private ?bool $approximate = null,
     ) {
         if ($this->count < 0) {
             throw new InvalidArgumentException('Count cannot be negative');
@@ -37,13 +38,24 @@ final readonly class CountMessage extends RelayMessage
         return $this->count;
     }
 
+    public function getApproximate(): ?bool
+    {
+        return $this->approximate;
+    }
+
     /**
      * @return list<mixed>
      */
     #[Override]
     public function toArray(): array
     {
-        return [$this->type()->value, (string) $this->subscriptionId, ['count' => $this->count]];
+        $payload = ['count' => $this->count];
+
+        if (null !== $this->approximate) {
+            $payload['approximate'] = $this->approximate;
+        }
+
+        return [$this->type()->value, (string) $this->subscriptionId, $payload];
     }
 
     /**
@@ -52,7 +64,7 @@ final readonly class CountMessage extends RelayMessage
     #[Override]
     public static function tryFromArray(array $data): ?static
     {
-        if (3 !== count($data)) {
+        if (!array_is_list($data) || 3 !== count($data)) {
             return null;
         }
 
@@ -66,6 +78,12 @@ final readonly class CountMessage extends RelayMessage
             return null;
         }
 
+        $approximate = $data[2]['approximate'] ?? null;
+
+        if (null !== $approximate && !is_bool($approximate)) {
+            return null;
+        }
+
         $subscriptionId = SubscriptionId::tryFromString($data[1]);
 
         if (null === $subscriptionId) {
@@ -75,6 +93,7 @@ final readonly class CountMessage extends RelayMessage
         $parsed = new self(
             $subscriptionId,
             $count,
+            $approximate,
         );
 
         return $parsed->type()->value === $data[0] ? $parsed : null;

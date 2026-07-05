@@ -106,7 +106,7 @@ final class ReqMessageTest extends TestCase
         $this->assertSame('["REQ","sub-1",{}]', $message->toJson());
     }
 
-    public function testFromArrayCreatesValidMessage(): void
+    public function testTryFromArrayCreatesValidMessage(): void
     {
         $data = ['REQ', 'sub-1', ['kinds' => [1]]];
 
@@ -117,7 +117,7 @@ final class ReqMessageTest extends TestCase
         $this->assertCount(1, $message->getFilters());
     }
 
-    public function testFromArrayWithMultipleFilters(): void
+    public function testTryFromArrayWithMultipleFilters(): void
     {
         $data = ['REQ', 'sub-1', ['kinds' => [1]], ['kinds' => [0]]];
 
@@ -126,12 +126,12 @@ final class ReqMessageTest extends TestCase
         $this->assertCount(2, $message->getFilters());
     }
 
-    public function testFromArrayThrowsOnInvalidFormat(): void
+    public function testTryFromArrayReturnsNullOnInvalidFormat(): void
     {
         $this->assertNull(ReqMessage::tryFromArray(['REQ', 'sub-1']));
     }
 
-    public function testFromArrayThrowsOnWrongType(): void
+    public function testTryFromArrayReturnsNullOnWrongType(): void
     {
         $this->assertNull(ReqMessage::tryFromArray(['CLOSE', 'sub-1', ['kinds' => [1]]]));
     }

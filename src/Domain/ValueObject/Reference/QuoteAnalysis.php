@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Reference;
 
+use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
+
 final readonly class QuoteAnalysis
 {
     public function __construct(
@@ -53,10 +55,10 @@ final readonly class QuoteAnalysis
     public static function fromArray(array $data): self
     {
         return new self(
-            (bool) ($data['has_quote_tag'] ?? false),
-            (bool) ($data['has_event_in_content'] ?? false),
-            (bool) ($data['is_repost'] ?? false),
-            (bool) ($data['is_quote'] ?? false)
+            JsonWireFormat::boolField($data, 'has_quote_tag') ?? false,
+            JsonWireFormat::boolField($data, 'has_event_in_content') ?? false,
+            JsonWireFormat::boolField($data, 'is_repost') ?? false,
+            JsonWireFormat::boolField($data, 'is_quote') ?? false,
         );
     }
 }

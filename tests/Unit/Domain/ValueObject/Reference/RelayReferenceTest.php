@@ -11,7 +11,7 @@ use RuntimeException;
 
 final class RelayReferenceTest extends TestCase
 {
-    private const VALID_RELAY = 'wss://relay.example.com';
+    private const string VALID_RELAY = 'wss://relay.example.com';
 
     public function testConstructorWithRelayUrlOnly(): void
     {

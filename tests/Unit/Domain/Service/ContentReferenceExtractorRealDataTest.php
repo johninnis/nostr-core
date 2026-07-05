@@ -29,11 +29,11 @@ final class ContentReferenceExtractorRealDataTest extends TestCase
             ->method('decodeComplexEntity')
             ->willReturn(self::decoded(Nip19EntityType::Event, 'd359d3ea6c89a51a3a346b03bc552953a72e456af352071d79c6be196ced9771'));
 
-        $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content)->toArray();
+        $references = new ContentReferenceExtractor($bech32Encoder)->extractContentReferences($content)->toArray();
 
         $this->assertCount(1, $references);
         $this->assertSame(ContentReferenceType::NostrUri, $references[0]->getType());
-        $this->assertEquals('event', $references[0]->getDecodedType());
+        $this->assertSame(Nip19EntityType::Event, $references[0]->getDecodedType());
         $this->assertNotNull($references[0]->getEventId());
         $this->assertEquals('d359d3ea6c89a51a3a346b03bc552953a72e456af352071d79c6be196ced9771', $references[0]->getEventId()->toHex());
     }
@@ -47,11 +47,11 @@ final class ContentReferenceExtractorRealDataTest extends TestCase
             ->method('decodeComplexEntity')
             ->willReturn(self::decoded(Nip19EntityType::Address, '5570e03f9a762570a1668508895316500b38ae3f9b311871dbb637f2844d0c67'));
 
-        $references = (new ContentReferenceExtractor($bech32Encoder))->extractContentReferences($content)->toArray();
+        $references = new ContentReferenceExtractor($bech32Encoder)->extractContentReferences($content)->toArray();
 
         $this->assertCount(1, $references);
         $this->assertSame(ContentReferenceType::NostrUri, $references[0]->getType());
-        $this->assertEquals('address', $references[0]->getDecodedType());
+        $this->assertSame(Nip19EntityType::Address, $references[0]->getDecodedType());
         $this->assertNotNull($references[0]->getEventId());
         $this->assertEquals('5570e03f9a762570a1668508895316500b38ae3f9b311871dbb637f2844d0c67', $references[0]->getEventId()->toHex());
     }

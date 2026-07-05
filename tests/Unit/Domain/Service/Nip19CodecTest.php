@@ -18,10 +18,10 @@ use RuntimeException;
 
 final class Nip19CodecTest extends TestCase
 {
-    private const PUBKEY_HEX = '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798';
-    private const EVENT_ID_HEX = '6c4b0b8e1f9c7e9a5d2f1a0b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d';
-    private const ADDRESSABLE_KIND = 30023;
-    private const IDENTIFIER = 'my-article';
+    private const string PUBKEY_HEX = '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798';
+    private const string EVENT_ID_HEX = '6c4b0b8e1f9c7e9a5d2f1a0b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d';
+    private const int ADDRESSABLE_KIND = 30023;
+    private const string IDENTIFIER = 'my-article';
 
     private Nip19Codec $codec;
 

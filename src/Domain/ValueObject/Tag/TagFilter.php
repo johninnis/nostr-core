@@ -52,12 +52,15 @@ final readonly class TagFilter
                 return null;
             }
 
+            if (count($value) > Filter::MAX_VALUES_PER_FIELD) {
+                return null;
+            }
+
             $tagValues = array_values(array_filter($value, is_string(...)));
 
             if (count($tagValues) !== count($value)
                 || !mb_check_encoding($tagName, 'UTF-8')
                 || !array_all($tagValues, static fn (string $tagValue): bool => mb_check_encoding($tagValue, 'UTF-8'))
-                || count($tagValues) > Filter::MAX_VALUES_PER_FIELD
             ) {
                 return null;
             }

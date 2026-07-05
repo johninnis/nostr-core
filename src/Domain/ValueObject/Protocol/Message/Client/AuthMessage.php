@@ -46,7 +46,7 @@ final readonly class AuthMessage extends ClientMessage
     #[Override]
     public static function tryFromArray(array $data): ?static
     {
-        if (2 !== count($data)) {
+        if (!array_is_list($data) || 2 !== count($data)) {
             return null;
         }
 

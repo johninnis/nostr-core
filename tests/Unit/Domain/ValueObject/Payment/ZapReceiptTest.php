@@ -19,9 +19,9 @@ use RuntimeException;
 
 final class ZapReceiptTest extends TestCase
 {
-    private const SENDER_PUBKEY = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
-    private const RECIPIENT_PUBKEY = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
-    private const RECEIPT_PUBKEY = 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc';
+    private const string SENDER_PUBKEY = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    private const string RECIPIENT_PUBKEY = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+    private const string RECEIPT_PUBKEY = 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc';
 
     public function testValidReceiptWithAllFields(): void
     {

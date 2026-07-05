@@ -11,9 +11,9 @@ use PHPUnit\Framework\TestCase;
 
 final class Nip44PropertyComplianceTest extends TestCase
 {
-    private const ITERATIONS = 200;
-    private const MIN_PLAINTEXT_LENGTH = 1;
-    private const MAX_PLAINTEXT_LENGTH = 65535;
+    private const int ITERATIONS = 200;
+    private const int MIN_PLAINTEXT_LENGTH = 1;
+    private const int MAX_PLAINTEXT_LENGTH = 65535;
 
     public function testEncryptDecryptRoundTripAcrossRandomLengthsAndKeys(): void
     {

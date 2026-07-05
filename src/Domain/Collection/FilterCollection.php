@@ -7,6 +7,7 @@ namespace Innis\Nostr\Core\Domain\Collection;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Filter;
 use Override;
+use stdClass;
 
 /**
  * @extends TypedCollection<Filter>
@@ -30,10 +31,10 @@ final class FilterCollection extends TypedCollection
     }
 
     /**
-     * @return list<array<string, mixed>>
+     * @return list<array<string, mixed>|stdClass>
      */
     public function toJsonArray(): array
     {
-        return $this->mapItems(static fn (Filter $filter): array => $filter->toArray());
+        return $this->mapItems(static fn (Filter $filter): array|stdClass => $filter->jsonSerialize());
     }
 }

@@ -37,6 +37,7 @@ final readonly class PublicKey implements Stringable
         return $this->key === $other->key;
     }
 
+    // Deliberate: validates the 32-byte shape only, not curve membership; verify and ECDH reject a non-point where the curve maths lives — see ADR-0056
     public static function tryFromHex(string $hex): ?self
     {
         if (!HexCodec::isValid($hex, self::BYTE_LENGTH)) {

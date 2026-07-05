@@ -20,6 +20,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\OkMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Tests\Support\FuzzInputMother;
 use PHPUnit\Framework\TestCase;
+use Throwable;
 
 final class WireParserTotalityComplianceTest extends TestCase
 {
@@ -27,20 +28,12 @@ final class WireParserTotalityComplianceTest extends TestCase
 
     public function testEventTryFromJsonNeverThrowsOnArbitraryStrings(): void
     {
-        $this->expectNotToPerformAssertions();
-
-        for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            Event::tryFromJson(FuzzInputMother::hostileString());
-        }
+        $this->assertNeverThrows(FuzzInputMother::hostileString(...), Event::tryFromJson(...));
     }
 
     public function testEventTryFromArrayNeverThrowsOnArbitraryArrays(): void
     {
-        $this->expectNotToPerformAssertions();
-
-        for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            Event::tryFromArray(FuzzInputMother::hostileArray());
-        }
+        $this->assertNeverThrows(FuzzInputMother::hostileArray(...), Event::tryFromArray(...));
     }
 
     public function testEventTryFromArrayRoundTripsToSerialisationWithoutThrowing(): void
@@ -57,13 +50,9 @@ final class WireParserTotalityComplianceTest extends TestCase
         $this->assertNotNull($baseline);
         $this->assertJson($baseline->toJson());
 
-        for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            $event = Event::tryFromArray(FuzzInputMother::nearValidEventArray());
-
-            if (null !== $event) {
-                $this->assertJson($event->toJson());
-            }
-        }
+        $this->assertNeverThrows(FuzzInputMother::nearValidEventArray(...), static function (array $input): void {
+            Event::tryFromArray($input)?->toJson();
+        });
     }
 
     public function testFilterTryFromArrayRoundTripsToSerialisationWithoutThrowing(): void
@@ -72,131 +61,120 @@ final class WireParserTotalityComplianceTest extends TestCase
         $this->assertNotNull($baseline);
         $this->assertJson((string) $baseline);
 
-        for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            $filter = Filter::tryFromArray(FuzzInputMother::nearValidFilterArray());
+        $this->assertNeverThrows(FuzzInputMother::nearValidFilterArray(...), static function (array $input): void {
+            $filter = Filter::tryFromArray($input);
 
             if (null !== $filter) {
-                $this->assertJson((string) $filter);
+                (string) $filter;
             }
-        }
+        });
     }
 
     public function testMessageDeserialiserNeverThrowsOnStructuredOrObjectInput(): void
     {
-        $this->expectNotToPerformAssertions();
-
         $deserialiser = new JsonMessageDeserialiser();
 
-        for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            $deserialiser->deserialiseClientMessage(FuzzInputMother::messageJson(['EVENT', 'REQ', 'CLOSE', 'AUTH', 'COUNT']));
-            $deserialiser->deserialiseClientMessage(FuzzInputMother::sparseObjectJson());
-            $deserialiser->deserialiseRelayMessage(FuzzInputMother::messageJson(['EVENT', 'OK', 'EOSE', 'CLOSED', 'NOTICE', 'AUTH', 'COUNT']));
-            $deserialiser->deserialiseRelayMessage(FuzzInputMother::sparseObjectJson());
-        }
+        $this->assertNeverThrows(
+            static fn (): string => FuzzInputMother::messageJson(['EVENT', 'REQ', 'CLOSE', 'AUTH', 'COUNT']),
+            $deserialiser->deserialiseClientMessage(...),
+        );
+        $this->assertNeverThrows(FuzzInputMother::sparseObjectJson(...), $deserialiser->deserialiseClientMessage(...));
+        $this->assertNeverThrows(
+            static fn (): string => FuzzInputMother::messageJson(['EVENT', 'OK', 'EOSE', 'CLOSED', 'NOTICE', 'AUTH', 'COUNT']),
+            $deserialiser->deserialiseRelayMessage(...),
+        );
+        $this->assertNeverThrows(FuzzInputMother::sparseObjectJson(...), $deserialiser->deserialiseRelayMessage(...));
     }
 
     public function testMessageTryFromJsonNeverThrowsOnStructuredOrObjectInput(): void
     {
-        $this->expectNotToPerformAssertions();
-
-        for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            ClientEventMessage::tryFromJson(FuzzInputMother::messageJson(['EVENT']));
-            ClientEventMessage::tryFromJson(FuzzInputMother::sparseObjectJson());
-            OkMessage::tryFromJson(FuzzInputMother::messageJson(['OK']));
-            OkMessage::tryFromJson(FuzzInputMother::sparseObjectJson());
-        }
+        $this->assertNeverThrows(static fn (): string => FuzzInputMother::messageJson(['EVENT']), ClientEventMessage::tryFromJson(...));
+        $this->assertNeverThrows(FuzzInputMother::sparseObjectJson(...), ClientEventMessage::tryFromJson(...));
+        $this->assertNeverThrows(static fn (): string => FuzzInputMother::messageJson(['OK']), OkMessage::tryFromJson(...));
+        $this->assertNeverThrows(FuzzInputMother::sparseObjectJson(...), OkMessage::tryFromJson(...));
     }
 
     public function testFilterTryFromArrayNeverThrowsOnArbitraryArrays(): void
     {
-        $this->expectNotToPerformAssertions();
-
-        for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            Filter::tryFromArray(FuzzInputMother::hostileArray());
-        }
+        $this->assertNeverThrows(FuzzInputMother::hostileArray(...), Filter::tryFromArray(...));
     }
 
     public function testTagCollectionTryFromArrayNeverThrowsOnArbitraryArrays(): void
     {
-        $this->expectNotToPerformAssertions();
-
-        for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            TagCollection::tryFromArray(FuzzInputMother::hostileArray());
-        }
+        $this->assertNeverThrows(FuzzInputMother::hostileArray(...), TagCollection::tryFromArray(...));
     }
 
     public function testIdentityHexParsersNeverThrowOnArbitraryStrings(): void
     {
-        $this->expectNotToPerformAssertions();
-
-        for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            PublicKey::tryFromHex(FuzzInputMother::hostileString());
-            EventId::tryFromHex(FuzzInputMother::hostileString());
-            Signature::tryFromHex(FuzzInputMother::hostileString());
-            PrivateKey::tryFromHex(FuzzInputMother::hostileString());
-        }
+        $this->assertNeverThrows(FuzzInputMother::hostileString(...), PublicKey::tryFromHex(...));
+        $this->assertNeverThrows(FuzzInputMother::hostileString(...), EventId::tryFromHex(...));
+        $this->assertNeverThrows(FuzzInputMother::hostileString(...), Signature::tryFromHex(...));
+        $this->assertNeverThrows(FuzzInputMother::hostileString(...), PrivateKey::tryFromHex(...));
     }
 
     public function testIdentityBech32ParsersNeverThrowOnArbitraryStrings(): void
     {
-        $this->expectNotToPerformAssertions();
-
-        for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            PublicKey::tryFromBech32(FuzzInputMother::hostileString());
-            EventId::tryFromBech32(FuzzInputMother::hostileString());
-            PrivateKey::tryFromBech32(FuzzInputMother::hostileString());
-        }
+        $this->assertNeverThrows(FuzzInputMother::hostileString(...), PublicKey::tryFromBech32(...));
+        $this->assertNeverThrows(FuzzInputMother::hostileString(...), EventId::tryFromBech32(...));
+        $this->assertNeverThrows(FuzzInputMother::hostileString(...), PrivateKey::tryFromBech32(...));
     }
 
     public function testRelayUrlTryFromStringNeverThrowsOnArbitraryStrings(): void
     {
-        $this->expectNotToPerformAssertions();
-
-        for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            RelayUrl::tryFromString(FuzzInputMother::hostileString());
-        }
+        $this->assertNeverThrows(FuzzInputMother::hostileString(...), RelayUrl::tryFromString(...));
     }
 
     public function testNcryptsecTryFromStringNeverThrowsOnArbitraryStrings(): void
     {
-        $this->expectNotToPerformAssertions();
-
-        for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            Ncryptsec::tryFromString(FuzzInputMother::hostileString());
-        }
+        $this->assertNeverThrows(FuzzInputMother::hostileString(...), Ncryptsec::tryFromString(...));
     }
 
     public function testBech32CodecNeverThrowsOnArbitraryStrings(): void
     {
-        $this->expectNotToPerformAssertions();
-
-        for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            Bech32Codec::decode(FuzzInputMother::hostileString());
-            Bech32Codec::decodeWithHrp(FuzzInputMother::hostileString(), 'npub');
-        }
+        $this->assertNeverThrows(FuzzInputMother::hostileString(...), Bech32Codec::decode(...));
+        $this->assertNeverThrows(FuzzInputMother::hostileString(...), static fn (string $input): ?string => Bech32Codec::decodeWithHrp($input, 'npub'));
     }
 
     public function testNip19CodecNeverThrowsOnArbitraryStrings(): void
     {
-        $this->expectNotToPerformAssertions();
-
         $codec = new Nip19Codec();
 
-        for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            $codec->decodeComplexEntity(FuzzInputMother::hostileString());
-            $codec->parseEventReference(FuzzInputMother::hostileString());
-        }
+        $this->assertNeverThrows(FuzzInputMother::hostileString(...), $codec->decodeComplexEntity(...));
+        $this->assertNeverThrows(FuzzInputMother::hostileString(...), $codec->parseEventReference(...));
     }
 
     public function testJsonMessageDeserialiserNeverThrowsOnArbitraryStrings(): void
     {
-        $this->expectNotToPerformAssertions();
-
         $deserialiser = new JsonMessageDeserialiser();
 
+        $this->assertNeverThrows(FuzzInputMother::hostileString(...), $deserialiser->deserialiseClientMessage(...));
+        $this->assertNeverThrows(FuzzInputMother::hostileString(...), $deserialiser->deserialiseRelayMessage(...));
+    }
+
+    /**
+     * @template TInput
+     *
+     * @param callable(): TInput      $makeInput
+     * @param callable(TInput): mixed $parse
+     */
+    private function assertNeverThrows(callable $makeInput, callable $parse): void
+    {
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            $deserialiser->deserialiseClientMessage(FuzzInputMother::hostileString());
-            $deserialiser->deserialiseRelayMessage(FuzzInputMother::hostileString());
+            $input = $makeInput();
+
+            try {
+                $parse($input);
+            } catch (Throwable $e) {
+                $this->fail(sprintf(
+                    'Parser threw %s on iteration %d for input %s: %s',
+                    $e::class,
+                    $i,
+                    var_export($input, true),
+                    $e->getMessage(),
+                ));
+            }
         }
+
+        $this->addToAssertionCount(1);
     }
 }

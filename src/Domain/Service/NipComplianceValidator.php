@@ -66,10 +66,6 @@ final readonly class NipComplianceValidator implements NipComplianceValidatorInt
 
         $kTags = $event->getTags()->findByType(TagType::parentKind());
 
-        if ([] === $kTags) {
-            throw new InvalidEventException('NIP-09 events must have at least one k tag');
-        }
-
         $targetsDeletion = array_any(
             $kTags,
             static fn (Tag $kTag): bool => (string) EventKind::EVENT_DELETION === $kTag->getValue(),

@@ -10,7 +10,7 @@ use RuntimeException;
 
 final class SignatureTest extends TestCase
 {
-    private const VALID_SIGNATURE_HEX = '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
+    private const string VALID_SIGNATURE_HEX = '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
 
     public function testTryFromBytesReturnsNullForWrongLength(): void
     {

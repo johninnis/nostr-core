@@ -90,7 +90,7 @@ final class Nip44CipherTest extends TestCase
         $this->expectException(EncryptionException::class);
         $this->expectExceptionMessage('Invalid base64 payload');
 
-        $this->adapter->decrypt('not!valid@base64', $conversationKey);
+        $this->adapter->decrypt(str_repeat('!', 132), $conversationKey);
     }
 
     public function testDecryptRejectsPayloadTooShort(): void
@@ -98,7 +98,7 @@ final class Nip44CipherTest extends TestCase
         $conversationKey = $this->createTestKey();
 
         $this->expectException(EncryptionException::class);
-        $this->expectExceptionMessage('Payload too short');
+        $this->expectExceptionMessage('Payload size out of bounds');
 
         $this->adapter->decrypt(base64_encode('short'), $conversationKey);
     }

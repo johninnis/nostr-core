@@ -104,7 +104,7 @@ final readonly class FileMetadata
             }
         }
 
-        return self::fromFields($fields);
+        return self::tryFromFields($fields);
     }
 
     public static function tryFromImetaTag(Tag $tag): ?self
@@ -123,7 +123,7 @@ final readonly class FileMetadata
             $fields[substr($entry, 0, $boundary)][] = substr($entry, $boundary + 1);
         }
 
-        return self::fromFields($fields);
+        return self::tryFromFields($fields);
     }
 
     public function toTags(): TagCollection
@@ -209,7 +209,7 @@ final readonly class FileMetadata
     /**
      * @param array<string, list<string>> $fields
      */
-    private static function fromFields(array $fields): ?self
+    private static function tryFromFields(array $fields): ?self
     {
         $url = self::firstString($fields, 'url');
         if (null === $url) {

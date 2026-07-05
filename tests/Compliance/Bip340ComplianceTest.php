@@ -17,7 +17,8 @@ use Throwable;
 
 final class Bip340ComplianceTest extends TestCase
 {
-    private const VECTORS_PATH = __DIR__.'/../Vectors/bip340-vectors.csv';
+    private const string VECTORS_PATH = __DIR__.'/../Vectors/bip340-vectors.csv';
+    private const int SCHNORR_MESSAGE_LENGTH = 32;
 
     public function testVerifyFfiMatchesExpectedAcrossAllVectors(): void
     {
@@ -242,7 +243,7 @@ final class Bip340ComplianceTest extends TestCase
     private function signingVectors(): iterable
     {
         foreach ($this->vectors() as $vector) {
-            if ('' !== $vector['secret']) {
+            if ('' !== $vector['secret'] && self::SCHNORR_MESSAGE_LENGTH === strlen($vector['message'])) {
                 yield $vector;
             }
         }

@@ -57,6 +57,10 @@ final readonly class ZapAmount
         $multiplier = $matches[2] ?? '';
 
         if ('p' === $multiplier) {
+            if (!str_ends_with($matches[1], '0')) {
+                return null;
+            }
+
             $millisats = intdiv($amount, 10);
 
             return $millisats > self::MAX_MILLISATS ? null : new self($millisats);

@@ -10,6 +10,7 @@ use Stringable;
 final readonly class SubscriptionId implements Stringable
 {
     private const int MAX_LENGTH = 64;
+    // Deliberate: printable-ASCII only, stricter than NIP-01's "arbitrary string", to keep the correlation handle byte-clean — see ADR-0053
     private const string ALLOWED_PATTERN = '/^[\x21-\x7E]+$/D';
 
     private function __construct(private string $id)

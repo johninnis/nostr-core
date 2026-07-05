@@ -16,10 +16,10 @@ use RuntimeException;
 
 final class Nip49CipherTest extends TestCase
 {
-    private const STANDARD_LOG_N = 16;
-    private const SPEC_VECTOR_NCRYPTSEC = 'ncryptsec1qgg9947rlpvqu76pj5ecreduf9jxhselq2nae2kghhvd5g7dgjtcxfqtd67p9m0w57lspw8gsq6yphnm8623nsl8xn9j4jdzz84zm3frztj3z7s35vpzmqf6ksu8r89qk5z2zxfmu5gv8th8wclt0h4p';
-    private const SPEC_VECTOR_NSEC_HEX = '3501454135014541350145413501453fefb02227e449e57cf4d3a3ce05378683';
-    private const SPEC_VECTOR_PASSWORD = 'nostr';
+    private const int STANDARD_LOG_N = 16;
+    private const string SPEC_VECTOR_NCRYPTSEC = 'ncryptsec1qgg9947rlpvqu76pj5ecreduf9jxhselq2nae2kghhvd5g7dgjtcxfqtd67p9m0w57lspw8gsq6yphnm8623nsl8xn9j4jdzz84zm3frztj3z7s35vpzmqf6ksu8r89qk5z2zxfmu5gv8th8wclt0h4p';
+    private const string SPEC_VECTOR_NSEC_HEX = '3501454135014541350145413501453fefb02227e449e57cf4d3a3ce05378683';
+    private const string SPEC_VECTOR_PASSWORD = 'nostr';
 
     private Nip49Cipher $adapter;
 

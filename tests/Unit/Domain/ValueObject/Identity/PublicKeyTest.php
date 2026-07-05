@@ -10,7 +10,7 @@ use RuntimeException;
 
 final class PublicKeyTest extends TestCase
 {
-    private const VALID_PUBLIC_KEY_HEX = '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798';
+    private const string VALID_PUBLIC_KEY_HEX = '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798';
 
     public function testCanCreateFromValidHex(): void
     {

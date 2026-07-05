@@ -82,7 +82,8 @@ final readonly class RelayUrl implements Stringable
         }
 
         $rawPath = $parsed['path'] ?? '';
-        if (str_contains($rawPath, '%20') || str_contains($rawPath, '//') || str_contains($rawPath, $host)) {
+        $pathSegments = explode('/', trim($rawPath, '/'));
+        if (str_contains($rawPath, '%20') || str_contains($rawPath, '//') || in_array($host, $pathSegments, true)) {
             return null;
         }
 

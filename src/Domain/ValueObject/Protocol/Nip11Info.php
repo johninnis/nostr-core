@@ -7,6 +7,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Protocol;
 use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 
+// Deliberate: a thin typed view that keeps the raw document and projects fields on access, not an eagerly fully-parsed value object like ProfileMetadata; the relay-info document is open and advisory — see ADR-0036
 final readonly class Nip11Info
 {
     /**

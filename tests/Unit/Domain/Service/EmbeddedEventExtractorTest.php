@@ -18,7 +18,7 @@ use RuntimeException;
 
 final class EmbeddedEventExtractorTest extends TestCase
 {
-    private const PUBKEY = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    private const string PUBKEY = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
     public function testReturnsNullWhenEventIsNotARepost(): void
     {

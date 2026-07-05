@@ -12,7 +12,7 @@ use RuntimeException;
 
 final class OkMessageTest extends TestCase
 {
-    private const VALID_EVENT_ID_HEX = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    private const string VALID_EVENT_ID_HEX = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
     public function testGetTypeReturnsOk(): void
     {

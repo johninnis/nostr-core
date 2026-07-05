@@ -9,7 +9,8 @@ use Stringable;
 
 final readonly class Nip05Identifier implements Stringable
 {
-    private const string LOCAL_PART_PATTERN = '/^[A-Za-z0-9._-]+$/D';
+    // Deliberate: rejects an out-of-charset local part (including any upper-case) rather than normalising it, so verification never matches a rewritten key — see ADR-0052
+    private const string LOCAL_PART_PATTERN = '/^[a-z0-9._-]+$/D';
     private const string DOMAIN_PATTERN = '/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/iD';
 
     private function __construct(

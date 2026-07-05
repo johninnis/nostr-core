@@ -29,13 +29,12 @@ final class LibSecp256k1Ffi
         int secp256k1_schnorrsig_sign32(const secp256k1_context *ctx, unsigned char *sig64, const unsigned char *msg32, const secp256k1_keypair *keypair, const unsigned char *aux_rand32);
         int secp256k1_schnorrsig_verify(const secp256k1_context *ctx, const unsigned char *sig64, const unsigned char *msg, size_t msglen, const secp256k1_xonly_pubkey *pubkey);
         int secp256k1_ec_pubkey_parse(const secp256k1_context *ctx, secp256k1_pubkey *pubkey, const unsigned char *input, size_t inputlen);
-        int secp256k1_ec_pubkey_tweak_mul(const secp256k1_context *ctx, secp256k1_pubkey *pubkey, const unsigned char *tweak32);
-        int secp256k1_ec_pubkey_serialize(const secp256k1_context *ctx, unsigned char *output, size_t *outputlen, const secp256k1_pubkey *pubkey, unsigned int flags);
+        typedef int (*secp256k1_ecdh_hash_function)(unsigned char *output, const unsigned char *x32, const unsigned char *y32, void *data);
+        int secp256k1_ecdh(const secp256k1_context *ctx, unsigned char *output, const secp256k1_pubkey *pubkey, const unsigned char *seckey, secp256k1_ecdh_hash_function hashfp, void *data);
         C;
 
     private const int CONTEXT_SIGN_VERIFY = 769;
     private const int CONTEXT_SEED_LENGTH = 32;
-    private const int EC_COMPRESSED_FLAG = 258;
     private const int COMPRESSED_PUBKEY_LENGTH = 33;
     private const int XONLY_PUBKEY_LENGTH = 32;
 
@@ -164,30 +163,24 @@ final class LibSecp256k1Ffi
         }
 
         $privkeyBuffer = FfiLibraryLoader::toBuffer($this->ffi, $privkeyBytes);
-        $output = $this->ffi->new('unsigned char['.self::COMPRESSED_PUBKEY_LENGTH.']');
+        $output = $this->ffi->new('unsigned char['.self::XONLY_PUBKEY_LENGTH.']');
+
+        // Deliberate: secp256k1_ecdh runs the constant-time scalar multiply; the raw-x callback returns the shared point's x-coordinate unhashed, which is what NIP-04/NIP-44 key agreement consumes — see ADR-0025
+        $copySharedX = static function (CData $out, CData $x32, CData $y32, ?CData $data): int {
+            FFI::memcpy($out, $x32, self::XONLY_PUBKEY_LENGTH);
+
+            return 1;
+        };
 
         try {
-            if (1 !== $this->ffi->secp256k1_ec_pubkey_tweak_mul($this->context, FFI::addr($pubkey), $privkeyBuffer)) {
+            if (1 !== $this->ffi->secp256k1_ecdh($this->context, $output, FFI::addr($pubkey), $privkeyBuffer, $copySharedX, null)) {
                 throw new EcdhException('ECDH shared point is the identity');
             }
 
-            $outputLen = $this->ffi->new('size_t');
-            $outputLen->cdata = self::COMPRESSED_PUBKEY_LENGTH;
-
-            if (1 !== $this->ffi->secp256k1_ec_pubkey_serialize(
-                $this->context,
-                $output,
-                FFI::addr($outputLen),
-                FFI::addr($pubkey),
-                self::EC_COMPRESSED_FLAG,
-            )) {
-                throw new EcdhException('ECDH failed to serialise shared point');
-            }
-
-            return substr(FFI::string($output, self::COMPRESSED_PUBKEY_LENGTH), 1, self::XONLY_PUBKEY_LENGTH);
+            return FFI::string($output, self::XONLY_PUBKEY_LENGTH);
         } finally {
             FFI::memset($privkeyBuffer, 0, strlen($privkeyBytes));
-            FFI::memset($output, 0, self::COMPRESSED_PUBKEY_LENGTH);
+            FFI::memset($output, 0, self::XONLY_PUBKEY_LENGTH);
             FFI::memset(FFI::addr($pubkey), 0, FFI::sizeof($pubkey));
         }
     }

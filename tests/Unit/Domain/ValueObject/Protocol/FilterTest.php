@@ -224,9 +224,9 @@ final class FilterTest extends TestCase
             EventContent::fromString('test')
         ));
 
-        $this->assertTrue((new Filter(tags: TagFilter::fromValues(['e' => [$referencedId]])))->matches($event));
-        $this->assertFalse((new Filter(tags: TagFilter::fromValues(['e' => ['wss://relay.example']])))->matches($event));
-        $this->assertFalse((new Filter(tags: TagFilter::fromValues(['e' => ['reply']])))->matches($event));
+        $this->assertTrue(new Filter(tags: TagFilter::fromValues(['e' => [$referencedId]]))->matches($event));
+        $this->assertFalse(new Filter(tags: TagFilter::fromValues(['e' => ['wss://relay.example']]))->matches($event));
+        $this->assertFalse(new Filter(tags: TagFilter::fromValues(['e' => ['reply']]))->matches($event));
     }
 
     public function testMatchesEventWithMultipleValuesInSameTagType(): void
@@ -943,12 +943,12 @@ final class FilterTest extends TestCase
 
     public function testEmptyFilterJsonSerialisesAsAnObject(): void
     {
-        $this->assertSame('{}', json_encode((new Filter())->jsonSerialize(), JSON_THROW_ON_ERROR));
+        $this->assertSame('{}', json_encode(new Filter()->jsonSerialize(), JSON_THROW_ON_ERROR));
     }
 
     public function testNonEmptyFilterJsonSerialisesWithItsArrayShape(): void
     {
-        $this->assertSame('{"kinds":[1]}', json_encode((new Filter(kinds: EventKindCollection::fromInts([1])))->jsonSerialize(), JSON_THROW_ON_ERROR));
+        $this->assertSame('{"kinds":[1]}', json_encode(new Filter(kinds: EventKindCollection::fromInts([1]))->jsonSerialize(), JSON_THROW_ON_ERROR));
     }
 
     public function testEmptyFilterCastsToStringAsAnObject(): void
@@ -965,7 +965,7 @@ final class FilterTest extends TestCase
 
     public function testEmptyFilterRoundTripsThroughTheJsonForm(): void
     {
-        $restored = Filter::tryFromArray((new Filter())->jsonSerialize());
+        $restored = Filter::tryFromArray(new Filter()->jsonSerialize());
 
         $this->assertNotNull($restored);
         $this->assertSame([], $restored->toArray());

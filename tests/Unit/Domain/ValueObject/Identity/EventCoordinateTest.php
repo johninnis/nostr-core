@@ -19,10 +19,10 @@ use RuntimeException;
 
 final class EventCoordinateTest extends TestCase
 {
-    private const VALID_PUBKEY = '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798';
-    private const VALID_KIND = 30023;
-    private const VALID_IDENTIFIER = 'my-article';
-    private const VALID_RELAY = 'wss://relay.example.com';
+    private const string VALID_PUBKEY = '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798';
+    private const int VALID_KIND = 30023;
+    private const string VALID_IDENTIFIER = 'my-article';
+    private const string VALID_RELAY = 'wss://relay.example.com';
 
     private function createCoordinate(?string $relayHint = null): EventCoordinate
     {
@@ -241,7 +241,7 @@ final class EventCoordinateTest extends TestCase
         $coordinate1 = $this->createCoordinate();
         $coordinate2 = $this->createCoordinate(self::VALID_RELAY);
 
-        $this->assertFalse($coordinate1->equals($coordinate2, true));
+        $this->assertFalse($coordinate1->equalsIncludingRelayHint($coordinate2));
     }
 
     public function testEqualsWithMatchingRelayHints(): void
@@ -249,7 +249,7 @@ final class EventCoordinateTest extends TestCase
         $coordinate1 = $this->createCoordinate(self::VALID_RELAY);
         $coordinate2 = $this->createCoordinate(self::VALID_RELAY);
 
-        $this->assertTrue($coordinate1->equals($coordinate2, true));
+        $this->assertTrue($coordinate1->equalsIncludingRelayHint($coordinate2));
     }
 
     public function testToArrayReturnsExpectedStructure(): void
@@ -373,7 +373,7 @@ final class EventCoordinateTest extends TestCase
         $recreated = EventCoordinate::tryFromArray($coordinate->toArray())
             ?? throw new RuntimeException('Failed to recreate coordinate from array');
 
-        $this->assertTrue($coordinate->equals($recreated, true));
+        $this->assertTrue($coordinate->equalsIncludingRelayHint($recreated));
     }
 
     public function testMatchesEventReturnsTrueForMatchingEvent(): void

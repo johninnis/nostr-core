@@ -12,8 +12,8 @@ use RuntimeException;
 
 final class PubkeyReferenceTest extends TestCase
 {
-    private const VALID_PUBKEY = '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798';
-    private const VALID_RELAY = 'wss://relay.example.com';
+    private const string VALID_PUBKEY = '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798';
+    private const string VALID_RELAY = 'wss://relay.example.com';
 
     public function testConstructorWithPubkeyOnly(): void
     {

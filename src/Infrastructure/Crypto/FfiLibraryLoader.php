@@ -13,6 +13,10 @@ final class FfiLibraryLoader
      */
     public static function tryLoad(string $cdef, array $libraryNames): ?FFI
     {
+        if (!extension_loaded('ffi')) {
+            return null;
+        }
+
         foreach ($libraryNames as $name) {
             try {
                 return FFI::cdef($cdef, $name);

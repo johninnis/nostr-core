@@ -316,6 +316,13 @@ final readonly class Filter implements JsonSerializable, Stringable
         $limit = $data['limit'] ?? null;
         $search = $data['search'] ?? null;
 
+        if ((is_array($ids) && count($ids) > self::MAX_VALUES_PER_FIELD)
+            || (is_array($authors) && count($authors) > self::MAX_VALUES_PER_FIELD)
+            || (is_array($kinds) && count($kinds) > self::MAX_VALUES_PER_FIELD)
+        ) {
+            return null;
+        }
+
         if ((null !== $since && !is_int($since))
             || (null !== $until && !is_int($until))
             || (null !== $limit && !is_int($limit))

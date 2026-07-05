@@ -99,6 +99,10 @@ final class Bech32Codec
             array_slice($chars, $separatorPosition + 1)
         );
 
+        if (in_array(-1, $data, true)) {
+            return null;
+        }
+
         if ($variant->value !== self::polymod(array_merge(self::hrpExpand($hrp), $data))) {
             return null;
         }

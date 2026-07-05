@@ -18,8 +18,8 @@ use RuntimeException;
 
 final class ContentReferenceTest extends TestCase
 {
-    private const PUBKEY = '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798';
-    private const EVENT_ID = '1111111111111111111111111111111111111111111111111111111111111111';
+    private const string PUBKEY = '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798';
+    private const string EVENT_ID = '1111111111111111111111111111111111111111111111111111111111111111';
 
     public function testAddressableReferenceCarriesPubkeyKindAndIdentifier(): void
     {

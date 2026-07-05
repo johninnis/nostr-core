@@ -26,17 +26,22 @@ final class Nip05IdentifierTest extends TestCase
         $this->assertSame('example.com', $identifier->getDomain());
     }
 
-    public function testTryFromStringCanonicalisesDomainToLowerCaseButPreservesLocalPart(): void
+    public function testTryFromStringCanonicalisesDomainToLowerCase(): void
     {
-        $identifier = Nip05Identifier::tryFromString('Alice@Example.COM') ?? throw new RuntimeException('expected valid identifier');
+        $identifier = Nip05Identifier::tryFromString('alice@Example.COM') ?? throw new RuntimeException('expected valid identifier');
 
-        $this->assertSame('Alice', $identifier->getLocalPart());
+        $this->assertSame('alice', $identifier->getLocalPart());
         $this->assertSame('example.com', $identifier->getDomain());
-        $this->assertSame('Alice@example.com', (string) $identifier);
+        $this->assertSame('alice@example.com', (string) $identifier);
         $this->assertSame(
-            'https://example.com/.well-known/nostr.json?name=Alice',
+            'https://example.com/.well-known/nostr.json?name=alice',
             $identifier->getWellKnownUrl(),
         );
+    }
+
+    public function testTryFromStringRejectsUppercaseLocalPart(): void
+    {
+        $this->assertNull(Nip05Identifier::tryFromString('Alice@example.com'));
     }
 
     public function testTryFromStringReturnsNullForMissingAtSymbol(): void

@@ -6,10 +6,12 @@ namespace Innis\Nostr\Core\Domain\Factory;
 
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\Enum\EventKindCategory;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Content\FileMetadata;
 use Innis\Nostr\Core\Domain\ValueObject\Content\LongformMetadata;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Nip98Request;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
@@ -79,10 +81,10 @@ final class RumourFactory
         return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::FILE_METADATA), EventContent::fromString($caption), $metadata->toTags(), $createdAt);
     }
 
-    public static function createRepost(PublicKey $pubkey, Event $originalEvent): Rumour
+    public static function createRepost(PublicKey $pubkey, Event $originalEvent, ?RelayUrl $relayHint = null): Rumour
     {
         $tags = new TagCollection([
-            Tag::event($originalEvent->getId()),
+            Tag::event($originalEvent->getId(), $relayHint),
             Tag::pubkey($originalEvent->getPubkey()),
         ]);
 
@@ -94,12 +96,32 @@ final class RumourFactory
         Event $targetEvent,
         string $reaction = '+',
     ): Rumour {
-        $tags = new TagCollection([
+        $tags = [
             Tag::event($targetEvent->getId()),
             Tag::pubkey($targetEvent->getPubkey()),
-        ]);
+            Tag::create(TagType::PARENT_KIND, (string) $targetEvent->getKind()->toInt()),
+        ];
 
-        return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::REACTION), EventContent::fromString($reaction), $tags);
+        $coordinate = self::addressableCoordinate($targetEvent);
+        if (null !== $coordinate) {
+            $tags[] = Tag::create(TagType::ADDRESSABLE, (string) $coordinate);
+        }
+
+        return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::REACTION), EventContent::fromString($reaction), new TagCollection($tags));
+    }
+
+    private static function addressableCoordinate(Event $event): ?EventCoordinate
+    {
+        if (EventKindCategory::Addressable !== $event->getKind()->category()) {
+            return null;
+        }
+
+        $identifier = $event->getTags()->getFirstValueByType(TagType::identifier());
+        if (null === $identifier) {
+            return null;
+        }
+
+        return EventCoordinate::tryFrom($event->getKind(), $event->getPubkey(), $identifier);
     }
 
     public static function createFollowList(PublicKey $pubkey, TagCollection $followTags): Rumour

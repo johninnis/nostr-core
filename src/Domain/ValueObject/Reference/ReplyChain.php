@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Reference;
 
 use Innis\Nostr\Core\Domain\Collection\EventReferenceCollection;
 use Innis\Nostr\Core\Domain\Collection\PublicKeyCollection;
+use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 
 final readonly class ReplyChain
 {
@@ -89,7 +90,7 @@ final readonly class ReplyChain
     public static function fromArray(array $data): self
     {
         return new self(
-            (bool) ($data['is_reply'] ?? false),
+            JsonWireFormat::boolField($data, 'is_reply') ?? false,
             isset($data['root_event']) && is_array($data['root_event']) ? EventReference::tryFromArray($data['root_event']) : null,
             isset($data['parent_event']) && is_array($data['parent_event']) ? EventReference::tryFromArray($data['parent_event']) : null,
             PublicKeyCollection::fromHexValues($data['conversation_participants'] ?? null),

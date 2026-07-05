@@ -48,7 +48,7 @@ final readonly class ClosedMessage extends RelayMessage
     #[Override]
     public static function tryFromArray(array $data): ?static
     {
-        if (count($data) < 2) {
+        if (!array_is_list($data) || count($data) < 2 || count($data) > 3) {
             return null;
         }
 

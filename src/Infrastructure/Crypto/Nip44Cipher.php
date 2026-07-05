@@ -18,6 +18,8 @@ final class Nip44Cipher implements Nip44EncryptionInterface
     private const int MAC_LENGTH = 32;
     private const int MIN_PLAINTEXT_LENGTH = 1;
     private const int MAX_PLAINTEXT_LENGTH = 65535;
+    private const int MIN_PAYLOAD_LENGTH = 132;
+    private const int MAX_PAYLOAD_LENGTH = 87472;
     private const int MIN_PADDED_LENGTH = 32;
     private const int SHA256_LENGTH = 32;
     private const int CHACHA_KEY_LENGTH = 32;
@@ -39,6 +41,12 @@ final class Nip44Cipher implements Nip44EncryptionInterface
     #[Override]
     public function decrypt(string $payload, ConversationKey $conversationKey): string
     {
+        $payloadLength = strlen($payload);
+
+        if ($payloadLength < self::MIN_PAYLOAD_LENGTH || $payloadLength > self::MAX_PAYLOAD_LENGTH) {
+            throw new EncryptionException('Payload size out of bounds');
+        }
+
         $decoded = base64_decode($payload, true);
 
         if (false === $decoded) {
@@ -86,6 +94,7 @@ final class Nip44Cipher implements Nip44EncryptionInterface
                 }
             } finally {
                 sodium_memzero($messageKeys['chachaKey']);
+                sodium_memzero($messageKeys['chachaNonce']);
                 sodium_memzero($messageKeys['hmacKey']);
             }
         });
@@ -124,6 +133,7 @@ final class Nip44Cipher implements Nip44EncryptionInterface
             } finally {
                 sodium_memzero($padded);
                 sodium_memzero($messageKeys['chachaKey']);
+                sodium_memzero($messageKeys['chachaNonce']);
                 sodium_memzero($messageKeys['hmacKey']);
             }
         });
@@ -160,7 +170,12 @@ final class Nip44Cipher implements Nip44EncryptionInterface
             $output .= $previous;
         }
 
-        return substr($output, 0, $length);
+        try {
+            return substr($output, 0, $length);
+        } finally {
+            sodium_memzero($output);
+            sodium_memzero($previous);
+        }
     }
 
     private function pad(string $plaintext): string

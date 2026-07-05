@@ -145,7 +145,7 @@ final class NipComplianceTest extends TestCase
         $this->validator->validateNip09Compliance($signedEvent);
     }
 
-    public function testNip09EventDeletionRequiresKTag(): void
+    public function testNip09EventDeletionAllowsMissingKTag(): void
     {
         $tags = new TagCollection([
             Tag::create('e', 'event-to-delete-id'),
@@ -159,10 +159,9 @@ final class NipComplianceTest extends TestCase
             EventContent::fromString('missing k tag')
         )->sign($this->keyPair, CryptoFixtures::signer());
 
-        $this->expectException(InvalidEventException::class);
-        $this->expectExceptionMessage('at least one k tag');
-
         $this->validator->validateNip09Compliance($signedEvent);
+
+        $this->assertSame(5, $signedEvent->getKind()->toInt());
     }
 
     public function testNip09EventDeletionRejectsKind5InKTag(): void

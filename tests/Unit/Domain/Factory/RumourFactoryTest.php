@@ -144,7 +144,7 @@ final class RumourFactoryTest extends TestCase
 
         $event = RumourFactory::createHttpAuth(
             $this->keyPair->getPublicKey(),
-            Nip98Request::withBodyHash($url, $method, $payloadHash)
+            Nip98Request::fromBodyHash($url, $method, $payloadHash)
         );
 
         $this->assertTrue($event->getKind()->is(EventKind::HTTP_AUTH));
@@ -166,7 +166,7 @@ final class RumourFactoryTest extends TestCase
     {
         $event = RumourFactory::createHttpAuth(
             $this->keyPair->getPublicKey(),
-            Nip98Request::withBodyHash('https://api.example.com/', 'GET')
+            Nip98Request::fromBodyHash('https://api.example.com/', 'GET')
         );
 
         $this->assertTrue($event->getKind()->is(EventKind::HTTP_AUTH));
@@ -201,8 +201,28 @@ final class RumourFactoryTest extends TestCase
 
         $this->assertCount(1, $eTags);
         $this->assertSame($originalEvent->getId()->toHex(), $eTags[0]->getValue());
+        $this->assertNull($eTags[0]->getValue(1));
         $this->assertCount(1, $pTags);
         $this->assertSame($originalEvent->getPubkey()->toHex(), $pTags[0]->getValue());
+    }
+
+    public function testCreateRepostIncludesRelayHintWhenProvided(): void
+    {
+        $originalEvent = RumourFactory::createTextNote(
+            $this->keyPair->getPublicKey(),
+            'Original post'
+        )->sign($this->keyPair, FakeSignatureService::accepting());
+
+        $relay = RelayUrl::tryFromString('wss://relay.example.com');
+        $this->assertNotNull($relay);
+
+        $repost = RumourFactory::createRepost(KeyMother::bob()->getPublicKey(), $originalEvent, $relay);
+
+        $eTags = $repost->getTags()->findByType(TagType::event());
+
+        $this->assertCount(1, $eTags);
+        $this->assertSame($originalEvent->getId()->toHex(), $eTags[0]->getValue());
+        $this->assertSame('wss://relay.example.com', $eTags[0]->getValue(1));
     }
 
     public function testCanCreateReaction(): void
@@ -220,11 +240,32 @@ final class RumourFactoryTest extends TestCase
 
         $eTags = $reaction->getTags()->findByType(TagType::event());
         $pTags = $reaction->getTags()->findByType(TagType::pubkey());
+        $kTags = $reaction->getTags()->findByType(TagType::parentKind());
 
         $this->assertCount(1, $eTags);
         $this->assertSame($targetEvent->getId()->toHex(), $eTags[0]->getValue());
         $this->assertCount(1, $pTags);
         $this->assertSame($targetEvent->getPubkey()->toHex(), $pTags[0]->getValue());
+        $this->assertCount(1, $kTags);
+        $this->assertSame((string) $targetEvent->getKind()->toInt(), $kTags[0]->getValue());
+        $this->assertCount(0, $reaction->getTags()->findByType(TagType::addressable()));
+    }
+
+    public function testCreateReactionAddsAddressableCoordinateForAddressableTarget(): void
+    {
+        $targetEvent = RumourFactory::createCustomKind(
+            $this->keyPair->getPublicKey(),
+            EventKind::fromInt(30023),
+            EventContent::fromString('An article'),
+            new TagCollection([Tag::identifier('my-article')]),
+        )->sign($this->keyPair, FakeSignatureService::accepting());
+
+        $reaction = RumourFactory::createReaction(KeyMother::bob()->getPublicKey(), $targetEvent);
+
+        $aTags = $reaction->getTags()->findByType(TagType::addressable());
+
+        $this->assertCount(1, $aTags);
+        $this->assertSame('30023:'.$this->keyPair->getPublicKey()->toHex().':my-article', $aTags[0]->getValue());
     }
 
     public function testCanCreateReactionWithCustomContent(): void

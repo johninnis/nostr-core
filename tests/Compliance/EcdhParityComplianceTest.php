@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 
 final class EcdhParityComplianceTest extends TestCase
 {
-    private const ITERATIONS = 100;
+    private const int ITERATIONS = 100;
 
     public function testFfiAndPurePhpComputeByteIdenticalSharedXAcrossRandomInputs(): void
     {

@@ -138,20 +138,24 @@ final readonly class EventCoordinate implements Stringable
         return in_array($this->identifier, $dTags, true);
     }
 
-    public function equals(self $other, bool $includeRelayHint = false): bool
+    public function equals(self $other): bool
     {
-        $baseEquals = $this->kind->equals($other->kind)
+        return $this->kind->equals($other->kind)
             && $this->pubkey->equals($other->pubkey)
             && $this->identifier === $other->identifier;
+    }
 
-        if (!$includeRelayHint) {
-            return $baseEquals;
+    public function equalsIncludingRelayHint(self $other): bool
+    {
+        if (!$this->equals($other)) {
+            return false;
         }
 
-        $thisHint = null !== $this->relayHint ? (string) $this->relayHint : null;
-        $otherHint = null !== $other->relayHint ? (string) $other->relayHint : null;
+        if (null === $this->relayHint || null === $other->relayHint) {
+            return null === $this->relayHint && null === $other->relayHint;
+        }
 
-        return $baseEquals && $thisHint === $otherHint;
+        return $this->relayHint->equals($other->relayHint);
     }
 
     /**

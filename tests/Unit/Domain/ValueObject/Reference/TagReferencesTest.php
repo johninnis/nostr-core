@@ -22,8 +22,8 @@ use RuntimeException;
 
 final class TagReferencesTest extends TestCase
 {
-    private const EVENT_ID = '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798';
-    private const PUBKEY = '0000000000000000000000000000000000000000000000000000000000000002';
+    private const string EVENT_ID = '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798';
+    private const string PUBKEY = '0000000000000000000000000000000000000000000000000000000000000002';
 
     public function testToArrayFromArrayRoundTripPreservesEveryReferenceKind(): void
     {
