@@ -15,10 +15,11 @@ a hidden dependency and a hidden failure mode. Constructors are expected to be c
 graphs and DI containers instantiate freely, and a probing constructor leaves no seam for a unit test to
 exercise the library-absent path without altering the host environment.
 
-The secp256k1 adapters (`Secp256k1Signer`, `Secp256k1Ecdh`) set the pattern: the bare constructor takes
-an injectable native handle and stays off the native path, while a static `create()` performs the probe.
-The NIP-49 adapters follow the same shape rather than inventing a second way to wire an optional native
-library.
+The secp256k1 adapters (`Secp256k1Signer`, `Secp256k1Ecdh`) set the pattern: the constructor takes a
+*required* injectable native handle (`?LibSecp256k1Ffi`, no default) and performs no probe, while a static
+`create()` performs the probe. Because the handle has no default, `new Secp256k1Signer()` does not compile;
+staying off the native path is an explicit `new Secp256k1Signer(null, ...)`. The NIP-49 adapters follow the
+same shape rather than inventing a second way to wire an optional native library.
 
 ## Decision
 
@@ -26,9 +27,15 @@ The NIP-49 adapters follow the same shape as the secp256k1 adapters.
 
 - `Nip49Scrypt::__construct(?FFI $ffi)` takes the loaded handle (or `null`) and performs no I/O.
   `Nip49Scrypt::create()` runs the libsodium probe and passes the result in.
-- `Nip49Cipher::__construct` defaults its collaborator to `new Nip49Scrypt(null)` — a non-probing,
-  library-absent scrypt — so the bare constructor never `dlopen`s. `Nip49Cipher::create()` builds the
-  cipher around `Nip49Scrypt::create()`.
+- `Nip49Cipher::__construct` takes its `Nip49Scrypt` collaborator as a *required* argument with no
+  default, so the constructor never `dlopen`s and never silently manufactures a throwing instance.
+  `Nip49Cipher::create()` builds the cipher around `Nip49Scrypt::create()`.
+
+The collaborator is required, not defaulted, precisely because NIP-49 has no fallback (ADR-0039): unlike
+the secp256k1 adapters, where a `null` handle selects a working pure-PHP path, a library-absent
+`Nip49Scrypt` can only throw. A default that produced one would let `new Nip49Cipher()` compile into an
+object that is guaranteed to fail on `encrypt`/`decrypt` — a footgun with no legitimate runtime use. Making
+the argument required matches `Secp256k1Signer` exactly and pushes the mistake to a compile error.
 
 Consumer code uses `Nip49Cipher::create()`. The bare constructor is for dependency injection and for
 tests, exactly as it is for the secp256k1 adapters.
@@ -39,7 +46,7 @@ tests, exactly as it is for the secp256k1 adapters.
   named-constructor step.
 - The library-absent path is unit-testable: `new Nip49Scrypt(null)` derives nothing and throws, with no
   host manipulation.
-- A bare `new Nip49Cipher()` does not probe libsodium; it yields a cipher whose scrypt has no FFI and so
-  throws on `encrypt`/`decrypt`. This is consistent with ADR-0039 (NIP-49 has no fallback) and matches
-  how `new Secp256k1Signer(null, ...)` stays off the native path. Reach for `Nip49Cipher::create()` in
-  application code; keep the probe out of the constructor.
+- `new Nip49Cipher()` does not compile: the scrypt collaborator is required. Application code that means
+  to build a working cipher must call `Nip49Cipher::create()`; code that means to inject a stub writes it
+  explicitly (`new Nip49Cipher(new Nip49Scrypt(null))`), so a library-absent instance is never produced by
+  accident. This matches `Secp256k1Signer`, whose native handle is likewise required rather than defaulted.

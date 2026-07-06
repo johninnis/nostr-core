@@ -10,6 +10,7 @@ use Innis\Nostr\Core\Domain\Service\Bech32Codec;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Ncryptsec;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Infrastructure\Crypto\Nip49Cipher;
+use Innis\Nostr\Core\Infrastructure\Crypto\Nip49Scrypt;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -167,7 +168,7 @@ final class Nip49CipherTest extends TestCase
     {
         $password = static fn (): string => 'pw';
         $ncryptsec = $this->adapter->encrypt(PrivateKey::generate(), $password, 18);
-        $strict = new Nip49Cipher(maxDecryptLogN: 16);
+        $strict = new Nip49Cipher(Nip49Scrypt::create(), maxDecryptLogN: 16);
 
         $this->expectException(Nip49DecryptionFailedException::class);
         $strict->decrypt($ncryptsec, $password);
@@ -176,13 +177,13 @@ final class Nip49CipherTest extends TestCase
     public function testConstructorRejectsMaxDecryptLogNAboveSpecMaximum(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        new Nip49Cipher(maxDecryptLogN: 23);
+        new Nip49Cipher(new Nip49Scrypt(null), maxDecryptLogN: 23);
     }
 
     public function testConstructorRejectsMaxDecryptLogNBelowMinimum(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        new Nip49Cipher(maxDecryptLogN: 0);
+        new Nip49Cipher(new Nip49Scrypt(null), maxDecryptLogN: 0);
     }
 
     private function assertKeySecurityRoundTrips(KeySecurityByte $keySecurity): void

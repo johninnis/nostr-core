@@ -23,7 +23,7 @@ final class Nip49Cipher implements Nip49EncryptionInterface
     private const int LOG_N_MAX = 22;
 
     public function __construct(
-        private readonly Nip49Scrypt $scrypt = new Nip49Scrypt(null),
+        private readonly Nip49Scrypt $scrypt,
         private readonly RandomBytesGeneratorInterface $randomBytes = new NativeRandomBytesGenerator(),
         private readonly int $maxDecryptLogN = self::LOG_N_MAX,
     ) {
@@ -36,7 +36,7 @@ final class Nip49Cipher implements Nip49EncryptionInterface
         ?RandomBytesGeneratorInterface $randomBytes = null,
         int $maxDecryptLogN = self::LOG_N_MAX,
     ): self {
-        // Deliberate: probes for libsodium scrypt here, never in __construct; the bare constructor stays on a non-FFI scrypt for DI and tests — see ADR-0041
+        // Deliberate: probes for libsodium scrypt here, never in __construct; the constructor takes an injected scrypt for DI and tests — see ADR-0041
         return new self(Nip49Scrypt::create(), $randomBytes ?? new NativeRandomBytesGenerator(), $maxDecryptLogN);
     }
 
