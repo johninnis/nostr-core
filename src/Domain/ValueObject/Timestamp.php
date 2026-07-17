@@ -94,6 +94,17 @@ final readonly class Timestamp implements Stringable
         return $timestamp < 0 ? null : new self($timestamp);
     }
 
+    public static function tryFromDecimalString(string $value): ?self
+    {
+        if (!ctype_digit($value)) {
+            return null;
+        }
+
+        $seconds = filter_var($value, FILTER_VALIDATE_INT);
+
+        return false === $seconds ? null : self::tryFromInt($seconds);
+    }
+
     public static function fromDateTime(DateTimeInterface $dateTime): self
     {
         return new self($dateTime->getTimestamp());

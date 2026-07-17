@@ -348,6 +348,13 @@ final class RumourTest extends TestCase
         $this->assertFalse($rumour->isExpired());
     }
 
+    public function testIsExpiredReturnsFalseForNonNumericExpirationValue(): void
+    {
+        $rumour = $this->rumourWithKindAndContent(1, 'test', [['expiration', 'soon']]);
+
+        $this->assertFalse($rumour->isExpired());
+    }
+
     public function testIsProtectedReturnsTrueWithProtectedTag(): void
     {
         $rumour = $this->rumourWithKindAndContent(1, 'test', [['-']]);
@@ -372,6 +379,13 @@ final class RumourTest extends TestCase
     public function testGetPublishedAtReturnsNullWhenTagValueNegative(): void
     {
         $rumour = $this->rumourWithKindAndContent(1, 'test', [['published_at', '-1']]);
+
+        $this->assertNull($rumour->getPublishedAt());
+    }
+
+    public function testGetPublishedAtReturnsNullWhenTagValueNotNumeric(): void
+    {
+        $rumour = $this->rumourWithKindAndContent(1, 'test', [['published_at', 'yesterday']]);
 
         $this->assertNull($rumour->getPublishedAt());
     }

@@ -120,12 +120,7 @@ final readonly class Rumour
             return false;
         }
 
-        $seconds = filter_var($value, FILTER_VALIDATE_INT);
-        if (false === $seconds) {
-            return false;
-        }
-
-        $expiry = Timestamp::tryFromInt($seconds);
+        $expiry = Timestamp::tryFromDecimalString($value);
 
         return null !== $expiry && $expiry->hasPassed();
     }
@@ -138,16 +133,8 @@ final readonly class Rumour
     public function getPublishedAt(): ?Timestamp
     {
         $value = $this->tags->getFirstValueByType(TagType::fromString(TagType::PUBLISHED_AT));
-        if (null === $value) {
-            return null;
-        }
 
-        $seconds = filter_var($value, FILTER_VALIDATE_INT);
-        if (false === $seconds) {
-            return null;
-        }
-
-        return Timestamp::tryFromInt($seconds);
+        return null === $value ? null : Timestamp::tryFromDecimalString($value);
     }
 
     /**

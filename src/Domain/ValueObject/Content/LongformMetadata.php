@@ -66,8 +66,7 @@ final readonly class LongformMetadata
         }
 
         $publishedAtValue = $tags->getFirstValueByType(TagType::fromString(TagType::PUBLISHED_AT));
-        $publishedAtSeconds = null !== $publishedAtValue ? filter_var($publishedAtValue, FILTER_VALIDATE_INT) : false;
-        $publishedAt = false !== $publishedAtSeconds ? Timestamp::tryFromInt($publishedAtSeconds) : null;
+        $publishedAt = null !== $publishedAtValue ? Timestamp::tryFromDecimalString($publishedAtValue) : null;
 
         return new self(
             $identifier,

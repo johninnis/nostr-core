@@ -27,6 +27,38 @@ final class TimestampTest extends TestCase
         Timestamp::fromInt(-1);
     }
 
+    public function testTryFromDecimalStringAcceptsCanonicalDigits(): void
+    {
+        $timestamp = Timestamp::tryFromDecimalString('1234567890');
+
+        $this->assertNotNull($timestamp);
+        $this->assertSame(1234567890, $timestamp->toInt());
+    }
+
+    public function testTryFromDecimalStringAcceptsZero(): void
+    {
+        $timestamp = Timestamp::tryFromDecimalString('0');
+
+        $this->assertNotNull($timestamp);
+        $this->assertSame(0, $timestamp->toInt());
+    }
+
+    public function testTryFromDecimalStringRejectsNonCanonicalInput(): void
+    {
+        $this->assertNull(Timestamp::tryFromDecimalString(''));
+        $this->assertNull(Timestamp::tryFromDecimalString('-1'));
+        $this->assertNull(Timestamp::tryFromDecimalString('+1'));
+        $this->assertNull(Timestamp::tryFromDecimalString(' 1'));
+        $this->assertNull(Timestamp::tryFromDecimalString('1.5'));
+        $this->assertNull(Timestamp::tryFromDecimalString('soon'));
+        $this->assertNull(Timestamp::tryFromDecimalString('0123'));
+    }
+
+    public function testTryFromDecimalStringRejectsIntegerOverflow(): void
+    {
+        $this->assertNull(Timestamp::tryFromDecimalString('9223372036854775808'));
+    }
+
     public function testCanCreateNow(): void
     {
         $timestamp = Timestamp::now();
