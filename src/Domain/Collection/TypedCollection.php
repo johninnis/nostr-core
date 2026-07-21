@@ -77,6 +77,17 @@ abstract class TypedCollection implements IteratorAggregate, Countable
     }
 
     /**
+     * @param self<T> $other
+     */
+    final public function merge(self $other): static
+    {
+        /** @var static<T> $collection */
+        $collection = new static([...$this->items, ...$other->items]);
+
+        return $collection;
+    }
+
+    /**
      * @template TValue
      *
      * @param callable(T): TValue $map

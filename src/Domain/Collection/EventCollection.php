@@ -103,11 +103,6 @@ final class EventCollection extends TypedCollection
         return $this->mapItems(static fn (Event $event): array => $event->toArray());
     }
 
-    public function merge(self $other): self
-    {
-        return new self([...$this->items, ...$other->items]);
-    }
-
     public function unique(): self
     {
         return new self($this->deduplicate(self::keyOf(...)));
