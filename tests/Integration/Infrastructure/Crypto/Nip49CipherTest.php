@@ -12,6 +12,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Infrastructure\Crypto\Nip49Cipher;
 use Innis\Nostr\Core\Infrastructure\Crypto\Nip49Scrypt;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -29,6 +30,7 @@ final class Nip49CipherTest extends TestCase
         $this->adapter = Nip49Cipher::create();
     }
 
+    #[Group('ffi')]
     public function testRoundTripDecryptsToSameKey(): void
     {
         $privateKey = PrivateKey::generate();
@@ -40,6 +42,7 @@ final class Nip49CipherTest extends TestCase
         $this->assertSame($privateKey->toHex(), $decrypted->toHex());
     }
 
+    #[Group('ffi')]
     public function testWrongPasswordThrows(): void
     {
         $privateKey = PrivateKey::generate();
@@ -49,6 +52,7 @@ final class Nip49CipherTest extends TestCase
         $this->adapter->decrypt($ncryptsec, static fn (): string => 'wrong');
     }
 
+    #[Group('ffi')]
     public function testKnownSpecVectorDecrypts(): void
     {
         $ncryptsec = Ncryptsec::tryFromString(self::SPEC_VECTOR_NCRYPTSEC)
@@ -59,6 +63,7 @@ final class Nip49CipherTest extends TestCase
         $this->assertSame(self::SPEC_VECTOR_NSEC_HEX, $decrypted->toHex());
     }
 
+    #[Group('ffi')]
     public function testDifferentSaltsEachEncryption(): void
     {
         $privateKey = PrivateKey::generate();
@@ -70,6 +75,7 @@ final class Nip49CipherTest extends TestCase
         $this->assertNotSame((string) $first, (string) $second);
     }
 
+    #[Group('ffi')]
     public function testNfkcNormalisationMakesEquivalentPasswordsDecrypt(): void
     {
         $privateKey = PrivateKey::generate();
@@ -82,26 +88,31 @@ final class Nip49CipherTest extends TestCase
         $this->assertSame($privateKey->toHex(), $decrypted->toHex());
     }
 
+    #[Group('ffi')]
     public function testKeySecurityByteRoundTripsClientSideOnly(): void
     {
         $this->assertKeySecurityRoundTrips(KeySecurityByte::ClientSideOnly);
     }
 
+    #[Group('ffi')]
     public function testKeySecurityByteRoundTripsUsableUntrusted(): void
     {
         $this->assertKeySecurityRoundTrips(KeySecurityByte::UsableUntrusted);
     }
 
+    #[Group('ffi')]
     public function testKeySecurityByteRoundTripsUnknown(): void
     {
         $this->assertKeySecurityRoundTrips(KeySecurityByte::Unknown);
     }
 
+    #[Group('ffi')]
     public function testLogNRoundTripsAtFloor(): void
     {
         $this->assertLogNRoundTrips(16);
     }
 
+    #[Group('ffi')]
     public function testLogNRoundTripsAboveFloor(): void
     {
         $this->assertLogNRoundTrips(18);
@@ -132,6 +143,7 @@ final class Nip49CipherTest extends TestCase
         $this->adapter->encrypt($privateKey, static fn (): int => 123, self::STANDARD_LOG_N);
     }
 
+    #[Group('ffi')]
     public function testDecryptRejectsTamperedCiphertext(): void
     {
         $tampered = $this->flipPayloadByte($this->encryptFreshVector(), Ncryptsec::PAYLOAD_LENGTH - 1);
@@ -140,6 +152,7 @@ final class Nip49CipherTest extends TestCase
         $this->adapter->decrypt($tampered, static fn (): string => 'pw');
     }
 
+    #[Group('ffi')]
     public function testDecryptRejectsUnknownKeySecurityByte(): void
     {
         $tampered = $this->tamperPayloadByte($this->encryptFreshVector(), 42, 0xFF);
@@ -148,6 +161,7 @@ final class Nip49CipherTest extends TestCase
         $this->adapter->decrypt($tampered, static fn (): string => 'pw');
     }
 
+    #[Group('ffi')]
     public function testDecryptRejectsLogNAboveMaximum(): void
     {
         $tampered = $this->tamperPayloadByte($this->encryptFreshVector(), 1, 0xFF);
@@ -156,6 +170,7 @@ final class Nip49CipherTest extends TestCase
         $this->adapter->decrypt($tampered, static fn (): string => 'pw');
     }
 
+    #[Group('ffi')]
     public function testDecryptRejectsLogNOfZero(): void
     {
         $tampered = $this->tamperPayloadByte($this->encryptFreshVector(), 1, 0x00);
@@ -164,6 +179,7 @@ final class Nip49CipherTest extends TestCase
         $this->adapter->decrypt($tampered, static fn (): string => 'pw');
     }
 
+    #[Group('ffi')]
     public function testDecryptRejectsLogNAboveConfiguredCeiling(): void
     {
         $password = static fn (): string => 'pw';

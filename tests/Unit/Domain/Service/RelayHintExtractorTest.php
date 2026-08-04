@@ -9,16 +9,16 @@ use Innis\Nostr\Core\Domain\Collection\RelayUrlCollection;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
-use Innis\Nostr\Core\Domain\Enum\Nip19EntityType;
 use Innis\Nostr\Core\Domain\Service\ContentReferenceExtractorInterface;
 use Innis\Nostr\Core\Domain\Service\RelayHintExtractor;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Nip19\Nevent;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\ContentReference;
-use Innis\Nostr\Core\Domain\ValueObject\Reference\DecodedNip19Entity;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Tests\Support\EventMother;
@@ -41,7 +41,10 @@ final class RelayHintExtractorTest extends TestCase
             }
         }
 
-        $decoded = new DecodedNip19Entity(Nip19EntityType::Event, relays: new RelayUrlCollection($relays));
+        $decoded = Nevent::tryFromEventId(
+            EventId::tryFromHex(str_repeat('ab', 32)) ?? throw new RuntimeException('Invalid test event id'),
+            new RelayUrlCollection($relays),
+        );
 
         return new ContentReference(ContentReferenceType::BareNevent, 'nevent1abc', 'nevent1abc', 0, $decoded);
     }

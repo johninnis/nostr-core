@@ -12,31 +12,38 @@ use Innis\Nostr\Core\Domain\Service\Nip19CodecInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Nip19\Nevent;
+use Innis\Nostr\Core\Domain\ValueObject\Nip19\Nip19EntityInterface;
+use Innis\Nostr\Core\Domain\ValueObject\Nip19\Note;
+use Innis\Nostr\Core\Domain\ValueObject\Nip19\Nprofile;
+use Innis\Nostr\Core\Domain\ValueObject\Nip19\Npub;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
-use Innis\Nostr\Core\Domain\ValueObject\Reference\DecodedNip19Entity;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class ContentReferenceExtractorTest extends TestCase
 {
     /**
      * @param list<string> $relayUrls
      */
-    private static function decoded(Nip19EntityType $type, ?string $pubkeyHex = null, ?string $eventIdHex = null, array $relayUrls = []): DecodedNip19Entity
+    private static function decoded(Nip19EntityType $type, ?string $pubkeyHex = null, ?string $eventIdHex = null, array $relayUrls = []): ?Nip19EntityInterface
     {
-        $relays = [];
-        foreach ($relayUrls as $url) {
-            $relay = RelayUrl::tryFromString($url);
-            if (null !== $relay) {
-                $relays[] = $relay;
-            }
-        }
+        $relays = new RelayUrlCollection(array_values(array_filter(array_map(RelayUrl::tryFromString(...), $relayUrls))));
+        $publicKey = null !== $pubkeyHex ? PublicKey::tryFromHex($pubkeyHex) : null;
+        $eventId = null !== $eventIdHex ? EventId::tryFromHex($eventIdHex) : null;
 
-        return new DecodedNip19Entity(
-            $type,
-            null !== $pubkeyHex ? PublicKey::tryFromHex($pubkeyHex) : null,
-            null !== $eventIdHex ? EventId::tryFromHex($eventIdHex) : null,
-            relays: new RelayUrlCollection($relays),
-        );
+        return match ($type) {
+            Nip19EntityType::Pubkey => null === $publicKey ? null : Npub::fromPublicKey($publicKey),
+            Nip19EntityType::Note => null === $eventId ? null : Note::fromEventId($eventId),
+            Nip19EntityType::Profile => null === $publicKey ? null : Nprofile::tryFromPublicKey($publicKey, $relays),
+            Nip19EntityType::Event => Nevent::tryFromEventId($eventId ?? self::placeholderEventId(), $relays, $publicKey),
+            Nip19EntityType::Address => null,
+        };
+    }
+
+    private static function placeholderEventId(): EventId
+    {
+        return EventId::tryFromHex(str_repeat('ab', 32)) ?? throw new RuntimeException('Invalid placeholder event id');
     }
 
     public function testExtractNostrUriReferences(): void
@@ -46,12 +53,12 @@ final class ContentReferenceExtractorTest extends TestCase
         $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
             ->method('decodeComplexEntity')
-            ->willReturnCallback(static function (string $bech32): ?DecodedNip19Entity {
+            ->willReturnCallback(static function (string $bech32): ?Nip19EntityInterface {
                 if ('npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz' === $bech32) {
                     return self::decoded(Nip19EntityType::Pubkey, pubkeyHex: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210');
                 }
                 if ('note10123456789abcdef0123456789abcdef0123456789abcdef0123456abc' === $bech32) {
-                    return self::decoded(Nip19EntityType::Event, eventIdHex: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef');
+                    return self::decoded(Nip19EntityType::Note, eventIdHex: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef');
                 }
 
                 return null;
@@ -78,7 +85,7 @@ final class ContentReferenceExtractorTest extends TestCase
         $codec = $this->createStub(Nip19CodecInterface::class);
         $codec
             ->method('decodeComplexEntity')
-            ->willReturnCallback(static fn (string $bech32): ?DecodedNip19Entity => 'npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz' === $bech32
+            ->willReturnCallback(static fn (string $bech32): ?Nip19EntityInterface => 'npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz' === $bech32
                 ? self::decoded(Nip19EntityType::Pubkey, pubkeyHex: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210')
                 : null);
 
@@ -98,12 +105,12 @@ final class ContentReferenceExtractorTest extends TestCase
         $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
             ->method('decodeComplexEntity')
-            ->willReturnCallback(static function (string $bech32): ?DecodedNip19Entity {
+            ->willReturnCallback(static function (string $bech32): ?Nip19EntityInterface {
                 if ('npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz' === $bech32) {
                     return self::decoded(Nip19EntityType::Pubkey, pubkeyHex: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210');
                 }
                 if ('note10123456789abcdef0123456789abcdef0123456789abcdef0123456abc' === $bech32) {
-                    return self::decoded(Nip19EntityType::Event, eventIdHex: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef');
+                    return self::decoded(Nip19EntityType::Note, eventIdHex: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef');
                 }
                 if ('nevent1qqstna2yrezu5wghjvswqqculvvwxsrcvu7uc0f78gan4xqhvz49d9spr3mhxue69uhkummnw3ez6un9d3shjtn4de6x2argwghx6egpr4mhxue69uhkummnw3ez6ur4vgh8wetvd3hhyer9wghxuet5nxnepm' === $bech32) {
                     return self::decoded(Nip19EntityType::Event, eventIdHex: 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890', relayUrls: ['wss://relay.com']);
@@ -282,7 +289,7 @@ final class ContentReferenceExtractorTest extends TestCase
         $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
             ->method('decodeComplexEntity')
-            ->willReturnCallback(static function (string $bech32) use ($bareNevent, $prefixedNevent): ?DecodedNip19Entity {
+            ->willReturnCallback(static function (string $bech32) use ($bareNevent, $prefixedNevent): ?Nip19EntityInterface {
                 if ($bech32 === $bareNevent || $bech32 === $prefixedNevent) {
                     return self::decoded(Nip19EntityType::Event, eventIdHex: '5f5cb96cc6c499f5404e4799534d9ca39b9d9c471fe5dcfc58a4640ba4144f16');
                 }
@@ -301,5 +308,49 @@ final class ContentReferenceExtractorTest extends TestCase
         $this->assertSame(ContentReferenceType::NostrUri, $references[1]->getType());
         $this->assertEquals('nostr:'.$prefixedNevent, $references[1]->getRawText());
         $this->assertEquals($prefixedNevent, $references[1]->getIdentifier());
+    }
+
+    /**
+     * Overlap detection must stay linear in the match count. Measured on this suite's inputs at 14000
+     * matches: linear 92ms, quadratic 2510ms, and the original per-match scan of every prior range
+     * ~20s. Doubling the input takes the linear form from 43ms to 92ms (2.1x) and the quadratic form
+     * from 646ms to 2510ms (3.9x), which is what separates them. The 600ms bound sits 6.5x above the
+     * linear form and 4x below the quadratic one; recalibrate from those figures, not by nudging it.
+     */
+    public function testAdversarialContentIsExtractedInLinearTime(): void
+    {
+        $content = EventContent::fromString(str_repeat('nevent1a ', 14000));
+        $extractor = new ContentReferenceExtractor($this->createStub(Nip19CodecInterface::class));
+
+        $startedAt = hrtime(true);
+        $references = $extractor->extractContentReferences($content);
+        $elapsedMs = (hrtime(true) - $startedAt) / 1e6;
+
+        $this->assertSame(14000, $references->count());
+        $this->assertLessThan(600, $elapsedMs, sprintf('Extraction took %.0f ms; overlap detection is no longer linear', $elapsedMs));
+    }
+
+    public function testANostrUriSuppressesTheBareMatchNestedInsideIt(): void
+    {
+        $npub = 'npub1'.str_repeat('a', 58);
+        $extractor = new ContentReferenceExtractor($this->createStub(Nip19CodecInterface::class));
+
+        $references = $extractor->extractContentReferences(EventContent::fromString('nostr:'.$npub))->toArray();
+
+        $this->assertCount(1, $references);
+        $this->assertSame(ContentReferenceType::NostrUri, $references[0]->getType());
+    }
+
+    public function testAdjacentNonOverlappingReferencesAreAllKept(): void
+    {
+        $npub = 'npub1'.str_repeat('a', 58);
+        $note = 'note1'.str_repeat('b', 58);
+        $extractor = new ContentReferenceExtractor($this->createStub(Nip19CodecInterface::class));
+
+        $references = $extractor->extractContentReferences(EventContent::fromString($npub.' '.$note))->toArray();
+
+        $this->assertCount(2, $references);
+        $this->assertSame(0, $references[0]->getPosition());
+        $this->assertSame(strlen($npub) + 1, $references[1]->getPosition());
     }
 }

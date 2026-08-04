@@ -23,6 +23,9 @@ Code is organised around domain concepts (events, identities, tags, messages) ra
 - Bech32 *and* bech32m encoding/decoding via a single `Bech32Codec`
   (NIP-19 prefixes plus BIP-350 bech32m variants), selected through the
   `Bech32Variant` enum
+- NIP-19 entities as distinct value objects (`Npub`, `Note`, `Nprofile`,
+  `Nevent`, `Naddr`) behind `Nip19EntityInterface` — each carries only the
+  fields its variant has, and encodes itself
 - Content-reference extraction (event, pubkey, relay and quote references
   from tags and content) and reply-chain analysis
 - Typed, immutable domain collections and a subscription model
@@ -50,6 +53,11 @@ Declared under `suggest` in `composer.json`:
 
 - `libsecp256k1` — when present, Schnorr signing, verification, public-key derivation, and NIP-44 ECDH use the native C library (reached via `ext-ffi`) for significantly faster performance. Without it, the library falls back to a pure-PHP implementation via `paragonie/ecc` automatically. That fallback is **not constant-time**, so installing the native library is a security measure as well as a performance one for any server-side or long-lived signer; see [Security](#security).
 - `libsodium` — required by NIP-49 scrypt derivation, which calls `crypto_pwhash_scryptsalsa208sha256_ll` through `ext-ffi`. Typically already installed wherever `ext-sodium` is.
+
+- **Running the test suite requires `ext-ffi` and `libsecp256k1`**, even though *using* the library does not.
+  The NIP-49 tests need FFI unconditionally (see [ADR-0039](docs/adr/0039-nip49-scrypt-requires-ffi-with-no-pure-php-fallback.md))
+  and the native-path crypto tests need the shared library. On a host without them, run `composer test-no-ffi`,
+  which excludes the `ffi` group and is the same command CI runs to verify the pure-PHP deployment.
 
 ## Installation
 
@@ -130,9 +138,61 @@ $json = $eventMessage->toJson();
 $deserialised = $deserialiser->deserialiseClientMessage($json);
 ```
 
+### NIP-19 Entities
+
+Each NIP-19 entity is its own `final readonly` value object — `Npub`, `Note`, `Nprofile`, `Nevent`, `Naddr` — implementing `Nip19EntityInterface`, which declares `type(): Nip19EntityType` and `toBech32(): string`. There is no `encode` on the codec: an entity is minted through its own named constructor and encodes itself, so there is exactly one way to produce a NIP-19 string.
+
+```php
+use Innis\Nostr\Core\Domain\Service\Nip19Codec;
+use Innis\Nostr\Core\Domain\ValueObject\Nip19\Nevent;
+use Innis\Nostr\Core\Domain\ValueObject\Nip19\Nprofile;
+use Innis\Nostr\Core\Domain\ValueObject\Nip19\Npub;
+
+echo Npub::fromPublicKey($publicKey)->toBech32(); // npub1...
+
+$nevent = Nevent::tryFromEventId($eventId, $relays, author: $publicKey, kind: $kind)
+    ?? throw new RuntimeException('TLV payload exceeds the encodable size');
+
+echo $nevent->toBech32(); // nevent1...
+```
+
+`Npub::fromPublicKey` and `Note::fromEventId` carry no optional records and cannot fail, so they are `from`; the three TLV entities are `try*` because an oversized payload has no encoding (see [ADR-0051](docs/adr/0051-named-constructors-follow-the-from-tryfrom-split.md)). The optional records mirror the spec: `nevent` takes relays, author, and kind, `nprofile` takes relays, and `naddr` mandates author and kind, so `Naddr::tryFromCoordinate` takes a whole `EventCoordinate` rather than letting either go missing.
+
+Decoding a string whose prefix you do not know goes through the codec, which returns the interface. Because each variant carries only the fields it has, dispatch is on the type — there are no nullable getters to interrogate:
+
+```php
+$codec = new Nip19Codec();
+$entity = $codec->decodeComplexEntity($input); // ?Nip19EntityInterface
+
+$publicKey = match (true) {
+    $entity instanceof Npub, $entity instanceof Nprofile => $entity->getPublicKey(),
+    default => null,
+};
+```
+
+When you already know the prefix, call that leaf's own `tryFromBech32` instead. For the narrower "give me whatever event this string points at" question, `parseEventReference` accepts a raw hex id, a `note`, an `nevent`, or an `naddr` and returns `EventId|EventCoordinate|null`. Rationale for the split — and for `Nip19EntityType` gaining a `Note` case so five entities map to five cases — is in [ADR-0060](docs/adr/0060-nip19-entities-are-distinct-value-objects-behind-an-interface.md); the TLV codec is an internal value object per [ADR-0059](docs/adr/0059-nip19-tlv-is-an-internal-value-object-beside-the-entities.md).
+
+### Verifying Zap Receipts (NIP-57)
+
+`ZapReceipt::tryFromEvent` is a parser and authenticates nothing — its `getSenderPubkey()` is read from the unverified `description` blob and is attacker-chosen until checked. `ZapReceiptVerifier` applies NIP-57 Appendix F, returning `null` on success or a `ZapReceiptVerificationFailure` case naming what failed:
+
+```php
+use Innis\Nostr\Core\Domain\Service\ZapReceiptVerifier;
+
+$verifier = new ZapReceiptVerifier($signatureService);
+
+$failure = $verifier->verify($receiptEvent, $lnurlProviderPubkey, $expectedLnurl);
+
+if (null !== $failure) {
+    throw new RuntimeException('Zap receipt rejected: '.$failure->value);
+}
+```
+
+**You must supply the LNURL provider pubkey, and it is the root of trust.** This package never fetches LNURL configuration, so it cannot discover that key — with the wrong one, a receipt from *any* provider verifies. Read the `nostrPubkey` from the recipient's own LNURL endpoint. The verifier checks the receipt's signature *and* the embedded zap request's signature; the latter is not an Appendix F requirement, but without it every Appendix F condition can hold while the provider attributes the zap to an arbitrary sender. See [ADR-0062](docs/adr/0062-zap-receipt-verification-takes-the-lnurl-provider-key-as-an-argument.md) and [SECURITY.md](SECURITY.md#what-this-library-does-not-provide).
+
 ### Password-Encrypted Private Keys (NIP-49)
 
-The NIP-49 adapter takes the password as a `Closure(): string` rather than a raw string. The adapter invokes the closure exactly once, `sodium_memzero`s the revealed password before the method returns, and the caller never has to maintain a password binding in its own scope:
+The NIP-49 adapter takes the password as a `Closure(): string` rather than a raw string. It invokes the closure exactly once and `sodium_memzero`s both the revealed password and its NFKC-normalised copy on the way out:
 
 ```php
 use Innis\Nostr\Core\Domain\Enum\KeySecurityByte;
@@ -155,6 +215,8 @@ $stored = (string) $ncryptsec; // ncryptsec1...
 $decoded = Ncryptsec::tryFromString($stored) ?? throw new RuntimeException('Malformed ncryptsec');
 $recovered = $adapter->decrypt($decoded, static fn (): string => readPasswordFromUser());
 ```
+
+That wipes the library's copy, not yours. A closure returning a variable you still hold — `static fn (): string => $password` — leaves your binding readable after the call, so the `Closure` shape pays off only when it *produces* the password without the caller retaining it: reading a prompt, unsealing it from a keystore, or decrypting it on demand. If you do keep the password in scope, zero it yourself. See [SECURITY.md](SECURITY.md#nip-49-password-as-closure-string).
 
 Build the adapter through `Nip49Cipher::create()`, which probes for libsodium scrypt via `ext-ffi`; the bare constructor (`new Nip49Cipher(...)`) is for dependency injection and tests. NIP-49 has no pure-PHP fallback — see [ADR-0041](docs/adr/0041-nip49-adapters-probe-libsodium-in-create-not-the-constructor.md) and [ADR-0039](docs/adr/0039-nip49-scrypt-requires-ffi-with-no-pure-php-fallback.md).
 
@@ -190,14 +252,14 @@ The `examples/` directory is covered by PHPStan and php-cs-fixer in CI, like `sr
 |-----|-------------|---------|
 | [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) | Basic protocol flow | Event creation, signing, verification, serialisation |
 | [NIP-02](https://github.com/nostr-protocol/nips/blob/master/02.md) | Follow list | Kind 3 with contact list tags |
-| [NIP-04](https://github.com/nostr-protocol/nips/blob/master/04.md) | Encrypted direct messages | Kind 4 with recipient validation; `Nip04Cipher` for AES-256-CBC encrypt/decrypt over a 32-byte ECDH shared secret |
+| [NIP-04](https://github.com/nostr-protocol/nips/blob/master/04.md) | Encrypted direct messages | **Deprecated — use NIP-44.** Kind 4 with recipient validation; `Nip04Cipher` for AES-256-CBC encrypt/decrypt over a 32-byte ECDH shared secret. Unauthenticated and malleable; both interface methods carry `#[Deprecated]`. Shipped for kind-4 interoperability only — read [SECURITY.md](SECURITY.md#what-this-library-provides) before using it |
 | [NIP-05](https://github.com/nostr-protocol/nips/blob/master/05.md) | DNS-based identity | Identifier parsing and HTTP verification |
 | [NIP-09](https://github.com/nostr-protocol/nips/blob/master/09.md) | Event deletion | Kind 5 with deletion tag validation and `isDeletion()` detection |
 | [NIP-10](https://github.com/nostr-protocol/nips/blob/master/10.md) | Reply conventions | Reply chain analysis with root/reply/mention markers |
 | [NIP-11](https://github.com/nostr-protocol/nips/blob/master/11.md) | Relay information | Relay metadata fetching and parsing |
 | [NIP-17](https://github.com/nostr-protocol/nips/blob/master/17.md) | Private direct messages | Kind 14 with NIP-44 encryption and gift wrap (kind 1059) |
 | [NIP-18](https://github.com/nostr-protocol/nips/blob/master/18.md) | Reposts | Kind 6/16 with embedded event extraction and quote detection |
-| [NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md) | Bech32 encoding | npub, nsec, note, nprofile, nevent, naddr encoding/decoding; `Bech32Codec` also supports the BIP-350 bech32m variant for non-NIP consumers (e.g. FROSTR `bfgroup1…` / `bfshare1…` / `bfonboard1…`) via the `Bech32Variant` enum |
+| [NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md) | Bech32 encoding | npub, nsec, note, nprofile, nevent, naddr — each entity a distinct value object behind `Nip19EntityInterface`, encoding itself and decoded through `Nip19Codec`; `Bech32Codec` also supports the BIP-350 bech32m variant for non-NIP consumers (e.g. FROSTR `bfgroup1…` / `bfshare1…` / `bfonboard1…`) via the `Bech32Variant` enum |
 | [NIP-22](https://github.com/nostr-protocol/nips/blob/master/22.md) | Comments | Kind 1111 with root/parent kind tags and reply chain analysis |
 | [NIP-23](https://github.com/nostr-protocol/nips/blob/master/23.md) | Long-form content | Kind 30023 as parameterised replaceable events |
 | [NIP-25](https://github.com/nostr-protocol/nips/blob/master/25.md) | Reactions | Kind 7 event support |
@@ -209,7 +271,7 @@ The `examples/` directory is covered by PHPStan and php-cs-fixer in CI, like `sr
 | [NIP-49](https://github.com/nostr-protocol/nips/blob/master/49.md) | Private key encryption | Password-encrypted `ncryptsec` with scrypt + XChaCha20-Poly1305 |
 | [NIP-50](https://github.com/nostr-protocol/nips/blob/master/50.md) | Search | Search filter support |
 | [NIP-51](https://github.com/nostr-protocol/nips/blob/master/51.md) | Lists | All standard list kinds (10000-10102) and set kinds (30000-39092) |
-| [NIP-57](https://github.com/nostr-protocol/nips/blob/master/57.md) | Lightning zaps | Zap request/receipt parsing, BOLT-11 amount extraction |
+| [NIP-57](https://github.com/nostr-protocol/nips/blob/master/57.md) | Lightning zaps | Zap request/receipt parsing, BOLT-11 amount extraction, and Appendix F receipt verification via `ZapReceiptVerifier` (parsing alone authenticates nothing) |
 | [NIP-61](https://github.com/nostr-protocol/nips/blob/master/61.md) | Nutzaps | Kind 9321 cashu proof parsing and amount extraction |
 | [NIP-70](https://github.com/nostr-protocol/nips/blob/master/70.md) | Protected events | Protected event detection via `isProtected()` |
 | [NIP-98](https://github.com/nostr-protocol/nips/blob/master/98.md) | HTTP auth | Kind 27235 validation: signature, URL, method, payload hash, timestamp tolerance |
@@ -259,9 +321,26 @@ signing/ECDH timing could in principle recover private-key material. Any
 server-side or long-lived signer — a relay, a NIP-46 remote signer/bunker, or any
 service that repeatedly signs attacker-influenced messages with a fixed key —
 should install `libsecp256k1`, enable the `ffi` extension, and confirm the native
-path is active before deploying. The pure-PHP fallback is intended for portability
-and low-exposure client use, not a hardened signing oracle. The full analysis is
-in [SECURITY.md](SECURITY.md#security-properties) and [ADR-0025](docs/adr/0025-secp256k1-keeps-a-native-ffi-path-and-a-pure-php-fallback.md).
+path is active before deploying. `Secp256k1Signer::backend()` and
+`Secp256k1Ecdh::backend()` report which path the constructed adapter will take, so
+that confirmation belongs in a startup assertion rather than a deployment checklist:
+
+```php
+use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Backend;
+use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Signer;
+use RuntimeException;
+
+$signer = Secp256k1Signer::create();
+
+if (Secp256k1Backend::Native !== $signer->backend()) {
+    throw new RuntimeException('Refusing to start: libsecp256k1 is unavailable and signing would run on the non-constant-time pure-PHP path');
+}
+```
+
+The pure-PHP fallback is intended for portability and low-exposure client use, not
+a hardened signing oracle. The full analysis is in
+[SECURITY.md](SECURITY.md#security-properties), [ADR-0025](docs/adr/0025-secp256k1-keeps-a-native-ffi-path-and-a-pure-php-fallback.md),
+and [ADR-0057](docs/adr/0057-secp256k1-adapters-report-their-active-backend-off-the-service-interfaces.md).
 
 ## Architecture
 
@@ -291,12 +370,25 @@ composer test
 # Unit suite only (fast inner loop; skips compliance property fuzz)
 composer test-unit
 
+# Spec-vector and cross-language parity suite
+composer test-compliance
+
+# What a host without ext-ffi and libsecp256k1 can run (the CI pure-PHP leg)
+composer test-no-ffi
+
 # PHPStan analysis (level 9)
 composer analyse
 
-# Fix code style
+# Fix code style / check it without writing
 composer fix-style
+composer check-style
+
+# Apply or check the Rector 8.4 modernisation set
+composer rector
+composer check-rector
 ```
+
+CI runs the full gate on PHP 8.4 and 8.5, plus a separate leg with `ext-ffi` disabled and no `libsecp256k1` that runs `test-no-ffi` — the gmp-only deployment the Requirements section offers is verified rather than assumed.
 
 ## Filter-set hash
 

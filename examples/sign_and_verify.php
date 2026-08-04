@@ -20,6 +20,7 @@ $rumour = RumourFactory::createTextNote(
 $signed = $rumour->sign($keyPair, $signer);
 $event = $signed->toArray();
 
+echo 'Backend:   '.$signer->backend()->name.' (a server-side signer should require Native; see SECURITY.md)'.PHP_EOL;
 echo 'Event id:  '.$signed->getId()->toHex().PHP_EOL;
 echo 'Pubkey:    '.$signed->getPubkey()->toHex().PHP_EOL;
 echo 'Verified:  '.($signed->verify($signer) ? 'yes' : 'no').PHP_EOL;

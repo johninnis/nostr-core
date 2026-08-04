@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Reference;
 
-use Innis\Nostr\Core\Domain\Collection\RelayUrlCollection;
 use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
-use Innis\Nostr\Core\Domain\Enum\Nip19EntityType;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Nip19\Naddr;
+use Innis\Nostr\Core\Domain\ValueObject\Nip19\Note;
+use Innis\Nostr\Core\Domain\ValueObject\Nip19\Nprofile;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\ContentReference;
-use Innis\Nostr\Core\Domain\ValueObject\Reference\DecodedNip19Entity;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -42,7 +43,7 @@ final class ContentReferenceTest extends TestCase
             'nprofile1example',
             'profile',
             0,
-            $this->decodedAddress(null),
+            $this->decodedProfile(),
         );
 
         $this->assertTrue($reference->isPubkeyReference());
@@ -112,7 +113,7 @@ final class ContentReferenceTest extends TestCase
             'nevent1example',
             'evt',
             0,
-            new DecodedNip19Entity(type: Nip19EntityType::Event, eventId: $eventId),
+            Note::fromEventId($eventId),
         );
 
         $this->assertTrue($reference->isEventReference());
@@ -125,15 +126,22 @@ final class ContentReferenceTest extends TestCase
         new ContentReference(ContentReferenceType::LegacyRef, 'raw', 'id', -1);
     }
 
-    private function decodedAddress(?string $identifier): DecodedNip19Entity
+    // Deliberate: an Address carrying no identifier is unrepresentable now that the leaves are distinct types, so the pubkey-but-not-addressable case is an nprofile — see ADR-0060
+    private function decodedProfile(): ?Nprofile
     {
-        return new DecodedNip19Entity(
-            type: Nip19EntityType::Address,
-            publicKey: PublicKey::tryFromHex(self::PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
-            eventId: null,
-            identifier: $identifier,
-            kind: EventKind::fromInt(EventKind::LONGFORM_CONTENT),
-            relays: new RelayUrlCollection(),
+        return Nprofile::tryFromPublicKey(
+            PublicKey::tryFromHex(self::PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
         );
+    }
+
+    private function decodedAddress(?string $identifier): ?Naddr
+    {
+        $coordinate = EventCoordinate::tryFrom(
+            EventKind::fromInt(EventKind::LONGFORM_CONTENT),
+            PublicKey::tryFromHex(self::PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
+            $identifier ?? '',
+        );
+
+        return null === $coordinate ? null : Naddr::tryFromCoordinate($coordinate);
     }
 }

@@ -8,9 +8,12 @@ use Innis\Nostr\Core\Domain\Exception\EcdhException;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
 use Innis\Nostr\Core\Infrastructure\Crypto\NativeRandomBytesGenerator;
+use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Backend;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Ecdh;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Signer;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 final class Secp256k1EcdhTest extends TestCase
@@ -18,6 +21,20 @@ final class Secp256k1EcdhTest extends TestCase
     private const string OFF_CURVE_X_HEX = '0000000000000000000000000000000000000000000000000000000000000005';
     private const string ZERO_X_HEX = '0000000000000000000000000000000000000000000000000000000000000000';
     private const string FIELD_PRIME_X_HEX = 'fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f';
+
+    #[Group('ffi')]
+    public function testBackendReportsNativeWhenFfiHandleIsInjected(): void
+    {
+        $ffi = LibSecp256k1Ffi::tryLoad(new NativeRandomBytesGenerator())
+            ?? self::markTestSkipped('libsecp256k1 FFI unavailable');
+
+        $this->assertSame(Secp256k1Backend::Native, new Secp256k1Ecdh($ffi)->backend());
+    }
+
+    public function testBackendReportsPurePhpWhenNoFfiHandleIsInjected(): void
+    {
+        $this->assertSame(Secp256k1Backend::PurePhp, new Secp256k1Ecdh(null)->backend());
+    }
 
     public function testComputeSharedXIsSymmetric(): void
     {

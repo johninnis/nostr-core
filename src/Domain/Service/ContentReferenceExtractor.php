@@ -21,7 +21,9 @@ final readonly class ContentReferenceExtractor implements ContentReferenceExtrac
     public function extractContentReferences(EventContent $content): ContentReferenceCollection
     {
         $references = [];
-        $usedPositions = [];
+
+        /** @var array<int, true> $claimedOffsets */
+        $claimedOffsets = [];
 
         $contentString = (string) $content;
 
@@ -42,24 +44,24 @@ final readonly class ContentReferenceExtractor implements ContentReferenceExtrac
                     $position = $match[1];
                     $length = strlen($match[0]);
 
-                    $overlaps = array_any(
-                        $usedPositions,
-                        static fn (array $usedRange): bool => $position < $usedRange['end'] && $position + $length > $usedRange['start'],
+                    $span = array_fill($position, $length, true);
+
+                    // Deliberate: the short span is the FIRST argument — array_intersect_key iterates its first array, so testing the claimed set against the span instead would scan every offset claimed so far and make this quadratic in the match count; a 64KiB event of adjacent references took over five seconds that way
+                    if ([] !== array_intersect_key($span, $claimedOffsets)) {
+                        continue;
+                    }
+
+                    $cleanRef = preg_replace('/^nostr:/i', '', $match[0]) ?? $match[0];
+
+                    $references[] = new ContentReference(
+                        $type,
+                        $match[0],
+                        $cleanRef,
+                        $match[1],
+                        $this->nip19Codec->decodeComplexEntity($cleanRef),
                     );
 
-                    if (!$overlaps) {
-                        $cleanRef = preg_replace('/^nostr:/i', '', $match[0]) ?? $match[0];
-
-                        $references[] = new ContentReference(
-                            $type,
-                            $match[0],
-                            $cleanRef,
-                            $match[1],
-                            $this->nip19Codec->decodeComplexEntity($cleanRef),
-                        );
-
-                        $usedPositions[] = ['start' => $position, 'end' => $position + $length];
-                    }
+                    $claimedOffsets += $span;
                 }
             }
         }

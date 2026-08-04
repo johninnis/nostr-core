@@ -22,6 +22,42 @@ final class Nip44EncryptionComplianceTest extends TestCase
     private const int PAYLOAD_OVERHEAD = 67;
     private const int MAX_PLAINTEXT_LENGTH = 65535;
 
+    /**
+     * These vectors reach the tests through data providers, so an empty corpus currently surfaces as
+     * "No tests found in class" rather than a green run. That protection is a side effect of PHPUnit's
+     * provider handling, not something this suite states; asserting the corpus makes a truncated
+     * vectors file fail for the reason it actually failed.
+     *
+     * @var array<string, array{string, int}>
+     */
+    private const array OFFICIAL_VECTOR_COUNTS = [
+        'conversation keys' => ['valid.get_conversation_key', 35],
+        'message keys' => ['valid.get_message_keys.keys', 32],
+        'padded lengths' => ['valid.calc_padded_len', 24],
+        'encrypt/decrypt' => ['valid.encrypt_decrypt', 10],
+        'long messages' => ['valid.encrypt_decrypt_long_msg', 3],
+        'invalid plaintext lengths' => ['invalid.encrypt_msg_lengths', 4],
+        'invalid conversation keys' => ['invalid.get_conversation_key', 8],
+        'invalid payloads' => ['invalid.decrypt', 12],
+    ];
+
+    public function testTheOfficialVectorCorpusIsFullyLoaded(): void
+    {
+        $vectors = self::loadVectors();
+
+        foreach (self::OFFICIAL_VECTOR_COUNTS as $label => [$path, $expected]) {
+            $node = $vectors;
+            foreach (explode('.', $path) as $segment) {
+                $this->assertIsArray($node);
+                $this->assertArrayHasKey($segment, $node, sprintf('Missing %s vectors at %s', $label, $path));
+                $node = $node[$segment];
+            }
+
+            $this->assertIsArray($node);
+            $this->assertCount($expected, $node, sprintf('Expected %d %s vectors', $expected, $label));
+        }
+    }
+
     #[DataProvider('conversationKeyVectorsProvider')]
     public function testConversationKeyDerivationFfi(string $sec1, string $pub2, string $expectedKey): void
     {

@@ -116,6 +116,14 @@ abstract class TypedCollection implements IteratorAggregate, Countable
     }
 
     /**
+     * The index is memoised per instance but keyed on nothing, so it is a pure function of the
+     * elements ONLY while a collection uses one key function. A leaf that called this with two
+     * different `$keyOf` would silently answer the second from an index built for the first — wrong
+     * results, not a crash. Every leaf therefore passes its own single `self::keyOf(...)`, and a leaf
+     * needing membership over a second key must not reuse this helper. The callables cannot be
+     * compared to detect the mistake: `self::keyOf(...)` mints a fresh Closure per call, so an
+     * identity check would rebuild the index on every call and remove the memo entirely.
+     *
      * @param array-key              $key
      * @param callable(T): array-key $keyOf
      */

@@ -35,6 +35,12 @@ final class Secp256k1Signer implements SignatureServiceInterface
         return new self($ffi, $randomBytes);
     }
 
+    // Deliberate: deployment introspection only, and deliberately absent from SignatureServiceInterface so no domain or application code can branch on the backend — see ADR-0057
+    public function backend(): Secp256k1Backend
+    {
+        return null !== $this->ffi ? Secp256k1Backend::Native : Secp256k1Backend::PurePhp;
+    }
+
     #[Override]
     public function sign(PrivateKey $privateKey, string $message): Signature
     {

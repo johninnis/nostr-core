@@ -144,6 +144,7 @@ final class Nip49Cipher implements Nip49EncryptionInterface
         }
     }
 
+    // Deliberate: XORing against zeros forces a fresh buffer this adapter solely owns, so the caller's sodium_memzero lands on it instead of separating a throwaway; returning the provider's own string aliases whatever the caller still holds and makes the wipe a no-op — the same copy-on-write trap SecretKeyMaterial::expose avoids, see ADR-0028
     private function revealPassword(Closure $passwordProvider): string
     {
         $revealed = $passwordProvider();
@@ -152,6 +153,6 @@ final class Nip49Cipher implements Nip49EncryptionInterface
             throw new InvalidArgumentException('Password provider must return a string');
         }
 
-        return $revealed;
+        return $revealed ^ str_repeat("\0", strlen($revealed));
     }
 }

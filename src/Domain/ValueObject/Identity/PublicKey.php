@@ -11,6 +11,8 @@ use Stringable;
 
 final readonly class PublicKey implements Stringable
 {
+    public const string BECH32_HRP = 'npub';
+
     public const int BYTE_LENGTH = 32;
 
     private function __construct(private string $key)
@@ -29,7 +31,7 @@ final readonly class PublicKey implements Stringable
 
     public function toBech32(): string
     {
-        return Bech32Codec::encode('npub', $this->toBytes());
+        return Bech32Codec::encode(self::BECH32_HRP, $this->toBytes());
     }
 
     public function equals(self $other): bool
@@ -58,7 +60,7 @@ final readonly class PublicKey implements Stringable
 
     public static function tryFromBech32(string $bech32): ?self
     {
-        $bytes = Bech32Codec::decodeWithHrp($bech32, 'npub');
+        $bytes = Bech32Codec::decodeWithHrp($bech32, self::BECH32_HRP);
 
         return null === $bytes ? null : self::tryFromBytes($bytes);
     }

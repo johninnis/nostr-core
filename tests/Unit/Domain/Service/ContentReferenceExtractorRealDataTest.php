@@ -10,14 +10,17 @@ use Innis\Nostr\Core\Domain\Service\ContentReferenceExtractor;
 use Innis\Nostr\Core\Domain\Service\Nip19CodecInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
-use Innis\Nostr\Core\Domain\ValueObject\Reference\DecodedNip19Entity;
+use Innis\Nostr\Core\Domain\ValueObject\Nip19\Nevent;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class ContentReferenceExtractorRealDataTest extends TestCase
 {
-    private static function decoded(Nip19EntityType $type, string $eventIdHex): DecodedNip19Entity
+    private static function nevent(string $eventIdHex): ?Nevent
     {
-        return new DecodedNip19Entity($type, eventId: EventId::tryFromHex($eventIdHex));
+        $eventId = EventId::tryFromHex($eventIdHex) ?? throw new RuntimeException('Invalid test event id');
+
+        return Nevent::tryFromEventId($eventId);
     }
 
     public function testExtractFromTestEventWithNevent(): void
@@ -27,7 +30,7 @@ final class ContentReferenceExtractorRealDataTest extends TestCase
         $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
             ->method('decodeComplexEntity')
-            ->willReturn(self::decoded(Nip19EntityType::Event, 'd359d3ea6c89a51a3a346b03bc552953a72e456af352071d79c6be196ced9771'));
+            ->willReturn(self::nevent('d359d3ea6c89a51a3a346b03bc552953a72e456af352071d79c6be196ced9771'));
 
         $references = new ContentReferenceExtractor($bech32Encoder)->extractContentReferences($content)->toArray();
 
@@ -45,13 +48,13 @@ final class ContentReferenceExtractorRealDataTest extends TestCase
         $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
         $bech32Encoder
             ->method('decodeComplexEntity')
-            ->willReturn(self::decoded(Nip19EntityType::Address, '5570e03f9a762570a1668508895316500b38ae3f9b311871dbb637f2844d0c67'));
+            ->willReturn(self::nevent('5570e03f9a762570a1668508895316500b38ae3f9b311871dbb637f2844d0c67'));
 
         $references = new ContentReferenceExtractor($bech32Encoder)->extractContentReferences($content)->toArray();
 
         $this->assertCount(1, $references);
         $this->assertSame(ContentReferenceType::NostrUri, $references[0]->getType());
-        $this->assertSame(Nip19EntityType::Address, $references[0]->getDecodedType());
+        $this->assertSame(Nip19EntityType::Event, $references[0]->getDecodedType());
         $this->assertNotNull($references[0]->getEventId());
         $this->assertEquals('5570e03f9a762570a1668508895316500b38ae3f9b311871dbb637f2844d0c67', $references[0]->getEventId()->toHex());
     }

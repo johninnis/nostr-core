@@ -29,6 +29,8 @@ $rumour = RumourFactory::createPrivateMessage(
 $giftWrap = $giftWrapper->wrapForRecipient($rumour, $sender->getPrivateKey(), $recipient->getPublicKey());
 $unwrapped = $giftWrapper->unwrap($giftWrap, $recipient->getPrivateKey());
 
+echo 'Signing backend:  '.$signer->backend()->name.' (a server-side signer should require Native; see SECURITY.md)'.PHP_EOL;
+echo 'ECDH backend:     '.$ecdh->backend()->name.PHP_EOL;
 echo 'Gift wrap kind:   '.$giftWrap->getKind()->toInt().PHP_EOL;
 echo 'Gift wrap pubkey: '.$giftWrap->getPubkey()->toHex().' (ephemeral)'.PHP_EOL;
 echo 'Unwrapped sender: '.$unwrapped->getPubkey()->toHex().PHP_EOL;

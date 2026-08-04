@@ -15,6 +15,8 @@ use PHPUnit\Framework\TestCase;
 #[IgnoreDeprecations]
 final class Nip04CipherTest extends TestCase
 {
+    private const string SEPARATOR = '?iv=';
+
     public function testEncryptAndDecryptRoundTripsAsciiPlaintext(): void
     {
         $adapter = new Nip04Cipher();
@@ -62,7 +64,7 @@ final class Nip04CipherTest extends TestCase
         $key = new SecretKeyMaterial(str_repeat("\x00", 32));
 
         $this->expectException(EncryptionException::class);
-        $adapter->decrypt('YWJjZA==', $key);
+        $adapter->decrypt(str_repeat('A', 60), $key);
     }
 
     public function testDecryptRejectsBadBase64Ciphertext(): void
@@ -71,7 +73,7 @@ final class Nip04CipherTest extends TestCase
         $key = new SecretKeyMaterial(str_repeat("\x00", 32));
 
         $this->expectException(EncryptionException::class);
-        $adapter->decrypt('!!!?iv=AAAAAAAAAAAAAAAAAAAAAA==', $key);
+        $adapter->decrypt(str_repeat('!', 24).self::SEPARATOR.base64_encode(str_repeat("\x00", 16)), $key);
     }
 
     public function testDecryptRejectsBadBase64Iv(): void
@@ -80,7 +82,7 @@ final class Nip04CipherTest extends TestCase
         $key = new SecretKeyMaterial(str_repeat("\x00", 32));
 
         $this->expectException(EncryptionException::class);
-        $adapter->decrypt('YWJjZA==?iv=!!!', $key);
+        $adapter->decrypt(base64_encode(str_repeat("\x00", 16)).self::SEPARATOR.str_repeat('!', 24), $key);
     }
 
     public function testDecryptRejectsIvOfWrongLength(): void
@@ -89,7 +91,7 @@ final class Nip04CipherTest extends TestCase
         $key = new SecretKeyMaterial(str_repeat("\x00", 32));
 
         $this->expectException(EncryptionException::class);
-        $adapter->decrypt('YWJjZA==?iv='.base64_encode(str_repeat("\x00", 8)), $key);
+        $adapter->decrypt(base64_encode(str_repeat("\x00", 32)).self::SEPARATOR.base64_encode(str_repeat("\x00", 8)), $key);
     }
 
     public function testEncryptRejectsKeyOfWrongLength(): void
@@ -103,6 +105,36 @@ final class Nip04CipherTest extends TestCase
         $shortKey->zero();
         $this->expectException(\Innis\Nostr\Core\Domain\Exception\SecretKeyMaterialZeroedException::class);
         $adapter->decrypt($payload, $shortKey);
+    }
+
+    public function testEveryRejectionReportsTheSameMessage(): void
+    {
+        $adapter = new Nip04Cipher();
+        $validIv = base64_encode(str_repeat("\x00", 16));
+        $validBlock = base64_encode(str_repeat("\x00", 16));
+
+        $rejections = [
+            'no separator' => str_repeat('A', 60),
+            'bad base64 ciphertext' => str_repeat('!', 24).self::SEPARATOR.$validIv,
+            'bad base64 iv' => $validBlock.self::SEPARATOR.str_repeat('!', 24),
+            'wrong iv length' => base64_encode(str_repeat("\x00", 32)).self::SEPARATOR.base64_encode(str_repeat("\x00", 8)),
+            'undecryptable ciphertext' => $validBlock.self::SEPARATOR.$validIv,
+            'too short' => 'AAAA'.self::SEPARATOR.$validIv,
+            'too long' => str_repeat('A', 90000).self::SEPARATOR.$validIv,
+        ];
+
+        $messages = [];
+
+        foreach ($rejections as $case => $payload) {
+            try {
+                $adapter->decrypt($payload, new SecretKeyMaterial(str_repeat("\x00", 32)));
+                $this->fail(sprintf('Expected "%s" to be rejected', $case));
+            } catch (EncryptionException $exception) {
+                $messages[$case] = $exception->getMessage();
+            }
+        }
+
+        $this->assertSame(['NIP-04 decryption failed'], array_values(array_unique($messages)));
     }
 
     public function testDecryptWithWrongKeyNeverRecoversPlaintext(): void

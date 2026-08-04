@@ -12,6 +12,7 @@ use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
 use Innis\Nostr\Core\Infrastructure\Crypto\NativeRandomBytesGenerator;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Signer;
 use Innis\Nostr\Core\Tests\Fake\QueuedRandomBytesGenerator;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Throwable;
 
@@ -19,7 +20,30 @@ final class Bip340ComplianceTest extends TestCase
 {
     private const string VECTORS_PATH = __DIR__.'/../Vectors/bip340-vectors.csv';
     private const int SCHNORR_MESSAGE_LENGTH = 32;
+    private const int OFFICIAL_VECTOR_COUNT = 19;
+    private const int OFFICIAL_REJECTION_COUNT = 10;
 
+    /**
+     * Every other test here folds mismatches into a `$problems` array and asserts it is empty, which
+     * is vacuously true when no vectors load at all — a truncated or missing CSV would leave them
+     * green. PHPUnit's risky-test check happens to catch that today only because one sibling test
+     * makes no assertion on an empty set; rewriting that one into the same accumulator style would
+     * silently turn the whole suite into a no-op. This asserts the corpus itself, so the guarantee is
+     * intentional rather than incidental.
+     */
+    public function testTheOfficialVectorCorpusIsFullyLoaded(): void
+    {
+        $vectors = iterator_to_array($this->vectors(), false);
+
+        $this->assertCount(self::OFFICIAL_VECTOR_COUNT, $vectors);
+        $this->assertCount(
+            self::OFFICIAL_REJECTION_COUNT,
+            array_filter($vectors, static fn (array $vector): bool => false === $vector['expected']),
+            'The rejection vectors are what prove verification refuses bad signatures; losing them would leave only happy-path coverage',
+        );
+    }
+
+    #[Group('ffi')]
     public function testVerifyFfiMatchesExpectedAcrossAllVectors(): void
     {
         $service = $this->ffiService();
@@ -50,6 +74,7 @@ final class Bip340ComplianceTest extends TestCase
         $this->assertSame([], $problems, "pure-PHP verify divergences:\n".implode("\n", $problems));
     }
 
+    #[Group('ffi')]
     public function testSignThenVerifyRoundTripsOnBothPathsForSigningVectors(): void
     {
         $ffiService = $this->ffiService();
@@ -99,6 +124,7 @@ final class Bip340ComplianceTest extends TestCase
         $this->assertSame([], $problems, "Sign/verify parity issues:\n".implode("\n", $problems));
     }
 
+    #[Group('ffi')]
     public function testSignProducesByteIdenticalSignaturesForSpecVectors(): void
     {
         $problems = [];
@@ -130,6 +156,7 @@ final class Bip340ComplianceTest extends TestCase
         $this->assertSame([], $problems, "Byte-identical sign divergences:\n".implode("\n", $problems));
     }
 
+    #[Group('ffi')]
     public function testPublicKeyDerivationMatchesAcrossBothPaths(): void
     {
         $ffiService = $this->ffiService();

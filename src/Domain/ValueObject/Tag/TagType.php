@@ -27,6 +27,7 @@ final readonly class TagType implements Stringable
     public const string DESCRIPTION = 'description';
     public const string BOLT11 = 'bolt11';
     public const string AMOUNT = 'amount';
+    public const string LNURL = 'lnurl';
     public const string SENDER_PUBKEY = 'P';
     public const string ROOT_EVENT = 'E';
     public const string ROOT_ADDRESS = 'A';
@@ -105,6 +106,11 @@ final readonly class TagType implements Stringable
     public static function amount(): self
     {
         return new self(self::AMOUNT);
+    }
+
+    public static function lnurl(): self
+    {
+        return new self(self::LNURL);
     }
 
     public static function senderPubkey(): self

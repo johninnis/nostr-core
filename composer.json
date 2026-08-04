@@ -24,12 +24,13 @@
         "ext-ffi": "Native libsecp256k1 acceleration and NIP-49 scrypt (required for NIP-49)"
     },
     "require-dev": {
+        "ext-ffi": "*",
         "friendsofphp/php-cs-fixer": "^3.95",
         "innis/coding-standards": "^0.1",
-        "phpstan/phpstan": "~2.2.2",
+        "phpstan/phpstan": "~2.2.6",
         "phpstan/phpstan-phpunit": "^2.0",
         "phpunit/phpunit": "^13.1",
-        "rector/rector": "~2.4.6"
+        "rector/rector": "~2.5.9"
     },
     "autoload": {
         "psr-4": {
@@ -48,6 +49,7 @@
         ],
         "test-unit": "phpunit --testsuite=Unit",
         "test-compliance": "phpunit --testsuite=Compliance",
+        "test-no-ffi": "phpunit --exclude-group ffi",
         "test-coverage": "XDEBUG_MODE=coverage phpunit --coverage-html var/tests/coverage/html --coverage-text --coverage-clover var/tests/coverage/clover.xml",
         "analyse": "phpstan analyse",
         "fix-style": "php-cs-fixer fix",

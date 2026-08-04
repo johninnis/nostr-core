@@ -6,9 +6,10 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
 use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
 
+// Deliberate: the constructor is private so a pair can only exist with its public key derived from its private key; a caller-supplied pair could disagree, and `Rumour::sign` would then mint an event whose signature does not verify against its own pubkey — see ADR-0061
 final readonly class KeyPair
 {
-    public function __construct(
+    private function __construct(
         private PrivateKey $privateKey,
         private PublicKey $publicKey,
     ) {

@@ -9,8 +9,10 @@ use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
 use Innis\Nostr\Core\Infrastructure\Crypto\NativeRandomBytesGenerator;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Ecdh;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Signer;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
+#[Group('ffi')]
 final class EcdhParityComplianceTest extends TestCase
 {
     private const int ITERATIONS = 100;

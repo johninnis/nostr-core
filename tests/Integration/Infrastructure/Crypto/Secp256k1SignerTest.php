@@ -9,8 +9,10 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
 use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
 use Innis\Nostr\Core\Infrastructure\Crypto\NativeRandomBytesGenerator;
+use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Backend;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Signer;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -27,6 +29,17 @@ final class Secp256k1SignerTest extends TestCase
         $this->assertTrue($service->verify($service->derivePublicKey($privateKey), $message, $signature));
     }
 
+    #[Group('ffi')]
+    public function testBackendReportsNativeWhenFfiHandleIsInjected(): void
+    {
+        $this->assertSame(Secp256k1Backend::Native, $this->ffiService()->backend());
+    }
+
+    public function testBackendReportsPurePhpWhenNoFfiHandleIsInjected(): void
+    {
+        $this->assertSame(Secp256k1Backend::PurePhp, $this->purePhpService()->backend());
+    }
+
     public function testSignAndVerifyRoundTripViaPurePhp(): void
     {
         $service = $this->purePhpService();
@@ -39,6 +52,7 @@ final class Secp256k1SignerTest extends TestCase
         $this->assertTrue($service->verify($publicKey, $message, $signature));
     }
 
+    #[Group('ffi')]
     public function testSignAndVerifyRoundTripViaFfi(): void
     {
         $service = $this->ffiService();
@@ -51,6 +65,7 @@ final class Secp256k1SignerTest extends TestCase
         $this->assertTrue($service->verify($publicKey, $message, $signature));
     }
 
+    #[Group('ffi')]
     public function testDerivePublicKeyAgreesAcrossPaths(): void
     {
         $privateKey = PrivateKey::generate();
@@ -63,6 +78,7 @@ final class Secp256k1SignerTest extends TestCase
         $this->assertTrue($ffiPublicKey->equals($purePhpPublicKey));
     }
 
+    #[Group('ffi')]
     public function testCrossPathVerification(): void
     {
         $ffiService = $this->ffiService();
@@ -79,6 +95,7 @@ final class Secp256k1SignerTest extends TestCase
         $this->assertTrue($ffiService->verify($publicKey, $message, $purePhpSignature));
     }
 
+    #[Group('ffi')]
     public function testVerifyRejectsTamperedMessageViaFfi(): void
     {
         $this->assertVerifyRejectsTamperedMessage($this->ffiService());
@@ -121,6 +138,7 @@ final class Secp256k1SignerTest extends TestCase
         $this->assertFalse($this->purePhpService()->verify($offCurvePublicKey, str_repeat("\x00", 32), $signature));
     }
 
+    #[Group('ffi')]
     public function testVerifyRejectsOffCurvePublicKeyViaFfi(): void
     {
         $offCurvePublicKey = PublicKey::tryFromHex('eefdea4cdb677750a420fee807eacf21eb9898ae79b9768766e4faa04a2d4a34')

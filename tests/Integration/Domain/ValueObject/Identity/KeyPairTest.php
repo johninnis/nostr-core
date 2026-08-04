@@ -30,6 +30,16 @@ final class KeyPairTest extends TestCase
         );
     }
 
+    // Deliberate: testCanCreateFromPrivateKey pins the invariant for fromPrivateKey; generate() only had its lengths checked, so its derivation was unasserted — see ADR-0061
+    public function testGenerateProducesAPairWhosePublicKeyDerivesFromItsPrivateKey(): void
+    {
+        $keyPair = KeyPair::generate(CryptoFixtures::signer());
+
+        $this->assertTrue(
+            CryptoFixtures::signer()->derivePublicKey($keyPair->getPrivateKey())->equals($keyPair->getPublicKey())
+        );
+    }
+
     public function testGeneratedKeyPairsAreUnique(): void
     {
         $keyPair1 = KeyPair::generate(CryptoFixtures::signer());
