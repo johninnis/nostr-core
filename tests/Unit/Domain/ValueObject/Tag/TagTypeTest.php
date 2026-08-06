@@ -43,10 +43,26 @@ final class TagTypeTest extends TestCase
         $this->assertSame('k', (string) TagType::parentKind());
     }
 
+    public function testExternalContentFactoryMethod(): void
+    {
+        $this->assertSame('i', (string) TagType::externalContent());
+    }
+
+    public function testExternalContentKindFactoryMethod(): void
+    {
+        $this->assertSame('k', (string) TagType::externalContentKind());
+    }
+
+    public function testExternalContentKindIsTheSameWireTagAsParentKind(): void
+    {
+        $this->assertTrue(TagType::externalContentKind()->equals(TagType::parentKind()));
+    }
+
     public function testUppercaseTagsDistinctFromLowercase(): void
     {
         $this->assertFalse(TagType::rootEvent()->equals(TagType::event()));
         $this->assertFalse(TagType::rootKind()->equals(TagType::parentKind()));
+        $this->assertFalse(TagType::externalIdentity()->equals(TagType::externalContent()));
     }
 
     public function testEqualsWorksCorrectly(): void

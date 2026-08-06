@@ -32,6 +32,8 @@ final readonly class TagType implements Stringable
     public const string ROOT_EVENT = 'E';
     public const string ROOT_ADDRESS = 'A';
     public const string EXTERNAL_IDENTITY = 'I';
+    public const string EXTERNAL_CONTENT = 'i';
+    public const string EXTERNAL_CONTENT_KIND = 'k';
     public const string ROOT_KIND = 'K';
     public const string PARENT_KIND = 'k';
     public const string MINT = 'u';
@@ -131,6 +133,16 @@ final readonly class TagType implements Stringable
     public static function externalIdentity(): self
     {
         return new self(self::EXTERNAL_IDENTITY);
+    }
+
+    public static function externalContent(): self
+    {
+        return new self(self::EXTERNAL_CONTENT);
+    }
+
+    public static function externalContentKind(): self
+    {
+        return new self(self::EXTERNAL_CONTENT_KIND);
     }
 
     public static function rootKind(): self
