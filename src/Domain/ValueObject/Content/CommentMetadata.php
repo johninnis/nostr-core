@@ -63,7 +63,7 @@ final readonly class CommentMetadata
             return CommentScope::Address;
         }
 
-        if ($tags->hasType(TagType::externalIdentity())) {
+        if ($tags->hasType(TagType::rootExternalContent())) {
             return CommentScope::External;
         }
 
