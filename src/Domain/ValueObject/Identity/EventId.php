@@ -15,10 +15,16 @@ final readonly class EventId implements Stringable
 
     public const int BYTE_LENGTH = 32;
 
+    /**
+     * @param non-empty-string $id
+     */
     private function __construct(private string $id)
     {
     }
 
+    /**
+     * @return non-empty-string
+     */
     public function toHex(): string
     {
         return $this->id;
@@ -29,6 +35,9 @@ final readonly class EventId implements Stringable
         return HexCodec::decode($this->id);
     }
 
+    /**
+     * @return non-empty-string
+     */
     public function toBech32(): string
     {
         return Bech32Codec::encode(self::BECH32_HRP, $this->toBytes());
@@ -41,11 +50,9 @@ final readonly class EventId implements Stringable
 
     public static function tryFromHex(string $hex): ?self
     {
-        if (!HexCodec::isValid($hex, self::BYTE_LENGTH)) {
-            return null;
-        }
+        $canonical = HexCodec::tryCanonical($hex, self::BYTE_LENGTH);
 
-        return new self($hex);
+        return null === $canonical ? null : new self($canonical);
     }
 
     public static function tryFromBytes(string $bytes): ?self
@@ -64,6 +71,9 @@ final readonly class EventId implements Stringable
         return null === $bytes ? null : self::tryFromBytes($bytes);
     }
 
+    /**
+     * @return non-empty-string
+     */
     #[Override]
     public function __toString(): string
     {

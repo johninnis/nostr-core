@@ -152,7 +152,7 @@ final class RumourFactory
         return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::CLIENT_AUTH), EventContent::fromString(''), $tags);
     }
 
-    public static function createHttpAuth(PublicKey $pubkey, Nip98Request $request): Rumour
+    public static function createHttpAuth(PublicKey $pubkey, Nip98Request $request, ?Timestamp $createdAt = null): Rumour
     {
         $tags = [
             Tag::create(TagType::URL, $request->getUrl()),
@@ -164,7 +164,7 @@ final class RumourFactory
             $tags[] = Tag::create(TagType::PAYLOAD, $bodyHash);
         }
 
-        return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::HTTP_AUTH), EventContent::fromString(''), new TagCollection($tags));
+        return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::HTTP_AUTH), EventContent::fromString(''), new TagCollection($tags), $createdAt);
     }
 
     public static function createPrivateMessage(

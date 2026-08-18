@@ -58,32 +58,15 @@ final readonly class Nip98Validator implements Nip98ValidatorInterface
     }
 
     #[Override]
-    public function validateAuthHeader(string $authHeader, Nip98Request $request): PublicKey|Nip98ValidationFailure
+    public function validateAuthHeader(string $authHeader, Nip98Request $request): PublicKey|Nip98ValidationFailure|AuthHeaderDecodeFailure
     {
-        $event = $this->parseAuthHeader($authHeader);
+        $event = NostrAuthHeaderCodec::decode($authHeader);
 
-        if ($event instanceof Nip98ValidationFailure) {
+        if ($event instanceof AuthHeaderDecodeFailure) {
             return $event;
         }
 
         return $this->validate($event, $request);
-    }
-
-    private function parseAuthHeader(string $authHeader): Event|Nip98ValidationFailure
-    {
-        $decoded = NostrAuthHeaderCodec::decode($authHeader);
-
-        if ($decoded instanceof Event) {
-            return $decoded;
-        }
-
-        return match ($decoded) {
-            AuthHeaderDecodeFailure::TooLong => Nip98ValidationFailure::HeaderTooLong,
-            AuthHeaderDecodeFailure::BadFormat => Nip98ValidationFailure::HeaderBadFormat,
-            AuthHeaderDecodeFailure::BadBase64 => Nip98ValidationFailure::HeaderBadBase64,
-            AuthHeaderDecodeFailure::BadJson => Nip98ValidationFailure::HeaderBadJson,
-            AuthHeaderDecodeFailure::InvalidEvent => Nip98ValidationFailure::HeaderInvalidEvent,
-        };
     }
 
     private function validateKind(Event $event): ?Nip98ValidationFailure

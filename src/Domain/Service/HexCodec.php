@@ -12,11 +12,27 @@ final class HexCodec
     {
     }
 
-    public static function isValid(string $hex, int $byteLength): bool
+    /**
+     * @param positive-int $byteLength
+     *
+     * @return non-empty-string|null
+     */
+    public static function tryCanonical(string $hex, int $byteLength): ?string
     {
-        return 1 === preg_match('/^[0-9a-f]{'.($byteLength * 2).'}$/D', $hex);
+        if (strlen($hex) !== $byteLength * 2) {
+            return null;
+        }
+
+        if (1 !== preg_match('/^[0-9a-f]+$/D', $hex)) {
+            return null;
+        }
+
+        return $hex;
     }
 
+    /**
+     * @return ($hex is non-empty-string ? non-empty-string : string)
+     */
     public static function decode(string $hex): string
     {
         $bytes = hex2bin($hex);
@@ -27,6 +43,9 @@ final class HexCodec
         return $bytes;
     }
 
+    /**
+     * @return ($bytes is non-empty-string ? non-empty-string : string)
+     */
     public static function encode(string $bytes): string
     {
         return bin2hex($bytes);

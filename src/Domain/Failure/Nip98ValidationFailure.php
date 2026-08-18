@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Failure;
 
-enum Nip98ValidationFailure: string
+use Override;
+
+enum Nip98ValidationFailure: string implements AuthHeaderFailureInterface
 {
     case WrongKind = 'wrong_kind';
     case BadSignature = 'bad_signature';
@@ -21,12 +23,8 @@ enum Nip98ValidationFailure: string
     case MissingPayloadTag = 'missing_payload_tag';
     case PayloadMismatch = 'payload_mismatch';
     case Replayed = 'replayed';
-    case HeaderTooLong = 'header_too_long';
-    case HeaderBadFormat = 'header_bad_format';
-    case HeaderBadBase64 = 'header_bad_base64';
-    case HeaderBadJson = 'header_bad_json';
-    case HeaderInvalidEvent = 'header_invalid_event';
 
+    #[Override]
     public function message(): string
     {
         return match ($this) {
@@ -45,11 +43,6 @@ enum Nip98ValidationFailure: string
             self::MissingPayloadTag => 'Event missing payload tag',
             self::PayloadMismatch => 'Payload hash does not match request body',
             self::Replayed => 'Auth event has already been used',
-            self::HeaderTooLong => 'Authorization header exceeds maximum length',
-            self::HeaderBadFormat => 'Invalid Authorization header format',
-            self::HeaderBadBase64 => 'Invalid base64 in Authorization header',
-            self::HeaderBadJson => 'Invalid JSON in Authorization header',
-            self::HeaderInvalidEvent => 'Invalid event in Authorization header',
         };
     }
 }

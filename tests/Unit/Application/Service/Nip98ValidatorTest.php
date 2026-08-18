@@ -8,6 +8,7 @@ use Innis\Nostr\Core\Application\Port\Nip98ReplayGuardInterface;
 use Innis\Nostr\Core\Application\Service\Nip98Validator;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\Failure\AuthHeaderDecodeFailure;
 use Innis\Nostr\Core\Domain\Failure\Nip98ValidationFailure;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
@@ -61,6 +62,16 @@ final class Nip98ValidatorTest extends TestCase
     public function testRejectsExpiredTimestamp(): void
     {
         $event = $this->createSignedEventWithTimestamp(Timestamp::fromInt(time() - 120));
+
+        $this->assertSame(
+            Nip98ValidationFailure::TimestampOutsideTolerance,
+            $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST'))
+        );
+    }
+
+    public function testRejectsFutureDatedTimestamp(): void
+    {
+        $event = $this->createSignedEventWithTimestamp(Timestamp::fromInt(time() + 120));
 
         $this->assertSame(
             Nip98ValidationFailure::TimestampOutsideTolerance,
@@ -379,7 +390,7 @@ final class Nip98ValidatorTest extends TestCase
         $oversized = 'Nostr '.str_repeat('A', 4096);
 
         $this->assertSame(
-            Nip98ValidationFailure::HeaderTooLong,
+            AuthHeaderDecodeFailure::TooLong,
             $this->service->validateAuthHeader($oversized, Nip98Request::fromBody('https://relay.example.com/', 'POST', ''))
         );
     }
@@ -387,7 +398,7 @@ final class Nip98ValidatorTest extends TestCase
     public function testValidateAuthHeaderRejectsMissingPrefix(): void
     {
         $this->assertSame(
-            Nip98ValidationFailure::HeaderBadFormat,
+            AuthHeaderDecodeFailure::BadFormat,
             $this->service->validateAuthHeader('Bearer token', Nip98Request::fromBody('https://relay.example.com/', 'POST', ''))
         );
     }
@@ -395,7 +406,7 @@ final class Nip98ValidatorTest extends TestCase
     public function testValidateAuthHeaderRejectsInvalidBase64(): void
     {
         $this->assertSame(
-            Nip98ValidationFailure::HeaderBadBase64,
+            AuthHeaderDecodeFailure::BadBase64,
             $this->service->validateAuthHeader('Nostr !!!not-base64!!!', Nip98Request::fromBody('https://relay.example.com/', 'POST', ''))
         );
     }
@@ -403,7 +414,7 @@ final class Nip98ValidatorTest extends TestCase
     public function testValidateAuthHeaderRejectsInvalidJson(): void
     {
         $this->assertSame(
-            Nip98ValidationFailure::HeaderBadJson,
+            AuthHeaderDecodeFailure::BadJson,
             $this->service->validateAuthHeader('Nostr '.base64_encode('not-json'), Nip98Request::fromBody('https://relay.example.com/', 'POST', ''))
         );
     }
@@ -411,7 +422,7 @@ final class Nip98ValidatorTest extends TestCase
     public function testValidateAuthHeaderRejectsNonObjectJson(): void
     {
         $this->assertSame(
-            Nip98ValidationFailure::HeaderBadJson,
+            AuthHeaderDecodeFailure::BadJson,
             $this->service->validateAuthHeader('Nostr '.base64_encode('"a string"'), Nip98Request::fromBody('https://relay.example.com/', 'POST', ''))
         );
     }
@@ -419,7 +430,7 @@ final class Nip98ValidatorTest extends TestCase
     public function testValidateAuthHeaderRejectsMalformedEvent(): void
     {
         $this->assertSame(
-            Nip98ValidationFailure::HeaderInvalidEvent,
+            AuthHeaderDecodeFailure::InvalidEvent,
             $this->service->validateAuthHeader(
                 'Nostr '.base64_encode((string) json_encode(['kind' => 27235])),
                 Nip98Request::fromBody('https://relay.example.com/', 'POST', ''),

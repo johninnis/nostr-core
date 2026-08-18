@@ -21,15 +21,15 @@ final class HexCodecTest extends TestCase
         $this->assertSame($bytes, HexCodec::decode(HexCodec::encode($bytes)));
     }
 
-    public function testIsValidChecksLengthAndAlphabet(): void
+    public function testTheCanonicalHexIsReturnedAndAnythingElseIsRefused(): void
     {
-        $this->assertTrue(HexCodec::isValid('00ff', 2));
-        $this->assertFalse(HexCodec::isValid('00ff', 3));
-        $this->assertFalse(HexCodec::isValid('00fg', 2));
+        $this->assertSame('00ff', HexCodec::tryCanonical('00ff', 2));
+        $this->assertNull(HexCodec::tryCanonical('00ff', 3));
+        $this->assertNull(HexCodec::tryCanonical('00fg', 2));
     }
 
-    public function testIsValidRejectsTrailingNewline(): void
+    public function testATrailingNewlineIsRefused(): void
     {
-        $this->assertFalse(HexCodec::isValid("00ff\n", 2));
+        $this->assertNull(HexCodec::tryCanonical("00ff\n", 2));
     }
 }

@@ -36,11 +36,6 @@ final class Nip98ValidationFailureTest extends TestCase
         yield 'missing payload tag' => [Nip98ValidationFailure::MissingPayloadTag, 'missing_payload_tag'];
         yield 'payload mismatch' => [Nip98ValidationFailure::PayloadMismatch, 'payload_mismatch'];
         yield 'replayed' => [Nip98ValidationFailure::Replayed, 'replayed'];
-        yield 'header too long' => [Nip98ValidationFailure::HeaderTooLong, 'header_too_long'];
-        yield 'header bad format' => [Nip98ValidationFailure::HeaderBadFormat, 'header_bad_format'];
-        yield 'header bad base64' => [Nip98ValidationFailure::HeaderBadBase64, 'header_bad_base64'];
-        yield 'header bad json' => [Nip98ValidationFailure::HeaderBadJson, 'header_bad_json'];
-        yield 'header invalid event' => [Nip98ValidationFailure::HeaderInvalidEvent, 'header_invalid_event'];
     }
 
     public function testMessageIsAHumanReadableDescription(): void

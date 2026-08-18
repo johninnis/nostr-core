@@ -30,6 +30,9 @@ final class Bech32Codec
     {
     }
 
+    /**
+     * @return non-empty-string
+     */
     public static function encode(string $hrp, string $bytes, Bech32Variant $variant = Bech32Variant::Bech32): string
     {
         $byteValues = '' === $bytes ? [] : array_values((array) unpack('C*', $bytes));

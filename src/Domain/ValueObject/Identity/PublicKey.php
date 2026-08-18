@@ -15,10 +15,16 @@ final readonly class PublicKey implements Stringable
 
     public const int BYTE_LENGTH = 32;
 
+    /**
+     * @param non-empty-string $key
+     */
     private function __construct(private string $key)
     {
     }
 
+    /**
+     * @return non-empty-string
+     */
     public function toHex(): string
     {
         return $this->key;
@@ -29,6 +35,9 @@ final readonly class PublicKey implements Stringable
         return HexCodec::decode($this->key);
     }
 
+    /**
+     * @return non-empty-string
+     */
     public function toBech32(): string
     {
         return Bech32Codec::encode(self::BECH32_HRP, $this->toBytes());
@@ -42,11 +51,9 @@ final readonly class PublicKey implements Stringable
     // Deliberate: validates the 32-byte shape only, not curve membership; verify and ECDH reject a non-point where the curve maths lives — see ADR-0056
     public static function tryFromHex(string $hex): ?self
     {
-        if (!HexCodec::isValid($hex, self::BYTE_LENGTH)) {
-            return null;
-        }
+        $canonical = HexCodec::tryCanonical($hex, self::BYTE_LENGTH);
 
-        return new self($hex);
+        return null === $canonical ? null : new self($canonical);
     }
 
     public static function tryFromBytes(string $bytes): ?self
@@ -70,6 +77,9 @@ final readonly class PublicKey implements Stringable
         return str_starts_with($value, 'npub') ? self::tryFromBech32($value) : self::tryFromHex($value);
     }
 
+    /**
+     * @return non-empty-string
+     */
     #[Override]
     public function __toString(): string
     {

@@ -12,10 +12,16 @@ final readonly class Signature implements Stringable
 {
     public const int BYTE_LENGTH = 64;
 
+    /**
+     * @param non-empty-string $signature
+     */
     private function __construct(private string $signature)
     {
     }
 
+    /**
+     * @return non-empty-string
+     */
     public function toHex(): string
     {
         return $this->signature;
@@ -33,11 +39,9 @@ final readonly class Signature implements Stringable
 
     public static function tryFromHex(string $hex): ?self
     {
-        if (!HexCodec::isValid($hex, self::BYTE_LENGTH)) {
-            return null;
-        }
+        $canonical = HexCodec::tryCanonical($hex, self::BYTE_LENGTH);
 
-        return new self($hex);
+        return null === $canonical ? null : new self($canonical);
     }
 
     public static function tryFromBytes(string $bytes): ?self
@@ -49,6 +53,9 @@ final readonly class Signature implements Stringable
         return new self(HexCodec::encode($bytes));
     }
 
+    /**
+     * @return non-empty-string
+     */
     #[Override]
     public function __toString(): string
     {

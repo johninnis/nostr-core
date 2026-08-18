@@ -34,7 +34,9 @@ final class SecretKeyMaterial
 
     public static function tryFromHex(#[SensitiveParameter] string $hex): ?self
     {
-        return HexCodec::isValid($hex, self::BYTE_LENGTH) ? new self(HexCodec::decode($hex)) : null;
+        $canonical = HexCodec::tryCanonical($hex, self::BYTE_LENGTH);
+
+        return null === $canonical ? null : new self(HexCodec::decode($canonical));
     }
 
     public static function tryFromBytes(#[SensitiveParameter] string $bytes): ?self
