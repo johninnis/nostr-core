@@ -18,7 +18,7 @@
         "ext-mbstring": "*",
         "ext-sodium": "*",
         "paragonie/ecc": "^2.5",
-        "paragonie/sodium_compat": "^2.1"
+        "paragonie/sodium_compat": "^2.5.1"
     },
     "suggest": {
         "ext-ffi": "Native libsecp256k1 acceleration and NIP-49 scrypt (required for NIP-49)"
