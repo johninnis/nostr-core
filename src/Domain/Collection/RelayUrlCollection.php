@@ -45,4 +45,19 @@ final class RelayUrlCollection extends TypedCollection
     {
         return $this->mapItems(self::keyOf(...));
     }
+
+    public function contains(RelayUrl $relayUrl): bool
+    {
+        return $this->containsByKey(self::keyOf($relayUrl), self::keyOf(...));
+    }
+
+    public function intersect(self $other): self
+    {
+        return new self($this->retainByKey($other, self::keyOf(...), true));
+    }
+
+    public function diff(self $other): self
+    {
+        return new self($this->retainByKey($other, self::keyOf(...), false));
+    }
 }

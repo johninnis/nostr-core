@@ -7,6 +7,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol;
 use Innis\Nostr\Core\Domain\Collection\EventIdCollection;
 use Innis\Nostr\Core\Domain\Collection\RelayUrlCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
@@ -60,8 +61,42 @@ final class RelayUrlCollectionTest extends TestCase
         $this->assertSame(['wss://nos.lol'], $collection->unique()->toStrings());
     }
 
+    public function testContainsFindsARelayRegardlessOfHowItWasWritten(): void
+    {
+        $this->assertTrue(self::collection('wss://nos.lol')->contains(self::relayUrl('wss://nos.lol/')));
+    }
+
+    public function testContainsIsFalseForARelayNotInTheCollection(): void
+    {
+        $this->assertFalse(self::collection('wss://nos.lol')->contains(self::relayUrl('wss://relay.damus.io')));
+    }
+
+    public function testDiffKeepsOnlyWhatTheOtherDoesNotHave(): void
+    {
+        $collection = self::collection('wss://nos.lol', 'wss://relay.damus.io')->diff(self::collection('wss://nos.lol'));
+
+        $this->assertSame(['wss://relay.damus.io'], $collection->toStrings());
+    }
+
+    public function testDiffWithAnEmptyCollectionKeepsEverything(): void
+    {
+        $this->assertSame(['wss://nos.lol'], self::collection('wss://nos.lol')->diff(new RelayUrlCollection())->toStrings());
+    }
+
+    public function testIntersectKeepsOnlyWhatBothHave(): void
+    {
+        $collection = self::collection('wss://nos.lol', 'wss://relay.damus.io')->intersect(self::collection('wss://relay.damus.io', 'wss://other.example'));
+
+        $this->assertSame(['wss://relay.damus.io'], $collection->toStrings());
+    }
+
     private static function collection(string ...$urls): RelayUrlCollection
     {
         return RelayUrlCollection::fromStrings($urls);
+    }
+
+    private static function relayUrl(string $url): RelayUrl
+    {
+        return RelayUrl::tryFromString($url) ?? self::fail('invalid fixture relay url');
     }
 }
