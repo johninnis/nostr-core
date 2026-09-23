@@ -64,14 +64,14 @@ final class EventContentTest extends TestCase
     {
         $content = EventContent::fromString('Hello #bob how are you?');
 
-        $this->assertEquals(['bob'], $content->extractHashtags());
+        $this->assertSame(['bob'], $content->extractHashtags()->toStrings());
     }
 
     public function testExtractsMultipleHashtags(): void
     {
         $content = EventContent::fromString('Testing #Bitcoin and #Nostr #FREEDOM');
 
-        $this->assertEquals(['bitcoin', 'nostr', 'freedom'], $content->extractHashtags());
+        $this->assertSame(['bitcoin', 'nostr', 'freedom'], $content->extractHashtags()->toStrings());
     }
 
     public function testExtractHashtagsReturnsEmptyArrayWhenNoHashtags(): void
@@ -85,7 +85,7 @@ final class EventContentTest extends TestCase
     {
         $content = EventContent::fromString('#Bitcoin #NOSTR #FrEeDoM');
 
-        $this->assertEquals(['bitcoin', 'nostr', 'freedom'], $content->extractHashtags());
+        $this->assertSame(['bitcoin', 'nostr', 'freedom'], $content->extractHashtags()->toStrings());
     }
 
     public function testExtractHashtagsRemovesDuplicates(): void
@@ -93,49 +93,49 @@ final class EventContentTest extends TestCase
         $content = EventContent::fromString('Duplicate #test #TEST #test');
 
         $this->assertCount(1, $content->extractHashtags());
-        $this->assertEquals(['test'], $content->extractHashtags());
+        $this->assertSame(['test'], $content->extractHashtags()->toStrings());
     }
 
     public function testExtractHashtagsHandlesNumericHashtags(): void
     {
         $content = EventContent::fromString('Edge case #123 and #456');
 
-        $this->assertEquals(['123', '456'], $content->extractHashtags());
+        $this->assertSame(['123', '456'], $content->extractHashtags()->toStrings());
     }
 
     public function testExtractHashtagsHandlesUnderscores(): void
     {
         $content = EventContent::fromString('Testing #test_underscore and #another_one');
 
-        $this->assertEquals(['test_underscore', 'another_one'], $content->extractHashtags());
+        $this->assertSame(['test_underscore', 'another_one'], $content->extractHashtags()->toStrings());
     }
 
     public function testExtractHashtagsIgnoresHashtagsInUrls(): void
     {
         $content = EventContent::fromString('Check https://example.com#anchor but also #realtag');
 
-        $this->assertEquals(['realtag'], $content->extractHashtags());
+        $this->assertSame(['realtag'], $content->extractHashtags()->toStrings());
     }
 
     public function testExtractHashtagsAtStartOfContent(): void
     {
         $content = EventContent::fromString('#first hashtag in content');
 
-        $this->assertEquals(['first'], $content->extractHashtags());
+        $this->assertSame(['first'], $content->extractHashtags()->toStrings());
     }
 
     public function testExtractHashtagsAtEndOfContent(): void
     {
         $content = EventContent::fromString('hashtag at the end #last');
 
-        $this->assertEquals(['last'], $content->extractHashtags());
+        $this->assertSame(['last'], $content->extractHashtags()->toStrings());
     }
 
     public function testExtractHashtagsMultipleInSequence(): void
     {
         $content = EventContent::fromString('#one #two #three #four #five');
 
-        $this->assertEquals(['one', 'two', 'three', 'four', 'five'], $content->extractHashtags());
+        $this->assertSame(['one', 'two', 'three', 'four', 'five'], $content->extractHashtags()->toStrings());
     }
 
     public function testExtractHashtagsFromEmptyContent(): void

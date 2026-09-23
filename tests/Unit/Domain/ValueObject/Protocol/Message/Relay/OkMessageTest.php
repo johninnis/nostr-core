@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol\Message\Relay;
 
+use Innis\Nostr\Core\Domain\Enum\ReasonPrefix;
 use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\OkMessage;
@@ -80,6 +81,27 @@ final class OkMessageTest extends TestCase
         $message = new OkMessage(self::createEventId(), false, 'blocked: spam');
 
         $this->assertFalse($message->isAuthRequired());
+    }
+
+    public function testGetReasonPrefixReadsTheMachineReadablePrefix(): void
+    {
+        $message = new OkMessage(self::createEventId(), false, ReasonPrefix::RateLimited->format('slow down'));
+
+        $this->assertSame(ReasonPrefix::RateLimited, $message->getReasonPrefix());
+    }
+
+    public function testGetReasonPrefixIsReadOnAnAcceptedMessageToo(): void
+    {
+        $message = new OkMessage(self::createEventId(), true, 'duplicate: already have this event');
+
+        $this->assertSame(ReasonPrefix::Duplicate, $message->getReasonPrefix());
+    }
+
+    public function testGetReasonPrefixIsNullWithoutAPrefix(): void
+    {
+        $message = new OkMessage(self::createEventId(), false, 'something went wrong');
+
+        $this->assertNull($message->getReasonPrefix());
     }
 
     public function testToArrayReturnsCorrectFormat(): void

@@ -6,9 +6,9 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Protocol;
 
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
-use Innis\Nostr\Core\Domain\Enum\Nip10Marker;
 use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
+use Innis\Nostr\Core\Domain\Service\ReplyChainAnalyser;
 use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
@@ -88,19 +88,10 @@ final readonly class Rumour
         return $this->content;
     }
 
+    // Deliberate: delegates so the package has one answer to this question — a mention-marked e tag is not a reply, and neither is an unparseable one — see ADR-0072
     public function isReply(): bool
     {
-        if ($this->kind->is(EventKind::REPOST) || $this->kind->is(EventKind::GENERIC_REPOST)) {
-            return false;
-        }
-
-        if ($this->kind->is(EventKind::COMMENT)) {
-            return true;
-        }
-
-        $eTags = $this->tags->findByType(TagType::event());
-
-        return array_any($eTags, static fn (Tag $tag): bool => in_array($tag->getValue(2), [Nip10Marker::Root->value, Nip10Marker::Reply->value, null, ''], true));
+        return ReplyChainAnalyser::analyse($this->tags, $this->kind)->isReply();
     }
 
     public function isRepost(): bool
@@ -113,16 +104,18 @@ final readonly class Rumour
         return $this->kind->is(EventKind::EVENT_DELETION);
     }
 
+    // Deliberate: any stated expiry that has passed expires the event, never just the first tag, so the answer cannot depend on the order tags were stored in — see ADR-0071
+    public function isExpiredAt(Timestamp $reference): bool
+    {
+        return array_any(
+            $this->tags->getValuesByType(TagType::expiration()),
+            static fn (string $value): bool => Timestamp::tryFromDecimalString($value)?->hasPassedAt($reference) ?? false,
+        );
+    }
+
     public function isExpired(): bool
     {
-        $value = $this->tags->getFirstValueByType(TagType::expiration());
-        if (null === $value) {
-            return false;
-        }
-
-        $expiry = Timestamp::tryFromDecimalString($value);
-
-        return null !== $expiry && $expiry->hasPassed();
+        return $this->isExpiredAt(Timestamp::now());
     }
 
     public function isProtected(): bool

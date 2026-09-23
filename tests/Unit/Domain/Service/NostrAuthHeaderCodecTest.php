@@ -17,6 +17,20 @@ use PHPUnit\Framework\TestCase;
 
 final class NostrAuthHeaderCodecTest extends TestCase
 {
+    public function testTheSchemeTokenIsMatchedWithoutRegardToCase(): void
+    {
+        $header = base64_encode('not an event');
+
+        $this->assertSame(
+            NostrAuthHeaderCodec::decode('Nostr '.$header),
+            NostrAuthHeaderCodec::decode('nostr '.$header),
+        );
+        $this->assertSame(
+            NostrAuthHeaderCodec::decode('Nostr '.$header),
+            NostrAuthHeaderCodec::decode('NOSTR '.$header),
+        );
+    }
+
     public function testEncodeDecodeRoundTrip(): void
     {
         $event = $this->signedEvent();

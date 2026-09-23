@@ -116,6 +116,11 @@ final readonly class Event implements Stringable
         return $this->rumour->isDeletion();
     }
 
+    public function isExpiredAt(Timestamp $reference): bool
+    {
+        return $this->rumour->isExpiredAt($reference);
+    }
+
     public function isExpired(): bool
     {
         return $this->rumour->isExpired();

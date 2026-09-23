@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Content;
 
+use Innis\Nostr\Core\Domain\Collection\HashtagCollection;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
@@ -12,16 +13,13 @@ use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 
 final readonly class LongformMetadata
 {
-    /**
-     * @param list<string> $topics
-     */
     public function __construct(
         private string $identifier,
         private ?string $title,
         private ?string $summary,
         private ?string $image,
         private ?Timestamp $publishedAt,
-        private array $topics,
+        private HashtagCollection $topics,
     ) {
     }
 
@@ -50,10 +48,7 @@ final readonly class LongformMetadata
         return $this->publishedAt;
     }
 
-    /**
-     * @return list<string>
-     */
-    public function getTopics(): array
+    public function getTopics(): HashtagCollection
     {
         return $this->topics;
     }
@@ -74,7 +69,7 @@ final readonly class LongformMetadata
             $tags->getFirstValueByType(TagType::fromString(TagType::SUMMARY)),
             $tags->getFirstValueByType(TagType::fromString(TagType::IMAGE)),
             $publishedAt,
-            $tags->getValuesByType(TagType::hashtag()),
+            $tags->getHashtags(),
         );
     }
 
@@ -98,7 +93,7 @@ final readonly class LongformMetadata
             $tags[] = Tag::create(TagType::PUBLISHED_AT, (string) $this->publishedAt->toInt());
         }
 
-        $tags = [...$tags, ...array_map(Tag::hashtag(...), $this->topics)];
+        $tags = [...$tags, ...array_map(Tag::hashtag(...), $this->topics->toArray())];
 
         return new TagCollection($tags);
     }
@@ -114,7 +109,7 @@ final readonly class LongformMetadata
             'summary' => $this->summary,
             'image' => $this->image,
             'published_at' => $this->publishedAt?->toInt(),
-            'topics' => $this->topics,
+            'topics' => $this->topics->toStrings(),
         ];
     }
 
@@ -131,8 +126,7 @@ final readonly class LongformMetadata
         $publishedAtValue = JsonWireFormat::intField($data, 'published_at');
         $publishedAt = null !== $publishedAtValue ? Timestamp::tryFromInt($publishedAtValue) : null;
 
-        $rawTopics = $data['topics'] ?? null;
-        $topics = is_array($rawTopics) ? array_values(array_filter($rawTopics, is_string(...))) : [];
+        $topics = HashtagCollection::fromStrings($data['topics'] ?? null);
 
         return new self(
             $identifier,
@@ -150,10 +144,7 @@ final readonly class LongformMetadata
             && $this->title === $other->title
             && $this->summary === $other->summary
             && $this->image === $other->image
-            && (
-                (null === $this->publishedAt && null === $other->publishedAt)
-                || (null !== $this->publishedAt && null !== $other->publishedAt && $this->publishedAt->equals($other->publishedAt))
-            )
-            && $this->topics === $other->topics;
+            && $this->publishedAt?->toInt() === $other->publishedAt?->toInt()
+            && $this->topics->equals($other->topics);
     }
 }

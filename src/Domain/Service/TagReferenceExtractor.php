@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Service;
 
+use Innis\Nostr\Core\Domain\Collection\ChallengeCollection;
 use Innis\Nostr\Core\Domain\Collection\EventCoordinateCollection;
 use Innis\Nostr\Core\Domain\Collection\EventReferenceCollection;
 use Innis\Nostr\Core\Domain\Collection\PubkeyReferenceCollection;
@@ -12,6 +13,7 @@ use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Challenge;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReference;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\PubkeyReference;
@@ -34,7 +36,7 @@ final class TagReferenceExtractor
             new EventReferenceCollection(self::collect($tags, self::quotedEvent(...))),
             new EventCoordinateCollection(self::collect($tags, self::coordinate(...))),
             new RelayReferenceCollection(self::collect($tags, self::relayReference(...))),
-            self::collect($tags, self::challenge(...)),
+            new ChallengeCollection(self::collect($tags, self::challenge(...))),
         );
     }
 
@@ -160,8 +162,8 @@ final class TagReferenceExtractor
         return new RelayReference($relayUrl, $tag->getValue(1));
     }
 
-    private static function challenge(Tag $tag): ?string
+    private static function challenge(Tag $tag): ?Challenge
     {
-        return $tag->getType()->is(TagType::CHALLENGE) ? $tag->getValue(0) : null;
+        return $tag->getType()->is(TagType::CHALLENGE) ? Challenge::tryFromString($tag->getValue(0)) : null;
     }
 }

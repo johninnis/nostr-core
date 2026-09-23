@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol\Message\Relay;
 
 use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\EventCount;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\CountMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
-use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -15,44 +15,29 @@ final class CountMessageTest extends TestCase
 {
     public function testGetTypeReturnsCount(): void
     {
-        $message = new CountMessage(SubscriptionId::tryFromString('sub1') ?? throw new RuntimeException('Expected a valid subscription ID'), 42);
+        $message = new CountMessage(self::subscriptionId('sub1'), EventCount::exact(42));
 
         $this->assertSame(RelayMessageType::Count, $message->type());
     }
 
     public function testGetSubscriptionIdReturnsConstructedValue(): void
     {
-        $subId = SubscriptionId::tryFromString('sub1') ?? throw new RuntimeException('Expected a valid subscription ID');
-        $message = new CountMessage($subId, 10);
+        $subId = self::subscriptionId('sub1');
+        $message = new CountMessage($subId, EventCount::exact(10));
 
         $this->assertTrue($subId->equals($message->getSubscriptionId()));
     }
 
     public function testGetCountReturnsConstructedValue(): void
     {
-        $message = new CountMessage(SubscriptionId::tryFromString('sub1') ?? throw new RuntimeException('Expected a valid subscription ID'), 42);
+        $message = new CountMessage(self::subscriptionId('sub1'), EventCount::exact(42));
 
-        $this->assertSame(42, $message->getCount());
+        $this->assertSame(42, $message->getCount()->toInt());
     }
 
-    public function testCountCanBeZero(): void
+    public function testToArrayOmitsTheApproximateKeyForAnExactCount(): void
     {
-        $message = new CountMessage(SubscriptionId::tryFromString('sub1') ?? throw new RuntimeException('Expected a valid subscription ID'), 0);
-
-        $this->assertSame(0, $message->getCount());
-    }
-
-    public function testThrowsOnNegativeCount(): void
-    {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Count cannot be negative');
-
-        new CountMessage(SubscriptionId::tryFromString('sub1') ?? throw new RuntimeException('Expected a valid subscription ID'), -1);
-    }
-
-    public function testToArrayReturnsCorrectFormat(): void
-    {
-        $message = new CountMessage(SubscriptionId::tryFromString('sub1') ?? throw new RuntimeException('Expected a valid subscription ID'), 42);
+        $message = new CountMessage(self::subscriptionId('sub1'), EventCount::exact(42));
 
         $result = $message->toArray();
 
@@ -62,9 +47,16 @@ final class CountMessageTest extends TestCase
         $this->assertCount(3, $result);
     }
 
+    public function testToArrayMarksAnApproximateCount(): void
+    {
+        $message = new CountMessage(self::subscriptionId('sub1'), EventCount::approximate(1000));
+
+        $this->assertSame(['count' => 1000, 'approximate' => true], $message->toArray()[2]);
+    }
+
     public function testToJsonReturnsValidJson(): void
     {
-        $message = new CountMessage(SubscriptionId::tryFromString('sub1') ?? throw new RuntimeException('Expected a valid subscription ID'), 42);
+        $message = new CountMessage(self::subscriptionId('sub1'), EventCount::exact(42));
 
         $decoded = json_decode($message->toJson(), true, flags: JSON_THROW_ON_ERROR);
         $this->assertIsArray($decoded);
@@ -75,15 +67,38 @@ final class CountMessageTest extends TestCase
         $this->assertSame(['count' => 42], $array[2]);
     }
 
-    public function testTryFromArrayCreatesValidMessage(): void
+    public function testTryFromArrayCreatesAnExactCount(): void
     {
-        $data = ['COUNT', 'sub1', ['count' => 42]];
-
-        $message = CountMessage::tryFromArray($data) ?? throw new RuntimeException('Expected a valid message');
+        $message = CountMessage::tryFromArray(['COUNT', 'sub1', ['count' => 42]]) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame(RelayMessageType::Count, $message->type());
         $this->assertSame('sub1', (string) $message->getSubscriptionId());
-        $this->assertSame(42, $message->getCount());
+        $this->assertSame(42, $message->getCount()->toInt());
+        $this->assertFalse($message->getCount()->isApproximate());
+    }
+
+    public function testTryFromArrayReadsTheApproximateFlag(): void
+    {
+        $message = CountMessage::tryFromArray(['COUNT', 'sub1', ['count' => 1000, 'approximate' => true]]) ?? throw new RuntimeException('Expected a valid message');
+
+        $this->assertTrue($message->getCount()->isApproximate());
+    }
+
+    public function testTryFromArrayTreatsAnExplicitFalseAsExact(): void
+    {
+        $message = CountMessage::tryFromArray(['COUNT', 'sub1', ['count' => 42, 'approximate' => false]]) ?? throw new RuntimeException('Expected a valid message');
+
+        $this->assertFalse($message->getCount()->isApproximate());
+    }
+
+    public function testTryFromArrayReturnsNullOnANonBooleanApproximateFlag(): void
+    {
+        $this->assertNull(CountMessage::tryFromArray(['COUNT', 'sub1', ['count' => 42, 'approximate' => 'yes']]));
+    }
+
+    public function testTryFromArrayReturnsNullOnANegativeCount(): void
+    {
+        $this->assertNull(CountMessage::tryFromArray(['COUNT', 'sub1', ['count' => -1]]));
     }
 
     public function testTryFromArrayReturnsNullOnInvalidFormat(): void
@@ -106,13 +121,29 @@ final class CountMessageTest extends TestCase
         $this->assertNull(CountMessage::tryFromArray(['COUNT', 'sub1', 42]));
     }
 
-    public function testRoundTripPreservesData(): void
+    public function testRoundTripPreservesAnExactCount(): void
     {
-        $original = new CountMessage(SubscriptionId::tryFromString('test-sub') ?? throw new RuntimeException('Expected a valid subscription ID'), 100);
+        $original = new CountMessage(self::subscriptionId('test-sub'), EventCount::exact(100));
 
         $restored = CountMessage::tryFromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame((string) $original->getSubscriptionId(), (string) $restored->getSubscriptionId());
-        $this->assertSame($original->getCount(), $restored->getCount());
+        $this->assertSame(100, $restored->getCount()->toInt());
+        $this->assertFalse($restored->getCount()->isApproximate());
+    }
+
+    public function testRoundTripPreservesAnApproximateCount(): void
+    {
+        $original = new CountMessage(self::subscriptionId('test-sub'), EventCount::approximate(1000));
+
+        $restored = CountMessage::tryFromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
+
+        $this->assertSame(1000, $restored->getCount()->toInt());
+        $this->assertTrue($restored->getCount()->isApproximate());
+    }
+
+    private static function subscriptionId(string $id): SubscriptionId
+    {
+        return SubscriptionId::tryFromString($id) ?? throw new RuntimeException('Expected a valid subscription ID');
     }
 }

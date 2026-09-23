@@ -30,7 +30,13 @@ final class ReplyChainAnalyser
             return self::analyseCommentReplyChain($tags);
         }
 
-        return self::analyseNip10ReplyChain($tags);
+        return self::analyseNip10ReplyChain($tags, self::threadsByNip10($kind));
+    }
+
+    // Deliberate: NIP-10 threading is defined for the short note, so only a short note replies by it — a reaction, a repost or a zap receipt carries an e tag naming what it acts on, which is not a reply to it. A caller that names no kind is asking what the tags look like as a thread, and is answered — see ADR-0072
+    private static function threadsByNip10(?EventKind $kind): bool
+    {
+        return null === $kind || $kind->is(EventKind::TEXT_NOTE);
     }
 
     private static function analyseCommentReplyChain(TagCollection $tags): ReplyChain
@@ -65,7 +71,7 @@ final class ReplyChainAnalyser
             $isReply,
             $rootEvent,
             $parentEvent,
-            new PublicKeyCollection($conversationParticipants),
+            new PublicKeyCollection($conversationParticipants)->unique(),
             new EventReferenceCollection()
         );
     }
@@ -87,18 +93,14 @@ final class ReplyChainAnalyser
         );
     }
 
-    private static function analyseNip10ReplyChain(TagCollection $tags): ReplyChain
+    private static function analyseNip10ReplyChain(TagCollection $tags, bool $threadsByNip10): ReplyChain
     {
         $references = TagReferenceExtractor::extract($tags);
         $eventReferences = $references->getEvents()->toArray();
         $participants = new PublicKeyCollection(array_map(
             static fn (PubkeyReference $reference): PublicKey => $reference->getPubkey(),
             $references->getPubkeys()->toArray()
-        ));
-
-        if ([] === $tags->findByType(TagType::event())) {
-            return new ReplyChain(false, null, null, $participants, new EventReferenceCollection());
-        }
+        ))->unique();
 
         $rootEvent = null;
         $parentEvent = null;
@@ -129,7 +131,7 @@ final class ReplyChainAnalyser
         }
 
         return new ReplyChain(
-            true,
+            $threadsByNip10 && (null !== $rootEvent || null !== $parentEvent),
             $rootEvent,
             $parentEvent,
             $participants,

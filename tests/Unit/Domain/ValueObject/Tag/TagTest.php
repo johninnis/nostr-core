@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Tag;
 
+use Innis\Nostr\Core\Domain\ValueObject\Tag\Hashtag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use InvalidArgumentException;
@@ -97,10 +98,15 @@ final class TagTest extends TestCase
 
     public function testStaticHashtagFactory(): void
     {
-        $tag = Tag::hashtag('nostr');
+        $tag = Tag::hashtag(Hashtag::fromString('nostr'));
 
         $this->assertTrue($tag->getType()->equals(TagType::hashtag()));
         $this->assertSame('nostr', $tag->getValue(0));
+    }
+
+    public function testAHashtagTagCarriesTheLowercaseValue(): void
+    {
+        $this->assertSame('nostr', Tag::hashtag(Hashtag::fromString('NOSTR'))->getValue(0));
     }
 
     public function testStaticIdentifierFactory(): void

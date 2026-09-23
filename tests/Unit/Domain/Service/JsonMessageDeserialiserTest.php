@@ -113,7 +113,7 @@ final class JsonMessageDeserialiserTest extends TestCase
         $message = $this->deserialiser->deserialiseRelayMessage($json);
 
         $this->assertInstanceOf(RelayAuthMessage::class, $message);
-        $this->assertSame('challenge-string-123', $message->getChallenge());
+        $this->assertSame('challenge-string-123', (string) $message->getChallenge());
     }
 
     public function testDeserialiseRelayCountMessage(): void
@@ -124,7 +124,7 @@ final class JsonMessageDeserialiserTest extends TestCase
 
         $this->assertInstanceOf(RelayCountMessage::class, $message);
         $this->assertSame('sub-1', (string) $message->getSubscriptionId());
-        $this->assertSame(42, $message->getCount());
+        $this->assertSame(42, $message->getCount()->toInt());
     }
 
     public function testDeserialiseRelayMessageReturnsNullOnInvalidJson(): void

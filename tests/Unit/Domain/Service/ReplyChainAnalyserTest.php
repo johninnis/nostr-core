@@ -9,6 +9,7 @@ use Innis\Nostr\Core\Domain\Service\ReplyChainAnalyser;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class ReplyChainAnalyserTest extends TestCase
@@ -124,5 +125,84 @@ final class ReplyChainAnalyserTest extends TestCase
         $this->assertFalse($chain->hasRoot(), 'Known limitation: EventReference holds an EventId, so addressable (A) roots are not resolved');
         $this->assertFalse($chain->isReply());
         $this->assertSame(self::ROOT_AUTHOR, $chain->getConversationParticipants()->toArray()[0]->toHex());
+    }
+
+    #[DataProvider('kindsThatDoNotReplyByNip10')]
+    public function testAKindThatDoesNotThreadIsNotAReplyEvenWhenItNamesAnEvent(int $kind): void
+    {
+        $tags = new TagCollection([Tag::tryFromArray(['e', self::PARENT_ID])]);
+
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt($kind));
+
+        $this->assertFalse($chain->isReply());
+    }
+
+    #[DataProvider('kindsThatDoNotReplyByNip10')]
+    public function testAKindThatDoesNotThreadStillReportsWhatItNames(int $kind): void
+    {
+        $tags = new TagCollection([Tag::tryFromArray(['e', self::PARENT_ID])]);
+
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt($kind));
+
+        $this->assertSame(self::PARENT_ID, $chain->getParentEvent()?->getEventId()->toHex());
+    }
+
+    /**
+     * @return iterable<string, array{int}>
+     */
+    public static function kindsThatDoNotReplyByNip10(): iterable
+    {
+        yield 'a reaction names what it reacts to' => [EventKind::REACTION];
+        yield 'a repost names what it reposts' => [EventKind::REPOST];
+        yield 'a generic repost names what it reposts' => [EventKind::GENERIC_REPOST];
+        yield 'a zap receipt names what was zapped' => [EventKind::ZAP_RECEIPT];
+        yield 'a long-form article is not a thread post' => [EventKind::LONGFORM_CONTENT];
+        yield 'a legacy direct message is not a thread post' => [EventKind::ENCRYPTED_DIRECT_MESSAGE];
+    }
+
+    public function testAShortNoteThatNamesAnEventIsAReply(): void
+    {
+        $tags = new TagCollection([Tag::tryFromArray(['e', self::PARENT_ID])]);
+
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::TEXT_NOTE));
+
+        $this->assertTrue($chain->isReply());
+    }
+
+    public function testAnalysingTagsWithoutAKindStillReadsThemAsAThread(): void
+    {
+        $tags = new TagCollection([Tag::tryFromArray(['e', self::PARENT_ID])]);
+
+        $chain = ReplyChainAnalyser::analyse($tags);
+
+        $this->assertTrue($chain->isReply());
+    }
+
+    public function testTheSamePubkeyTaggedTwiceIsOneConversationParticipant(): void
+    {
+        $tags = new TagCollection([
+            Tag::tryFromArray(['e', self::PARENT_ID]),
+            Tag::tryFromArray(['p', self::PARENT_AUTHOR]),
+            Tag::tryFromArray(['p', self::ROOT_AUTHOR]),
+            Tag::tryFromArray(['p', self::PARENT_AUTHOR]),
+        ]);
+
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::TEXT_NOTE));
+
+        $this->assertCount(2, $chain->getConversationParticipants());
+    }
+
+    public function testACommentsParticipantsAreDeduplicatedToo(): void
+    {
+        $tags = new TagCollection([
+            Tag::tryFromArray(['E', self::ROOT_ID]),
+            Tag::tryFromArray(['e', self::PARENT_ID]),
+            Tag::tryFromArray(['p', self::PARENT_AUTHOR]),
+            Tag::tryFromArray(['p', self::PARENT_AUTHOR]),
+        ]);
+
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::COMMENT));
+
+        $this->assertCount(1, $chain->getConversationParticipants());
     }
 }

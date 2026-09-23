@@ -13,6 +13,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\Hashtag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Tests\Fake\FakeSignatureService;
@@ -78,7 +79,7 @@ final class EventValidatorTest extends TestCase
     {
         $tags = [];
         for ($i = 0; $i < 5001; ++$i) {
-            $tags[] = Tag::hashtag("tag{$i}");
+            $tags[] = Tag::hashtag(Hashtag::fromString("tag{$i}"));
         }
 
         $event = EventMother::fromRumour(new Rumour(
@@ -165,7 +166,7 @@ final class EventValidatorTest extends TestCase
     {
         $tags = [];
         for ($i = 0; $i < 1000; ++$i) {
-            $tags[] = Tag::hashtag("tag{$i}");
+            $tags[] = Tag::hashtag(Hashtag::fromString("tag{$i}"));
         }
 
         $event = EventMother::fromRumour(new Rumour(

@@ -93,9 +93,10 @@ final readonly class Tag
         return new self(TagType::pubkey(), $values);
     }
 
-    public static function hashtag(string $hashtag): self
+    // Deliberate: takes a Hashtag where its neighbours take a string, because the lowercase rule lives in the value object and a string overload here would be a second answer to what a hashtag is — see ADR-0068
+    public static function hashtag(Hashtag $hashtag): self
     {
-        return new self(TagType::hashtag(), [$hashtag]);
+        return new self(TagType::hashtag(), [(string) $hashtag]);
     }
 
     public static function identifier(string $identifier): self

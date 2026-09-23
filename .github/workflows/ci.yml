@@ -23,7 +23,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
-          extensions: intl, mbstring, sodium, ffi, gmp
+          extensions: intl, mbstring, sodium, ffi, gmp, openssl
           coverage: none
           tools: composer:v2
 
@@ -63,7 +63,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: intl, mbstring, sodium, gmp
+          extensions: intl, mbstring, sodium, gmp, openssl
           ini-values: ffi.enable=0
           coverage: none
           tools: composer:v2

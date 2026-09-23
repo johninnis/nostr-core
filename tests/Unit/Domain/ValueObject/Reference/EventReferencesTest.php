@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Reference;
 
+use Innis\Nostr\Core\Domain\Collection\ChallengeCollection;
 use Innis\Nostr\Core\Domain\Collection\ContentReferenceCollection;
 use Innis\Nostr\Core\Domain\Collection\EventCoordinateCollection;
 use Innis\Nostr\Core\Domain\Collection\EventIdCollection;
@@ -109,7 +110,7 @@ final class EventReferencesTest extends TestCase
             new EventReferenceCollection(),
             new EventCoordinateCollection(),
             new RelayReferenceCollection(),
-            [],
+            new ChallengeCollection(),
         );
     }
 }

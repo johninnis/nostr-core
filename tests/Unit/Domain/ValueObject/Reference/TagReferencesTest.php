@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Reference;
 
+use Innis\Nostr\Core\Domain\Collection\ChallengeCollection;
 use Innis\Nostr\Core\Domain\Collection\EventCoordinateCollection;
 use Innis\Nostr\Core\Domain\Collection\EventReferenceCollection;
 use Innis\Nostr\Core\Domain\Collection\PubkeyReferenceCollection;
@@ -33,7 +34,7 @@ final class TagReferencesTest extends TestCase
             new EventReferenceCollection([new EventReference($this->eventId())]),
             new EventCoordinateCollection([$this->coordinate()]),
             new RelayReferenceCollection([new RelayReference($this->relay(), 'read')]),
-            ['challenge-token'],
+            ChallengeCollection::fromStrings(['challenge-token']),
         );
 
         $restored = TagReferences::fromArray($references->toArray());
@@ -41,11 +42,11 @@ final class TagReferencesTest extends TestCase
         $this->assertSame($references->toArray(), $restored->toArray());
     }
 
-    public function testFromArrayDropsNonStringChallenges(): void
+    public function testFromArrayDropsChallengesThatDoNotParse(): void
     {
-        $references = TagReferences::fromArray(['challenges' => ['valid', 123, null]]);
+        $references = TagReferences::fromArray(['challenges' => ['valid', '', 123, null]]);
 
-        $this->assertSame(['valid'], $references->getChallenges());
+        $this->assertSame(['valid'], $references->getChallenges()->toStrings());
     }
 
     public function testEmptyHasNoReferencesOfAnyKind(): void

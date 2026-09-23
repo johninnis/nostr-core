@@ -67,9 +67,14 @@ final readonly class Timestamp implements Stringable
         return abs($this->timestamp - $other->timestamp);
     }
 
+    public function hasPassedAt(self $reference): bool
+    {
+        return !$reference->isBefore($this);
+    }
+
     public function hasPassed(): bool
     {
-        return !self::now()->isBefore($this);
+        return $this->hasPassedAt(self::now());
     }
 
     // Deliberate: reads time() directly rather than through an injected clock; no elapsed-time behaviour under test here — see ADR-0005

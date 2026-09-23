@@ -5,21 +5,17 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay;
 
 use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\EventCount;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
-use InvalidArgumentException;
 use Override;
 
 final readonly class CountMessage extends RelayMessage
 {
     public function __construct(
         private SubscriptionId $subscriptionId,
-        private int $count,
-        private ?bool $approximate = null,
+        private EventCount $count,
     ) {
-        if ($this->count < 0) {
-            throw new InvalidArgumentException('Count cannot be negative');
-        }
     }
 
     #[Override]
@@ -33,14 +29,10 @@ final readonly class CountMessage extends RelayMessage
         return $this->subscriptionId;
     }
 
-    public function getCount(): int
+    // Deliberate: one value, never a count beside a nullable flag — see ADR-0064
+    public function getCount(): EventCount
     {
         return $this->count;
-    }
-
-    public function getApproximate(): ?bool
-    {
-        return $this->approximate;
     }
 
     /**
@@ -49,10 +41,10 @@ final readonly class CountMessage extends RelayMessage
     #[Override]
     public function toArray(): array
     {
-        $payload = ['count' => $this->count];
+        $payload = ['count' => $this->count->toInt()];
 
-        if (null !== $this->approximate) {
-            $payload['approximate'] = $this->approximate;
+        if ($this->count->isApproximate()) {
+            $payload['approximate'] = true;
         }
 
         return [$this->type()->value, (string) $this->subscriptionId, $payload];
@@ -92,8 +84,7 @@ final readonly class CountMessage extends RelayMessage
 
         $parsed = new self(
             $subscriptionId,
-            $count,
-            $approximate,
+            true === $approximate ? EventCount::approximate($count) : EventCount::exact($count),
         );
 
         return $parsed->type()->value === $data[0] ? $parsed : null;

@@ -10,6 +10,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\Hashtag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Tests\Fake\FakeSignatureService;
@@ -75,7 +76,7 @@ final class EventTest extends TestCase
     public function testVerifyReturnsFalseWhenStoredIdDoesNotMatchContent(): void
     {
         $tampered = new Event(
-            $this->rumour->withTags(new TagCollection([Tag::hashtag('changed')])),
+            $this->rumour->withTags(new TagCollection([Tag::hashtag(Hashtag::fromString('changed'))])),
             $this->event->getId(),
             $this->event->getSignature(),
         );
@@ -89,6 +90,7 @@ final class EventTest extends TestCase
         $this->assertSame($this->rumour->isRepost(), $this->event->isRepost());
         $this->assertSame($this->rumour->isDeletion(), $this->event->isDeletion());
         $this->assertSame($this->rumour->isExpired(), $this->event->isExpired());
+        $this->assertSame($this->rumour->isExpiredAt(Timestamp::fromInt(100)), $this->event->isExpiredAt(Timestamp::fromInt(100)));
         $this->assertSame($this->rumour->isProtected(), $this->event->isProtected());
         $this->assertSame($this->rumour->getPublishedAt(), $this->event->getPublishedAt());
     }

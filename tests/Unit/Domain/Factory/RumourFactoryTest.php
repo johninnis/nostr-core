@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Factory;
 
+use Innis\Nostr\Core\Domain\Collection\HashtagCollection;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Factory\RumourFactory;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
@@ -11,8 +12,10 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Content\FileMetadata;
 use Innis\Nostr\Core\Domain\ValueObject\Content\LongformMetadata;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Challenge;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Nip98Request;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\Hashtag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
@@ -116,7 +119,7 @@ final class RumourFactoryTest extends TestCase
     {
         $relayUrl = RelayUrl::tryFromString('wss://relay.example.com');
         $this->assertNotNull($relayUrl);
-        $challenge = 'test-challenge-string';
+        $challenge = Challenge::fromString('test-challenge-string');
 
         $event = RumourFactory::createAuth(
             $this->keyPair->getPublicKey(),
@@ -298,7 +301,7 @@ final class RumourFactoryTest extends TestCase
     {
         $muteTags = new TagCollection([
             Tag::create('p', str_repeat('a', 64)),
-            Tag::hashtag('spam'),
+            Tag::hashtag(Hashtag::fromString('spam')),
         ]);
 
         $event = RumourFactory::createMuteList($this->keyPair->getPublicKey(), $muteTags);
@@ -350,7 +353,7 @@ final class RumourFactoryTest extends TestCase
         $event = RumourFactory::createLongformContent(
             $this->keyPair->getPublicKey(),
             $content,
-            new LongformMetadata('my-article', null, null, null, null, []),
+            new LongformMetadata('my-article', null, null, null, null, new HashtagCollection()),
         );
 
         $this->assertTrue($event->getKind()->is(EventKind::LONGFORM_CONTENT));
@@ -376,7 +379,7 @@ final class RumourFactoryTest extends TestCase
                 'A summary of the article',
                 'https://example.com/image.jpg',
                 $publishedAt,
-                ['nostr', 'bitcoin'],
+                HashtagCollection::fromStrings(['nostr', 'bitcoin']),
             ),
             $createdAt,
         );
@@ -411,7 +414,7 @@ final class RumourFactoryTest extends TestCase
 
     public function testCanCreateTextNoteWithTags(): void
     {
-        $tags = new TagCollection([Tag::hashtag('nostr')]);
+        $tags = new TagCollection([Tag::hashtag(Hashtag::fromString('nostr'))]);
         $event = RumourFactory::createTextNote(
             $this->keyPair->getPublicKey(),
             'Hello with tags!',

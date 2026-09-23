@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Content;
 
+use Innis\Nostr\Core\Domain\Collection\HashtagCollection;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\Hashtag;
 use Override;
 use Stringable;
 
@@ -38,14 +40,11 @@ final readonly class EventContent implements Stringable
         return new self('');
     }
 
-    /**
-     * @return list<string>
-     */
-    public function extractHashtags(): array
+    public function extractHashtags(): HashtagCollection
     {
         preg_match_all('/(?<![&\w])#([a-zA-Z0-9_]+)/u', $this->content, $matches);
 
-        return array_values(array_unique(array_map(strtolower(...), $matches[1])));
+        return new HashtagCollection(array_map(Hashtag::fromString(...), $matches[1]))->unique();
     }
 
     #[Override]

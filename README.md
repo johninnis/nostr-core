@@ -11,7 +11,7 @@ Code is organised around domain concepts (events, identities, tags, messages) ra
 
 ## Features
 
-- Complete Nostr protocol implementation
+- Broad Nostr protocol coverage, listed NIP by NIP below
 - Clean Architecture with strict layer separation
 - Domain-driven design with pure business logic
 - Comprehensive cryptographic support using secp256k1
@@ -32,6 +32,7 @@ Declared in `composer.json`:
 - `ext-gmp` (bignum arithmetic for the pure-PHP secp256k1 signing and ECDH path; required transitively by `paragonie/ecc`, so the package cannot install without it even on a host that always uses the native `libsecp256k1` path)
 - `ext-intl` (NFKC password normalisation in NIP-49)
 - `ext-mbstring` (search-filter matching on untrusted event content and `EventContent::getLength`)
+- `ext-openssl` (AES-256-CBC for NIP-04)
 - `ext-sodium` (NIP-44 and NIP-49 AEAD, `sodium_memzero`)
 - `paragonie/ecc` (pure-PHP secp256k1 fallback)
 - `paragonie/sodium_compat` (raw ChaCha20 keystream with explicit block counter for NIP-44, which `ext-sodium` does not expose)
@@ -231,6 +232,7 @@ Runnable scripts live in [`examples/`](examples/); run one with `php examples/<n
 - [`nip44_encrypt_decrypt.php`](examples/nip44_encrypt_decrypt.php) — derive a NIP-44 conversation key via ECDH and encrypt/decrypt a message
 - [`nip49_password_encrypt.php`](examples/nip49_password_encrypt.php) — encrypt a private key under a password to an `ncryptsec` and recover it (requires `ext-ffi` and libsodium)
 - [`giftwrap_direct_message.php`](examples/giftwrap_direct_message.php) — seal and gift-wrap a NIP-17 private message, then unwrap it
+- [`relay_auth_flow.php`](examples/relay_auth_flow.php) — issue a NIP-42 `Challenge`, answer it from the client side, and validate the answer with `Nip42Validator`
 
 The `examples/` directory is covered by PHPStan and php-cs-fixer in CI, like `src` and `tests`.
 
@@ -238,7 +240,7 @@ The `examples/` directory is covered by PHPStan and php-cs-fixer in CI, like `sr
 
 | NIP | Description | Support |
 |-----|-------------|---------|
-| [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) | Basic protocol flow | Event creation, signing, verification, serialisation |
+| [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) | Basic protocol flow | Event creation, signing, verification, serialisation; the machine-readable `ReasonPrefix` on OK and CLOSED replies; `EventVersion` to decide which of two replaceable events survives |
 | [NIP-02](https://github.com/nostr-protocol/nips/blob/master/02.md) | Follow list | Kind 3 with contact list tags |
 | [NIP-04](https://github.com/nostr-protocol/nips/blob/master/04.md) | Encrypted direct messages | **Deprecated — use NIP-44.** Kind 4 with recipient validation; `Nip04Cipher` for AES-256-CBC encrypt/decrypt over a 32-byte ECDH shared secret. Unauthenticated and malleable; both interface methods carry `#[Deprecated]`. Shipped for kind-4 interoperability only — read [SECURITY.md](SECURITY.md#what-this-library-provides) before using it |
 | [NIP-05](https://github.com/nostr-protocol/nips/blob/master/05.md) | DNS-based identity | Identifier parsing and HTTP verification |
@@ -248,23 +250,26 @@ The `examples/` directory is covered by PHPStan and php-cs-fixer in CI, like `sr
 | [NIP-17](https://github.com/nostr-protocol/nips/blob/master/17.md) | Private direct messages | Kind 14 with NIP-44 encryption and gift wrap (kind 1059) |
 | [NIP-18](https://github.com/nostr-protocol/nips/blob/master/18.md) | Reposts | Kind 6/16 with embedded event extraction and quote detection |
 | [NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md) | Bech32 encoding | npub, nsec, note, nprofile, nevent, naddr — each entity a distinct value object behind `Nip19EntityInterface`, encoding itself and decoded through `Nip19Codec`; `Bech32Codec` also supports the BIP-350 bech32m variant for non-NIP consumers (e.g. FROSTR `bfgroup1…` / `bfshare1…` / `bfonboard1…`) via the `Bech32Variant` enum |
-| [NIP-22](https://github.com/nostr-protocol/nips/blob/master/22.md) | Comments | Kind 1111 with root/parent kind tags and reply chain analysis |
-| [NIP-23](https://github.com/nostr-protocol/nips/blob/master/23.md) | Long-form content | Kind 30023 as parameterised replaceable events |
+| [NIP-22](https://github.com/nostr-protocol/nips/blob/master/22.md) | Comments | Kind 1111 with root/parent kind tags and reply chain analysis; a comment is a reply when it resolves a root or a parent |
+| [NIP-23](https://github.com/nostr-protocol/nips/blob/master/23.md) | Long-form content | Kind 30023 as parameterised replaceable events; `LongformMetadata` carries its topics as a `HashtagCollection` |
+| [NIP-24](https://github.com/nostr-protocol/nips/blob/master/24.md) | Extra metadata | `Hashtag` carries the lowercase rule for `t` tag values; `TagCollection::getHashtags()` and `EventContent::extractHashtags()` both return a deduplicated `HashtagCollection` |
 | [NIP-25](https://github.com/nostr-protocol/nips/blob/master/25.md) | Reactions | Kind 7 event support |
 | [NIP-28](https://github.com/nostr-protocol/nips/blob/master/28.md) | Public chat | Kind 40-44 channel event types |
-| [NIP-40](https://github.com/nostr-protocol/nips/blob/master/40.md) | Expiration | Event expiration detection via `isExpired()` |
-| [NIP-42](https://github.com/nostr-protocol/nips/blob/master/42.md) | Authentication | AUTH message handling and challenge detection |
+| [NIP-40](https://github.com/nostr-protocol/nips/blob/master/40.md) | Expiration | Expiry detection via `isExpiredAt()` against a given instant, or `isExpired()` against now |
+| [NIP-42](https://github.com/nostr-protocol/nips/blob/master/42.md) | Authentication | AUTH messages over a non-empty `Challenge`, and `Nip42Validator` for the relay side |
 | [NIP-44](https://github.com/nostr-protocol/nips/blob/master/44.md) | Encrypted payloads | NIP-44 v2 encrypt/decrypt with ECDH, ChaCha20, HMAC-SHA256 |
-| [NIP-45](https://github.com/nostr-protocol/nips/blob/master/45.md) | Counting | COUNT relay message support |
+| [NIP-45](https://github.com/nostr-protocol/nips/blob/master/45.md) | Counting | COUNT messages; the reply carries an `EventCount` that may be approximate |
 | [NIP-49](https://github.com/nostr-protocol/nips/blob/master/49.md) | Private key encryption | Password-encrypted `ncryptsec` with scrypt + XChaCha20-Poly1305 |
 | [NIP-50](https://github.com/nostr-protocol/nips/blob/master/50.md) | Search | Search filter support |
 | [NIP-51](https://github.com/nostr-protocol/nips/blob/master/51.md) | Lists | All standard list kinds (10000-10102) and set kinds (30000-39092) |
 | [NIP-57](https://github.com/nostr-protocol/nips/blob/master/57.md) | Lightning zaps | Zap request/receipt parsing, BOLT-11 amount extraction, and Appendix F receipt verification via `ZapReceiptVerifier` (parsing alone authenticates nothing) |
+| [NIP-59](https://github.com/nostr-protocol/nips/blob/master/59.md) | Gift wrap | `GiftWrapper` seals a rumour to its recipient and wraps it under an ephemeral key, verifying the outer signature on unwrap |
 | [NIP-61](https://github.com/nostr-protocol/nips/blob/master/61.md) | Nutzaps | Kind 9321 cashu proof parsing and amount extraction |
 | [NIP-70](https://github.com/nostr-protocol/nips/blob/master/70.md) | Protected events | Protected event detection via `isProtected()` |
-| [NIP-98](https://github.com/nostr-protocol/nips/blob/master/98.md) | HTTP auth | Kind 27235 validation: signature, URL, method, payload hash, timestamp tolerance |
+| [NIP-86](https://github.com/nostr-protocol/nips/blob/master/86.md) | Relay management | `Nip86Request`, `Nip86Response` and the `Nip86Method` names |
+| [NIP-98](https://github.com/nostr-protocol/nips/blob/master/98.md) | HTTP auth | Kind 27235 validation: signature, URL, method, payload hash, timestamp tolerance; `NostrAuthHeaderCodec` decodes the `Authorization` header, matching the scheme token without regard to case |
 
-Beyond the NIPs listed above, `EventKind` carries named constants for a broad range of registered kinds (metadata, channels, MLS messaging, polls, cashu wallet events, live events, web pages, and more) together with the replaceable / ephemeral / parameterised-replaceable range boundaries, so consumers can classify kinds the library does not otherwise model.
+Beyond the NIPs listed above, `EventKind` carries named constants for a broad range of registered kinds (metadata, channels, MLS messaging, polls, cashu wallet events, live events, web pages, and more) and `EventKind::category()` answers `EventKindCategory` so consumers can classify a kind the library does not otherwise model.
 
 ## Performance
 
@@ -316,7 +321,7 @@ The pure-PHP fallback is intended for portability and low-exposure client use, n
 This package follows Clean Architecture principles with strict layer separation:
 
 - **Domain Layer**: Pure business logic, immutable entities and value objects (cryptographic library is the sole external dependency, used directly by identity value objects)
-- **Application Layer**: Port interfaces for external service integration
+- **Application Layer**: Port interfaces for external service integration, and the validators that need one (`Nip42Validator`, `Nip98Validator`, each reading an injected clock)
 - **Infrastructure Layer**: Implementations of the domain and application interfaces that reach external technology, grouped by concern (`Crypto/`, `Http/`, `Time/`)
 
 ## Architecture decisions

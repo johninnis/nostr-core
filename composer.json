@@ -16,6 +16,7 @@
         "ext-gmp": "*",
         "ext-intl": "*",
         "ext-mbstring": "*",
+        "ext-openssl": "*",
         "ext-sodium": "*",
         "paragonie/ecc": "^2.5",
         "paragonie/sodium_compat": "^2.5.1"

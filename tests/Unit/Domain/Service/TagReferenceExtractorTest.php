@@ -115,7 +115,7 @@ final class TagReferenceExtractorTest extends TestCase
             $this->tag('challenge', 'server-challenge-token'),
         ]));
 
-        $this->assertSame(['server-challenge-token'], $references->getChallenges());
+        $this->assertSame(['server-challenge-token'], $references->getChallenges()->toStrings());
     }
 
     public function testCoordinatesPreserveDocumentOrderAcrossAddressableAndQuoteTags(): void
@@ -150,7 +150,7 @@ final class TagReferenceExtractorTest extends TestCase
         $this->assertCount(1, $references->getQuotes());
         $this->assertCount(1, $references->getAddressable());
         $this->assertCount(1, $references->getRelays());
-        $this->assertSame(['token'], $references->getChallenges());
+        $this->assertSame(['token'], $references->getChallenges()->toStrings());
     }
 
     public function testMalformedValuesAreSkipped(): void
@@ -192,6 +192,6 @@ final class TagReferenceExtractorTest extends TestCase
         $this->assertCount(0, $references->getQuotes());
         $this->assertCount(0, $references->getAddressable());
         $this->assertCount(0, $references->getRelays());
-        $this->assertSame([], $references->getChallenges());
+        $this->assertSame([], $references->getChallenges()->toStrings());
     }
 }

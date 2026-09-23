@@ -160,6 +160,21 @@ final class TimestampTest extends TestCase
         $this->assertSame(0, $earlier->differenceInSeconds($earlier));
     }
 
+    public function testHasPassedAtIsTrueWhenTheReferenceIsLater(): void
+    {
+        $this->assertTrue(Timestamp::fromInt(100)->hasPassedAt(Timestamp::fromInt(101)));
+    }
+
+    public function testHasPassedAtIsTrueWhenTheReferenceIsTheSameInstant(): void
+    {
+        $this->assertTrue(Timestamp::fromInt(100)->hasPassedAt(Timestamp::fromInt(100)));
+    }
+
+    public function testHasPassedAtIsFalseWhenTheReferenceIsEarlier(): void
+    {
+        $this->assertFalse(Timestamp::fromInt(100)->hasPassedAt(Timestamp::fromInt(99)));
+    }
+
     public function testHasPassedReturnsTrueForPastTimestamp(): void
     {
         $past = Timestamp::fromInt(time() - 3600);

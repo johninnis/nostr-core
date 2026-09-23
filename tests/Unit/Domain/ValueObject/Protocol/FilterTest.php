@@ -13,6 +13,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Filter;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\Hashtag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagFilter;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
@@ -131,7 +132,7 @@ final class FilterTest extends TestCase
     public function testMatchesEventByTag(): void
     {
         $keyPair = KeyMother::alice();
-        $tags = new TagCollection([Tag::hashtag('nostr')]);
+        $tags = new TagCollection([Tag::hashtag(Hashtag::fromString('nostr'))]);
         $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -170,9 +171,9 @@ final class FilterTest extends TestCase
         $keyPair = KeyMother::alice();
         $tags = [];
         for ($i = 0; $i < 1000; ++$i) {
-            $tags[] = Tag::hashtag("noise{$i}");
+            $tags[] = Tag::hashtag(Hashtag::fromString("noise{$i}"));
         }
-        $tags[] = Tag::hashtag('target');
+        $tags[] = Tag::hashtag(Hashtag::fromString('target'));
 
         $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
@@ -190,7 +191,7 @@ final class FilterTest extends TestCase
         $keyPair = KeyMother::alice();
         $pubkeyHex = str_repeat('a', 64);
         $tags = new TagCollection([
-            Tag::hashtag('nostr'),
+            Tag::hashtag(Hashtag::fromString('nostr')),
             Tag::create('p', $pubkeyHex),
         ]);
         $event = EventMother::fromRumour(new Rumour(
@@ -232,7 +233,7 @@ final class FilterTest extends TestCase
     public function testMatchesEventWithMultipleValuesInSameTagType(): void
     {
         $keyPair = KeyMother::alice();
-        $tags = new TagCollection([Tag::hashtag('nostr')]);
+        $tags = new TagCollection([Tag::hashtag(Hashtag::fromString('nostr'))]);
         $event = EventMother::fromRumour(new Rumour(
             $keyPair->getPublicKey(),
             Timestamp::now(),
@@ -969,5 +970,44 @@ final class FilterTest extends TestCase
 
         $this->assertNotNull($restored);
         $this->assertSame([], $restored->toArray());
+    }
+
+    public function testTryFromJsonRoundTripsWhatToStringProduces(): void
+    {
+        $filter = Filter::tryFromArray(['kinds' => [1], 'limit' => 10]) ?? self::fail('filter did not parse');
+
+        $restored = Filter::tryFromJson((string) $filter);
+
+        $this->assertNotNull($restored);
+        $this->assertSame($filter->toArray(), $restored->toArray());
+    }
+
+    public function testTryFromJsonReturnsNullOnMalformedJson(): void
+    {
+        $this->assertNull(Filter::tryFromJson('{not json'));
+    }
+
+    public function testTryFromJsonReturnsNullOnJsonThatIsNotAnObject(): void
+    {
+        $this->assertNull(Filter::tryFromJson('"a string"'));
+    }
+
+    public function testAJsonListIsNotAFilter(): void
+    {
+        $this->assertNull(Filter::tryFromJson('["REQ","sub"]'));
+        $this->assertNull(Filter::tryFromJson('[1,2]'));
+    }
+
+    public function testAnEmptyJsonObjectIsTheFilterThatMatchesEverything(): void
+    {
+        $filter = Filter::tryFromJson('{}');
+
+        $this->assertNotNull($filter);
+        $this->assertSame([], $filter->toArray());
+    }
+
+    public function testATryFromArrayListIsRefused(): void
+    {
+        $this->assertNull(Filter::tryFromArray(['REQ', 'sub']));
     }
 }

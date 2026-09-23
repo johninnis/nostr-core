@@ -21,6 +21,8 @@ final readonly class Filter implements JsonSerializable, Stringable
 {
     public const int MAX_VALUES_PER_FIELD = 1000;
 
+    public const int MAX_LIMIT = 5000;
+
     /** @var list<string>|null */
     private ?array $searchTerms;
 
@@ -36,7 +38,7 @@ final readonly class Filter implements JsonSerializable, Stringable
         private ?string $search = null,
     ) {
         if (!self::isValidLimit($this->limit)) {
-            throw new InvalidArgumentException('Limit must be between 0 and 5000');
+            throw new InvalidArgumentException('Limit must be between 0 and '.self::MAX_LIMIT);
         }
 
         if (!self::areTimestampsInOrder($this->since, $this->until)) {
@@ -71,7 +73,7 @@ final readonly class Filter implements JsonSerializable, Stringable
 
     private static function isValidLimit(?int $limit): bool
     {
-        return null === $limit || ($limit >= 0 && $limit <= 5000);
+        return null === $limit || ($limit >= 0 && $limit <= self::MAX_LIMIT);
     }
 
     public function matches(Event $event): bool
@@ -295,6 +297,14 @@ final readonly class Filter implements JsonSerializable, Stringable
         return $this->toArray() ?: new stdClass();
     }
 
+    public static function tryFromJson(string $json): ?self
+    {
+        $data = JsonWireFormat::decodeArray($json);
+
+        return null === $data ? null : self::tryFromArray($data);
+    }
+
+    // Deliberate: a non-empty JSON list is refused, because a filter is an object and a list would otherwise match every key lookup with nothing and parse as the empty filter, which matches every event
     public static function tryFromArray(mixed $value): ?self
     {
         if (!is_array($value) && !$value instanceof stdClass) {
@@ -302,6 +312,10 @@ final readonly class Filter implements JsonSerializable, Stringable
         }
 
         $data = (array) $value;
+
+        if ([] !== $data && array_is_list($data)) {
+            return null;
+        }
 
         $tags = TagFilter::tryFromArray($data);
         if (null === $tags) {

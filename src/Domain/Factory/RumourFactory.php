@@ -13,6 +13,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\FileMetadata;
 use Innis\Nostr\Core\Domain\ValueObject\Content\LongformMetadata;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Challenge;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Nip98Request;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
@@ -142,11 +143,11 @@ final class RumourFactory
     public static function createAuth(
         PublicKey $pubkey,
         RelayUrl $relayUrl,
-        string $challenge,
+        Challenge $challenge,
     ): Rumour {
         $tags = new TagCollection([
             Tag::create(TagType::RELAY, (string) $relayUrl),
-            Tag::create(TagType::CHALLENGE, $challenge),
+            Tag::create(TagType::CHALLENGE, (string) $challenge),
         ]);
 
         return self::createCustomKind($pubkey, EventKind::fromInt(EventKind::CLIENT_AUTH), EventContent::fromString(''), $tags);

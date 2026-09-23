@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Content;
 
+use Innis\Nostr\Core\Domain\Collection\HashtagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Content\LongformMetadata;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Tests\Support\TagCollectionMother;
@@ -32,7 +33,7 @@ final class LongformMetadataTest extends TestCase
         $this->assertSame('https://example.com/image.jpg', $metadata->getImage());
         $this->assertNotNull($metadata->getPublishedAt());
         $this->assertSame(1700000000, $metadata->getPublishedAt()->toInt());
-        $this->assertSame(['nostr', 'protocol'], $metadata->getTopics());
+        $this->assertSame(['nostr', 'protocol'], $metadata->getTopics()->toStrings());
     }
 
     public function testTryFromTagCollectionWithOnlyIdentifier(): void
@@ -49,7 +50,7 @@ final class LongformMetadataTest extends TestCase
         $this->assertNull($metadata->getSummary());
         $this->assertNull($metadata->getImage());
         $this->assertNull($metadata->getPublishedAt());
-        $this->assertSame([], $metadata->getTopics());
+        $this->assertSame([], $metadata->getTopics()->toStrings());
     }
 
     public function testReturnsNullWhenIdentifierMissing(): void
@@ -70,7 +71,7 @@ final class LongformMetadataTest extends TestCase
             'Summary',
             'https://example.com/img.jpg',
             Timestamp::fromInt(1700000000),
-            ['nostr', 'dev']
+            HashtagCollection::fromStrings(['nostr', 'dev'])
         );
 
         $array = $original->toArray();
@@ -95,12 +96,12 @@ final class LongformMetadataTest extends TestCase
 
         $this->assertNotNull($restored);
         $this->assertNull($restored->getPublishedAt());
-        $this->assertSame(['ok', 'fine'], $restored->getTopics());
+        $this->assertSame(['ok', 'fine'], $restored->getTopics()->toStrings());
     }
 
     public function testToArrayFromArrayRoundTripWithNulls(): void
     {
-        $original = new LongformMetadata('slug', null, null, null, null, []);
+        $original = new LongformMetadata('slug', null, null, null, null, new HashtagCollection());
 
         $array = $original->toArray();
         $restored = LongformMetadata::tryFromArray($array);
@@ -111,9 +112,9 @@ final class LongformMetadataTest extends TestCase
 
     public function testEquals(): void
     {
-        $a = new LongformMetadata('slug', 'Title', null, null, null, ['nostr']);
-        $b = new LongformMetadata('slug', 'Title', null, null, null, ['nostr']);
-        $c = new LongformMetadata('slug', 'Different', null, null, null, ['nostr']);
+        $a = new LongformMetadata('slug', 'Title', null, null, null, HashtagCollection::fromStrings(['nostr']));
+        $b = new LongformMetadata('slug', 'Title', null, null, null, HashtagCollection::fromStrings(['nostr']));
+        $c = new LongformMetadata('slug', 'Different', null, null, null, HashtagCollection::fromStrings(['nostr']));
 
         $this->assertTrue($a->equals($b));
         $this->assertFalse($a->equals($c));

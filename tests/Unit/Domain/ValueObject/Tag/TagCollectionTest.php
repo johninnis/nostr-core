@@ -7,7 +7,9 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Tag;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Service\ReplyChainAnalyser;
 use Innis\Nostr\Core\Domain\Service\TagReferenceExtractor;
+use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\Hashtag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Tests\Support\TagCollectionMother;
@@ -350,8 +352,7 @@ final class TagCollectionTest extends TestCase
 
         $references = TagReferenceExtractor::extract($tags);
 
-        $this->assertCount(1, $references->getChallenges());
-        $this->assertEquals('abc123', $references->getChallenges()[0]);
+        $this->assertSame(['abc123'], $references->getChallenges()->toStrings());
     }
 
     public function testAnalyseReplyChainForRootPost(): void
@@ -469,7 +470,7 @@ final class TagCollectionTest extends TestCase
         $this->assertEquals('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', $parentEvent->getAuthor()->toHex());
     }
 
-    public function testAnalyseReplyChainSkipsInvalidEventIds(): void
+    public function testAnEventTagThatDoesNotParseIsNotAReply(): void
     {
         $tags = TagCollectionMother::fromRaw([
             ['e', 'invalid_hex', 'wss://relay.com'],
@@ -478,7 +479,7 @@ final class TagCollectionTest extends TestCase
 
         $replyChain = ReplyChainAnalyser::analyse($tags);
 
-        $this->assertTrue($replyChain->isReply());
+        $this->assertFalse($replyChain->isReply());
         $this->assertNull($replyChain->getRootEvent());
         $this->assertNull($replyChain->getParentEvent());
     }
@@ -691,5 +692,34 @@ final class TagCollectionTest extends TestCase
         $this->assertTrue($replyChain->isRootPost());
         $this->assertNull($replyChain->getRootEvent());
         $this->assertNull($replyChain->getParentEvent());
+    }
+
+    public function testGetHashtagsReadsBackTheLowercasedTagValues(): void
+    {
+        $tags = new TagCollection([
+            Tag::hashtag(Hashtag::fromString('NoStR')),
+            Tag::hashtag(Hashtag::fromString('bitcoin')),
+        ]);
+
+        $this->assertSame(['nostr', 'bitcoin'], $tags->getHashtags()->toStrings());
+    }
+
+    public function testGetHashtagsIsEmptyWhenThereAreNoHashtagTags(): void
+    {
+        $this->assertCount(0, new TagCollection()->getHashtags());
+    }
+
+    public function testGetHashtagsAnswersTheSameAsExtractingThemFromContent(): void
+    {
+        $tags = new TagCollection([
+            Tag::hashtag(Hashtag::fromString('Nostr')),
+            Tag::hashtag(Hashtag::fromString('nostr')),
+            Tag::hashtag(Hashtag::fromString('NOSTR')),
+        ]);
+
+        $this->assertSame(
+            EventContent::fromString('#Nostr #nostr #NOSTR')->extractHashtags()->toStrings(),
+            $tags->getHashtags()->toStrings(),
+        );
     }
 }

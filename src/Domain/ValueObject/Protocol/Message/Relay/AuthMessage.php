@@ -5,17 +5,14 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay;
 
 use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Challenge;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
-use InvalidArgumentException;
 use Override;
 
 final readonly class AuthMessage extends RelayMessage
 {
-    public function __construct(private string $challenge)
+    public function __construct(private Challenge $challenge)
     {
-        if ('' === $this->challenge) {
-            throw new InvalidArgumentException('AUTH challenge cannot be empty');
-        }
     }
 
     #[Override]
@@ -24,7 +21,7 @@ final readonly class AuthMessage extends RelayMessage
         return RelayMessageType::Auth;
     }
 
-    public function getChallenge(): string
+    public function getChallenge(): Challenge
     {
         return $this->challenge;
     }
@@ -35,7 +32,7 @@ final readonly class AuthMessage extends RelayMessage
     #[Override]
     public function toArray(): array
     {
-        return [$this->type()->value, $this->challenge];
+        return [$this->type()->value, (string) $this->challenge];
     }
 
     /**
@@ -48,11 +45,13 @@ final readonly class AuthMessage extends RelayMessage
             return null;
         }
 
-        if (!is_string($data[1]) || '' === $data[1]) {
+        $challenge = Challenge::tryFromString($data[1]);
+
+        if (null === $challenge) {
             return null;
         }
 
-        $parsed = new self($data[1]);
+        $parsed = new self($challenge);
 
         return $parsed->type()->value === $data[0] ? $parsed : null;
     }

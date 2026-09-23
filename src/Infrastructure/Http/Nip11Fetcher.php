@@ -21,7 +21,7 @@ final readonly class Nip11Fetcher implements Nip11FetcherInterface
     public function fetchNip11Info(RelayUrl $relayUrl): ?Nip11Info
     {
         $data = $this->httpService->getJson($relayUrl->toHttpUrl(), [
-            'Accept' => 'application/nostr+json',
+            'Accept' => Nip11Info::MEDIA_TYPE,
             'User-Agent' => UserAgent::DEFAULT,
         ]);
 

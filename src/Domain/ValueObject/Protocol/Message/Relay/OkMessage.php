@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay;
 
+use Innis\Nostr\Core\Domain\Enum\ReasonPrefix;
 use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
@@ -39,9 +40,15 @@ final readonly class OkMessage extends RelayMessage
         return $this->message;
     }
 
+    // Deliberate: parsed from the message on demand, and the only per-prefix predicate is the one a resend loop asks — see ADR-0065
+    public function getReasonPrefix(): ?ReasonPrefix
+    {
+        return ReasonPrefix::tryFromMessage($this->message);
+    }
+
     public function isAuthRequired(): bool
     {
-        return !$this->accepted && str_starts_with($this->message, 'auth-required:');
+        return !$this->accepted && ReasonPrefix::AuthRequired === $this->getReasonPrefix();
     }
 
     /**

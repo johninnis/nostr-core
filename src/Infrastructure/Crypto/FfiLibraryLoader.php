@@ -8,6 +8,10 @@ use FFI;
 
 final class FfiLibraryLoader
 {
+    private function __construct()
+    {
+    }
+
     /**
      * @param list<string> $libraryNames
      */

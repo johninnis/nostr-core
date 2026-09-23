@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol;
 
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
+use Innis\Nostr\Core\Domain\Service\ReplyChainAnalyser;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\Hashtag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Tests\Fake\FakeSignatureService;
@@ -206,7 +208,7 @@ final class RumourTest extends TestCase
 
     public function testWithTagsReturnsNewRumourWithReplacedTags(): void
     {
-        $newTags = new TagCollection([Tag::hashtag('nostr')]);
+        $newTags = new TagCollection([Tag::hashtag(Hashtag::fromString('nostr'))]);
         $updated = $this->rumour->withTags($newTags);
 
         $this->assertTrue($this->rumour->getTags()->isEmpty());
@@ -215,7 +217,7 @@ final class RumourTest extends TestCase
 
     public function testWithTagsPreservesOtherFields(): void
     {
-        $updated = $this->rumour->withTags(new TagCollection([Tag::hashtag('nostr')]));
+        $updated = $this->rumour->withTags(new TagCollection([Tag::hashtag(Hashtag::fromString('nostr'))]));
 
         $this->assertTrue($updated->getPubkey()->equals($this->rumour->getPubkey()));
         $this->assertTrue($updated->getKind()->equals($this->rumour->getKind()));
@@ -228,30 +230,55 @@ final class RumourTest extends TestCase
         $this->assertFalse($this->rumour->isReply());
     }
 
+    public function testAMentionMarkedEventTagIsNotAReply(): void
+    {
+        $rumour = $this->rumourWithKindAndContent(EventKind::TEXT_NOTE, 'mention', [['e', str_repeat('ab', 32), '', 'mention']]);
+
+        $this->assertFalse($rumour->isReply());
+    }
+
+    public function testAnEventTagThatDoesNotParseIsNotAReply(): void
+    {
+        $rumour = $this->rumourWithKindAndContent(EventKind::TEXT_NOTE, 'reply', [['e', 'not-a-valid-event-id']]);
+
+        $this->assertFalse($rumour->isReply());
+    }
+
+    public function testIsReplyAgreesWithTheReplyChainAnalyser(): void
+    {
+        $tags = [['e', str_repeat('ab', 32), '', 'mention']];
+        $rumour = $this->rumourWithKindAndContent(EventKind::TEXT_NOTE, 'mention', $tags);
+
+        $this->assertSame(
+            ReplyChainAnalyser::analyse($rumour->getTags(), $rumour->getKind())->isReply(),
+            $rumour->isReply(),
+        );
+    }
+
     public function testIsReplyReturnsTrueForEventWithEventTagsNoMarker(): void
     {
-        $rumour = $this->rumourWithKindAndContent(EventKind::TEXT_NOTE, 'reply', [['e', '1234567890abcdef']]);
+        $rumour = $this->rumourWithKindAndContent(EventKind::TEXT_NOTE, 'reply', [['e', '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef']]);
 
         $this->assertTrue($rumour->isReply());
     }
 
     public function testIsReplyReturnsTrueForRootMarker(): void
     {
-        $rumour = $this->rumourWithKindAndContent(EventKind::TEXT_NOTE, 'reply', [['e', '1234567890abcdef', '', 'root']]);
+        $rumour = $this->rumourWithKindAndContent(EventKind::TEXT_NOTE, 'reply', [['e', '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef', '', 'root']]);
 
         $this->assertTrue($rumour->isReply());
     }
 
     public function testIsReplyReturnsTrueForReplyMarker(): void
     {
-        $rumour = $this->rumourWithKindAndContent(EventKind::TEXT_NOTE, 'reply', [['e', '1234567890abcdef', '', 'reply']]);
+        $rumour = $this->rumourWithKindAndContent(EventKind::TEXT_NOTE, 'reply', [['e', '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef', '', 'reply']]);
 
         $this->assertTrue($rumour->isReply());
     }
 
     public function testIsReplyReturnsFalseForOnlyMentionMarker(): void
     {
-        $rumour = $this->rumourWithKindAndContent(EventKind::TEXT_NOTE, 'mention', [['e', '1234567890abcdef', '', 'mention']]);
+        $rumour = $this->rumourWithKindAndContent(EventKind::TEXT_NOTE, 'mention', [['e', '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef', '', 'mention']]);
 
         $this->assertFalse($rumour->isReply());
     }
@@ -259,7 +286,7 @@ final class RumourTest extends TestCase
     public function testIsReplyReturnsTrueForMixedMentionAndRootMarkers(): void
     {
         $rumour = $this->rumourWithKindAndContent(EventKind::TEXT_NOTE, 'reply', [
-            ['e', '1234567890abcdef', '', 'root'],
+            ['e', '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef', '', 'root'],
             ['e', 'fedcba0987654321', '', 'mention'],
         ]);
 
@@ -268,7 +295,7 @@ final class RumourTest extends TestCase
 
     public function testIsReplyReturnsTrueForEmptyMarker(): void
     {
-        $rumour = $this->rumourWithKindAndContent(EventKind::TEXT_NOTE, 'reply', [['e', '1234567890abcdef', 'wss://relay.example.com', '']]);
+        $rumour = $this->rumourWithKindAndContent(EventKind::TEXT_NOTE, 'reply', [['e', '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef', 'wss://relay.example.com', '']]);
 
         $this->assertTrue($rumour->isReply());
     }
@@ -339,6 +366,69 @@ final class RumourTest extends TestCase
         $rumour = $this->rumourWithKindAndContent(1, 'test', [['expiration', (string) (time() + 3600)]]);
 
         $this->assertFalse($rumour->isExpired());
+    }
+
+    public function testIsExpiredAtIsTrueWhenTheReferenceIsPastTheExpiry(): void
+    {
+        $rumour = $this->rumourWithKindAndContent(1, 'test', [['expiration', '100']]);
+
+        $this->assertTrue($rumour->isExpiredAt(Timestamp::fromInt(101)));
+    }
+
+    public function testIsExpiredAtIsTrueAtTheExpiryInstant(): void
+    {
+        $rumour = $this->rumourWithKindAndContent(1, 'test', [['expiration', '100']]);
+
+        $this->assertTrue($rumour->isExpiredAt(Timestamp::fromInt(100)));
+    }
+
+    public function testIsExpiredAtIsFalseBeforeTheExpiry(): void
+    {
+        $rumour = $this->rumourWithKindAndContent(1, 'test', [['expiration', '100']]);
+
+        $this->assertFalse($rumour->isExpiredAt(Timestamp::fromInt(99)));
+    }
+
+    public function testAnyStatedExpiryThatHasPassedExpiresTheEvent(): void
+    {
+        $rumour = $this->rumourWithKindAndContent(1, 'test', [['expiration', '9999999999'], ['expiration', '100']]);
+
+        $this->assertTrue($rumour->isExpiredAt(Timestamp::fromInt(101)));
+    }
+
+    public function testTheAnswerDoesNotDependOnTheOrderTheExpiriesWereWritten(): void
+    {
+        $reference = Timestamp::fromInt(101);
+        $laterFirst = $this->rumourWithKindAndContent(1, 'test', [['expiration', '9999999999'], ['expiration', '100']]);
+        $earlierFirst = $this->rumourWithKindAndContent(1, 'test', [['expiration', '100'], ['expiration', '9999999999']]);
+
+        $this->assertSame($laterFirst->isExpiredAt($reference), $earlierFirst->isExpiredAt($reference));
+    }
+
+    public function testSeveralFutureExpiriesLeaveTheEventLive(): void
+    {
+        $rumour = $this->rumourWithKindAndContent(1, 'test', [['expiration', '8000000000'], ['expiration', '9000000000']]);
+
+        $this->assertFalse($rumour->isExpiredAt(Timestamp::fromInt(101)));
+    }
+
+    public function testAnUnreadableExpiryBesideAPassedOneStillExpiresTheEvent(): void
+    {
+        $rumour = $this->rumourWithKindAndContent(1, 'test', [['expiration', 'soon'], ['expiration', '100']]);
+
+        $this->assertTrue($rumour->isExpiredAt(Timestamp::fromInt(101)));
+    }
+
+    public function testIsExpiredAtIsFalseWithNoExpirationTag(): void
+    {
+        $this->assertFalse($this->rumour->isExpiredAt(Timestamp::fromInt(PHP_INT_MAX)));
+    }
+
+    public function testIsExpiredAtIsFalseForAnUnparseableExpirationValue(): void
+    {
+        $rumour = $this->rumourWithKindAndContent(1, 'test', [['expiration', 'soon']]);
+
+        $this->assertFalse($rumour->isExpiredAt(Timestamp::fromInt(PHP_INT_MAX)));
     }
 
     public function testIsExpiredReturnsFalseForNegativeExpirationValue(): void

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay;
 
+use Innis\Nostr\Core\Domain\Enum\ReasonPrefix;
 use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
@@ -31,6 +32,12 @@ final readonly class ClosedMessage extends RelayMessage
     public function getMessage(): string
     {
         return $this->message;
+    }
+
+    // Deliberate: parsed from the message on demand rather than stored beside it, so the prefix can never disagree with the text the peer sent — see ADR-0065
+    public function getReasonPrefix(): ?ReasonPrefix
+    {
+        return ReasonPrefix::tryFromMessage($this->message);
     }
 
     /**

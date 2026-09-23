@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol\Message\Relay;
 
+use Innis\Nostr\Core\Domain\Enum\ReasonPrefix;
 use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\ClosedMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
@@ -38,6 +39,26 @@ final class ClosedMessageTest extends TestCase
         );
 
         $this->assertSame('error: too many subscriptions', $message->getMessage());
+    }
+
+    public function testGetReasonPrefixReadsTheMachineReadablePrefix(): void
+    {
+        $message = new ClosedMessage(
+            SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
+            ReasonPrefix::AuthRequired->format('authentication required'),
+        );
+
+        $this->assertSame(ReasonPrefix::AuthRequired, $message->getReasonPrefix());
+    }
+
+    public function testGetReasonPrefixIsNullWithoutAPrefix(): void
+    {
+        $message = new ClosedMessage(
+            SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
+            'closed by relay',
+        );
+
+        $this->assertNull($message->getReasonPrefix());
     }
 
     public function testToArrayReturnsCorrectFormat(): void

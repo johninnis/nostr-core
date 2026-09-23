@@ -93,6 +93,11 @@ final class TagCollection extends TypedCollection
         return EventIdCollection::fromHexValues($this->getValuesByType(TagType::event()));
     }
 
+    public function getHashtags(): HashtagCollection
+    {
+        return HashtagCollection::fromStrings($this->getValuesByType(TagType::hashtag()))->unique();
+    }
+
     public function getFirstValueByType(TagType $type): ?string
     {
         return $this->getValuesByType($type)[0] ?? null;

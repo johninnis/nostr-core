@@ -9,7 +9,9 @@ use Innis\Nostr\Core\Domain\Failure\AuthHeaderDecodeFailure;
 
 final class NostrAuthHeaderCodec
 {
-    public const string HEADER_PREFIX = 'Nostr ';
+    public const string SCHEME = 'Nostr';
+
+    public const string HEADER_PREFIX = self::SCHEME.' ';
     public const int MAX_HEADER_LENGTH = 4096;
     private const int JSON_MAX_DEPTH = 16;
 
@@ -23,7 +25,8 @@ final class NostrAuthHeaderCodec
             return AuthHeaderDecodeFailure::TooLong;
         }
 
-        if (!str_starts_with($authHeader, self::HEADER_PREFIX)) {
+        // Deliberate: the scheme token is case-insensitive per RFC 9110, is public, and proves nothing on its own — see ADR-0073
+        if (0 !== strncasecmp($authHeader, self::HEADER_PREFIX, strlen(self::HEADER_PREFIX))) {
             return AuthHeaderDecodeFailure::BadFormat;
         }
 
