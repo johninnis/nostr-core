@@ -44,6 +44,9 @@ final readonly class TagType implements Stringable
     public const string PAYLOAD = 'payload';
     public const string EXPIRATION = 'expiration';
     public const string PROTECTED = '-';
+    public const string SHA256 = 'x';
+    public const string ORIGINAL_SHA256 = 'ox';
+    public const string SERVER = 'server';
     public const string URL = 'u';
     public const string IMAGE = 'image';
     public const string SUMMARY = 'summary';
@@ -194,6 +197,21 @@ final readonly class TagType implements Stringable
     public static function protected(): self
     {
         return new self(self::PROTECTED);
+    }
+
+    public static function sha256(): self
+    {
+        return new self(self::SHA256);
+    }
+
+    public static function originalSha256(): self
+    {
+        return new self(self::ORIGINAL_SHA256);
+    }
+
+    public static function server(): self
+    {
+        return new self(self::SERVER);
     }
 
     public static function fromString(string $type): self

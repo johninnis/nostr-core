@@ -95,6 +95,13 @@ final class TagTypeTest extends TestCase
         $this->assertSame('-', (string) TagType::protected());
     }
 
+    public function testBlobFactoryMethods(): void
+    {
+        $this->assertSame('x', (string) TagType::sha256());
+        $this->assertSame('ox', (string) TagType::originalSha256());
+        $this->assertSame('server', (string) TagType::server());
+    }
+
     public function testCanCreateCustomTagTypes(): void
     {
         $customType = TagType::fromString('custom');

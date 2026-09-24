@@ -173,10 +173,10 @@ final readonly class FileMetadata
             $fields[] = ['m', $this->mimeType];
         }
         if (null !== $this->hash) {
-            $fields[] = ['x', $this->hash];
+            $fields[] = [TagType::SHA256, $this->hash];
         }
         if (null !== $this->originalHash) {
-            $fields[] = ['ox', $this->originalHash];
+            $fields[] = [TagType::ORIGINAL_SHA256, $this->originalHash];
         }
         if (null !== $this->size) {
             $fields[] = ['size', (string) $this->size];
@@ -221,8 +221,8 @@ final readonly class FileMetadata
         return new self(
             $url,
             self::firstString($fields, 'm'),
-            self::firstString($fields, 'x'),
-            self::firstString($fields, 'ox'),
+            self::firstString($fields, TagType::SHA256),
+            self::firstString($fields, TagType::ORIGINAL_SHA256),
             null !== $size && is_numeric($size) ? (int) $size : null,
             self::firstString($fields, 'dim'),
             self::firstString($fields, 'blurhash'),
