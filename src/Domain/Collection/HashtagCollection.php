@@ -45,4 +45,19 @@ final class HashtagCollection extends TypedCollection
     {
         return $this->toStrings() === $other->toStrings();
     }
+
+    public function contains(Hashtag $hashtag): bool
+    {
+        return $this->containsByKey(self::keyOf($hashtag), self::keyOf(...));
+    }
+
+    public function intersect(self $other): self
+    {
+        return new self($this->retainByKey($other, self::keyOf(...), true));
+    }
+
+    public function diff(self $other): self
+    {
+        return new self($this->retainByKey($other, self::keyOf(...), false));
+    }
 }

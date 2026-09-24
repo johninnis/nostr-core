@@ -57,4 +57,33 @@ final class HashtagCollectionTest extends TestCase
     {
         $this->assertSame(['b', 'a'], HashtagCollection::fromStrings(['b', 'a', 'B'])->unique()->toStrings());
     }
+
+    public function testContainsFindsAHashtagWhateverCaseItWasWrittenIn(): void
+    {
+        $this->assertTrue(HashtagCollection::fromStrings(['nostr'])->contains(Hashtag::fromString('NOSTR')));
+    }
+
+    public function testContainsIsFalseForAHashtagNotInTheCollection(): void
+    {
+        $this->assertFalse(HashtagCollection::fromStrings(['nostr'])->contains(Hashtag::fromString('bitcoin')));
+    }
+
+    public function testDiffKeepsOnlyWhatTheOtherDoesNotHave(): void
+    {
+        $collection = HashtagCollection::fromStrings(['nostr', 'bitcoin'])->diff(HashtagCollection::fromStrings(['NOSTR']));
+
+        $this->assertSame(['bitcoin'], $collection->toStrings());
+    }
+
+    public function testDiffWithAnEmptyCollectionKeepsEverything(): void
+    {
+        $this->assertSame(['nostr'], HashtagCollection::fromStrings(['nostr'])->diff(new HashtagCollection())->toStrings());
+    }
+
+    public function testIntersectKeepsOnlyWhatBothHave(): void
+    {
+        $collection = HashtagCollection::fromStrings(['nostr', 'bitcoin'])->intersect(HashtagCollection::fromStrings(['Bitcoin', 'lightning']));
+
+        $this->assertSame(['bitcoin'], $collection->toStrings());
+    }
 }
