@@ -17,4 +17,17 @@ final class Base64Codec
 
         return false !== $decoded && base64_encode($decoded) === $encoded ? $decoded : null;
     }
+
+    public static function encodeUnpaddedUrl(string $bytes): string
+    {
+        return rtrim(strtr(base64_encode($bytes), '+/', '-_'), '=');
+    }
+
+    // Deliberate: read through the standard decoder, then kept only when it re-encodes to itself, as tryDecodeCanonical is — see nostr-adrs ADR-0111
+    public static function tryDecodeCanonicalUnpaddedUrl(string $encoded): ?string
+    {
+        $decoded = base64_decode(strtr($encoded, '-_', '+/'), true);
+
+        return false !== $decoded && self::encodeUnpaddedUrl($decoded) === $encoded ? $decoded : null;
+    }
 }

@@ -124,6 +124,37 @@ final class NostrAuthHeaderCodecTest extends TestCase
         $this->assertEquals($event, NostrAuthHeaderCodec::decode(NostrAuthHeaderCodec::HEADER_PREFIX.base64_encode($json)));
     }
 
+    public function testEncodeBlossomDecodeBlossomRoundTrip(): void
+    {
+        $event = $this->signedEvent('Upload Blob (~10 MiB, ~3 s)');
+
+        $this->assertEquals($event, NostrAuthHeaderCodec::decodeBlossom(NostrAuthHeaderCodec::encodeBlossom($event) ?? ''));
+    }
+
+    public function testDecodeBlossomReadsTheHeaderEncodeWrites(): void
+    {
+        $event = $this->signedEvent('Upload Blob (~10 MiB, ~3 s)');
+
+        $this->assertEquals($event, NostrAuthHeaderCodec::decodeBlossom(NostrAuthHeaderCodec::encode($event) ?? ''));
+    }
+
+    public function testDecodeBlossomRejectsAnOversizeHeader(): void
+    {
+        $header = NostrAuthHeaderCodec::HEADER_PREFIX.str_repeat('A', NostrAuthHeaderCodec::MAX_HEADER_LENGTH);
+
+        self::assertSame(AuthHeaderDecodeFailure::TooLong, NostrAuthHeaderCodec::decodeBlossom($header));
+    }
+
+    public function testEncodeBlossomRefusesAHeaderDecodeBlossomWouldRefuseAsTooLong(): void
+    {
+        $this->assertNull(NostrAuthHeaderCodec::encodeBlossom($this->signedEvent(str_repeat('a', NostrAuthHeaderCodec::MAX_HEADER_LENGTH))));
+    }
+
+    public function testDecodeBlossomRejectsMissingPrefix(): void
+    {
+        self::assertSame(AuthHeaderDecodeFailure::BadFormat, NostrAuthHeaderCodec::decodeBlossom('Bearer token'));
+    }
+
     private function signedEvent(string $content = ''): Event
     {
         $keyPair = KeyMother::alice();
