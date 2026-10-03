@@ -49,7 +49,7 @@ Declared under `suggest` in `composer.json`:
 - `libsecp256k1` — when present, Schnorr signing, verification, public-key derivation, and NIP-44 ECDH use the native C library (reached via `ext-ffi`) for significantly faster performance. Without it, the library falls back to a pure-PHP implementation via `paragonie/ecc` automatically. That fallback is **not constant-time**, so installing the native library is a security measure as well as a performance one for any server-side or long-lived signer; see [Security](#security).
 - `libsodium` — required by NIP-49 scrypt derivation, which calls `crypto_pwhash_scryptsalsa208sha256_ll` through `ext-ffi`. Typically already installed wherever `ext-sodium` is. A non-CLI SAPI under PHP's default `ffi.enable=preload` reaches neither library unless the host sets `ffi.enable=true` or preloads this library through `opcache.preload`; see [Native FFI Acceleration](#native-ffi-acceleration).
 
-- **Running the test suite requires `ext-ffi` and `libsecp256k1`**, even though *using* the library does not. The NIP-49 tests need FFI unconditionally (see [ADR-0039](docs/adr/0039-nip49-scrypt-requires-ffi-with-no-pure-php-fallback.md)) and the native-path crypto tests need the shared library. On a host without them, run `composer test-no-ffi`, which excludes the `ffi` group and is the same command CI runs to verify the pure-PHP deployment.
+- **Running the test suite requires `ext-ffi` and `libsecp256k1`**, even though *using* the library does not. The NIP-49 tests need FFI unconditionally (see [ADR-0039](docs/adr/0039-nip-49-scrypt-requires-ffi-and-libsodium-with-no-pure-php-fallback.md)) and the native-path crypto tests need the shared library. On a host without them, run `composer test-no-ffi`, which excludes the `ffi` group and is the same command CI runs to verify the pure-PHP deployment.
 
 ## Installation
 
@@ -118,7 +118,7 @@ $plaintext = $cipher->decrypt($ciphertext, $recipientPrivateKey, $senderPublicKe
 
 It is the same capability `GiftWrapper` encrypts with (see [ADR-0109](docs/adr/0109-giftwrapper-takes-a-conversation-cipher-a-signer-and-its-envelope-factory.md)). `Nip44Cipher` underneath takes a `ConversationKey` directly, for a caller that already holds one.
 
-Nonce generation is injected: `Nip44Cipher` accepts an optional `RandomBytesGeneratorInterface`, defaulting to `NativeRandomBytesGenerator` (PHP's `random_bytes`) for production. There is no public `encryptWithNonce` method — see [ADR-0014](docs/adr/0014-nip44cipher-has-no-public-encryptwithnonce.md).
+Nonce generation is injected: `Nip44Cipher` accepts an optional `RandomBytesGeneratorInterface`, defaulting to `NativeRandomBytesGenerator` (PHP's `random_bytes`) for production. There is no public `encryptWithNonce` method — see [ADR-0014](docs/adr/0014-nip44cipher-has-no-public-encryptwithnonce-nonce-generation-stays-behind-a-port.md).
 
 `Nip44Cipher` also takes a maximum plaintext length, defaulting to `Nip44Cipher::DEFAULT_MAX_PLAINTEXT_LENGTH` (262144 bytes, 256 KiB). `encrypt` refuses a longer plaintext, and `decrypt` refuses a payload longer than the base64 length that maximum produces before decoding it. A host that must carry more passes a larger maximum, up to NIP-44's own 4294967295 — see [ADR-0117](docs/adr/0117-nip-44-carries-the-extended-length-prefix-up-to-a-configurable-maximum-that-defaults.md).
 
@@ -218,11 +218,11 @@ $recovered = $adapter->decrypt($decoded, static fn (): string => readPasswordFro
 
 That wipes the library's copy, not yours. A closure returning a variable you still hold — `static fn (): string => $password` — leaves your binding readable after the call, so the `Closure` shape pays off only when it *produces* the password without the caller retaining it: reading a prompt, unsealing it from a keystore, or decrypting it on demand. If you do keep the password in scope, zero it yourself. See [SECURITY.md](SECURITY.md#nip-49-password-as-closure-string).
 
-Build the adapter through `Nip49Cipher::create()`, which probes for libsodium scrypt via `ext-ffi`; the bare constructor (`new Nip49Cipher(...)`) is for dependency injection and tests. NIP-49 has no pure-PHP fallback — see [ADR-0041](docs/adr/0041-nip49-adapters-probe-libsodium-in-create-not-the-constructor.md) and [ADR-0039](docs/adr/0039-nip49-scrypt-requires-ffi-with-no-pure-php-fallback.md).
+Build the adapter through `Nip49Cipher::create()`, which probes for libsodium scrypt via `ext-ffi`; the bare constructor (`new Nip49Cipher(...)`) is for dependency injection and tests. NIP-49 has no pure-PHP fallback — see [ADR-0041](docs/adr/0041-nip-49-adapters-probe-libsodium-in-create-not-the-constructor.md) and [ADR-0039](docs/adr/0039-nip-49-scrypt-requires-ffi-and-libsodium-with-no-pure-php-fallback.md).
 
 ### Secret Key Lifecycle
 
-`PrivateKey` and `ConversationKey` hold their raw bytes inside a `SecretKeyMaterial` value object. Callers that need to clear secret material from memory can call `zero()`; any subsequent operation on that key throws `SecretKeyMaterialZeroedException`. Infrastructure code that genuinely needs raw bytes uses the bounded `expose` callback, which hands the closure the secret bytes and `sodium_memzero`s them when it returns; see [ADR-0028](docs/adr/0028-secretkeymaterial-expose-hands-a-detached-copy-so-the-wipe-is-effective.md):
+`PrivateKey` and `ConversationKey` hold their raw bytes inside a `SecretKeyMaterial` value object. Callers that need to clear secret material from memory can call `zero()`; any subsequent operation on that key throws `SecretKeyMaterialZeroedException`. Infrastructure code that genuinely needs raw bytes uses the bounded `expose` callback, which hands the closure the secret bytes and `sodium_memzero`s them when it returns; see [ADR-0028](docs/adr/0028-secretkeymaterial-expose-hands-the-closure-a-detached-copy-so-the-wipe-is-effective.md):
 
 ```php
 $derived = $privateKey->expose(static function (string $bytes): string {
@@ -251,7 +251,7 @@ The `examples/` directory is covered by PHPStan and php-cs-fixer in CI, like `sr
 
 | NIP | Description | Support |
 |-----|-------------|---------|
-| [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) | Basic protocol flow | Event creation, signing, verification, serialisation, the id computed over JSON that escapes a control character NIP-01 does not name as `\u00XX`, as JSON encoders and the rest of the ecosystem do ([ADR-0123](docs/adr/0123-the-id-serialiser-keeps-json-encodes-control-character-escapes-and-writes-the-line.md)); the machine-readable `ReasonPrefix` on OK and CLOSED replies, read as `error` for a refusal that names none; `EventVersion` to decide which of two replaceable events survives |
+| [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) | Basic protocol flow | Event creation, signing, verification, serialisation, the id computed over JSON that escapes a control character NIP-01 does not name as `\u00XX`, as JSON encoders and the rest of the ecosystem do ([ADR-0123](docs/adr/0123-the-id-serialiser-keeps-json-encode-s-control-character-escapes-and-writes-the-line.md)); the machine-readable `ReasonPrefix` on OK and CLOSED replies, read as `error` for a refusal that names none; `EventVersion` to decide which of two replaceable events survives |
 | [NIP-02](https://github.com/nostr-protocol/nips/blob/master/02.md) | Follow list | Kind 3 with contact list tags |
 | [NIP-04](https://github.com/nostr-protocol/nips/blob/master/04.md) | Encrypted direct messages | **Deprecated — use NIP-44.** Kind 4 with recipient validation; `Nip04Cipher` for AES-256-CBC encrypt/decrypt over a 32-byte ECDH shared secret. Unauthenticated and malleable; both interface methods carry `#[Deprecated]`. Shipped for kind-4 interoperability only — read [SECURITY.md](SECURITY.md#what-this-library-provides) before using it |
 | [NIP-05](https://github.com/nostr-protocol/nips/blob/master/05.md) | DNS-based identity | Identifier parsing and HTTP verification |
@@ -398,7 +398,7 @@ $filters = [Filter::from(kinds: EventKindCollection::fromInts([1]))];
 $key = FilterHasher::hash(...$filters); // lowercase-hex SHA-256
 ```
 
-The canonicalisation contract and the cross-language parity rationale are recorded in [ADR-0020](docs/adr/0020-filterhasher-canonicalises-to-ascii-safe-json-for-cross-language-parity.md); the conformance anchors that lock the two runtimes together are asserted in both packages' test suites.
+The canonicalisation contract and the cross-language parity rationale are recorded in [ADR-0020](docs/adr/0020-filterhasher-canonicalises-to-ascii-safe-json-for-byte-identical-cross-language-hashes.md); the conformance anchors that lock the two runtimes together are asserted in both packages' test suites.
 
 ## License
 
