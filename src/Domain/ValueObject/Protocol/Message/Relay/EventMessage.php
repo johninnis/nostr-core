@@ -6,12 +6,11 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
-use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\PreSerialisedMessageInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
 use Override;
 
-final readonly class EventMessage extends RelayMessage implements PreSerialisedMessageInterface
+final readonly class EventMessage extends RelayMessage
 {
     public function __construct(
         private SubscriptionId $subscriptionId,
@@ -20,7 +19,7 @@ final readonly class EventMessage extends RelayMessage implements PreSerialisedM
     }
 
     #[Override]
-    public function type(): RelayMessageType
+    public static function type(): RelayMessageType
     {
         return RelayMessageType::Event;
     }
@@ -35,56 +34,22 @@ final readonly class EventMessage extends RelayMessage implements PreSerialisedM
         return $this->event;
     }
 
-    /**
-     * @return list<mixed>
-     */
     #[Override]
-    public function toArray(): array
+    protected function toPayload(): array
     {
-        return [$this->type()->value, (string) $this->subscriptionId, $this->event->toArray()];
+        return [(string) $this->subscriptionId, $this->event->toArray()];
     }
 
     #[Override]
-    public function preSerialisedJson(): ?string
+    protected static function tryFromPayload(array $payload): ?static
     {
-        $rawJson = $this->event->getRawJson();
-
-        if (null === $rawJson) {
+        if (count($payload) < 2) {
             return null;
         }
 
-        $subscriptionId = self::encode((string) $this->subscriptionId);
+        $subscriptionId = SubscriptionId::tryFromString($payload[0]);
+        $event = Event::tryFromArray($payload[1]);
 
-        return '["'.$this->type()->value.'",'.$subscriptionId.','.$rawJson.']';
-    }
-
-    /**
-     * @param array<array-key, mixed> $data
-     */
-    #[Override]
-    public static function tryFromArray(array $data): ?static
-    {
-        if (!array_is_list($data) || 3 !== count($data)) {
-            return null;
-        }
-
-        $subscriptionId = SubscriptionId::tryFromString($data[1]);
-
-        if (null === $subscriptionId) {
-            return null;
-        }
-
-        $event = Event::tryFromArray($data[2]);
-
-        if (null === $event) {
-            return null;
-        }
-
-        $parsed = new self(
-            $subscriptionId,
-            $event,
-        );
-
-        return $parsed->type()->value === $data[0] ? $parsed : null;
+        return null === $subscriptionId || null === $event ? null : new self($subscriptionId, $event);
     }
 }

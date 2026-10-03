@@ -70,15 +70,6 @@ final class EventMessageTest extends TestCase
         $this->assertSame($event->getPubkey()->toHex(), $message->getEvent()->getPubkey()->toHex());
     }
 
-    public function testTryFromArrayCapturesRawJson(): void
-    {
-        $event = $this->createEvent();
-
-        $message = EventMessage::tryFromArray(['EVENT', $event->toArray()]) ?? throw new RuntimeException('Expected a valid message');
-
-        $this->assertSame($event->toJson(), $message->getEvent()->getRawJson());
-    }
-
     public function testTryFromArrayReturnsNullOnInvalidFormat(): void
     {
         $this->assertNull(EventMessage::tryFromArray(['EVENT']));
@@ -108,12 +99,12 @@ final class EventMessageTest extends TestCase
 
     private function createEvent(): Event
     {
-        return EventMother::fromRumour(new Rumour(
+        return EventMother::fromRumour(Rumour::draft(
             self::createPublicKey(),
-            Timestamp::fromInt(1700000000),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            new TagCollection(),
             EventContent::fromString('test content'),
+            new TagCollection(),
+            Timestamp::fromInt(1700000000),
         ));
     }
 }

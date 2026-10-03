@@ -5,31 +5,24 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Enum;
 
 use Innis\Nostr\Core\Domain\Enum\KeySecurityByte;
-use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class KeySecurityByteTest extends TestCase
 {
-    #[DataProvider('knownCasesProvider')]
-    public function testFromByteRoundTrips(int $byte, KeySecurityByte $expected): void
+    #[DataProvider('nip49BytesProvider')]
+    public function testEachCaseIsBackedByItsNip49Byte(int $byte, KeySecurityByte $case): void
     {
-        $this->assertSame($expected, KeySecurityByte::fromByte($byte));
-    }
-
-    public function testFromByteThrowsForUnknownValue(): void
-    {
-        $this->expectException(InvalidArgumentException::class);
-        KeySecurityByte::fromByte(0x10);
+        $this->assertSame($byte, $case->value);
     }
 
     /**
      * @return iterable<array{int, KeySecurityByte}>
      */
-    public static function knownCasesProvider(): iterable
+    public static function nip49BytesProvider(): iterable
     {
-        yield 'client-side only' => [0x00, KeySecurityByte::ClientSideOnly];
-        yield 'usable untrusted' => [0x01, KeySecurityByte::UsableUntrusted];
-        yield 'unknown' => [0x02, KeySecurityByte::Unknown];
+        yield 'known to have been handled insecurely' => [0x00, KeySecurityByte::KnownInsecure];
+        yield 'not known to have been handled insecurely' => [0x01, KeySecurityByte::NotKnownInsecure];
+        yield 'not tracked by the client' => [0x02, KeySecurityByte::Untracked];
     }
 }

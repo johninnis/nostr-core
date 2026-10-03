@@ -6,6 +6,8 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Reference;
 
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 
 final readonly class PubkeyReference
 {
@@ -14,6 +16,18 @@ final readonly class PubkeyReference
         private ?RelayUrl $relayUrl = null,
         private ?string $petname = null,
     ) {
+    }
+
+    // Deliberate: only a p tag carries a NIP-02 petname in its third element; a NIP-22 P tag names the root author and a relay — see ADR-0085
+    public static function tryFromTag(Tag $tag): ?self
+    {
+        $pubkey = PublicKey::tryFromHex($tag->getValue(0) ?? '');
+
+        return null === $pubkey ? null : new self(
+            $pubkey,
+            RelayUrl::tryFromString($tag->getValue(1)),
+            $tag->getType()->is(TagType::PUBKEY) ? $tag->getValue(2) : null,
+        );
     }
 
     public function getPubkey(): PublicKey
@@ -43,11 +57,12 @@ final readonly class PubkeyReference
         ];
     }
 
-    /**
-     * @param array<array-key, mixed> $data
-     */
-    public static function tryFromArray(array $data): ?self
+    public static function tryFromArray(mixed $data): ?self
     {
+        if (!is_array($data)) {
+            return null;
+        }
+
         $pubkeyHex = $data['pubkey'] ?? null;
         if (!is_string($pubkeyHex)) {
             return null;

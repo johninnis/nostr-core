@@ -7,7 +7,6 @@ namespace Innis\Nostr\Core\Tests\Compliance;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Service\Bech32Codec;
-use Innis\Nostr\Core\Domain\Service\JsonMessageDeserialiser;
 use Innis\Nostr\Core\Domain\Service\Nip19Codec;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Ncryptsec;
@@ -16,7 +15,9 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Filter;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client\EventMessage as ClientEventMessage;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\ClientMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay\OkMessage;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Tests\Support\FuzzInputMother;
 use PHPUnit\Framework\TestCase;
@@ -70,20 +71,18 @@ final class WireParserTotalityComplianceTest extends TestCase
         });
     }
 
-    public function testMessageDeserialiserNeverThrowsOnStructuredOrObjectInput(): void
+    public function testMessageFamilyTryFromJsonNeverThrowsOnStructuredOrObjectInput(): void
     {
-        $deserialiser = new JsonMessageDeserialiser();
-
         $this->assertNeverThrows(
             static fn (): string => FuzzInputMother::messageJson(['EVENT', 'REQ', 'CLOSE', 'AUTH', 'COUNT']),
-            $deserialiser->deserialiseClientMessage(...),
+            ClientMessage::tryFromJson(...),
         );
-        $this->assertNeverThrows(FuzzInputMother::sparseObjectJson(...), $deserialiser->deserialiseClientMessage(...));
+        $this->assertNeverThrows(FuzzInputMother::sparseObjectJson(...), ClientMessage::tryFromJson(...));
         $this->assertNeverThrows(
             static fn (): string => FuzzInputMother::messageJson(['EVENT', 'OK', 'EOSE', 'CLOSED', 'NOTICE', 'AUTH', 'COUNT']),
-            $deserialiser->deserialiseRelayMessage(...),
+            RelayMessage::tryFromJson(...),
         );
-        $this->assertNeverThrows(FuzzInputMother::sparseObjectJson(...), $deserialiser->deserialiseRelayMessage(...));
+        $this->assertNeverThrows(FuzzInputMother::sparseObjectJson(...), RelayMessage::tryFromJson(...));
     }
 
     public function testMessageTryFromJsonNeverThrowsOnStructuredOrObjectInput(): void
@@ -137,18 +136,14 @@ final class WireParserTotalityComplianceTest extends TestCase
 
     public function testNip19CodecNeverThrowsOnArbitraryStrings(): void
     {
-        $codec = new Nip19Codec();
-
-        $this->assertNeverThrows(FuzzInputMother::hostileString(...), $codec->decodeComplexEntity(...));
-        $this->assertNeverThrows(FuzzInputMother::hostileString(...), $codec->parseEventReference(...));
+        $this->assertNeverThrows(FuzzInputMother::hostileString(...), Nip19Codec::decodeEntity(...));
+        $this->assertNeverThrows(FuzzInputMother::hostileString(...), Nip19Codec::parseEventReference(...));
     }
 
-    public function testJsonMessageDeserialiserNeverThrowsOnArbitraryStrings(): void
+    public function testMessageFamilyTryFromJsonNeverThrowsOnArbitraryStrings(): void
     {
-        $deserialiser = new JsonMessageDeserialiser();
-
-        $this->assertNeverThrows(FuzzInputMother::hostileString(...), $deserialiser->deserialiseClientMessage(...));
-        $this->assertNeverThrows(FuzzInputMother::hostileString(...), $deserialiser->deserialiseRelayMessage(...));
+        $this->assertNeverThrows(FuzzInputMother::hostileString(...), ClientMessage::tryFromJson(...));
+        $this->assertNeverThrows(FuzzInputMother::hostileString(...), RelayMessage::tryFromJson(...));
     }
 
     /**

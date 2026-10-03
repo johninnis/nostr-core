@@ -18,16 +18,6 @@ final class EmbeddedEventExtractor
             return null;
         }
 
-        $content = (string) $event->getContent();
-        if ('' === $content) {
-            return null;
-        }
-
-        $embeddedData = JsonWireFormat::decodeArray($content);
-        if (null === $embeddedData) {
-            return null;
-        }
-
-        return Event::tryFromArray($embeddedData);
+        return Event::tryFromJson((string) $event->getContent());
     }
 }

@@ -16,10 +16,10 @@ final class Nip19TlvTest extends TestCase
         ]);
 
         $this->assertNotNull($tlv);
-        $this->assertSame(str_repeat('v', 255), $tlv->first(255));
+        $this->assertSame(str_repeat('v', 255), $tlv->sole(255));
     }
 
-    // Deliberate: T and L are both uint8; pack('C') wraps rather than rejecting, and a wrapped type would index in memory under a value the bytes do not carry — see ADR-0059
+    // Deliberate: T and L are both uint8; pack('C') wraps rather than rejecting, and a wrapped type would index in memory under a value the bytes do not carry — see ADR-0104
     public function testRejectsRecordTypeBeyondTheUint8Range(): void
     {
         $this->assertNull(Nip19Tlv::tryFromRecords([['type' => 256, 'value' => 'x']]));
@@ -53,9 +53,24 @@ final class Nip19TlvTest extends TestCase
         $decoded = Nip19Tlv::tryFromBytes($tlv->toBytes());
 
         $this->assertNotNull($decoded);
-        $this->assertSame('id', $decoded->first(Nip19Tlv::TYPE_SPECIAL));
+        $this->assertSame('id', $decoded->sole(Nip19Tlv::TYPE_SPECIAL));
         $this->assertSame(['wss://a.example.com', 'wss://b.example.com'], $decoded->all(Nip19Tlv::TYPE_RELAY));
-        $this->assertNull($decoded->first(Nip19Tlv::TYPE_AUTHOR));
+        $this->assertNull($decoded->sole(Nip19Tlv::TYPE_AUTHOR));
         $this->assertSame([], $decoded->all(Nip19Tlv::TYPE_AUTHOR));
+    }
+
+    public function testSoleReadsARecordRepeatedWithOneValueOnce(): void
+    {
+        $tlv = Nip19Tlv::tryFromBytes(pack('CC', Nip19Tlv::TYPE_SPECIAL, 2).'id'.pack('CC', Nip19Tlv::TYPE_SPECIAL, 2).'id');
+
+        $this->assertSame('id', $tlv?->sole(Nip19Tlv::TYPE_SPECIAL));
+    }
+
+    public function testSoleIsNullForRecordsThatDisagree(): void
+    {
+        $tlv = Nip19Tlv::tryFromBytes(pack('CC', Nip19Tlv::TYPE_SPECIAL, 2).'id'.pack('CC', Nip19Tlv::TYPE_SPECIAL, 2).'ix');
+
+        $this->assertNotNull($tlv);
+        $this->assertNull($tlv->sole(Nip19Tlv::TYPE_SPECIAL));
     }
 }

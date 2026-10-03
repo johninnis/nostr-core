@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Relay;
 
 use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
+use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\EventCount;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\RelayMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
@@ -19,7 +20,7 @@ final readonly class CountMessage extends RelayMessage
     }
 
     #[Override]
-    public function type(): RelayMessageType
+    public static function type(): RelayMessageType
     {
         return RelayMessageType::Count;
     }
@@ -35,58 +36,37 @@ final readonly class CountMessage extends RelayMessage
         return $this->count;
     }
 
-    /**
-     * @return list<mixed>
-     */
     #[Override]
-    public function toArray(): array
+    protected function toPayload(): array
     {
-        $payload = ['count' => $this->count->toInt()];
+        $count = ['count' => $this->count->toInt()];
 
         if ($this->count->isApproximate()) {
-            $payload['approximate'] = true;
+            $count['approximate'] = true;
         }
 
-        return [$this->type()->value, (string) $this->subscriptionId, $payload];
+        return [(string) $this->subscriptionId, $count];
     }
 
-    /**
-     * @param array<array-key, mixed> $data
-     */
     #[Override]
-    public static function tryFromArray(array $data): ?static
+    protected static function tryFromPayload(array $payload): ?static
     {
-        if (!array_is_list($data) || 3 !== count($data)) {
+        $fields = JsonWireFormat::objectFields($payload[1] ?? null);
+
+        if (null === $fields) {
             return null;
         }
 
-        if (!is_array($data[2]) || !array_key_exists('count', $data[2])) {
+        $subscriptionId = SubscriptionId::tryFromString($payload[0]);
+        $count = JsonWireFormat::intField($fields, 'count');
+        $approximate = $fields['approximate'] ?? false;
+
+        if (null === $subscriptionId || null === $count || !is_bool($approximate)) {
             return null;
         }
 
-        $count = $data[2]['count'];
+        $eventCount = EventCount::tryFrom($count, $approximate);
 
-        if (!is_int($count) || $count < 0) {
-            return null;
-        }
-
-        $approximate = $data[2]['approximate'] ?? null;
-
-        if (null !== $approximate && !is_bool($approximate)) {
-            return null;
-        }
-
-        $subscriptionId = SubscriptionId::tryFromString($data[1]);
-
-        if (null === $subscriptionId) {
-            return null;
-        }
-
-        $parsed = new self(
-            $subscriptionId,
-            true === $approximate ? EventCount::approximate($count) : EventCount::exact($count),
-        );
-
-        return $parsed->type()->value === $data[0] ? $parsed : null;
+        return null === $eventCount ? null : new self($subscriptionId, $eventCount);
     }
 }

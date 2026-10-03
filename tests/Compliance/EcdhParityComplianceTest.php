@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Compliance;
 
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\SecretKeyMaterial;
 use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
 use Innis\Nostr\Core\Infrastructure\Crypto\NativeRandomBytesGenerator;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Ecdh;
@@ -29,8 +30,8 @@ final class EcdhParityComplianceTest extends TestCase
             $privateKey = PrivateKey::generate();
             $peerPublicKey = $signer->derivePublicKey(PrivateKey::generate());
 
-            $ffiShared = bin2hex($ffiEcdh->computeSharedX($privateKey, $peerPublicKey));
-            $phpShared = bin2hex($purePhpEcdh->computeSharedX($privateKey, $peerPublicKey));
+            $ffiShared = bin2hex(self::bytes($ffiEcdh->computeSharedX($privateKey, $peerPublicKey)));
+            $phpShared = bin2hex(self::bytes($purePhpEcdh->computeSharedX($privateKey, $peerPublicKey)));
 
             if ($ffiShared !== $phpShared) {
                 $problems[] = sprintf(
@@ -57,10 +58,10 @@ final class EcdhParityComplianceTest extends TestCase
             $publicKeyA = $signer->derivePublicKey($privateKeyA);
             $publicKeyB = $signer->derivePublicKey($privateKeyB);
 
-            $ffiAtoB = $ffiEcdh->computeSharedX($privateKeyA, $publicKeyB);
-            $ffiBtoA = $ffiEcdh->computeSharedX($privateKeyB, $publicKeyA);
-            $phpAtoB = $purePhpEcdh->computeSharedX($privateKeyA, $publicKeyB);
-            $phpBtoA = $purePhpEcdh->computeSharedX($privateKeyB, $publicKeyA);
+            $ffiAtoB = self::bytes($ffiEcdh->computeSharedX($privateKeyA, $publicKeyB));
+            $ffiBtoA = self::bytes($ffiEcdh->computeSharedX($privateKeyB, $publicKeyA));
+            $phpAtoB = self::bytes($purePhpEcdh->computeSharedX($privateKeyA, $publicKeyB));
+            $phpBtoA = self::bytes($purePhpEcdh->computeSharedX($privateKeyB, $publicKeyA));
 
             $this->assertSame($ffiAtoB, $ffiBtoA, sprintf('iteration %d: FFI asymmetric', $i));
             $this->assertSame($phpAtoB, $phpBtoA, sprintf('iteration %d: pure-PHP asymmetric', $i));
@@ -75,5 +76,10 @@ final class EcdhParityComplianceTest extends TestCase
             ?? self::markTestSkipped('libsecp256k1 FFI unavailable');
 
         return new Secp256k1Ecdh($ffi);
+    }
+
+    private static function bytes(SecretKeyMaterial $sharedX): string
+    {
+        return $sharedX->expose(static fn (string $bytes): string => $bytes);
     }
 }

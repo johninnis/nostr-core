@@ -12,18 +12,18 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
+use Innis\Nostr\Core\Domain\ValueObject\IdentityKeyedInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Override;
 use Stringable;
 
-final readonly class Event implements Stringable
+final readonly class Event implements Stringable, IdentityKeyedInterface
 {
     public function __construct(
         private Rumour $rumour,
         private EventId $id,
         private Signature $signature,
-        private ?string $rawJson = null,
     ) {
     }
 
@@ -45,6 +45,12 @@ final readonly class Event implements Stringable
     public function getId(): EventId
     {
         return $this->id;
+    }
+
+    #[Override]
+    public function identityKey(): string
+    {
+        return $this->id->identityKey();
     }
 
     public function getPubkey(): PublicKey
@@ -77,26 +83,8 @@ final readonly class Event implements Stringable
         return $this->signature;
     }
 
-    public function getRawJson(): ?string
-    {
-        return $this->rawJson;
-    }
-
+    // Deliberate: always encodes the fields this event holds, never the bytes it was parsed from, so the type vouches only for what it verified — see ADR-0076
     public function toJson(): string
-    {
-        return $this->rawJson ?? $this->encodeJson();
-    }
-
-    public function withRawJson(): self
-    {
-        if (null !== $this->rawJson) {
-            return $this;
-        }
-
-        return new self($this->rumour, $this->id, $this->signature, $this->encodeJson());
-    }
-
-    private function encodeJson(): string
     {
         return JsonWireFormat::encode($this->toArray(), JsonWireFormat::EVENT);
     }
@@ -121,11 +109,6 @@ final readonly class Event implements Stringable
         return $this->rumour->isExpiredAt($reference);
     }
 
-    public function isExpired(): bool
-    {
-        return $this->rumour->isExpired();
-    }
-
     public function isProtected(): bool
     {
         return $this->rumour->isProtected();
@@ -137,62 +120,33 @@ final readonly class Event implements Stringable
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array{id: string, pubkey: string, created_at: int, kind: int, tags: list<list<string>>, content: string, sig: string}
      */
     public function toArray(): array
     {
         return [
-            ...$this->rumour->toArray(),
             'id' => $this->id->toHex(),
+            ...$this->rumour->toArrayWithoutId(),
             'sig' => $this->signature->toHex(),
         ];
     }
 
-    public static function tryFromArray(mixed $value): ?self
-    {
-        return is_array($value) ? self::build($value, null) : null;
-    }
-
     public static function tryFromJson(string $json): ?self
     {
-        $data = JsonWireFormat::decodeArray($json);
-
-        if (null === $data) {
-            return null;
-        }
-
-        return self::build($data, $json);
+        return self::tryFromArray(JsonWireFormat::decode($json));
     }
 
-    /**
-     * @param array<array-key, mixed> $data
-     */
-    private static function build(array $data, ?string $rawJson): ?self
+    public static function tryFromArray(mixed $value): ?self
     {
-        $rumour = Rumour::tryFromArray($data);
-        if (null === $rumour) {
+        if (!is_array($value)) {
             return null;
         }
 
-        if (!isset($data['id']) || !is_string($data['id'])) {
-            return null;
-        }
+        $rumour = Rumour::tryFromFields($value);
+        $id = is_string($value['id'] ?? null) ? EventId::tryFromHex($value['id']) : null;
+        $signature = is_string($value['sig'] ?? null) ? Signature::tryFromHex($value['sig']) : null;
 
-        $id = EventId::tryFromHex($data['id']);
-        if (null === $id) {
-            return null;
-        }
-
-        if (!isset($data['sig']) || !is_string($data['sig'])) {
-            return null;
-        }
-
-        $signature = Signature::tryFromHex($data['sig']);
-        if (null === $signature) {
-            return null;
-        }
-
-        return new self($rumour, $id, $signature, $rawJson);
+        return null === $rumour || null === $id || null === $signature ? null : new self($rumour, $id, $signature);
     }
 
     #[Override]

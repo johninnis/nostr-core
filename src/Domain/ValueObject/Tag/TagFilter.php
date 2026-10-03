@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Tag;
 
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
-use Innis\Nostr\Core\Domain\ValueObject\Protocol\Filter;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use InvalidArgumentException;
 
 final readonly class TagFilter
 {
+    private const string TAG_NAME_PATTERN = '/^[a-zA-Z]$/D';
+
     /**
      * @param array<string, list<string>>       $values
      * @param array<string, array<string, int>> $index
@@ -21,59 +24,67 @@ final readonly class TagFilter
     }
 
     /**
-     * @param array<string, list<string>> $values
+     * @param array<array-key, mixed> $values
      */
-    public static function fromValues(array $values): self
+    public static function tryFromValues(array $values): ?self
     {
+        $parsed = [];
+
         foreach ($values as $tagName => $tagValues) {
-            if (count($tagValues) > Filter::MAX_VALUES_PER_FIELD) {
-                throw new InvalidArgumentException(sprintf('Tag filter "#%s" may contain at most %d values', $tagName, Filter::MAX_VALUES_PER_FIELD));
-            }
-        }
+            $name = (string) $tagName;
 
-        return new self($values, self::indexOf($values));
-    }
-
-    /**
-     * @param array<array-key, mixed> $data
-     */
-    public static function tryFromArray(array $data): ?self
-    {
-        $values = [];
-
-        foreach ($data as $key => $value) {
-            if (!is_string($key) || !str_starts_with($key, '#')) {
-                continue;
-            }
-
-            $tagName = substr($key, 1);
-
-            if ('' === $tagName || !is_array($value)) {
+            if (1 !== preg_match(self::TAG_NAME_PATTERN, $name) || !is_array($tagValues) || !array_is_list($tagValues)) {
                 return null;
             }
 
-            if (count($value) > Filter::MAX_VALUES_PER_FIELD) {
-                return null;
-            }
+            $strings = array_values(array_filter($tagValues, is_string(...)));
 
-            $tagValues = array_values(array_filter($value, is_string(...)));
-
-            if (count($tagValues) !== count($value)
-                || !mb_check_encoding($tagName, 'UTF-8')
-                || !array_all($tagValues, static fn (string $tagValue): bool => mb_check_encoding($tagValue, 'UTF-8'))
+            if (count($strings) !== count($tagValues)
+                || !array_all($strings, static fn (string $value): bool => self::isValueFor($name, $value))
             ) {
                 return null;
             }
 
-            $values[$tagName] = $tagValues;
+            $parsed[$name] = $strings;
         }
 
-        return new self($values, self::indexOf($values));
+        return new self($parsed, array_map(static fn (array $tagValues): array => array_flip($tagValues), $parsed));
+    }
+
+    /**
+     * @param array<string, list<string>> $values
+     */
+    public static function fromValues(array $values): self
+    {
+        return self::tryFromValues($values)
+            ?? throw new InvalidArgumentException('A tag filter names each tag by one letter, a-z or A-Z, and holds UTF-8 values for it, each #e and #p value 64-character lowercase hex');
+    }
+
+    public static function tryFromArray(mixed $data): ?self
+    {
+        if (!is_array($data)) {
+            return null;
+        }
+
+        $values = [];
+
+        foreach ($data as $key => $value) {
+            if (is_string($key) && str_starts_with($key, '#')) {
+                $values[substr($key, 1)] = $value;
+            }
+        }
+
+        return self::tryFromValues($values);
     }
 
     public function isEmpty(): bool
     {
         return [] === $this->values;
+    }
+
+    public function canMatch(): bool
+    {
+        return array_all($this->values, static fn (array $tagValues): bool => [] !== $tagValues);
     }
 
     public function matches(TagCollection $eventTags): bool
@@ -109,14 +120,13 @@ final readonly class TagFilter
         return $wire;
     }
 
-    /**
-     * @param array<string, list<string>> $values
-     *
-     * @return array<string, array<string, int>>
-     */
-    private static function indexOf(array $values): array
+    private static function isValueFor(string $tagName, string $value): bool
     {
-        return array_map(static fn (array $tagValues): array => array_flip($tagValues), $values);
+        return match ($tagName) {
+            TagType::EVENT => null !== EventId::tryFromHex($value),
+            TagType::PUBKEY => null !== PublicKey::tryFromHex($value),
+            default => mb_check_encoding($value, 'UTF-8'),
+        };
     }
 
     /**

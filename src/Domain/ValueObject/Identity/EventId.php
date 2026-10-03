@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
+use Innis\Nostr\Core\Domain\Exception\SerialisationException;
 use Innis\Nostr\Core\Domain\Service\Bech32Codec;
 use Innis\Nostr\Core\Domain\Service\HexCodec;
+use Innis\Nostr\Core\Domain\ValueObject\IdentityKeyedInterface;
 use Override;
 use Stringable;
 
-final readonly class EventId implements Stringable
+final readonly class EventId implements Stringable, IdentityKeyedInterface
 {
     public const string BECH32_HRP = 'note';
 
@@ -32,7 +34,7 @@ final readonly class EventId implements Stringable
 
     public function toBytes(): string
     {
-        return HexCodec::decode($this->id);
+        return sodium_hex2bin($this->id);
     }
 
     /**
@@ -40,7 +42,14 @@ final readonly class EventId implements Stringable
      */
     public function toBech32(): string
     {
-        return Bech32Codec::encode(self::BECH32_HRP, $this->toBytes());
+        return Bech32Codec::encode(self::BECH32_HRP, $this->toBytes())
+            ?? throw new SerialisationException('A 32-byte event id always fits a bech32 string');
+    }
+
+    #[Override]
+    public function identityKey(): string
+    {
+        return $this->id;
     }
 
     public function equals(self $other): bool
@@ -61,7 +70,7 @@ final readonly class EventId implements Stringable
             return null;
         }
 
-        return new self(HexCodec::encode($bytes));
+        return new self(sodium_bin2hex($bytes));
     }
 
     public static function tryFromBech32(string $bech32): ?self

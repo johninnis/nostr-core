@@ -12,15 +12,25 @@ use Override;
 
 final readonly class OkMessage extends RelayMessage
 {
-    public function __construct(
+    private function __construct(
         private EventId $eventId,
         private bool $accepted,
-        private string $message = '',
+        private string $message,
     ) {
     }
 
+    public static function accepted(EventId $eventId, string $message = ''): self
+    {
+        return new self($eventId, true, $message);
+    }
+
+    public static function refused(EventId $eventId, ReasonPrefix $prefix, string $detail): self
+    {
+        return new self($eventId, false, $prefix->format($detail));
+    }
+
     #[Override]
-    public function type(): RelayMessageType
+    public static function type(): RelayMessageType
     {
         return RelayMessageType::Ok;
     }
@@ -40,10 +50,10 @@ final readonly class OkMessage extends RelayMessage
         return $this->message;
     }
 
-    // Deliberate: parsed from the message on demand, and the only per-prefix predicate is the one a resend loop asks — see ADR-0065
+    // Deliberate: parsed from the message on demand, a refusal always has one, and the only per-prefix predicate is the one a resend loop asks — see ADR-0087
     public function getReasonPrefix(): ?ReasonPrefix
     {
-        return ReasonPrefix::tryFromMessage($this->message);
+        return $this->accepted ? ReasonPrefix::tryFromMessage($this->message) : ReasonPrefix::ofRefusal($this->message);
     }
 
     public function isAuthRequired(): bool
@@ -51,50 +61,22 @@ final readonly class OkMessage extends RelayMessage
         return !$this->accepted && ReasonPrefix::AuthRequired === $this->getReasonPrefix();
     }
 
-    /**
-     * @return list<mixed>
-     */
     #[Override]
-    public function toArray(): array
+    protected function toPayload(): array
     {
-        return [$this->type()->value, $this->eventId->toHex(), $this->accepted, $this->message];
+        return [$this->eventId->toHex(), $this->accepted, $this->message];
     }
 
-    /**
-     * @param array<array-key, mixed> $data
-     */
     #[Override]
-    public static function tryFromArray(array $data): ?static
+    protected static function tryFromPayload(array $payload): ?static
     {
-        if (!array_is_list($data) || count($data) < 3 || count($data) > 4) {
+        if (count($payload) < 3) {
             return null;
         }
 
-        if (!is_string($data[1])) {
-            return null;
-        }
+        [$eventIdHex, $accepted, $message] = $payload;
+        $eventId = is_string($eventIdHex) ? EventId::tryFromHex($eventIdHex) : null;
 
-        if (!is_bool($data[2])) {
-            return null;
-        }
-
-        $message = $data[3] ?? '';
-        if (!is_string($message)) {
-            return null;
-        }
-
-        $eventId = EventId::tryFromHex($data[1]);
-
-        if (null === $eventId) {
-            return null;
-        }
-
-        $parsed = new self(
-            $eventId,
-            $data[2],
-            $message,
-        );
-
-        return $parsed->type()->value === $data[0] ? $parsed : null;
+        return null === $eventId || !is_bool($accepted) || !is_string($message) ? null : new self($eventId, $accepted, $message);
     }
 }

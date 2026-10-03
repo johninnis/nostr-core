@@ -6,9 +6,11 @@ namespace Innis\Nostr\Core\Tests\Integration\Infrastructure\Crypto;
 
 use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
 use Innis\Nostr\Core\Domain\Exception\EncryptionException;
+use Innis\Nostr\Core\Domain\Exception\SecretKeyMaterialZeroedException;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\SecretKeyMaterial;
 use Innis\Nostr\Core\Infrastructure\Crypto\Nip04Cipher;
 use Override;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\TestCase;
 
@@ -20,12 +22,12 @@ final class Nip04CipherTest extends TestCase
     public function testEncryptAndDecryptRoundTripsAsciiPlaintext(): void
     {
         $adapter = new Nip04Cipher();
-        $key = new SecretKeyMaterial(str_repeat("\x42", 32));
+        $key = SecretKeyMaterial::fromBytes(str_repeat("\x42", 32));
 
         $payload = $adapter->encrypt('hello FROSTR', $key);
         $this->assertStringContainsString('?iv=', $payload);
 
-        $key2 = new SecretKeyMaterial(str_repeat("\x42", 32));
+        $key2 = SecretKeyMaterial::fromBytes(str_repeat("\x42", 32));
         $this->assertSame('hello FROSTR', $adapter->decrypt($payload, $key2));
     }
 
@@ -33,12 +35,41 @@ final class Nip04CipherTest extends TestCase
     {
         $adapter = new Nip04Cipher();
         $message = 'naïve résumé 日本語 🔑';
-        $key = new SecretKeyMaterial(str_repeat("\x99", 32));
+        $key = SecretKeyMaterial::fromBytes(str_repeat("\x99", 32));
 
         $payload = $adapter->encrypt($message, $key);
-        $key2 = new SecretKeyMaterial(str_repeat("\x99", 32));
+        $key2 = SecretKeyMaterial::fromBytes(str_repeat("\x99", 32));
 
         $this->assertSame($message, $adapter->decrypt($payload, $key2));
+    }
+
+    public function testEncryptRefusesPlaintextThatIsNotUtf8(): void
+    {
+        $this->expectExceptionObject(new EncryptionException('NIP-04 plaintext must be UTF-8'));
+
+        new Nip04Cipher()->encrypt("caf\xC3", SecretKeyMaterial::fromBytes(str_repeat("\x42", 32)));
+    }
+
+    public function testDecryptRefusesPlaintextThatIsNotUtf8(): void
+    {
+        $adapter = new Nip04Cipher();
+        $iv = str_repeat("\x07", 16);
+        $ciphertext = openssl_encrypt("caf\xC3", 'aes-256-cbc', str_repeat("\x42", 32), OPENSSL_RAW_DATA, $iv);
+        $this->assertNotFalse($ciphertext);
+        $payload = base64_encode($ciphertext).self::SEPARATOR.base64_encode($iv);
+
+        $this->expectExceptionObject(new EncryptionException('NIP-04 decryption failed'));
+
+        $adapter->decrypt($payload, SecretKeyMaterial::fromBytes(str_repeat("\x42", 32)));
+    }
+
+    public function testDecryptKeepsAByteOrderMark(): void
+    {
+        $adapter = new Nip04Cipher();
+        $message = "\u{FEFF}hello";
+        $payload = $adapter->encrypt($message, SecretKeyMaterial::fromBytes(str_repeat("\x42", 32)));
+
+        $this->assertSame($message, $adapter->decrypt($payload, SecretKeyMaterial::fromBytes(str_repeat("\x42", 32))));
     }
 
     public function testEncryptIsDeterministicWithPinnedIv(): void
@@ -50,10 +81,10 @@ final class Nip04CipherTest extends TestCase
                 return str_repeat("\x10", $length);
             }
         });
-        $key = new SecretKeyMaterial(str_repeat("\x77", 32));
+        $key = SecretKeyMaterial::fromBytes(str_repeat("\x77", 32));
 
         $first = $adapter->encrypt('deterministic', $key);
-        $second = $adapter->encrypt('deterministic', new SecretKeyMaterial(str_repeat("\x77", 32)));
+        $second = $adapter->encrypt('deterministic', SecretKeyMaterial::fromBytes(str_repeat("\x77", 32)));
 
         $this->assertSame($first, $second);
     }
@@ -61,7 +92,7 @@ final class Nip04CipherTest extends TestCase
     public function testDecryptRejectsPayloadMissingIvSeparator(): void
     {
         $adapter = new Nip04Cipher();
-        $key = new SecretKeyMaterial(str_repeat("\x00", 32));
+        $key = SecretKeyMaterial::fromBytes(str_repeat("\x00", 32));
 
         $this->expectException(EncryptionException::class);
         $adapter->decrypt(str_repeat('A', 60), $key);
@@ -70,7 +101,7 @@ final class Nip04CipherTest extends TestCase
     public function testDecryptRejectsBadBase64Ciphertext(): void
     {
         $adapter = new Nip04Cipher();
-        $key = new SecretKeyMaterial(str_repeat("\x00", 32));
+        $key = SecretKeyMaterial::fromBytes(str_repeat("\x00", 32));
 
         $this->expectException(EncryptionException::class);
         $adapter->decrypt(str_repeat('!', 24).self::SEPARATOR.base64_encode(str_repeat("\x00", 16)), $key);
@@ -79,16 +110,46 @@ final class Nip04CipherTest extends TestCase
     public function testDecryptRejectsBadBase64Iv(): void
     {
         $adapter = new Nip04Cipher();
-        $key = new SecretKeyMaterial(str_repeat("\x00", 32));
+        $key = SecretKeyMaterial::fromBytes(str_repeat("\x00", 32));
 
         $this->expectException(EncryptionException::class);
         $adapter->decrypt(base64_encode(str_repeat("\x00", 16)).self::SEPARATOR.str_repeat('!', 24), $key);
     }
 
+    #[DataProvider('nonCanonicalBase64')]
+    public function testDecryptRejectsAnIvThatIsNotCanonicalBase64(callable $alter): void
+    {
+        $adapter = new Nip04Cipher();
+        [$ciphertext, $iv] = explode(self::SEPARATOR, $adapter->encrypt('a plaintext of two blocks', SecretKeyMaterial::fromBytes(str_repeat("\x42", 32))));
+
+        $this->expectException(EncryptionException::class);
+        $adapter->decrypt($ciphertext.self::SEPARATOR.$alter($iv), SecretKeyMaterial::fromBytes(str_repeat("\x42", 32)));
+    }
+
+    #[DataProvider('nonCanonicalBase64')]
+    public function testDecryptRejectsCiphertextThatIsNotCanonicalBase64(callable $alter): void
+    {
+        $adapter = new Nip04Cipher();
+        [$ciphertext, $iv] = explode(self::SEPARATOR, $adapter->encrypt('a plaintext of two blocks', SecretKeyMaterial::fromBytes(str_repeat("\x42", 32))));
+
+        $this->expectException(EncryptionException::class);
+        $adapter->decrypt($alter($ciphertext).self::SEPARATOR.$iv, SecretKeyMaterial::fromBytes(str_repeat("\x42", 32)));
+    }
+
+    /**
+     * @return iterable<string, array{callable(string): string}>
+     */
+    public static function nonCanonicalBase64(): iterable
+    {
+        yield 'padding left off' => [static fn (string $encoded): string => rtrim($encoded, '=')];
+        yield 'non-zero trailing bits' => [self::withNonZeroTrailingBits(...)];
+        yield 'whitespace inside' => [static fn (string $encoded): string => substr($encoded, 0, 4).' '.substr($encoded, 4)];
+    }
+
     public function testDecryptRejectsIvOfWrongLength(): void
     {
         $adapter = new Nip04Cipher();
-        $key = new SecretKeyMaterial(str_repeat("\x00", 32));
+        $key = SecretKeyMaterial::fromBytes(str_repeat("\x00", 32));
 
         $this->expectException(EncryptionException::class);
         $adapter->decrypt(base64_encode(str_repeat("\x00", 32)).self::SEPARATOR.base64_encode(str_repeat("\x00", 8)), $key);
@@ -97,13 +158,13 @@ final class Nip04CipherTest extends TestCase
     public function testEncryptRejectsKeyOfWrongLength(): void
     {
         $adapter = new Nip04Cipher();
-        $key = new SecretKeyMaterial(str_repeat("\x42", 32));
+        $key = SecretKeyMaterial::fromBytes(str_repeat("\x42", 32));
 
         $payload = $adapter->encrypt('hi', $key);
 
-        $shortKey = new SecretKeyMaterial(str_repeat("\x42", 32));
+        $shortKey = SecretKeyMaterial::fromBytes(str_repeat("\x42", 32));
         $shortKey->zero();
-        $this->expectException(\Innis\Nostr\Core\Domain\Exception\SecretKeyMaterialZeroedException::class);
+        $this->expectException(SecretKeyMaterialZeroedException::class);
         $adapter->decrypt($payload, $shortKey);
     }
 
@@ -127,7 +188,7 @@ final class Nip04CipherTest extends TestCase
 
         foreach ($rejections as $case => $payload) {
             try {
-                $adapter->decrypt($payload, new SecretKeyMaterial(str_repeat("\x00", 32)));
+                $adapter->decrypt($payload, SecretKeyMaterial::fromBytes(str_repeat("\x00", 32)));
                 $this->fail(sprintf('Expected "%s" to be rejected', $case));
             } catch (EncryptionException $exception) {
                 $messages[$case] = $exception->getMessage();
@@ -137,18 +198,44 @@ final class Nip04CipherTest extends TestCase
         $this->assertSame(['NIP-04 decryption failed'], array_values(array_unique($messages)));
     }
 
+    public function testTheLargestPlaintextItEncryptsIsOneItsOwnDecryptOpens(): void
+    {
+        $adapter = new Nip04Cipher();
+        $plaintext = str_repeat('a', 65567);
+
+        $payload = $adapter->encrypt($plaintext, SecretKeyMaterial::fromBytes(str_repeat("\x42", 32)));
+
+        $this->assertSame($plaintext, $adapter->decrypt($payload, SecretKeyMaterial::fromBytes(str_repeat("\x42", 32))));
+    }
+
+    public function testEncryptRefusesAPlaintextWhosePayloadItsOwnDecryptWouldRefuse(): void
+    {
+        $this->expectExceptionObject(new EncryptionException('NIP-04 plaintext must be at most 65567 bytes'));
+
+        new Nip04Cipher()->encrypt(str_repeat('a', 65568), SecretKeyMaterial::fromBytes(str_repeat("\x42", 32)));
+    }
+
     public function testDecryptWithWrongKeyNeverRecoversPlaintext(): void
     {
         $adapter = new Nip04Cipher();
-        $payload = $adapter->encrypt('secret', new SecretKeyMaterial(str_repeat("\x42", 32)));
+        $payload = $adapter->encrypt('secret', SecretKeyMaterial::fromBytes(str_repeat("\x42", 32)));
 
         $recovered = null;
 
         try {
-            $recovered = $adapter->decrypt($payload, new SecretKeyMaterial(str_repeat("\x99", 32)));
+            $recovered = $adapter->decrypt($payload, SecretKeyMaterial::fromBytes(str_repeat("\x99", 32)));
         } catch (EncryptionException) {
         }
 
         $this->assertNotSame('secret', $recovered);
+    }
+
+    private static function withNonZeroTrailingBits(string $encoded): string
+    {
+        $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+        $padded = strlen($encoded) - strlen(rtrim($encoded, '='));
+        $last = strlen($encoded) - $padded - 1;
+
+        return substr($encoded, 0, $last).$alphabet[(int) strpos($alphabet, $encoded[$last]) + 1].str_repeat('=', $padded);
     }
 }

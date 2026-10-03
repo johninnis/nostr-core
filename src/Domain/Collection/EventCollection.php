@@ -5,25 +5,18 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\Collection;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
-use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Override;
 
 /**
- * @extends TypedCollection<Event>
+ * @extends KeyedCollection<Event>
  */
-final class EventCollection extends TypedCollection
+final class EventCollection extends KeyedCollection
 {
     #[Override]
     protected function elementType(): string
     {
         return Event::class;
-    }
-
-    private static function keyOf(Event $event): string
-    {
-        return (string) $event->getId();
     }
 
     public function add(Event $event): self
@@ -36,27 +29,6 @@ final class EventCollection extends TypedCollection
         return new self(array_values(array_filter(
             $this->items,
             static fn (Event $event): bool => !$event->getId()->equals($eventId)
-        )));
-    }
-
-    public function contains(EventId $eventId): bool
-    {
-        return $this->containsByKey((string) $eventId, self::keyOf(...));
-    }
-
-    public function filterByKind(EventKind $kind): self
-    {
-        return new self(array_values(array_filter(
-            $this->items,
-            static fn (Event $event): bool => $event->getKind()->equals($kind)
-        )));
-    }
-
-    public function filterByAuthor(PublicKey $author): self
-    {
-        return new self(array_values(array_filter(
-            $this->items,
-            static fn (Event $event): bool => $event->getPubkey()->equals($author)
         )));
     }
 
@@ -90,21 +62,11 @@ final class EventCollection extends TypedCollection
         return $this->items[0] ?? null;
     }
 
-    public function last(): ?Event
-    {
-        return $this->items[count($this->items) - 1] ?? null;
-    }
-
     /**
      * @return list<array<string, mixed>>
      */
     public function toJsonArray(): array
     {
         return $this->mapItems(static fn (Event $event): array => $event->toArray());
-    }
-
-    public function unique(): self
-    {
-        return new self($this->deduplicate(self::keyOf(...)));
     }
 }

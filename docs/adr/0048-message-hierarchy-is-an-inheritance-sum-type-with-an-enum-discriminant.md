@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted.
+Superseded by ADR-0075
 
 Supersedes ADR-0016. That record decided two things at once — that the message families are modelled as an inheritance sum type, and that each leaf's variant is identified by a `protected const string TYPE` surfaced through `getType(): string`. The structural decision is unchanged and is carried forward here verbatim; the discriminant mechanism is revised from the string constant to a backed enum. This record now holds the complete, current decision so a reader does not have to assemble it from two records.
 

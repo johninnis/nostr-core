@@ -13,13 +13,16 @@ use Innis\Nostr\Core\Domain\ValueObject\Nip19\Nip19EntityInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Nip19\Note;
 use Innis\Nostr\Core\Domain\ValueObject\Nip19\Nprofile;
 use Innis\Nostr\Core\Domain\ValueObject\Nip19\Npub;
-use Override;
 
-final readonly class Nip19Codec implements Nip19CodecInterface
+// Deliberate: there is no encode method here; each entity is minted through its own named constructor and encodes itself, so there is one way to produce a NIP-19 string — see ADR-0082
+final class Nip19Codec
 {
-    // Deliberate: resolves an entity of unknown prefix; a caller that already knows the type calls that leaf's tryFromBech32 instead — see ADR-0060
-    #[Override]
-    public function decodeComplexEntity(string $bech32): ?Nip19EntityInterface
+    private function __construct()
+    {
+    }
+
+    // Deliberate: resolves an entity of unknown prefix; a caller that already knows the type calls the tryFromBech32 of the type owning that prefix (PublicKey, EventId, Nprofile, Nevent or Naddr) instead — see ADR-0082
+    public static function decodeEntity(string $bech32): ?Nip19EntityInterface
     {
         $decoded = Bech32Codec::decode($bech32);
 
@@ -39,16 +42,15 @@ final readonly class Nip19Codec implements Nip19CodecInterface
         };
     }
 
-    #[Override]
-    public function parseEventReference(string $input): EventId|EventCoordinate|null
+    public static function parseEventReference(string $input): EventId|EventCoordinate|null
     {
-        $entity = $this->decodeComplexEntity($input);
+        $entity = self::decodeEntity($input);
 
         return match (true) {
             $entity instanceof Note => $entity->getEventId(),
             $entity instanceof Nevent => $entity->getEventId(),
             $entity instanceof Naddr => $entity->getCoordinate()->withRelayHint($entity->getRelays()->toArray()[0] ?? null),
-            default => EventId::tryFromHex($input),
+            default => EventId::tryFromHex($input) ?? EventCoordinate::tryFromString($input),
         };
     }
 

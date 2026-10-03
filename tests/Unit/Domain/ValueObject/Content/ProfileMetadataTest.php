@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Content;
 
 use Innis\Nostr\Core\Domain\ValueObject\Content\ProfileMetadata;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class ProfileMetadataTest extends TestCase
@@ -55,6 +56,26 @@ final class ProfileMetadataTest extends TestCase
     public function testFromInvalidJsonReturnsNull(): void
     {
         $this->assertNull(ProfileMetadata::tryFromJson('not valid json'));
+    }
+
+    #[DataProvider('jsonArrays')]
+    public function testTryFromJsonRefusesAJsonArray(string $json): void
+    {
+        $this->assertNull(ProfileMetadata::tryFromJson($json));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function jsonArrays(): iterable
+    {
+        yield 'the empty array' => ['[]'];
+        yield 'an array of a profile' => ['[{"name":"alice"}]'];
+    }
+
+    public function testTryFromJsonReadsTheEmptyObjectAsAProfileStatingNothing(): void
+    {
+        $this->assertEquals(ProfileMetadata::fromArray([]), ProfileMetadata::tryFromJson('{}'));
     }
 
     public function testToArrayFromArrayRoundTrip(): void

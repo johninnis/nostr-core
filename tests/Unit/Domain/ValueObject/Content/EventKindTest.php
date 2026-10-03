@@ -79,6 +79,11 @@ final class EventKindTest extends TestCase
         }
     }
 
+    public function testKindsWithoutAnOfficialNipRemainRemoved(): void
+    {
+        $this->assertFalse(defined(EventKind::class.'::RECOMMEND_SERVER'), 'RECOMMEND_SERVER (kind 2) was removed from NIP-01 and must not be reintroduced');
+    }
+
     public function testEqualsWorksCorrectly(): void
     {
         $kind1 = EventKind::fromInt(1);
@@ -117,6 +122,7 @@ final class EventKindTest extends TestCase
     {
         yield 'SEAL' => [13, EventKind::SEAL];
         yield 'PRIVATE_MESSAGE' => [14, EventKind::PRIVATE_MESSAGE];
+        yield 'EPHEMERAL_GIFT_WRAP' => [21059, EventKind::EPHEMERAL_GIFT_WRAP];
 
         yield 'MUTE_LIST' => [10000, EventKind::MUTE_LIST];
         yield 'PIN_LIST' => [10001, EventKind::PIN_LIST];
@@ -136,9 +142,12 @@ final class EventKindTest extends TestCase
         yield 'GIT_REPOSITORIES_LIST' => [10018, EventKind::GIT_REPOSITORIES_LIST];
         yield 'NUTZAP_MINT_RECOMMENDATION' => [10019, EventKind::NUTZAP_MINT_RECOMMENDATION];
         yield 'MEDIA_FOLLOWS_LIST' => [10020, EventKind::MEDIA_FOLLOWS_LIST];
+        yield 'FAVOURITE_FOLLOW_SETS_LIST' => [10021, EventKind::FAVOURITE_FOLLOW_SETS_LIST];
         yield 'CUSTOM_EMOJI_LIST' => [10030, EventKind::CUSTOM_EMOJI_LIST];
         yield 'DM_RELAY_LIST' => [10050, EventKind::DM_RELAY_LIST];
         yield 'KEY_PACKAGE_RELAYS' => [10051, EventKind::KEY_PACKAGE_RELAYS];
+        yield 'FAVOURITE_PODCASTS_LIST' => [10054, EventKind::FAVOURITE_PODCASTS_LIST];
+        yield 'AUTHORED_PODCASTS_LIST' => [10064, EventKind::AUTHORED_PODCASTS_LIST];
         yield 'GOOD_WIKI_AUTHORS_LIST' => [10101, EventKind::GOOD_WIKI_AUTHORS_LIST];
         yield 'GOOD_WIKI_RELAYS_LIST' => [10102, EventKind::GOOD_WIKI_RELAYS_LIST];
         yield 'RELAY_MONITOR_ANNOUNCEMENT' => [10166, EventKind::RELAY_MONITOR_ANNOUNCEMENT];
@@ -185,9 +194,6 @@ final class EventKindTest extends TestCase
         yield 'INTERACTIVE_ROOM' => [30312, EventKind::INTERACTIVE_ROOM];
         yield 'CONFERENCE_EVENT' => [30313, EventKind::CONFERENCE_EVENT];
         yield 'USER_STATUS' => [30315, EventKind::USER_STATUS];
-        yield 'SITE_MANIFEST' => [30630, EventKind::SITE_MANIFEST];
-        yield 'WEB_PAGE' => [30631, EventKind::WEB_PAGE];
-        yield 'WEB_PAGE_DRAFT' => [30632, EventKind::WEB_PAGE_DRAFT];
         yield 'WIKI_ARTICLE' => [30818, EventKind::WIKI_ARTICLE];
         yield 'WIKI_REDIRECT' => [30819, EventKind::WIKI_REDIRECT];
         yield 'DRAFT_EVENT' => [31234, EventKind::DRAFT_EVENT];
@@ -244,9 +250,12 @@ final class EventKindTest extends TestCase
             EventKind::GIT_AUTHORS_LIST,
             EventKind::GIT_REPOSITORIES_LIST,
             EventKind::MEDIA_FOLLOWS_LIST,
+            EventKind::FAVOURITE_FOLLOW_SETS_LIST,
             EventKind::CUSTOM_EMOJI_LIST,
             EventKind::DM_RELAY_LIST,
             EventKind::KEY_PACKAGE_RELAYS,
+            EventKind::FAVOURITE_PODCASTS_LIST,
+            EventKind::AUTHORED_PODCASTS_LIST,
             EventKind::GOOD_WIKI_AUTHORS_LIST,
             EventKind::GOOD_WIKI_RELAYS_LIST,
         ];
@@ -260,7 +269,7 @@ final class EventKindTest extends TestCase
         }
     }
 
-    public function testAllSetKindsAreParameterisedReplaceable(): void
+    public function testAllSetKindsAreAddressable(): void
     {
         $setKinds = [
             EventKind::FOLLOW_SET,

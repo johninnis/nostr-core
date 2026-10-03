@@ -15,7 +15,7 @@ final readonly class Naddr implements Nip19EntityInterface
 {
     public const string HRP = 'naddr';
 
-    // Deliberate: the encoded form is built and validated in the named constructor, so toBech32 is total — see ADR-0060
+    // Deliberate: the encoded form is built and validated in the named constructor, so toBech32 is total — see ADR-0104
     private function __construct(
         private EventCoordinate $coordinate,
         private RelayUrlCollection $relays,
@@ -25,7 +25,7 @@ final readonly class Naddr implements Nip19EntityInterface
 
     public static function tryFromCoordinate(EventCoordinate $coordinate, RelayUrlCollection $relays = new RelayUrlCollection()): ?self
     {
-        // Deliberate: the coordinate's own relay hint leads the relay records, so it survives the round trip that reads the first relay back as the hint — see ADR-0060
+        // Deliberate: the coordinate's own relay hint leads the relay records, so it survives the round trip that reads the first relay back as the hint — see nostr-adrs ADR-0084
         $hint = $coordinate->getRelayHint();
         $allRelays = (null === $hint ? $relays : new RelayUrlCollection([$hint])->merge($relays))->unique();
 
@@ -40,11 +40,12 @@ final readonly class Naddr implements Nip19EntityInterface
 
         $tlv = Nip19Tlv::tryFromRecords($records);
 
-        return null === $tlv ? null : new self($coordinate, $allRelays, Bech32Codec::encode(self::HRP, $tlv->toBytes()));
+        $bech32 = null === $tlv ? null : Bech32Codec::encode(self::HRP, $tlv->toBytes());
+
+        return null === $bech32 ? null : new self($coordinate, $allRelays, $bech32);
     }
 
-    // Deliberate: NIP-19 makes author and kind mandatory for naddr, so a payload missing either has no coordinate and decodes to null rather than to a partly-populated entity — see ADR-0060
-    // Deliberate: parses a string already known to be this entity; the codec answers the different unknown-prefix question over the same payload step — see ADR-0060
+    // Deliberate: parses a string already known to be this entity; the codec answers the different unknown-prefix question over the same payload step — see ADR-0082
     public static function tryFromBech32(string $bech32): ?self
     {
         $payload = Bech32Codec::decodeWithHrp($bech32, self::HRP);
@@ -52,6 +53,7 @@ final readonly class Naddr implements Nip19EntityInterface
         return null === $payload ? null : self::tryFromPayload($payload);
     }
 
+    // Deliberate: NIP-19 makes author and kind mandatory for naddr, so a payload missing either has no coordinate and decodes to null rather than to a partly-populated entity — see ADR-0082
     public static function tryFromPayload(string $payload): ?self
     {
         $tlv = Nip19Tlv::tryFromBytes($payload);
@@ -60,8 +62,8 @@ final readonly class Naddr implements Nip19EntityInterface
             return null;
         }
 
-        $identifier = $tlv->first(Nip19Tlv::TYPE_SPECIAL);
-        $authorBytes = $tlv->first(Nip19Tlv::TYPE_AUTHOR);
+        $identifier = $tlv->sole(Nip19Tlv::TYPE_SPECIAL);
+        $authorBytes = $tlv->sole(Nip19Tlv::TYPE_AUTHOR);
         $kind = $tlv->kind();
         $author = null === $authorBytes ? null : PublicKey::tryFromBytes($authorBytes);
 

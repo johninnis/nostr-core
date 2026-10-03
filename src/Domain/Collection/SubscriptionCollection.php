@@ -14,11 +14,12 @@ use IteratorAggregate;
 use Override;
 
 /**
- * @implements IteratorAggregate<string, Subscription>
+ * @implements IteratorAggregate<int, Subscription>
  */
 final readonly class SubscriptionCollection implements IteratorAggregate, Countable
 {
-    /** @var array<string, Subscription> */
+    // Deliberate: indexed by the id's string form for lookup only; PHP turns an all-digit id into an integer key, so the index is never exposed and every projection is built from the values — see ADR-0097
+    /** @var array<array-key, Subscription> */
     private array $subscriptions;
 
     /**
@@ -39,9 +40,12 @@ final readonly class SubscriptionCollection implements IteratorAggregate, Counta
         $this->subscriptions = $keyed;
     }
 
+    /**
+     * Returns a collection with $subscription added, replacing in its place any subscription with the same id.
+     */
     public function add(Subscription $subscription): self
     {
-        return new self([...array_values($this->subscriptions), $subscription]);
+        return new self([...$this->toArray(), $subscription]);
     }
 
     public function remove(SubscriptionId $subscriptionId): self
@@ -55,11 +59,6 @@ final readonly class SubscriptionCollection implements IteratorAggregate, Counta
     public function get(SubscriptionId $subscriptionId): ?Subscription
     {
         return $this->subscriptions[(string) $subscriptionId] ?? null;
-    }
-
-    public function has(SubscriptionId $subscriptionId): bool
-    {
-        return isset($this->subscriptions[(string) $subscriptionId]);
     }
 
     public function withUpdatedState(SubscriptionId $subscriptionId, SubscriptionState $state): self
@@ -76,19 +75,6 @@ final readonly class SubscriptionCollection implements IteratorAggregate, Counta
         return new self(array_values($subscriptions));
     }
 
-    public function getState(SubscriptionId $subscriptionId): ?SubscriptionState
-    {
-        return $this->get($subscriptionId)?->getState();
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function keys(): array
-    {
-        return array_keys($this->subscriptions);
-    }
-
     /**
      * @param callable(Subscription): bool $predicate
      */
@@ -103,20 +89,20 @@ final readonly class SubscriptionCollection implements IteratorAggregate, Counta
     }
 
     /**
-     * @return array<string, Subscription>
+     * @return list<Subscription>
      */
     public function toArray(): array
     {
-        return $this->subscriptions;
+        return array_values($this->subscriptions);
     }
 
     /**
-     * @return ArrayIterator<string, Subscription>
+     * @return ArrayIterator<int, Subscription>
      */
     #[Override]
     public function getIterator(): ArrayIterator
     {
-        return new ArrayIterator($this->subscriptions);
+        return new ArrayIterator($this->toArray());
     }
 
     #[Override]

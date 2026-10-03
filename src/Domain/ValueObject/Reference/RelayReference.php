@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Reference;
 
+use Innis\Nostr\Core\Domain\Enum\RelayMarker;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 
 final readonly class RelayReference
 {
     public function __construct(
         private RelayUrl $relayUrl,
-        private ?string $mode = null,
+        private RelayMarker $marker,
     ) {
     }
 
@@ -19,9 +20,9 @@ final readonly class RelayReference
         return $this->relayUrl;
     }
 
-    public function getMode(): ?string
+    public function getMarker(): RelayMarker
     {
-        return $this->mode;
+        return $this->marker;
     }
 
     /**
@@ -31,15 +32,16 @@ final readonly class RelayReference
     {
         return [
             'url' => (string) $this->relayUrl,
-            'mode' => $this->mode,
+            'marker' => $this->marker->value,
         ];
     }
 
-    /**
-     * @param array<array-key, mixed> $data
-     */
-    public static function tryFromArray(array $data): ?self
+    public static function tryFromArray(mixed $data): ?self
     {
+        if (!is_array($data)) {
+            return null;
+        }
+
         $url = $data['url'] ?? null;
         if (!is_string($url)) {
             return null;
@@ -52,7 +54,7 @@ final readonly class RelayReference
 
         return new self(
             $relayUrl,
-            isset($data['mode']) && is_string($data['mode']) ? $data['mode'] : null,
+            RelayMarker::fromTagValue(is_string($data['marker'] ?? null) ? $data['marker'] : null),
         );
     }
 }

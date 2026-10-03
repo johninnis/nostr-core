@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Infrastructure\Crypto;
 
 use FFI;
+use FFI\CData;
+use FFI\Exception as FfiException;
 
 final class FfiLibraryLoader
 {
@@ -24,7 +26,7 @@ final class FfiLibraryLoader
         foreach ($libraryNames as $name) {
             try {
                 return FFI::cdef($cdef, $name);
-            } catch (FFI\Exception) {
+            } catch (FfiException) {
                 continue;
             }
         }
@@ -32,7 +34,7 @@ final class FfiLibraryLoader
         return null;
     }
 
-    public static function toBuffer(FFI $ffi, string $data): FFI\CData
+    public static function toBuffer(FFI $ffi, string $data): CData
     {
         $length = strlen($data);
         if (0 === $length) {

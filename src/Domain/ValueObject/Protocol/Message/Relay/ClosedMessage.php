@@ -12,14 +12,19 @@ use Override;
 
 final readonly class ClosedMessage extends RelayMessage
 {
-    public function __construct(
+    private function __construct(
         private SubscriptionId $subscriptionId,
         private string $message,
     ) {
     }
 
+    public static function closed(SubscriptionId $subscriptionId, ReasonPrefix $prefix, string $detail): self
+    {
+        return new self($subscriptionId, $prefix->format($detail));
+    }
+
     #[Override]
-    public function type(): RelayMessageType
+    public static function type(): RelayMessageType
     {
         return RelayMessageType::Closed;
     }
@@ -34,47 +39,28 @@ final readonly class ClosedMessage extends RelayMessage
         return $this->message;
     }
 
-    // Deliberate: parsed from the message on demand rather than stored beside it, so the prefix can never disagree with the text the peer sent — see ADR-0065
-    public function getReasonPrefix(): ?ReasonPrefix
+    // Deliberate: parsed from the message on demand rather than stored beside it, so the prefix can never disagree with the text the peer sent — see ADR-0087
+    public function getReasonPrefix(): ReasonPrefix
     {
-        return ReasonPrefix::tryFromMessage($this->message);
+        return ReasonPrefix::ofRefusal($this->message);
     }
 
-    /**
-     * @return list<mixed>
-     */
     #[Override]
-    public function toArray(): array
+    protected function toPayload(): array
     {
-        return [$this->type()->value, (string) $this->subscriptionId, $this->message];
+        return [(string) $this->subscriptionId, $this->message];
     }
 
-    /**
-     * @param array<array-key, mixed> $data
-     */
     #[Override]
-    public static function tryFromArray(array $data): ?static
+    protected static function tryFromPayload(array $payload): ?static
     {
-        if (!array_is_list($data) || count($data) < 2 || count($data) > 3) {
+        if (count($payload) < 2) {
             return null;
         }
 
-        $message = $data[2] ?? '';
-        if (!is_string($message)) {
-            return null;
-        }
+        [$subscriptionIdValue, $message] = $payload;
+        $subscriptionId = SubscriptionId::tryFromString($subscriptionIdValue);
 
-        $subscriptionId = SubscriptionId::tryFromString($data[1]);
-
-        if (null === $subscriptionId) {
-            return null;
-        }
-
-        $parsed = new self(
-            $subscriptionId,
-            $message,
-        );
-
-        return $parsed->type()->value === $data[0] ? $parsed : null;
+        return null === $subscriptionId || !is_string($message) ? null : new self($subscriptionId, $message);
     }
 }

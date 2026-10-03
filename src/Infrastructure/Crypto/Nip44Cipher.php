@@ -6,30 +6,47 @@ namespace Innis\Nostr\Core\Infrastructure\Crypto;
 
 use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
 use Innis\Nostr\Core\Domain\Exception\EncryptionException;
+use Innis\Nostr\Core\Domain\Service\Base64Codec;
 use Innis\Nostr\Core\Domain\Service\Nip44EncryptionInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
+use InvalidArgumentException;
 use Override;
 use ParagonIE_Sodium_Core_ChaCha20;
 
-final class Nip44Cipher implements Nip44EncryptionInterface
+final readonly class Nip44Cipher implements Nip44EncryptionInterface
 {
+    public const int DEFAULT_MAX_PLAINTEXT_LENGTH = 262144;
+
     private const int VERSION = 2;
     private const int NONCE_LENGTH = 32;
     private const int MAC_LENGTH = 32;
     private const int MIN_PLAINTEXT_LENGTH = 1;
-    private const int MAX_PLAINTEXT_LENGTH = 65535;
+    private const int NIP_MAX_PLAINTEXT_LENGTH = 4294967295;
+    private const int EXTENDED_PREFIX_THRESHOLD = 65536;
+    private const int SHORT_PREFIX_LENGTH = 2;
+    private const int EXTENDED_PREFIX_LENGTH = 6;
     private const int MIN_PAYLOAD_LENGTH = 132;
-    private const int MAX_PAYLOAD_LENGTH = 87472;
+    private const string NON_BASE64_FLAG = '#';
+    private const string NOT_UTF8 = 'Plaintext is not valid UTF-8';
     private const int MIN_PADDED_LENGTH = 32;
     private const int SHA256_LENGTH = 32;
     private const int CHACHA_KEY_LENGTH = 32;
     private const int CHACHA_NONCE_LENGTH = 12;
     private const int HMAC_KEY_LENGTH = 32;
     private const int MESSAGE_KEYS_LENGTH = self::CHACHA_KEY_LENGTH + self::CHACHA_NONCE_LENGTH + self::HMAC_KEY_LENGTH;
+    private const int MIN_DECODED_LENGTH = 1 + self::NONCE_LENGTH + self::SHORT_PREFIX_LENGTH + self::MIN_PADDED_LENGTH + self::MAC_LENGTH;
+
+    private int $maxPayloadLength;
 
     public function __construct(
-        private readonly RandomBytesGeneratorInterface $randomBytes = new NativeRandomBytesGenerator(),
+        private RandomBytesGeneratorInterface $randomBytes = new NativeRandomBytesGenerator(),
+        private int $maxPlaintextLength = self::DEFAULT_MAX_PLAINTEXT_LENGTH,
     ) {
+        if ($maxPlaintextLength < self::MIN_PLAINTEXT_LENGTH || $maxPlaintextLength > self::NIP_MAX_PLAINTEXT_LENGTH) {
+            throw new InvalidArgumentException(sprintf('Maximum plaintext length must be between 1 and %d bytes, got %d', self::NIP_MAX_PLAINTEXT_LENGTH, $maxPlaintextLength));
+        }
+
+        $this->maxPayloadLength = $this->payloadLengthFor($maxPlaintextLength);
     }
 
     #[Override]
@@ -43,20 +60,29 @@ final class Nip44Cipher implements Nip44EncryptionInterface
     {
         $payloadLength = strlen($payload);
 
-        if ($payloadLength < self::MIN_PAYLOAD_LENGTH || $payloadLength > self::MAX_PAYLOAD_LENGTH) {
+        // Deliberate: the ceiling is the base64 length of the payload that carries the configured maximum plaintext, checked before any character is read — see ADR-0117
+        if ($payloadLength > $this->maxPayloadLength) {
             throw new EncryptionException('Payload size out of bounds');
         }
 
-        $decoded = base64_decode($payload, true);
+        // Deliberate: NIP-44 requires a `#` payload to be reported as an unsupported version, whatever its length within the ceiling — see ADR-0117
+        if (str_starts_with($payload, self::NON_BASE64_FLAG)) {
+            throw new EncryptionException('Unsupported NIP-44 version: non-base64 encoding');
+        }
 
-        if (false === $decoded) {
+        if ($payloadLength < self::MIN_PAYLOAD_LENGTH) {
+            throw new EncryptionException('Payload size out of bounds');
+        }
+
+        $decoded = Base64Codec::tryDecodeCanonical($payload);
+
+        if (null === $decoded) {
             throw new EncryptionException('Invalid base64 payload');
         }
 
         $decodedLength = strlen($decoded);
-        $minLength = 1 + self::NONCE_LENGTH + self::MIN_PADDED_LENGTH + 2 + self::MAC_LENGTH;
 
-        if ($decodedLength < $minLength) {
+        if ($decodedLength < self::MIN_DECODED_LENGTH) {
             throw new EncryptionException('Payload too short');
         }
 
@@ -99,6 +125,13 @@ final class Nip44Cipher implements Nip44EncryptionInterface
             }
         });
 
+        // Deliberate: NIP-44 decodes the unpadded bytes as UTF-8, so a plaintext that is not UTF-8 is refused and a byte order mark is kept — see ADR-0116
+        if (!mb_check_encoding($plaintext, 'UTF-8')) {
+            sodium_memzero($plaintext);
+
+            throw new EncryptionException(self::NOT_UTF8);
+        }
+
         return $plaintext;
     }
 
@@ -107,8 +140,13 @@ final class Nip44Cipher implements Nip44EncryptionInterface
     {
         $plaintextLength = strlen($plaintext);
 
-        if ($plaintextLength < self::MIN_PLAINTEXT_LENGTH || $plaintextLength > self::MAX_PLAINTEXT_LENGTH) {
-            throw new EncryptionException('Plaintext length must be between 1 and 65535 bytes');
+        if ($plaintextLength < self::MIN_PLAINTEXT_LENGTH || $plaintextLength > $this->maxPlaintextLength) {
+            throw new EncryptionException(sprintf('Plaintext length must be between 1 and %d bytes', $this->maxPlaintextLength));
+        }
+
+        // Deliberate: NIP-44 encodes the content from UTF-8, and decrypt refuses any other plaintext, so encrypt never seals one — see ADR-0116
+        if (!mb_check_encoding($plaintext, 'UTF-8')) {
+            throw new EncryptionException(self::NOT_UTF8);
         }
 
         if (self::NONCE_LENGTH !== strlen($nonce)) {
@@ -182,39 +220,74 @@ final class Nip44Cipher implements Nip44EncryptionInterface
     {
         $plaintextLength = strlen($plaintext);
         $paddedLength = $this->calculatePaddedLength($plaintextLength);
-        $lengthPrefix = pack('n', $plaintextLength);
+        $lengthPrefix = $plaintextLength >= self::EXTENDED_PREFIX_THRESHOLD
+            ? "\0\0".pack('N', $plaintextLength)
+            : pack('n', $plaintextLength);
 
         return $lengthPrefix.$plaintext.str_repeat("\0", $paddedLength - $plaintextLength);
     }
 
     private function unpad(string $padded): string
     {
-        $unpacked = unpack('n', substr($padded, 0, 2));
-        if (false === $unpacked) {
-            throw new EncryptionException('Invalid padding');
-        }
-        $plaintextLength = $unpacked[1];
+        $paddedLength = strlen($padded);
+        [$plaintextLength, $prefixLength] = $this->readLengthPrefix($padded);
 
         if ($plaintextLength < self::MIN_PLAINTEXT_LENGTH
-            || $plaintextLength > self::MAX_PLAINTEXT_LENGTH
-            || $plaintextLength + 2 > strlen($padded)) {
+            || $plaintextLength + $prefixLength > $paddedLength) {
             throw new EncryptionException('Invalid padding');
         }
 
-        $expectedTotalLength = $this->calculatePaddedLength($plaintextLength) + 2;
+        if ($plaintextLength > $this->maxPlaintextLength) {
+            throw new EncryptionException('Plaintext exceeds the maximum length');
+        }
 
-        if ($expectedTotalLength !== strlen($padded)) {
+        if ($this->calculatePaddedLength($plaintextLength) + $prefixLength !== $paddedLength) {
             throw new EncryptionException('Invalid padding length');
         }
 
-        $plaintext = substr($padded, 2, $plaintextLength);
-        $zeroPadding = substr($padded, 2 + $plaintextLength);
+        $plaintext = substr($padded, $prefixLength, $plaintextLength);
+        $zeroPadding = substr($padded, $prefixLength + $plaintextLength);
 
         if ('' !== $zeroPadding && !hash_equals(str_repeat("\0", strlen($zeroPadding)), $zeroPadding)) {
             throw new EncryptionException('Non-zero padding bytes');
         }
 
         return $plaintext;
+    }
+
+    /**
+     * @return array{int, int}
+     */
+    private function readLengthPrefix(string $padded): array
+    {
+        $short = unpack('n', $padded);
+
+        if (false === $short) {
+            throw new EncryptionException('Invalid padding');
+        }
+
+        if (0 !== $short[1]) {
+            return [$short[1], self::SHORT_PREFIX_LENGTH];
+        }
+
+        $extended = strlen($padded) >= self::EXTENDED_PREFIX_LENGTH
+            ? unpack('N', $padded, self::SHORT_PREFIX_LENGTH)
+            : false;
+
+        // Deliberate: a u16 of zero announces the six-byte prefix, and a length below 65536 in it is one the two-byte prefix carries, so it is refused rather than read as a second spelling — see ADR-0117
+        if (false === $extended || $extended[1] < self::EXTENDED_PREFIX_THRESHOLD) {
+            throw new EncryptionException('Invalid padding');
+        }
+
+        return [$extended[1], self::EXTENDED_PREFIX_LENGTH];
+    }
+
+    private function payloadLengthFor(int $plaintextLength): int
+    {
+        $prefixLength = $plaintextLength >= self::EXTENDED_PREFIX_THRESHOLD ? self::EXTENDED_PREFIX_LENGTH : self::SHORT_PREFIX_LENGTH;
+        $rawLength = 1 + self::NONCE_LENGTH + $prefixLength + $this->calculatePaddedLength($plaintextLength) + self::MAC_LENGTH;
+
+        return 4 * intdiv($rawLength + 2, 3);
     }
 
     private function calculatePaddedLength(int $unpaddedLength): int
@@ -224,8 +297,8 @@ final class Nip44Cipher implements Nip44EncryptionInterface
         }
 
         $nextPower = 1 << strlen(decbin($unpaddedLength - 1));
-        $chunk = $nextPower <= 256 ? self::MIN_PADDED_LENGTH : (int) ($nextPower / 8);
+        $chunk = $nextPower <= 256 ? self::MIN_PADDED_LENGTH : intdiv($nextPower, 8);
 
-        return $chunk * ((int) floor(($unpaddedLength - 1) / $chunk) + 1);
+        return $chunk * (intdiv($unpaddedLength - 1, $chunk) + 1);
     }
 }

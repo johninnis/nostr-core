@@ -8,60 +8,50 @@ use Innis\Nostr\Core\Domain\Collection\ContentReferenceCollection;
 use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\ContentReference;
-use Override;
 
-final readonly class ContentReferenceExtractor implements ContentReferenceExtractorInterface
+final class ContentReferenceExtractor
 {
-    public function __construct(
-        private Nip19CodecInterface $nip19Codec,
-    ) {
+    // Deliberate: an entity runs over every letter and digit up to the first other character or a following nostr:, never a fixed length, so one followed by more letters or digits is no reference rather than a shorter one — see ADR-0130
+    private const string RUN = '(?:(?!nostr:)[a-z0-9])+';
+    private const string STARTS_AT_A_BOUNDARY = '(?<![a-z0-9])';
+
+    private function __construct()
+    {
     }
 
-    #[Override]
-    public function extractContentReferences(EventContent $content): ContentReferenceCollection
+    public static function extract(EventContent $content): ContentReferenceCollection
     {
         $references = [];
-
-        /** @var array<int, true> $claimedOffsets */
-        $claimedOffsets = [];
+        $claimedOffsets = new ClaimedOffsets();
 
         $contentString = (string) $content;
 
-        /** @var list<array{ContentReferenceType, string}> $patterns */
         $patterns = [
-            [ContentReferenceType::NostrUri, '/nostr:(npub1[a-z0-9]{58}|nprofile1[a-z0-9]+|note1[a-z0-9]{58}|nevent1[a-z0-9]+|naddr1[a-z0-9]+)/i'],
-            [ContentReferenceType::BareNpub, '/(?<![a-z0-9])npub1[a-z0-9]{58}(?=nostr:|[^a-z0-9]|$)/i'],
-            [ContentReferenceType::BareNote, '/(?<![a-z0-9])note1[a-z0-9]{58}(?=nostr:|[^a-z0-9]|$)/i'],
-            [ContentReferenceType::BareNevent, '/(?<![a-z0-9])nevent1(?:(?!nostr:)[a-z0-9])+(?=nostr:|[^a-z0-9]|$)/i'],
-            [ContentReferenceType::BareNprofile, '/(?<![a-z0-9])nprofile1(?:(?!nostr:)[a-z0-9])+(?=nostr:|[^a-z0-9]|$)/i'],
-            [ContentReferenceType::BareNaddr, '/(?<![a-z0-9])naddr1(?:(?!nostr:)[a-z0-9])+(?=nostr:|[^a-z0-9]|$)/i'],
-            [ContentReferenceType::LegacyRef, '/#\[(\d+)\]/'],
+            [ContentReferenceType::NostrUri, '/nostr:(?:npub1|nprofile1|note1|nevent1|naddr1)'.self::RUN.'/i'],
+            [ContentReferenceType::BareNpub, '/'.self::STARTS_AT_A_BOUNDARY.'npub1'.self::RUN.'/i'],
+            [ContentReferenceType::BareNote, '/'.self::STARTS_AT_A_BOUNDARY.'note1'.self::RUN.'/i'],
+            [ContentReferenceType::BareNevent, '/'.self::STARTS_AT_A_BOUNDARY.'nevent1'.self::RUN.'/i'],
+            [ContentReferenceType::BareNprofile, '/'.self::STARTS_AT_A_BOUNDARY.'nprofile1'.self::RUN.'/i'],
+            [ContentReferenceType::BareNaddr, '/'.self::STARTS_AT_A_BOUNDARY.'naddr1'.self::RUN.'/i'],
         ];
 
         foreach ($patterns as [$type, $pattern]) {
             if (preg_match_all($pattern, $contentString, $matches, PREG_OFFSET_CAPTURE)) {
                 foreach ($matches[0] as $match) {
-                    $position = $match[1];
-                    $length = strlen($match[0]);
-
-                    $span = array_fill($position, $length, true);
-
-                    // Deliberate: the short span is the FIRST argument — array_intersect_key iterates its first array, so testing the claimed set against the span instead would scan every offset claimed so far and make this quadratic in the match count; a 64KiB event of adjacent references took over five seconds that way
-                    if ([] !== array_intersect_key($span, $claimedOffsets)) {
+                    // Deliberate: overlap is checked by ClaimedOffsets, whose cost is the span's length and is counted by its test; scanning the claimed set instead made a 64KiB event take over five seconds — see ADR-0108
+                    if (!$claimedOffsets->claim($match[1], strlen($match[0]))) {
                         continue;
                     }
 
                     $cleanRef = preg_replace('/^nostr:/i', '', $match[0]) ?? $match[0];
+                    $decoded = Nip19Codec::decodeEntity($cleanRef);
 
-                    $references[] = new ContentReference(
-                        $type,
-                        $match[0],
-                        $cleanRef,
-                        $match[1],
-                        $this->nip19Codec->decodeComplexEntity($cleanRef),
-                    );
+                    // Deliberate: a run that does not decode whole is no reference, and no shorter entity is read from it — see ADR-0130
+                    if (null === $decoded) {
+                        continue;
+                    }
 
-                    $claimedOffsets += $span;
+                    $references[] = ContentReference::from($type, $match[0], $cleanRef, $match[1], $decoded);
                 }
             }
         }

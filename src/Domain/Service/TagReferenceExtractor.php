@@ -10,9 +10,8 @@ use Innis\Nostr\Core\Domain\Collection\EventReferenceCollection;
 use Innis\Nostr\Core\Domain\Collection\PubkeyReferenceCollection;
 use Innis\Nostr\Core\Domain\Collection\RelayReferenceCollection;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
+use Innis\Nostr\Core\Domain\Enum\RelayMarker;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Challenge;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReference;
@@ -64,86 +63,24 @@ final class TagReferenceExtractor
 
     private static function eventReference(Tag $tag): ?EventReference
     {
-        if (!$tag->getType()->is(TagType::EVENT)) {
-            return null;
-        }
-
-        $value = $tag->getValue(0);
-        $eventId = null !== $value ? EventId::tryFromHex($value) : null;
-
-        if (null === $eventId) {
-            return null;
-        }
-
-        $author = $tag->getValue(3);
-
-        return new EventReference(
-            $eventId,
-            RelayUrl::tryFromString($tag->getValue(1)),
-            $tag->getValue(2),
-            null !== $author ? PublicKey::tryFromHex($author) : null,
-        );
+        return $tag->getType()->is(TagType::EVENT) ? EventReference::tryFromTag($tag) : null;
     }
 
     private static function pubkeyReference(Tag $tag): ?PubkeyReference
     {
-        if (!$tag->getType()->is(TagType::PUBKEY)) {
-            return null;
-        }
-
-        $value = $tag->getValue(0);
-        $pubkey = null !== $value ? PublicKey::tryFromHex($value) : null;
-
-        if (null === $pubkey) {
-            return null;
-        }
-
-        return new PubkeyReference(
-            $pubkey,
-            RelayUrl::tryFromString($tag->getValue(1)),
-            $tag->getValue(2),
-        );
+        return $tag->getType()->is(TagType::PUBKEY) ? PubkeyReference::tryFromTag($tag) : null;
     }
 
     private static function quotedEvent(Tag $tag): ?EventReference
     {
-        if (!$tag->getType()->is(TagType::QUOTE)) {
-            return null;
-        }
-
-        $value = $tag->getValue(0);
-
-        if (null === $value || str_contains($value, ':')) {
-            return null;
-        }
-
-        $eventId = EventId::tryFromHex($value);
-
-        if (null === $eventId) {
-            return null;
-        }
-
-        $author = $tag->getValue(2);
-
-        return new EventReference(
-            $eventId,
-            RelayUrl::tryFromString($tag->getValue(1)),
-            null,
-            null !== $author ? PublicKey::tryFromHex($author) : null,
-        );
+        return $tag->getType()->is(TagType::QUOTE) ? EventReference::tryFromTag($tag) : null;
     }
 
     private static function coordinate(Tag $tag): ?EventCoordinate
     {
-        $value = $tag->getValue(0);
+        $namesCoordinate = $tag->getType()->is(TagType::ADDRESSABLE) || $tag->getType()->is(TagType::QUOTE);
 
-        return match ((string) $tag->getType()) {
-            TagType::ADDRESSABLE => null !== $value ? EventCoordinate::tryFromATag($tag->toArray()) : null,
-            TagType::QUOTE => null !== $value && str_contains($value, ':')
-                ? EventCoordinate::tryFromString($value, $tag->getValue(1))
-                : null,
-            default => null,
-        };
+        return $namesCoordinate ? EventCoordinate::tryFromTag($tag) : null;
     }
 
     private static function relayReference(Tag $tag): ?RelayReference
@@ -159,7 +96,7 @@ final class TagReferenceExtractor
             return null;
         }
 
-        return new RelayReference($relayUrl, $tag->getValue(1));
+        return new RelayReference($relayUrl, RelayMarker::fromTagValue($tag->getValue(1)));
     }
 
     private static function challenge(Tag $tag): ?Challenge

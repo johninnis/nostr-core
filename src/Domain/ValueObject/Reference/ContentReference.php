@@ -21,16 +21,33 @@ use InvalidArgumentException;
 
 final readonly class ContentReference
 {
-    public function __construct(
+    private function __construct(
         private ContentReferenceType $type,
         private string $rawText,
         private string $identifier,
         private int $position,
-        private ?Nip19EntityInterface $decoded = null,
+        private Nip19EntityInterface $decoded,
     ) {
-        if ($position < 0) {
-            throw new InvalidArgumentException('Position must be non-negative');
-        }
+    }
+
+    public static function tryFrom(
+        ContentReferenceType $type,
+        string $rawText,
+        string $identifier,
+        int $position,
+        Nip19EntityInterface $decoded,
+    ): ?self {
+        return $position < 0 ? null : new self($type, $rawText, $identifier, $position, $decoded);
+    }
+
+    public static function from(
+        ContentReferenceType $type,
+        string $rawText,
+        string $identifier,
+        int $position,
+        Nip19EntityInterface $decoded,
+    ): self {
+        return self::tryFrom($type, $rawText, $identifier, $position, $decoded) ?? throw new InvalidArgumentException('Position must be non-negative');
     }
 
     public function getType(): ContentReferenceType
@@ -53,17 +70,17 @@ final readonly class ContentReference
         return $this->position;
     }
 
-    public function getDecoded(): ?Nip19EntityInterface
+    public function getDecoded(): Nip19EntityInterface
     {
         return $this->decoded;
     }
 
-    public function getDecodedType(): ?Nip19EntityType
+    public function getDecodedType(): Nip19EntityType
     {
-        return $this->decoded?->type();
+        return $this->decoded->type();
     }
 
-    // Deliberate: the flattening lives here, where this type's wire shape needs it, rather than as nullable getters every entity would have to answer — see ADR-0060
+    // Deliberate: the flattening lives here, where this type's wire shape needs it, rather than as nullable getters every entity would have to answer — see ADR-0082
     public function getEventId(): ?EventId
     {
         return match (true) {
@@ -123,6 +140,16 @@ final readonly class ContentReference
         return $this->decoded instanceof Naddr;
     }
 
+    public function getQuotedTarget(): EventId|EventCoordinate|null
+    {
+        return $this->decoded instanceof Naddr ? $this->decoded->getCoordinate() : $this->getEventId();
+    }
+
+    public function isQuote(): bool
+    {
+        return null !== $this->getQuotedTarget();
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -133,7 +160,7 @@ final readonly class ContentReference
             'raw_text' => $this->rawText,
             'identifier' => $this->identifier,
             'position' => $this->position,
-            'decoded_type' => $this->getDecodedType()?->value,
+            'decoded_type' => $this->getDecodedType()->value,
             'event_id' => $this->getEventId()?->toHex(),
             'public_key' => $this->getPublicKey()?->toHex(),
             'relays' => $this->getRelays()->toStrings(),
@@ -142,27 +169,30 @@ final readonly class ContentReference
         ];
     }
 
-    /**
-     * @param array<array-key, mixed> $data
-     */
-    public static function tryFromArray(array $data): ?self
+    public static function tryFromArray(mixed $data): ?self
     {
+        if (!is_array($data)) {
+            return null;
+        }
+
         $type = ContentReferenceType::tryFrom(is_string($data['type'] ?? null) ? $data['type'] : '');
         $rawText = $data['raw_text'] ?? null;
         $identifier = $data['identifier'] ?? null;
         $position = $data['position'] ?? null;
 
-        if (null === $type || !is_string($rawText) || !is_string($identifier) || !is_int($position) || $position < 0) {
+        $decoded = self::tryDecodedFromArray($data);
+
+        if (null === $type || !is_string($rawText) || !is_string($identifier) || !is_int($position) || null === $decoded) {
             return null;
         }
 
-        return new self($type, $rawText, $identifier, $position, self::tryDecodedFromArray($data));
+        return self::tryFrom($type, $rawText, $identifier, $position, $decoded);
     }
 
     /**
      * @param array<array-key, mixed> $data
      */
-    // Deliberate: rebuilds through the entity's own named constructor, so a row missing a field that entity requires yields no entity rather than a partly-populated one — see ADR-0060
+    // Deliberate: rebuilds through the entity's own named constructor, so a row missing a field that entity requires yields no entity rather than a partly-populated one — see ADR-0082
     private static function tryDecodedFromArray(array $data): ?Nip19EntityInterface
     {
         $decodedType = Nip19EntityType::tryFrom(is_string($data['decoded_type'] ?? null) ? $data['decoded_type'] : '');

@@ -6,7 +6,6 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Collection\RelayUrlCollection;
 use Innis\Nostr\Core\Domain\Enum\Nip19EntityType;
-use Innis\Nostr\Core\Domain\Service\Bech32Codec;
 use Innis\Nostr\Core\Domain\Service\Nip19Codec;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
@@ -18,6 +17,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Nip19\Note;
 use Innis\Nostr\Core\Domain\ValueObject\Nip19\Nprofile;
 use Innis\Nostr\Core\Domain\ValueObject\Nip19\Npub;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
+use Innis\Nostr\Core\Tests\Support\Bech32Mother;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -28,27 +28,20 @@ final class Nip19CodecTest extends TestCase
     private const int ADDRESSABLE_KIND = 30023;
     private const string IDENTIFIER = 'my-article';
 
-    private Nip19Codec $codec;
-
-    protected function setUp(): void
-    {
-        $this->codec = new Nip19Codec();
-    }
-
     public function testDecodeNpubReturnsNpubLeaf(): void
     {
-        $entity = $this->codec->decodeComplexEntity($this->pubkey()->toBech32());
+        $entity = Nip19Codec::decodeEntity($this->pubkey()->toBech32());
 
         $this->assertInstanceOf(Npub::class, $entity);
         $this->assertSame(Nip19EntityType::Pubkey, $entity->type());
         $this->assertTrue($entity->getPublicKey()->equals($this->pubkey()));
     }
 
-    // Deliberate: note and nevent were both reported as Event before the leaves were split; this pins them apart
+    // Deliberate: note and nevent are distinct leaves with distinct enum cases, never one Event case — see ADR-0082
     public function testDecodeNoteReturnsNoteLeafDistinctFromNevent(): void
     {
-        $note = $this->codec->decodeComplexEntity($this->eventId()->toBech32());
-        $nevent = $this->codec->decodeComplexEntity($this->nevent()->toBech32());
+        $note = Nip19Codec::decodeEntity($this->eventId()->toBech32());
+        $nevent = Nip19Codec::decodeEntity($this->nevent()->toBech32());
 
         $this->assertInstanceOf(Note::class, $note);
         $this->assertInstanceOf(Nevent::class, $nevent);
@@ -58,7 +51,7 @@ final class Nip19CodecTest extends TestCase
 
     public function testDecodeNprofileReturnsNprofileLeafWithRelays(): void
     {
-        $entity = $this->codec->decodeComplexEntity($this->nprofile()->toBech32());
+        $entity = Nip19Codec::decodeEntity($this->nprofile()->toBech32());
 
         $this->assertInstanceOf(Nprofile::class, $entity);
         $this->assertTrue($entity->getPublicKey()->equals($this->pubkey()));
@@ -70,7 +63,7 @@ final class Nip19CodecTest extends TestCase
         $nevent = Nevent::tryFromEventId($this->eventId(), new RelayUrlCollection(), $this->pubkey(), EventKind::fromInt(EventKind::TEXT_NOTE));
         $this->assertNotNull($nevent);
 
-        $entity = $this->codec->decodeComplexEntity($nevent->toBech32());
+        $entity = Nip19Codec::decodeEntity($nevent->toBech32());
 
         $this->assertInstanceOf(Nevent::class, $entity);
         $this->assertNotNull($entity->getAuthor());
@@ -80,7 +73,7 @@ final class Nip19CodecTest extends TestCase
 
     public function testDecodeNaddrReturnsNaddrLeafCarryingItsCoordinate(): void
     {
-        $entity = $this->codec->decodeComplexEntity($this->naddr()->toBech32());
+        $entity = Nip19Codec::decodeEntity($this->naddr()->toBech32());
 
         $this->assertInstanceOf(Naddr::class, $entity);
         $this->assertSame(Nip19EntityType::Address, $entity->type());
@@ -89,19 +82,19 @@ final class Nip19CodecTest extends TestCase
         $this->assertTrue($entity->getCoordinate()->getPubkey()->equals($this->pubkey()));
     }
 
-    // Deliberate: NIP-19 requires author and kind on an naddr, so a payload carrying only an identifier has no coordinate — see ADR-0060
+    // Deliberate: NIP-19 requires author and kind on an naddr, so a payload carrying only an identifier has no coordinate — see ADR-0082
     public function testDecodeNaddrReturnsNullWhenAuthorAndKindAreAbsent(): void
     {
         $identifierOnly = chr(0).chr(3).'abc';
 
-        $this->assertNull($this->codec->decodeComplexEntity(Bech32Codec::encode('naddr', $identifierOnly)));
-        $this->assertNull($this->codec->parseEventReference(Bech32Codec::encode('naddr', $identifierOnly)));
+        $this->assertNull(Nip19Codec::decodeEntity(Bech32Mother::encode('naddr', $identifierOnly)));
+        $this->assertNull(Nip19Codec::parseEventReference(Bech32Mother::encode('naddr', $identifierOnly)));
     }
 
     public function testDecodeReturnsNullForTruncatedTlv(): void
     {
         foreach (['nprofile', 'nevent', 'naddr'] as $hrp) {
-            $this->assertNull($this->codec->decodeComplexEntity(Bech32Codec::encode($hrp, self::truncatedTlv())));
+            $this->assertNull(Nip19Codec::decodeEntity(Bech32Mother::encode($hrp, self::truncatedTlv())));
         }
     }
 
@@ -109,22 +102,22 @@ final class Nip19CodecTest extends TestCase
     {
         $danglingType = chr(0).chr(1).'x'.chr(1);
 
-        $this->assertNull($this->codec->decodeComplexEntity(Bech32Codec::encode('nprofile', $danglingType)));
+        $this->assertNull(Nip19Codec::decodeEntity(Bech32Mother::encode('nprofile', $danglingType)));
     }
 
     public function testDecodeReturnsNullForInvalidBech32(): void
     {
-        $this->assertNull($this->codec->decodeComplexEntity('not-a-bech32-string'));
+        $this->assertNull(Nip19Codec::decodeEntity('not-a-bech32-string'));
     }
 
     public function testDecodeReturnsNullForUnknownPrefix(): void
     {
-        $this->assertNull($this->codec->decodeComplexEntity(Bech32Codec::encode('nsec', $this->pubkey()->toBytes())));
+        $this->assertNull(Nip19Codec::decodeEntity(Bech32Mother::encode('nsec', $this->pubkey()->toBytes())));
     }
 
     public function testParseEventReferenceAcceptsHexEventId(): void
     {
-        $reference = $this->codec->parseEventReference(self::EVENT_ID_HEX);
+        $reference = Nip19Codec::parseEventReference(self::EVENT_ID_HEX);
 
         $this->assertInstanceOf(EventId::class, $reference);
         $this->assertSame(self::EVENT_ID_HEX, $reference->toHex());
@@ -132,7 +125,7 @@ final class Nip19CodecTest extends TestCase
 
     public function testParseEventReferenceAcceptsNote(): void
     {
-        $reference = $this->codec->parseEventReference($this->eventId()->toBech32());
+        $reference = Nip19Codec::parseEventReference($this->eventId()->toBech32());
 
         $this->assertInstanceOf(EventId::class, $reference);
         $this->assertTrue($reference->equals($this->eventId()));
@@ -140,7 +133,7 @@ final class Nip19CodecTest extends TestCase
 
     public function testParseEventReferenceAcceptsNaddrAsCoordinate(): void
     {
-        $reference = $this->codec->parseEventReference($this->naddr()->toBech32());
+        $reference = Nip19Codec::parseEventReference($this->naddr()->toBech32());
 
         $this->assertInstanceOf(EventCoordinate::class, $reference);
         $this->assertSame(self::ADDRESSABLE_KIND, $reference->getKind()->toInt());
@@ -148,9 +141,22 @@ final class Nip19CodecTest extends TestCase
         $this->assertTrue($reference->getPubkey()->equals($this->pubkey()));
     }
 
+    public function testParseEventReferenceAcceptsACoordinateString(): void
+    {
+        $reference = Nip19Codec::parseEventReference(self::ADDRESSABLE_KIND.':'.self::PUBKEY_HEX.':'.self::IDENTIFIER);
+
+        $this->assertInstanceOf(EventCoordinate::class, $reference);
+        $this->assertSame(self::ADDRESSABLE_KIND.':'.self::PUBKEY_HEX.':'.self::IDENTIFIER, (string) $reference);
+    }
+
+    public function testParseEventReferenceRefusesACoordinateStringOfARegularKind(): void
+    {
+        $this->assertNull(Nip19Codec::parseEventReference('1:'.self::PUBKEY_HEX.':'.self::IDENTIFIER));
+    }
+
     public function testParseEventReferenceReturnsNullForGarbage(): void
     {
-        $this->assertNull($this->codec->parseEventReference('not-a-reference'));
+        $this->assertNull(Nip19Codec::parseEventReference('not-a-reference'));
     }
 
     private static function truncatedTlv(): string
@@ -173,9 +179,16 @@ final class Nip19CodecTest extends TestCase
         return Nevent::tryFromEventId($this->eventId()) ?? throw new RuntimeException('Invalid test nevent');
     }
 
+    public function testDecodeRefusesAnNprofileWhosePublicKeyRecordsDisagree(): void
+    {
+        $payload = pack('CC', 0, 32).$this->pubkey()->toBytes().pack('CC', 0, 32).str_repeat("\x02", 32);
+
+        $this->assertNull(Nip19Codec::decodeEntity(Bech32Mother::encode('nprofile', $payload)));
+    }
+
     private function nprofile(): Nprofile
     {
-        $relay = RelayUrl::tryFromString('wss://relay.example.com') ?? throw new RuntimeException('Invalid test relay');
+        $relay = RelayUrl::fromString('wss://relay.example.com');
 
         return Nprofile::tryFromPublicKey($this->pubkey(), new RelayUrlCollection([$relay]))
             ?? throw new RuntimeException('Invalid test nprofile');
@@ -183,7 +196,7 @@ final class Nip19CodecTest extends TestCase
 
     private function naddr(): Naddr
     {
-        $coordinate = EventCoordinate::tryFromParts(self::ADDRESSABLE_KIND, self::PUBKEY_HEX, self::IDENTIFIER)
+        $coordinate = EventCoordinate::tryFrom(EventKind::fromInt(self::ADDRESSABLE_KIND), $this->pubkey(), self::IDENTIFIER)
             ?? throw new RuntimeException('Invalid test coordinate');
 
         return Naddr::tryFromCoordinate($coordinate) ?? throw new RuntimeException('Invalid test naddr');

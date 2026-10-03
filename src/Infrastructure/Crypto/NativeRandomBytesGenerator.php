@@ -8,7 +8,7 @@ use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
 use InvalidArgumentException;
 use Override;
 
-final class NativeRandomBytesGenerator implements RandomBytesGeneratorInterface
+final readonly class NativeRandomBytesGenerator implements RandomBytesGeneratorInterface
 {
     #[Override]
     public function bytes(int $length): string

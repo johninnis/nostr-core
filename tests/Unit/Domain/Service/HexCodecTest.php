@@ -5,20 +5,25 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Service\HexCodec;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 
 final class HexCodecTest extends TestCase
 {
-    public function testEncodeProducesLowercaseHex(): void
+    #[DataProvider('conversionsTheLanguageProvides')]
+    public function testDoesNotAliasAConversionSodiumProvides(string $method): void
     {
-        $this->assertSame('00ff10', HexCodec::encode("\x00\xff\x10"));
+        $this->assertFalse(new ReflectionClass(HexCodec::class)->hasMethod($method));
     }
 
-    public function testDecodeReversesEncode(): void
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function conversionsTheLanguageProvides(): iterable
     {
-        $bytes = "\x00\xff\x10\x2a";
-
-        $this->assertSame($bytes, HexCodec::decode(HexCodec::encode($bytes)));
+        yield 'encode' => ['encode'];
+        yield 'decode' => ['decode'];
     }
 
     public function testTheCanonicalHexIsReturnedAndAnythingElseIsRefused(): void

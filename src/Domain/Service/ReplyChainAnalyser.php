@@ -9,12 +9,14 @@ use Innis\Nostr\Core\Domain\Collection\PublicKeyCollection;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Enum\Nip10Marker;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\ExternalContentId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
-use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\HttpUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReference;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\PubkeyReference;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\ReplyChain;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\SoleTagValue;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 
@@ -27,22 +29,19 @@ final class ReplyChainAnalyser
     public static function analyse(TagCollection $tags, ?EventKind $kind = null): ReplyChain
     {
         if (null !== $kind && $kind->is(EventKind::COMMENT)) {
-            return self::analyseCommentReplyChain($tags);
+            return self::analyseCommentReplyChain($tags, $kind);
         }
 
-        return self::analyseNip10ReplyChain($tags, self::threadsByNip10($kind));
+        return self::analyseNip10ReplyChain($tags, $kind);
     }
 
-    // Deliberate: NIP-10 threading is defined for the short note, so only a short note replies by it — a reaction, a repost or a zap receipt carries an e tag naming what it acts on, which is not a reply to it. A caller that names no kind is asking what the tags look like as a thread, and is answered — see ADR-0072
-    private static function threadsByNip10(?EventKind $kind): bool
+    // Deliberate: the root and the parent are each read address first, then event, then external content, every tag name as one claim — see ADR-0085
+    private static function analyseCommentReplyChain(TagCollection $tags, EventKind $kind): ReplyChain
     {
-        return null === $kind || $kind->is(EventKind::TEXT_NOTE);
-    }
-
-    private static function analyseCommentReplyChain(TagCollection $tags): ReplyChain
-    {
-        $rootEvent = null;
-        $parentEvent = null;
+        $rootEvents = [];
+        $parentEvents = [];
+        $rootAddresses = [];
+        $parentAddresses = [];
         $conversationParticipants = [];
 
         foreach ($tags as $tag) {
@@ -54,10 +53,14 @@ final class ReplyChainAnalyser
             $type = $tag->getType();
 
             if ($type->is(TagType::ROOT_EVENT)) {
-                $rootEvent = self::commentEventReference($value, $tag) ?? $rootEvent;
+                $rootEvents[] = EventReference::tryFromTag($tag);
             } elseif ($type->is(TagType::EVENT)) {
-                $parentEvent = self::commentEventReference($value, $tag) ?? $parentEvent;
-            } elseif ($type->is(TagType::PUBKEY) || $type->is(TagType::SENDER_PUBKEY)) {
+                $parentEvents[] = EventReference::tryFromTag($tag);
+            } elseif ($type->is(TagType::ROOT_ADDRESS)) {
+                $rootAddresses[] = EventCoordinate::tryFromTag($tag);
+            } elseif ($type->is(TagType::ADDRESSABLE)) {
+                $parentAddresses[] = EventCoordinate::tryFromTag($tag);
+            } elseif ($type->is(TagType::PUBKEY) || $type->is(TagType::ROOT_PUBKEY)) {
                 $pubkey = PublicKey::tryFromHex($value);
                 if (null !== $pubkey) {
                     $conversationParticipants[] = $pubkey;
@@ -65,35 +68,57 @@ final class ReplyChainAnalyser
             }
         }
 
-        $isReply = null !== $parentEvent || null !== $rootEvent;
-
         return new ReplyChain(
-            $isReply,
-            $rootEvent,
-            $parentEvent,
+            $kind,
+            self::soleClaim($rootAddresses, strval(...)) ?? self::soleClaim($rootEvents, self::eventIdKey(...)) ?? self::externalContent($tags, TagType::rootExternalContent(), TagType::rootKind()),
+            self::soleClaim($parentAddresses, strval(...)) ?? self::soleClaim($parentEvents, self::eventIdKey(...)) ?? self::externalContent($tags, TagType::externalContent(), TagType::parentKind()),
             new PublicKeyCollection($conversationParticipants)->unique(),
-            new EventReferenceCollection()
+            new EventReferenceCollection(),
         );
     }
 
-    private static function commentEventReference(string $eventIdHex, Tag $tag): ?EventReference
+    /**
+     * @template T of object
+     *
+     * @param list<T|null>        $claims
+     * @param callable(T): string $keyOf
+     *
+     * @return T|null
+     */
+    private static function soleClaim(array $claims, callable $keyOf): ?object
     {
-        $eventId = EventId::tryFromHex($eventIdHex);
-        if (null === $eventId) {
+        $named = array_values(array_filter($claims));
+        $soleKey = SoleTagValue::fromValues(array_map($keyOf, $named))->getValue();
+
+        return null === $soleKey ? null : $named[0];
+    }
+
+    private static function eventIdKey(EventReference $reference): string
+    {
+        return $reference->getEventId()->identityKey();
+    }
+
+    // Deliberate: external content is named by one I (or i) value paired with one K (or k) value, its NIP-73 type, each a sole claim — see ADR-0085
+    private static function externalContent(TagCollection $tags, TagType $idType, TagType $kindType): ?ExternalContentId
+    {
+        $value = $tags->getSoleValueByType($idType)->getValue();
+        $kind = $tags->getSoleValueByType($kindType)->getValue();
+        if (null === $value || null === $kind) {
             return null;
         }
 
-        $author = $tag->getValue(2);
-
-        return new EventReference(
-            $eventId,
-            RelayUrl::tryFromString($tag->getValue(1)),
-            null,
-            (null !== $author && '' !== $author) ? PublicKey::tryFromHex($author) : null,
-        );
+        return ExternalContentId::tryFromString($value, $kind, self::soleHint($tags, $idType));
     }
 
-    private static function analyseNip10ReplyChain(TagCollection $tags, bool $threadsByNip10): ReplyChain
+    // Deliberate: the hint is a sole claim among the web URLs the tags carry, read in canonical form, so the tag order never picks one — see ADR-0085
+    private static function soleHint(TagCollection $tags, TagType $idType): ?string
+    {
+        $urls = array_values(array_filter(array_map(static fn (Tag $tag): ?HttpUrl => HttpUrl::tryFromString($tag->getValue(1)), $tags->findByType($idType))));
+
+        return SoleTagValue::fromValues(array_map(strval(...), $urls))->getValue();
+    }
+
+    private static function analyseNip10ReplyChain(TagCollection $tags, ?EventKind $kind): ReplyChain
     {
         $references = TagReferenceExtractor::extract($tags);
         $eventReferences = $references->getEvents()->toArray();
@@ -108,20 +133,16 @@ final class ReplyChainAnalyser
 
         $hasMarkers = array_any(
             $eventReferences,
-            static fn (EventReference $reference): bool => null !== Nip10Marker::tryFrom($reference->getMarker() ?? ''),
+            static fn (EventReference $reference): bool => null !== $reference->getMarker(),
         );
 
         if ($hasMarkers) {
-            foreach ($eventReferences as $reference) {
-                $marker = Nip10Marker::tryFrom($reference->getMarker() ?? '');
-                if (Nip10Marker::Root === $marker) {
-                    $rootEvent = $reference;
-                } elseif (Nip10Marker::Reply === $marker) {
-                    $parentEvent = $reference;
-                } else {
-                    $mentionedEvents[] = $reference;
-                }
-            }
+            $rootEvent = self::soleClaim(self::markedAs($eventReferences, Nip10Marker::Root), self::eventIdKey(...));
+            $parentEvent = self::soleClaim(self::markedAs($eventReferences, Nip10Marker::Reply), self::eventIdKey(...));
+            $mentionedEvents = array_values(array_filter(
+                $eventReferences,
+                static fn (EventReference $reference): bool => !in_array($reference->getMarker(), [Nip10Marker::Root, Nip10Marker::Reply], true),
+            ));
         } elseif (1 === count($eventReferences)) {
             $parentEvent = $eventReferences[0];
         } elseif (count($eventReferences) > 1) {
@@ -131,11 +152,21 @@ final class ReplyChainAnalyser
         }
 
         return new ReplyChain(
-            $threadsByNip10 && (null !== $rootEvent || null !== $parentEvent),
+            $kind,
             $rootEvent,
             $parentEvent,
             $participants,
             new EventReferenceCollection($mentionedEvents)
         );
+    }
+
+    /**
+     * @param list<EventReference> $references
+     *
+     * @return list<EventReference>
+     */
+    private static function markedAs(array $references, Nip10Marker $marker): array
+    {
+        return array_values(array_filter($references, static fn (EventReference $reference): bool => $marker === $reference->getMarker()));
     }
 }

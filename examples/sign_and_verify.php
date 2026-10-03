@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
-use Innis\Nostr\Core\Domain\Factory\RumourFactory;
+use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
+use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Signer;
 
 require __DIR__.'/../vendor/autoload.php';
@@ -12,9 +14,10 @@ $signer = Secp256k1Signer::create();
 
 $keyPair = KeyPair::generate($signer);
 
-$rumour = RumourFactory::createTextNote(
+$rumour = Rumour::draft(
     $keyPair->getPublicKey(),
-    'Hello from innis/nostr-core',
+    EventKind::fromInt(EventKind::TEXT_NOTE),
+    EventContent::fromString('Hello from innis/nostr-core'),
 );
 
 $signed = $rumour->sign($keyPair, $signer);

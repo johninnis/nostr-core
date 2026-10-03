@@ -19,15 +19,14 @@ use PHPUnit\Framework\TestCase;
 
 final class Nip44EncryptionComplianceTest extends TestCase
 {
-    private const int PAYLOAD_OVERHEAD = 67;
-    private const int MAX_PLAINTEXT_LENGTH = 65535;
+    private const int METADATA_LENGTH = 65;
+    private const int EXTENDED_PREFIX_THRESHOLD = 65536;
+    private const int MAX_PLAINTEXT_LENGTH = 4294967295;
+    private const int RAISED_MAX_PLAINTEXT_LENGTH = 1048576;
+    private const string EXTENDED_PREFIX_CONVERSATION_KEY = 'c41c775356fd92eadc63ff5a0dc1da211b268cbea22316767095b2871ea1412d';
+    private const string EXTENDED_PREFIX_NONCE = '0000000000000000000000000000000000000000000000000000000000000001';
 
     /**
-     * These vectors reach the tests through data providers, so an empty corpus currently surfaces as
-     * "No tests found in class" rather than a green run. That protection is a side effect of PHPUnit's
-     * provider handling, not something this suite states; asserting the corpus makes a truncated
-     * vectors file fail for the reason it actually failed.
-     *
      * @var array<string, array{string, int}>
      */
     private const array OFFICIAL_VECTOR_COUNTS = [
@@ -143,6 +142,90 @@ final class Nip44EncryptionComplianceTest extends TestCase
         self::assertSame($plaintext, new Nip44Cipher()->decrypt($encrypted, $conversationKey));
     }
 
+    #[DataProvider('extendedPrefixVectorsProvider')]
+    public function testEncryptDecryptAcrossTheExtendedPrefixBoundary(
+        int $plaintextLength,
+        string $plaintextSha256,
+        string $payloadSha256,
+    ): void {
+        $plaintext = str_repeat('a', $plaintextLength);
+        self::assertSame($plaintextSha256, hash('sha256', $plaintext));
+
+        $nonce = hex2bin(self::EXTENDED_PREFIX_NONCE);
+        self::assertNotFalse($nonce);
+
+        $conversationKey = ConversationKey::tryFromHex(self::EXTENDED_PREFIX_CONVERSATION_KEY);
+        self::assertNotNull($conversationKey);
+
+        $encrypted = new Nip44Cipher(QueuedRandomBytesGenerator::withBytes($nonce))->encrypt($plaintext, $conversationKey);
+
+        self::assertSame($payloadSha256, hash('sha256', $encrypted));
+        self::assertSame($plaintext, new Nip44Cipher()->decrypt($encrypted, $conversationKey));
+    }
+
+    #[DataProvider('extendedPrefixVectorsProvider')]
+    public function testARaisedCeilingOpensTheExtendedPrefixVectors(
+        int $plaintextLength,
+        string $plaintextSha256,
+        string $payloadSha256,
+    ): void {
+        $nonce = hex2bin(self::EXTENDED_PREFIX_NONCE);
+        self::assertNotFalse($nonce);
+
+        $conversationKey = ConversationKey::tryFromHex(self::EXTENDED_PREFIX_CONVERSATION_KEY);
+        self::assertNotNull($conversationKey);
+
+        $raised = new Nip44Cipher(QueuedRandomBytesGenerator::withBytes($nonce), self::RAISED_MAX_PLAINTEXT_LENGTH);
+        $encrypted = $raised->encrypt(str_repeat('a', $plaintextLength), $conversationKey);
+
+        self::assertSame($payloadSha256, hash('sha256', $encrypted));
+        self::assertSame($plaintextSha256, hash('sha256', $raised->decrypt($encrypted, $conversationKey)));
+    }
+
+    /**
+     * @return iterable<string, array{int, string, string}>
+     */
+    public static function extendedPrefixVectorsProvider(): iterable
+    {
+        yield 'u16 prefix at 65535' => [
+            65535,
+            '6e1bebca6a8229364a162a72ef064826c4cd7457bf54f190ef782bd9deff3e42',
+            '6d8c2810d1e870fbaa1f0a0937126cca837a15f9260e27060c331d70a3c0bc84',
+        ];
+        yield 'extended prefix at 65536' => [
+            65536,
+            'bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a',
+            'b7b4edb36ba92e267d322d56d9aebc22e7fa96ff52e3c12adc07f07a43cbc616',
+        ];
+        yield 'extended prefix at 65537' => [
+            65537,
+            '008ffc88d3c96a9f307524eb361e47c5222a887fc45fa0c1fb8d429c5c23b430',
+            'eeb7c7c5373894ea2c1547cfd3ccb15d5a0b2d619da852e5c79df792dcc9e435',
+        ];
+    }
+
+    #[DataProvider('extendedPrefixPaddedLengthProvider')]
+    public function testTheExtendedPrefixAddsFourBytesToThePaddedPayload(int $plaintextLength, int $expectedPaddedWithPrefixLength): void
+    {
+        $conversationKey = ConversationKey::tryFromHex(self::EXTENDED_PREFIX_CONVERSATION_KEY);
+        self::assertNotNull($conversationKey);
+
+        $decoded = base64_decode(new Nip44Cipher()->encrypt(str_repeat('a', $plaintextLength), $conversationKey), true);
+        self::assertNotFalse($decoded);
+
+        self::assertSame($expectedPaddedWithPrefixLength, strlen($decoded) - self::METADATA_LENGTH);
+    }
+
+    /**
+     * @return iterable<string, array{int, int}>
+     */
+    public static function extendedPrefixPaddedLengthProvider(): iterable
+    {
+        yield '65535 takes the u16 prefix' => [65535, 65538];
+        yield '65536 takes the extended prefix' => [65536, 65542];
+        yield '65537 takes the extended prefix and the next bucket' => [65537, 81926];
+    }
+
     #[DataProvider('paddedLengthVectorsProvider')]
     public function testPaddedLengthMatchesSpec(int $unpaddedLength, int $expectedPaddedLength): void
     {
@@ -155,7 +238,9 @@ final class Nip44EncryptionComplianceTest extends TestCase
         $decoded = base64_decode($payload, true);
         self::assertNotFalse($decoded);
 
-        self::assertSame($expectedPaddedLength, strlen($decoded) - self::PAYLOAD_OVERHEAD);
+        $prefixLength = $unpaddedLength >= self::EXTENDED_PREFIX_THRESHOLD ? 6 : 2;
+
+        self::assertSame($expectedPaddedLength, strlen($decoded) - self::METADATA_LENGTH - $prefixLength);
     }
 
     #[DataProvider('invalidPlaintextLengthProvider')]
@@ -260,6 +345,11 @@ final class Nip44EncryptionComplianceTest extends TestCase
     public static function invalidPlaintextLengthProvider(): iterable
     {
         foreach (self::loadVectors()['invalid']['encrypt_msg_lengths'] as $i => $length) {
+            // Deliberate: the vector file predates the extended length prefix and still lists 65536 and above as invalid; only the lengths the current NIP refuses are asserted — see ADR-0117
+            if ($length >= 1 && $length <= self::MAX_PLAINTEXT_LENGTH) {
+                continue;
+            }
+
             yield "length_{$i}_{$length}" => [$length];
         }
     }

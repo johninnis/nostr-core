@@ -95,11 +95,36 @@ final class Nip86ResponseTest extends TestCase
         $this->assertNull(Nip86Response::tryFromArray(['status' => 'ok']));
     }
 
+    public function testTryFromArrayRefusesANonArray(): void
+    {
+        $this->assertNull(Nip86Response::tryFromArray('ok'));
+    }
+
     public function testTryFromJsonRoundTrips(): void
     {
         $restored = Nip86Response::tryFromJson(Nip86Response::success(['x' => 1])->toJson()) ?? throw new RuntimeException('Expected a response');
 
         $this->assertSame(['x' => 1], $restored->getResult());
+    }
+
+    public function testTryFromJsonKeepsAnEmptyObjectResultApartFromAnEmptyList(): void
+    {
+        $this->assertSame('{"result":{}}', Nip86Response::tryFromJson('{"result":{}}')?->toJson());
+    }
+
+    public function testTryFromJsonKeepsAnEmptyListResultAsAList(): void
+    {
+        $this->assertSame('{"result":[]}', Nip86Response::tryFromJson('{"result":[]}')?->toJson());
+    }
+
+    public function testTryFromJsonRefusesAJsonArray(): void
+    {
+        $this->assertNull(Nip86Response::tryFromJson('[{"result":true}]'));
+    }
+
+    public function testTryFromJsonRefusesAnObjectKeyedLikeAList(): void
+    {
+        $this->assertNull(Nip86Response::tryFromJson('{"0":{"result":true}}'));
     }
 
     public function testTryFromJsonRefusesMalformedJson(): void

@@ -8,7 +8,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 
 interface PaymentReceiptInterface
 {
-    public function getSenderPubkey(): ?PublicKey;
+    public function getSenderPubkey(): PublicKey;
 
     public function getRecipientPubkey(): ?PublicKey;
 

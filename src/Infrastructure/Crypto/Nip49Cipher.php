@@ -8,95 +8,85 @@ use Closure;
 use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
 use Innis\Nostr\Core\Domain\Enum\KeySecurityByte;
 use Innis\Nostr\Core\Domain\Exception\Nip49DecryptionFailedException;
+use Innis\Nostr\Core\Domain\Exception\Nip49WorkFactorRefusedException;
 use Innis\Nostr\Core\Domain\Service\Nip49EncryptionInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Ncryptsec;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\Nip49WorkFactor;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use InvalidArgumentException;
 use Normalizer;
 use Override;
 
-final class Nip49Cipher implements Nip49EncryptionInterface
+final readonly class Nip49Cipher implements Nip49EncryptionInterface
 {
-    // Deliberate: encrypt floors at 16 so no weak-KDF ncryptsec is minted; decrypt accepts lower for interop — see ADR-0030
-    private const int ENCRYPT_LOG_N_MIN = 16;
-    private const int LOG_N_MIN = 1;
-    private const int LOG_N_MAX = 22;
-
     public function __construct(
-        private readonly Nip49Scrypt $scrypt,
-        private readonly RandomBytesGeneratorInterface $randomBytes = new NativeRandomBytesGenerator(),
-        private readonly int $maxDecryptLogN = self::LOG_N_MAX,
+        private Nip49Scrypt $scrypt,
+        private RandomBytesGeneratorInterface $randomBytes = new NativeRandomBytesGenerator(),
+        private Nip49WorkFactor $workFactor = new Nip49WorkFactor(),
     ) {
-        if ($maxDecryptLogN < self::LOG_N_MIN || $maxDecryptLogN > self::LOG_N_MAX) {
-            throw new InvalidArgumentException(sprintf('maxDecryptLogN must be between %d and %d', self::LOG_N_MIN, self::LOG_N_MAX));
-        }
     }
 
     public static function create(
-        ?RandomBytesGeneratorInterface $randomBytes = null,
-        int $maxDecryptLogN = self::LOG_N_MAX,
+        Nip49WorkFactor $workFactor = new Nip49WorkFactor(),
+        RandomBytesGeneratorInterface $randomBytes = new NativeRandomBytesGenerator(),
     ): self {
         // Deliberate: probes for libsodium scrypt here, never in __construct; the constructor takes an injected scrypt for DI and tests — see ADR-0041
-        return new self(Nip49Scrypt::create(), $randomBytes ?? new NativeRandomBytesGenerator(), $maxDecryptLogN);
+        return new self(Nip49Scrypt::create(), $randomBytes, $workFactor);
     }
 
-    // Deliberate: the key, the password source and the two independently-defaulted ncryptsec parameters (KDF cost and key-security byte) are distinct inputs, not a cohesive group to fold into a parameter object — see ADR-0055
+    /**
+     * @param Closure(): string $passwordProvider
+     */
     #[Override]
     public function encrypt(
         PrivateKey $privateKey,
         Closure $passwordProvider,
-        int $logN = self::ENCRYPT_LOG_N_MIN,
-        KeySecurityByte $keySecurity = KeySecurityByte::Unknown,
+        KeySecurityByte $keySecurity = KeySecurityByte::Untracked,
     ): Ncryptsec {
-        if ($logN < self::ENCRYPT_LOG_N_MIN || $logN > self::LOG_N_MAX) {
-            throw new InvalidArgumentException(sprintf('logN must be between %d and %d', self::ENCRYPT_LOG_N_MIN, self::LOG_N_MAX));
-        }
-
+        $logN = $this->workFactor->getEncryptLogN();
         $salt = $this->randomBytes->bytes(Ncryptsec::SALT_LENGTH);
         $nonce = $this->randomBytes->bytes(Ncryptsec::NONCE_LENGTH);
+        $derivedKey = $this->deriveKey($passwordProvider, $salt, $logN);
 
-        $aeadOutput = $this->withDerivedKey(
-            $passwordProvider,
-            $salt,
-            $logN,
-            static fn (string $derivedKey): string => $privateKey->expose(
+        try {
+            $aeadOutput = $privateKey->expose(
                 static fn (string $nsecBytes): string => sodium_crypto_aead_xchacha20poly1305_ietf_encrypt(
                     $nsecBytes,
                     chr($keySecurity->value),
                     $nonce,
                     $derivedKey,
                 )
-            ),
-        );
+            );
+        } finally {
+            sodium_memzero($derivedKey);
+        }
 
         return Ncryptsec::create($logN, $salt, $nonce, $keySecurity, $aeadOutput);
     }
 
+    /**
+     * @param Closure(): string $passwordProvider
+     */
     #[Override]
     public function decrypt(Ncryptsec $ncryptsec, Closure $passwordProvider): PrivateKey
     {
         $logN = $ncryptsec->getLogN();
-        if ($logN < self::LOG_N_MIN || $logN > $this->maxDecryptLogN) {
-            throw new Nip49DecryptionFailedException();
+        if (!$this->workFactor->admitsForDecryption($logN)) {
+            throw new Nip49WorkFactorRefusedException($logN);
         }
+
+        $derivedKey = $this->deriveKey($passwordProvider, $ncryptsec->getSalt(), $logN);
 
         try {
-            $keySecurity = KeySecurityByte::fromByte($ncryptsec->getKeySecurityByteRaw());
-        } catch (InvalidArgumentException) {
-            throw new Nip49DecryptionFailedException();
-        }
-
-        $plaintext = $this->withDerivedKey(
-            $passwordProvider,
-            $ncryptsec->getSalt(),
-            $logN,
-            static fn (string $derivedKey): string|false => sodium_crypto_aead_xchacha20poly1305_ietf_decrypt(
+            $plaintext = sodium_crypto_aead_xchacha20poly1305_ietf_decrypt(
                 $ncryptsec->getAeadCiphertextAndTag(),
-                chr($keySecurity->value),
+                chr($ncryptsec->getKeySecurity()->value),
                 $ncryptsec->getNonce(),
                 $derivedKey,
-            ),
-        );
+            );
+        } finally {
+            sodium_memzero($derivedKey);
+        }
 
         if (false === $plaintext) {
             throw new Nip49DecryptionFailedException();
@@ -110,15 +100,9 @@ final class Nip49Cipher implements Nip49EncryptionInterface
     }
 
     /**
-     * @template T
-     *
-     * @param Closure(): string  $passwordProvider
-     * @param Closure(string): T $use
-     *
-     * @return T
+     * @param Closure(): string $passwordProvider
      */
-    // Deliberate: password source, scrypt salt, scrypt cost and the consuming closure are four distinct inputs to one derive-key-and-run step — see ADR-0055
-    private function withDerivedKey(Closure $passwordProvider, string $salt, int $logN, Closure $use): mixed
+    private function deriveKey(Closure $passwordProvider, string $salt, int $logN): string
     {
         $revealed = $this->revealPassword($passwordProvider);
 
@@ -129,13 +113,7 @@ final class Nip49Cipher implements Nip49EncryptionInterface
             }
 
             try {
-                $derivedKey = $this->scrypt->derive($normalised, $salt, $logN);
-
-                try {
-                    return $use($derivedKey);
-                } finally {
-                    sodium_memzero($derivedKey);
-                }
+                return $this->scrypt->derive($normalised, $salt, $logN);
             } finally {
                 sodium_memzero($normalised);
             }
@@ -144,14 +122,13 @@ final class Nip49Cipher implements Nip49EncryptionInterface
         }
     }
 
+    /**
+     * @param Closure(): string $passwordProvider
+     */
     // Deliberate: XORing against zeros forces a fresh buffer this adapter solely owns, so the caller's sodium_memzero lands on it instead of separating a throwaway; returning the provider's own string aliases whatever the caller still holds and makes the wipe a no-op — the same copy-on-write trap SecretKeyMaterial::expose avoids, see ADR-0028
     private function revealPassword(Closure $passwordProvider): string
     {
         $revealed = $passwordProvider();
-
-        if (!is_string($revealed)) {
-            throw new InvalidArgumentException('Password provider must return a string');
-        }
 
         return $revealed ^ str_repeat("\0", strlen($revealed));
     }

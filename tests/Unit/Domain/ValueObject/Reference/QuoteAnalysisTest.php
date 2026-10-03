@@ -11,12 +11,32 @@ final class QuoteAnalysisTest extends TestCase
 {
     public function testExposesEachConstructorFlag(): void
     {
-        $analysis = new QuoteAnalysis(hasQuoteTag: true, hasEventInContent: true, isRepost: false, isQuote: true);
+        $analysis = new QuoteAnalysis(hasQuoteTag: true, hasQuoteInContent: true, isRepost: false, isShortNote: true);
 
         $this->assertTrue($analysis->hasQuoteTag());
-        $this->assertTrue($analysis->hasEventInContent());
+        $this->assertTrue($analysis->hasQuoteInContent());
         $this->assertFalse($analysis->isRepost());
-        $this->assertTrue($analysis->isQuote());
+        $this->assertTrue($analysis->isShortNote());
+    }
+
+    public function testAQuoteTagMakesAQuote(): void
+    {
+        $this->assertTrue(new QuoteAnalysis(hasQuoteTag: true, hasQuoteInContent: false, isRepost: false, isShortNote: false)->isQuote());
+    }
+
+    public function testAShortNoteNamingAnEventInItsContentIsAQuote(): void
+    {
+        $this->assertTrue(new QuoteAnalysis(hasQuoteTag: false, hasQuoteInContent: true, isRepost: false, isShortNote: true)->isQuote());
+    }
+
+    public function testAnotherKindNamingAnEventInItsContentIsNotAQuote(): void
+    {
+        $this->assertFalse(new QuoteAnalysis(hasQuoteTag: false, hasQuoteInContent: true, isRepost: false, isShortNote: false)->isQuote());
+    }
+
+    public function testAStoredQuoteFlagWithNothingQuotedIsNotAQuote(): void
+    {
+        $this->assertFalse(QuoteAnalysis::fromArray(['is_quote' => true])->isQuote());
     }
 
     public function testFlagsDefaultToFalseFromEmptyArray(): void
@@ -24,20 +44,15 @@ final class QuoteAnalysisTest extends TestCase
         $analysis = QuoteAnalysis::fromArray([]);
 
         $this->assertFalse($analysis->hasQuoteTag());
-        $this->assertFalse($analysis->hasEventInContent());
+        $this->assertFalse($analysis->hasQuoteInContent());
         $this->assertFalse($analysis->isRepost());
-        $this->assertFalse($analysis->isQuote());
+        $this->assertFalse($analysis->isShortNote());
     }
 
     public function testRoundTripsThroughArray(): void
     {
-        $analysis = new QuoteAnalysis(hasQuoteTag: true, hasEventInContent: false, isRepost: true, isQuote: false);
+        $analysis = new QuoteAnalysis(hasQuoteTag: true, hasQuoteInContent: false, isRepost: true, isShortNote: false);
 
-        $restored = QuoteAnalysis::fromArray($analysis->toArray());
-
-        $this->assertTrue($restored->hasQuoteTag());
-        $this->assertFalse($restored->hasEventInContent());
-        $this->assertTrue($restored->isRepost());
-        $this->assertFalse($restored->isQuote());
+        $this->assertSame($analysis->toArray(), QuoteAnalysis::fromArray($analysis->toArray())->toArray());
     }
 }

@@ -7,6 +7,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Reference;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\PubkeyReference;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -111,5 +112,29 @@ final class PubkeyReferenceTest extends TestCase
         $this->assertSame($original->getPubkey()->toHex(), $recreated->getPubkey()->toHex());
         $this->assertSame((string) $original->getRelayUrl(), (string) $recreated->getRelayUrl());
         $this->assertSame($original->getPetname(), $recreated->getPetname());
+    }
+
+    public function testTryFromTagReadsAPubkeyTagsRelayAndPetname(): void
+    {
+        $reference = PubkeyReference::tryFromTag(Tag::fromArray(['p', self::VALID_PUBKEY, self::VALID_RELAY, 'alice']));
+
+        $this->assertSame([self::VALID_PUBKEY, self::VALID_RELAY, 'alice'], [$reference?->getPubkey()->toHex(), (string) $reference?->getRelayUrl(), $reference?->getPetname()]);
+    }
+
+    public function testTryFromTagReadsNoPetnameFromARootAuthorTag(): void
+    {
+        $reference = PubkeyReference::tryFromTag(Tag::fromArray(['P', self::VALID_PUBKEY, self::VALID_RELAY, 'alice']));
+
+        $this->assertSame([self::VALID_PUBKEY, self::VALID_RELAY, null], [$reference?->getPubkey()->toHex(), (string) $reference?->getRelayUrl(), $reference?->getPetname()]);
+    }
+
+    public function testTryFromTagRefusesAnInvalidPubkey(): void
+    {
+        $this->assertNull(PubkeyReference::tryFromTag(Tag::fromArray(['p', 'not-a-pubkey'])));
+    }
+
+    public function testTryFromTagReadsAnInvalidRelayAsNoHint(): void
+    {
+        $this->assertNull(PubkeyReference::tryFromTag(Tag::fromArray(['p', self::VALID_PUBKEY, 'not a relay']))?->getRelayUrl());
     }
 }

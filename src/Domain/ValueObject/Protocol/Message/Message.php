@@ -4,29 +4,54 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message;
 
+use Innis\Nostr\Core\Domain\Enum\ClientMessageType;
+use Innis\Nostr\Core\Domain\Enum\RelayMessageType;
 use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 
 abstract readonly class Message
 {
-    /**
-     * @return array<array-key, mixed>
-     */
-    abstract public function toArray(): array;
+    abstract public static function type(): ClientMessageType|RelayMessageType;
 
     /**
-     * @param array<array-key, mixed> $data
+     * @return list<mixed>
      */
-    abstract public static function tryFromArray(array $data): ?static;
+    abstract protected function toPayload(): array;
 
-    final public static function tryFromJson(string $json): ?static
+    /**
+     * @param list<mixed> $payload
+     */
+    abstract protected static function tryFromPayload(array $payload): ?static;
+
+    /**
+     * @return list<mixed>
+     */
+    final public function toArray(): array
     {
-        $data = JsonWireFormat::decodeList($json);
-
-        return null === $data ? null : static::tryFromArray($data);
+        return [static::type()->value, ...$this->toPayload()];
     }
 
-    final protected static function encode(mixed $value): string
+    final public function toJson(): string
     {
-        return JsonWireFormat::encode($value, JsonWireFormat::MESSAGE);
+        return JsonWireFormat::encode($this->toArray(), JsonWireFormat::MESSAGE);
+    }
+
+    /**
+     * @return class-string<self>|null
+     */
+    abstract protected static function messageClassFor(string $tag): ?string;
+
+    final protected static function tryFromTaggedList(mixed $data): ?static
+    {
+        if (!is_array($data) || !array_is_list($data) || !is_string($data[0] ?? null)) {
+            return null;
+        }
+
+        $messageClass = static::messageClassFor($data[0]);
+
+        if (null === $messageClass || !is_a($messageClass, static::class, true)) {
+            return null;
+        }
+
+        return $messageClass::tryFromPayload(array_slice($data, 1));
     }
 }

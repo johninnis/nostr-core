@@ -8,30 +8,27 @@ use Innis\Nostr\Core\Domain\Collection\ContentReferenceCollection;
 use Innis\Nostr\Core\Domain\Collection\EventIdCollection;
 use Innis\Nostr\Core\Domain\Collection\PublicKeyCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
-use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\ContentReference;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReference;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReferences;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\QuoteAnalysis;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\ReplyChain;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\TagReferences;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
-use Override;
 
-final readonly class EventReferenceExtractor implements EventReferenceExtractorInterface
+final class EventReferenceExtractor
 {
-    public function __construct(
-        private ContentReferenceExtractorInterface $contentExtractor,
-    ) {
+    private function __construct()
+    {
     }
 
-    #[Override]
-    public function extractReferences(Event $event): EventReferences
+    public static function extract(Event $event): EventReferences
     {
         $tagReferences = TagReferenceExtractor::extract($event->getTags());
-        $contentReferences = $this->contentExtractor->extractContentReferences($event->getContent());
+        $contentReferences = ContentReferenceExtractor::extract($event->getContent());
         $replyChain = ReplyChainAnalyser::analyse($event->getTags(), $event->getKind());
         $quoteAnalysis = self::analyseQuote($event, $contentReferences);
 
@@ -55,20 +52,18 @@ final readonly class EventReferenceExtractor implements EventReferenceExtractorI
     {
         $isRepost = $event->isRepost();
 
-        $hasQuoteTag = [] !== $event->getTags()->findByType(TagType::fromString(TagType::QUOTE));
+        $hasQuoteTag = $event->getTags()->hasType(TagType::fromString(TagType::QUOTE));
 
-        $hasEventInContent = array_any(
+        $hasQuoteInContent = array_any(
             $contentReferences->toArray(),
-            static fn (ContentReference $ref): bool => ContentReferenceType::NostrUri === $ref->getType() && $ref->isEventReference(),
+            static fn (ContentReference $ref): bool => $ref->isQuote(),
         );
-
-        $isQuote = $hasQuoteTag || ($event->getKind()->is(EventKind::TEXT_NOTE) && $hasEventInContent);
 
         return new QuoteAnalysis(
             $hasQuoteTag,
-            $hasEventInContent,
+            $hasQuoteInContent,
             $isRepost,
-            $isQuote
+            $event->getKind()->is(EventKind::TEXT_NOTE),
         );
     }
 
@@ -83,7 +78,7 @@ final readonly class EventReferenceExtractor implements EventReferenceExtractorI
         $eventIds = [];
         $publicKeys = [];
 
-        foreach ($tagReferences->getEvents() as $ref) {
+        foreach ([...$tagReferences->getEvents(), ...$tagReferences->getQuotes()] as $ref) {
             $eventIds[] = $ref->getEventId();
             if (null !== $ref->getAuthor()) {
                 $publicKeys[] = $ref->getAuthor();
@@ -92,13 +87,6 @@ final readonly class EventReferenceExtractor implements EventReferenceExtractorI
 
         foreach ($tagReferences->getPubkeys() as $ref) {
             $publicKeys[] = $ref->getPubkey();
-        }
-
-        foreach ($tagReferences->getQuotes() as $ref) {
-            $eventIds[] = $ref->getEventId();
-            if (null !== $ref->getAuthor()) {
-                $publicKeys[] = $ref->getAuthor();
-            }
         }
 
         foreach ($contentReferences as $ref) {
@@ -110,15 +98,12 @@ final readonly class EventReferenceExtractor implements EventReferenceExtractorI
             }
         }
 
-        if (null !== $replyChain->getRootEvent()) {
-            $eventIds[] = $replyChain->getRootEvent()->getEventId();
+        foreach ([$replyChain->getRoot(), $replyChain->getParent(), ...$replyChain->getMentionedEvents()] as $pointer) {
+            if ($pointer instanceof EventReference) {
+                $eventIds[] = $pointer->getEventId();
+            }
         }
-        if (null !== $replyChain->getParentEvent()) {
-            $eventIds[] = $replyChain->getParentEvent()->getEventId();
-        }
-        foreach ($replyChain->getMentionedEvents() as $mention) {
-            $eventIds[] = $mention->getEventId();
-        }
+
         foreach ($replyChain->getConversationParticipants() as $participant) {
             $publicKeys[] = $participant;
         }

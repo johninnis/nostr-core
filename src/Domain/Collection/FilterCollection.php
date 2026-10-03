@@ -25,6 +25,11 @@ final class FilterCollection extends TypedCollection
         return array_any($this->items, static fn (Filter $filter): bool => $filter->matches($event));
     }
 
+    public function matchable(): self
+    {
+        return new self(array_values(array_filter($this->items, static fn (Filter $filter): bool => $filter->canMatch())));
+    }
+
     public static function tryFromArray(mixed $values): ?self
     {
         return self::tryFromEach($values, Filter::tryFromArray(...));

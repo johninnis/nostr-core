@@ -15,4 +15,6 @@ interface NipComplianceValidatorInterface
     public function validateNip04Compliance(Event $event): void;
 
     public function validateNip09Compliance(Event $event): void;
+
+    public function validateNip09Shape(Event $event): void;
 }

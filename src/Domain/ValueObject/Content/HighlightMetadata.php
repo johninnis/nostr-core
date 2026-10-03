@@ -6,15 +6,39 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Content;
 
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\HttpUrl;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\SoleTagValue;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
+use InvalidArgumentException;
 
 final readonly class HighlightMetadata
 {
-    public function __construct(
+    private const string SOURCE_MARKER = 'source';
+
+    private const string MENTION_MARKER = 'mention';
+
+    private function __construct(
         private ?string $context,
         private ?string $comment,
-        private ?string $sourceUrl,
+        private ?HttpUrl $sourceUrl,
     ) {
+    }
+
+    public static function tryFrom(?string $context, ?string $comment, ?HttpUrl $sourceUrl): ?self
+    {
+        $isUtf8 = array_all(
+            [$context, $comment],
+            static fn (?string $text): bool => null === $text || mb_check_encoding($text, 'UTF-8'),
+        );
+
+        return $isUtf8 ? new self($context, $comment, $sourceUrl) : null;
+    }
+
+    public static function from(?string $context, ?string $comment, ?HttpUrl $sourceUrl): self
+    {
+        return self::tryFrom($context, $comment, $sourceUrl)
+            ?? throw new InvalidArgumentException('Highlight context and comment must be UTF-8');
     }
 
     public function getContext(): ?string
@@ -27,26 +51,50 @@ final readonly class HighlightMetadata
         return $this->comment;
     }
 
-    public function getSourceUrl(): ?string
+    public function getSourceUrl(): ?HttpUrl
     {
         return $this->sourceUrl;
     }
 
     public static function fromTagCollection(TagCollection $tags): self
     {
-        return new self(
-            $tags->getFirstValueByType(TagType::fromString(TagType::CONTEXT)),
-            $tags->getFirstValueByType(TagType::fromString(TagType::COMMENT)),
+        return self::from(
+            $tags->getSoleValueByType(TagType::fromString(TagType::CONTEXT))->getValue(),
+            $tags->getSoleValueByType(TagType::fromString(TagType::COMMENT))->getValue(),
             self::extractSourceUrl($tags),
         );
     }
 
-    private static function extractSourceUrl(TagCollection $tags): ?string
+    private static function extractSourceUrl(TagCollection $tags): ?HttpUrl
     {
-        return array_find(
-            $tags->getValuesByType(TagType::fromString(TagType::REFERENCE)),
-            static fn (string $value): bool => str_starts_with($value, 'http://') || str_starts_with($value, 'https://'),
-        );
+        $webPages = array_values(array_filter(
+            array_map(
+                static fn (Tag $tag): ?array => self::markedWebPage($tag),
+                $tags->findByType(TagType::fromString(TagType::REFERENCE)),
+            ),
+            static fn (?array $page): bool => null !== $page,
+        ));
+        $marked = array_values(array_filter($webPages, static fn (array $page): bool => self::SOURCE_MARKER === $page['marker']));
+        $candidates = [] !== $marked
+            ? $marked
+            : array_values(array_filter($webPages, static fn (array $page): bool => self::MENTION_MARKER !== $page['marker']));
+
+        $sole = SoleTagValue::fromValues(array_map(
+            static fn (array $page): string => (string) $page['url'],
+            $candidates,
+        ))->getValue();
+
+        return null === $sole ? null : HttpUrl::tryFromString($sole);
+    }
+
+    /**
+     * @return array{url: HttpUrl, marker: ?string}|null
+     */
+    private static function markedWebPage(Tag $tag): ?array
+    {
+        $url = HttpUrl::tryFromString($tag->getValue());
+
+        return null === $url ? null : ['url' => $url, 'marker' => $tag->getValue(1)];
     }
 
     /**
@@ -57,19 +105,20 @@ final readonly class HighlightMetadata
         return [
             'context' => $this->context,
             'comment' => $this->comment,
-            'source_url' => $this->sourceUrl,
+            'source_url' => null === $this->sourceUrl ? null : (string) $this->sourceUrl,
         ];
     }
 
-    /**
-     * @param array<string, mixed> $data
-     */
-    public static function fromArray(array $data): self
+    public static function tryFromArray(mixed $data): ?self
     {
-        return new self(
+        if (!is_array($data)) {
+            return null;
+        }
+
+        return self::tryFrom(
             JsonWireFormat::stringField($data, 'context'),
             JsonWireFormat::stringField($data, 'comment'),
-            JsonWireFormat::stringField($data, 'source_url'),
+            HttpUrl::tryFromString(JsonWireFormat::stringField($data, 'source_url')),
         );
     }
 
@@ -77,6 +126,6 @@ final readonly class HighlightMetadata
     {
         return $this->context === $other->context
             && $this->comment === $other->comment
-            && $this->sourceUrl === $other->sourceUrl;
+            && (null === $this->sourceUrl ? null === $other->sourceUrl : null !== $other->sourceUrl && $this->sourceUrl->equals($other->sourceUrl));
     }
 }

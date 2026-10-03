@@ -18,14 +18,9 @@ final class ContentReferenceCollection extends TypedCollection
         return ContentReference::class;
     }
 
-    private static function tryParse(mixed $value): ?ContentReference
-    {
-        return is_array($value) ? ContentReference::tryFromArray($value) : null;
-    }
-
     public static function fromArrays(mixed $values): self
     {
-        return self::fromEach($values, self::tryParse(...));
+        return self::fromEach($values, ContentReference::tryFromArray(...));
     }
 
     /**

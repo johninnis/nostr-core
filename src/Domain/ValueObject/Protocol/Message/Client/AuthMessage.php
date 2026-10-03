@@ -13,15 +13,22 @@ use Override;
 
 final readonly class AuthMessage extends ClientMessage
 {
-    public function __construct(private Event $event)
+    private function __construct(private Event $event)
     {
-        if (!$this->event->getKind()->is(EventKind::CLIENT_AUTH)) {
-            throw new InvalidArgumentException('AUTH message must contain a kind 22242 event');
-        }
+    }
+
+    public static function tryFromEvent(Event $event): ?self
+    {
+        return $event->getKind()->is(EventKind::CLIENT_AUTH) ? new self($event) : null;
+    }
+
+    public static function fromEvent(Event $event): self
+    {
+        return self::tryFromEvent($event) ?? throw new InvalidArgumentException('AUTH message must contain a kind 22242 event');
     }
 
     #[Override]
-    public function type(): ClientMessageType
+    public static function type(): ClientMessageType
     {
         return ClientMessageType::Auth;
     }
@@ -31,37 +38,21 @@ final readonly class AuthMessage extends ClientMessage
         return $this->event;
     }
 
-    /**
-     * @return list<mixed>
-     */
     #[Override]
-    public function toArray(): array
+    protected function toPayload(): array
     {
-        return [$this->type()->value, $this->event->toArray()];
+        return [$this->event->toArray()];
     }
 
-    /**
-     * @param array<array-key, mixed> $data
-     */
     #[Override]
-    public static function tryFromArray(array $data): ?static
+    protected static function tryFromPayload(array $payload): ?static
     {
-        if (!array_is_list($data) || 2 !== count($data)) {
+        if (1 !== count($payload)) {
             return null;
         }
 
-        $event = Event::tryFromArray($data[1]);
+        $event = Event::tryFromArray($payload[0]);
 
-        if (null === $event) {
-            return null;
-        }
-
-        if (!$event->getKind()->is(EventKind::CLIENT_AUTH)) {
-            return null;
-        }
-
-        $parsed = new self($event);
-
-        return $parsed->type()->value === $data[0] ? $parsed : null;
+        return null === $event ? null : self::tryFromEvent($event);
     }
 }

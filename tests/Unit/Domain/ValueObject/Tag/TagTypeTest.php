@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Tag;
 
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
-use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 final class TagTypeTest extends TestCase
@@ -18,12 +17,9 @@ final class TagTypeTest extends TestCase
         $this->assertSame('e', (string) $tagType);
     }
 
-    public function testThrowsExceptionForEmptyString(): void
+    public function testFromStringAcceptsAnEmptyName(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Tag type cannot be empty');
-
-        TagType::fromString('');
+        $this->assertSame('', (string) TagType::fromString(''));
     }
 
     public function testStaticFactoryMethods(): void
@@ -37,7 +33,6 @@ final class TagTypeTest extends TestCase
     public function testNip22FactoryMethods(): void
     {
         $this->assertSame('E', (string) TagType::rootEvent());
-        $this->assertSame('A', (string) TagType::rootAddress());
         $this->assertSame('I', (string) TagType::rootExternalContent());
         $this->assertSame('K', (string) TagType::rootKind());
         $this->assertSame('k', (string) TagType::parentKind());
@@ -46,26 +41,6 @@ final class TagTypeTest extends TestCase
     public function testExternalContentFactoryMethod(): void
     {
         $this->assertSame('i', (string) TagType::externalContent());
-    }
-
-    public function testExternalContentKindFactoryMethod(): void
-    {
-        $this->assertSame('k', (string) TagType::externalContentKind());
-    }
-
-    public function testExternalContentKindIsTheSameWireTagAsParentKind(): void
-    {
-        $this->assertTrue(TagType::externalContentKind()->equals(TagType::parentKind()));
-    }
-
-    public function testIdentityClaimFactoryMethod(): void
-    {
-        $this->assertSame('i', (string) TagType::identityClaim());
-    }
-
-    public function testIdentityClaimIsTheSameWireTagAsExternalContent(): void
-    {
-        $this->assertTrue(TagType::identityClaim()->equals(TagType::externalContent()));
     }
 
     public function testUppercaseTagsDistinctFromLowercase(): void
@@ -98,7 +73,6 @@ final class TagTypeTest extends TestCase
     public function testBlobFactoryMethods(): void
     {
         $this->assertSame('x', (string) TagType::sha256());
-        $this->assertSame('ox', (string) TagType::originalSha256());
         $this->assertSame('server', (string) TagType::server());
     }
 
@@ -107,5 +81,16 @@ final class TagTypeTest extends TestCase
         $customType = TagType::fromString('custom');
 
         $this->assertSame('custom', (string) $customType);
+    }
+
+    // Deliberate: NIP-01 says "Each tag is an array of one or more strings" and constrains no tag name, so an empty name is a tag name — see ADR-0129
+    public function testTryFromStringAcceptsAnEmptyName(): void
+    {
+        $this->assertSame('', (string) TagType::tryFromString(''));
+    }
+
+    public function testTryFromStringRefusesANonString(): void
+    {
+        $this->assertNull(TagType::tryFromString(42));
     }
 }

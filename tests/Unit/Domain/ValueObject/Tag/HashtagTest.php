@@ -30,10 +30,23 @@ final class HashtagTest extends TestCase
         $this->assertNull(Hashtag::tryFromString(42));
     }
 
+    public function testTryFromStringRefusesAValueThatIsNotUtf8(): void
+    {
+        $this->assertNull(Hashtag::tryFromString("\xC3\x28"));
+    }
+
+    public function testFromStringRefusesAValueThatIsNotUtf8(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('A hashtag is non-empty UTF-8 text');
+
+        Hashtag::fromString("\xFF");
+    }
+
     public function testFromStringRefusesAnEmptyValue(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('A hashtag cannot be empty');
+        $this->expectExceptionMessage('A hashtag is non-empty UTF-8 text');
 
         Hashtag::fromString('');
     }

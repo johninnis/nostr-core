@@ -6,8 +6,6 @@ namespace Innis\Nostr\Core\Tests\Support;
 
 use Innis\Nostr\Core\Domain\Service\EcdhServiceInterface;
 use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
-use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
-use Innis\Nostr\Core\Infrastructure\Crypto\NativeRandomBytesGenerator;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Ecdh;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Signer;
 
@@ -18,15 +16,7 @@ final class CryptoFixtures
 
     public static function signer(): SignatureServiceInterface
     {
-        if (null === self::$signer) {
-            $randomBytes = new NativeRandomBytesGenerator();
-            self::$signer = new Secp256k1Signer(
-                LibSecp256k1Ffi::tryLoad($randomBytes),
-                $randomBytes,
-            );
-        }
-
-        return self::$signer;
+        return self::$signer ??= Secp256k1Signer::create();
     }
 
     public static function ecdh(): EcdhServiceInterface

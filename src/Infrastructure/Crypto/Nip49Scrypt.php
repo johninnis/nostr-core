@@ -7,7 +7,7 @@ namespace Innis\Nostr\Core\Infrastructure\Crypto;
 use FFI;
 use Innis\Nostr\Core\Domain\Exception\CryptoException;
 
-final class Nip49Scrypt
+final readonly class Nip49Scrypt
 {
     private const string CDEF = <<<'C'
         int crypto_pwhash_scryptsalsa208sha256_ll(
@@ -31,7 +31,7 @@ final class Nip49Scrypt
     private const int SCRYPT_PARALLELISM = 1;
 
     public function __construct(
-        private readonly ?FFI $ffi,
+        private ?FFI $ffi,
     ) {
     }
 

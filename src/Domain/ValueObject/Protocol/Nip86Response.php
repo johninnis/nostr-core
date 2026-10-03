@@ -22,11 +22,7 @@ final readonly class Nip86Response
 
     public static function failure(string $error): self
     {
-        if ('' === $error) {
-            throw new InvalidArgumentException('A NIP-86 failure must carry an error message');
-        }
-
-        return new self(null, $error);
+        return self::tryFailure($error) ?? throw new InvalidArgumentException('A NIP-86 failure must carry an error message');
     }
 
     public function isSuccess(): bool
@@ -60,28 +56,30 @@ final readonly class Nip86Response
         return JsonWireFormat::encode($this->toArray(), JsonWireFormat::MESSAGE);
     }
 
-    /**
-     * @param array<array-key, mixed> $data
-     */
-    public static function tryFromArray(array $data): ?self
+    public static function tryFromArray(mixed $data): ?self
     {
-        $error = $data['error'] ?? null;
+        $fields = JsonWireFormat::objectFields($data);
 
-        if (is_string($error) && '' !== $error) {
-            return self::failure($error);
-        }
-
-        if (null !== $error) {
+        if (null === $fields) {
             return null;
         }
 
-        return array_key_exists('result', $data) ? self::success($data['result']) : null;
+        $error = $fields['error'] ?? null;
+
+        if (null !== $error) {
+            return is_string($error) ? self::tryFailure($error) : null;
+        }
+
+        return array_key_exists('result', $fields) ? self::success($fields['result']) : null;
     }
 
     public static function tryFromJson(string $json): ?self
     {
-        $data = JsonWireFormat::decodeArray($json);
+        return self::tryFromArray(JsonWireFormat::decode($json));
+    }
 
-        return null === $data ? null : self::tryFromArray($data);
+    private static function tryFailure(string $error): ?self
+    {
+        return '' === $error ? null : new self(null, $error);
     }
 }

@@ -14,7 +14,7 @@ final readonly class Nprofile implements Nip19EntityInterface
 {
     public const string HRP = 'nprofile';
 
-    // Deliberate: the encoded form is built and validated in the named constructor, so toBech32 is total — see ADR-0060
+    // Deliberate: the encoded form is built and validated in the named constructor, so toBech32 is total — see ADR-0104
     private function __construct(
         private PublicKey $publicKey,
         private RelayUrlCollection $relays,
@@ -24,18 +24,22 @@ final readonly class Nprofile implements Nip19EntityInterface
 
     public static function tryFromPublicKey(PublicKey $publicKey, RelayUrlCollection $relays = new RelayUrlCollection()): ?self
     {
+        $uniqueRelays = $relays->unique();
+
         $records = [['type' => Nip19Tlv::TYPE_SPECIAL, 'value' => $publicKey->toBytes()]];
 
-        foreach ($relays as $relay) {
+        foreach ($uniqueRelays as $relay) {
             $records[] = ['type' => Nip19Tlv::TYPE_RELAY, 'value' => (string) $relay];
         }
 
         $tlv = Nip19Tlv::tryFromRecords($records);
 
-        return null === $tlv ? null : new self($publicKey, $relays, Bech32Codec::encode(self::HRP, $tlv->toBytes()));
+        $bech32 = null === $tlv ? null : Bech32Codec::encode(self::HRP, $tlv->toBytes());
+
+        return null === $bech32 ? null : new self($publicKey, $uniqueRelays, $bech32);
     }
 
-    // Deliberate: parses a string already known to be this entity; the codec answers the different unknown-prefix question over the same payload step — see ADR-0060
+    // Deliberate: parses a string already known to be this entity; the codec answers the different unknown-prefix question over the same payload step — see ADR-0082
     public static function tryFromBech32(string $bech32): ?self
     {
         $payload = Bech32Codec::decodeWithHrp($bech32, self::HRP);
@@ -51,7 +55,7 @@ final readonly class Nprofile implements Nip19EntityInterface
             return null;
         }
 
-        $special = $tlv->first(Nip19Tlv::TYPE_SPECIAL);
+        $special = $tlv->sole(Nip19Tlv::TYPE_SPECIAL);
         $publicKey = null === $special ? null : PublicKey::tryFromBytes($special);
 
         if (null === $publicKey) {

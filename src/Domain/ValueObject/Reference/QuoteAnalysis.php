@@ -10,9 +10,9 @@ final readonly class QuoteAnalysis
 {
     public function __construct(
         private bool $hasQuoteTag,
-        private bool $hasEventInContent,
+        private bool $hasQuoteInContent,
         private bool $isRepost,
-        private bool $isQuote,
+        private bool $isShortNote,
     ) {
     }
 
@@ -21,9 +21,9 @@ final readonly class QuoteAnalysis
         return $this->hasQuoteTag;
     }
 
-    public function hasEventInContent(): bool
+    public function hasQuoteInContent(): bool
     {
-        return $this->hasEventInContent;
+        return $this->hasQuoteInContent;
     }
 
     public function isRepost(): bool
@@ -31,9 +31,14 @@ final readonly class QuoteAnalysis
         return $this->isRepost;
     }
 
+    public function isShortNote(): bool
+    {
+        return $this->isShortNote;
+    }
+
     public function isQuote(): bool
     {
-        return $this->isQuote;
+        return $this->hasQuoteTag || ($this->isShortNote && $this->hasQuoteInContent);
     }
 
     /**
@@ -43,9 +48,10 @@ final readonly class QuoteAnalysis
     {
         return [
             'has_quote_tag' => $this->hasQuoteTag,
-            'has_event_in_content' => $this->hasEventInContent,
+            'has_quote_in_content' => $this->hasQuoteInContent,
             'is_repost' => $this->isRepost,
-            'is_quote' => $this->isQuote,
+            'is_short_note' => $this->isShortNote,
+            'is_quote' => $this->isQuote(),
         ];
     }
 
@@ -56,9 +62,9 @@ final readonly class QuoteAnalysis
     {
         return new self(
             JsonWireFormat::boolField($data, 'has_quote_tag') ?? false,
-            JsonWireFormat::boolField($data, 'has_event_in_content') ?? false,
+            JsonWireFormat::boolField($data, 'has_quote_in_content') ?? false,
             JsonWireFormat::boolField($data, 'is_repost') ?? false,
-            JsonWireFormat::boolField($data, 'is_quote') ?? false,
+            JsonWireFormat::boolField($data, 'is_short_note') ?? false,
         );
     }
 }

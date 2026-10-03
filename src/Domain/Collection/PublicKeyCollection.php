@@ -8,19 +8,14 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Override;
 
 /**
- * @extends TypedCollection<PublicKey>
+ * @extends KeyedCollection<PublicKey>
  */
-final class PublicKeyCollection extends TypedCollection
+final class PublicKeyCollection extends KeyedCollection
 {
     #[Override]
     protected function elementType(): string
     {
         return PublicKey::class;
-    }
-
-    private static function keyOf(PublicKey $publicKey): string
-    {
-        return $publicKey->toHex();
     }
 
     private static function tryParse(mixed $value): ?PublicKey
@@ -38,31 +33,11 @@ final class PublicKeyCollection extends TypedCollection
         return self::tryFromEach($values, self::tryParse(...));
     }
 
-    public function unique(): self
-    {
-        return new self($this->deduplicate(self::keyOf(...)));
-    }
-
     /**
      * @return list<string>
      */
     public function toHexes(): array
     {
-        return $this->mapItems(self::keyOf(...));
-    }
-
-    public function contains(PublicKey $publicKey): bool
-    {
-        return $this->containsByKey(self::keyOf($publicKey), self::keyOf(...));
-    }
-
-    public function intersect(self $other): self
-    {
-        return new self($this->retainByKey($other, self::keyOf(...), true));
-    }
-
-    public function diff(self $other): self
-    {
-        return new self($this->retainByKey($other, self::keyOf(...), false));
+        return $this->mapItems(static fn (PublicKey $publicKey): string => $publicKey->toHex());
     }
 }

@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 
 final class TimestampTest extends TestCase
 {
@@ -82,18 +83,6 @@ final class TimestampTest extends TestCase
         $dateTime = $timestamp->toDateTime();
 
         $this->assertSame('2023-01-01 12:00:00', $dateTime->format('Y-m-d H:i:s'));
-    }
-
-    public function testIsReasonableWorksCorrectly(): void
-    {
-        $now = time();
-        $reasonableTimestamp = Timestamp::fromInt($now);
-        $futureTimestamp = Timestamp::fromInt($now + 7200); // 2 hours in future
-        $veryOldTimestamp = Timestamp::fromInt($now - (11 * 365 * 24 * 3600)); // 11 years ago
-
-        $this->assertTrue($reasonableTimestamp->isReasonable());
-        $this->assertFalse($futureTimestamp->isReasonable());
-        $this->assertFalse($veryOldTimestamp->isReasonable());
     }
 
     public function testEqualsWorksCorrectly(): void
@@ -175,25 +164,9 @@ final class TimestampTest extends TestCase
         $this->assertFalse(Timestamp::fromInt(100)->hasPassedAt(Timestamp::fromInt(99)));
     }
 
-    public function testHasPassedReturnsTrueForPastTimestamp(): void
+    public function testReadsNoClockToAnswerWhetherItHasPassed(): void
     {
-        $past = Timestamp::fromInt(time() - 3600);
-
-        $this->assertTrue($past->hasPassed());
-    }
-
-    public function testHasPassedReturnsTrueForNow(): void
-    {
-        $now = Timestamp::fromInt(time());
-
-        $this->assertTrue($now->hasPassed());
-    }
-
-    public function testHasPassedReturnsFalseForFutureTimestamp(): void
-    {
-        $future = Timestamp::fromInt(time() + 3600);
-
-        $this->assertFalse($future->hasPassed());
+        $this->assertFalse(new ReflectionClass(Timestamp::class)->hasMethod('hasPassed'));
     }
 
     public function testZeroTimestampIsValid(): void

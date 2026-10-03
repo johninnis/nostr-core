@@ -71,6 +71,14 @@ final class EmbeddedEventExtractorTest extends TestCase
         $this->assertTrue($extracted->getId()->equals($embedded->getId()));
     }
 
+    public function testRejectsAnEmbeddedEventWhoseTagsAreWrittenAsAnObject(): void
+    {
+        $embedded = $this->buildEvent(EventKind::TEXT_NOTE, 'reposted note');
+        $repost = $this->buildEvent(EventKind::REPOST, str_replace('"tags":[]', '"tags":{}', $embedded->toJson()));
+
+        $this->assertNull(EmbeddedEventExtractor::extract($repost));
+    }
+
     public function testRejectsEmbeddedObjectThatTheEventParserRejects(): void
     {
         $repost = $this->buildEvent(EventKind::REPOST, '{"pubkey":"nothex","created_at":1700000000,"kind":1,"tags":[],"content":"x"}');
@@ -80,12 +88,12 @@ final class EmbeddedEventExtractorTest extends TestCase
 
     public function testExtractionGateIsTheEventParserAlone(): void
     {
-        $rumour = new Rumour(
+        $rumour = Rumour::draft(
             PublicKey::tryFromHex(self::PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
-            Timestamp::fromInt(1700000000),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            new TagCollection(),
             EventContent::fromString('reposted note'),
+            new TagCollection(),
+            Timestamp::fromInt(1700000000),
         );
         $embedded = json_encode([
             'id' => $rumour->getId()->toHex(),
@@ -106,12 +114,12 @@ final class EmbeddedEventExtractorTest extends TestCase
 
     private function buildEvent(int $kind, string $content): Event
     {
-        return EventMother::fromRumour(new Rumour(
+        return EventMother::fromRumour(Rumour::draft(
             PublicKey::tryFromHex(self::PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
-            Timestamp::fromInt(1700000000),
             EventKind::fromInt($kind),
-            new TagCollection(),
             EventContent::fromString($content),
+            new TagCollection(),
+            Timestamp::fromInt(1700000000),
         ));
     }
 }

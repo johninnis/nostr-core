@@ -6,18 +6,48 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Content;
 
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\HttpUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
+use InvalidArgumentException;
 
 final readonly class LiveEventMetadata
 {
-    public function __construct(
+    private function __construct(
         private string $identifier,
         private ?string $title,
         private ?string $summary,
-        private ?string $image,
+        private ?HttpUrl $image,
         private ?string $status,
-        private ?string $streaming,
+        private ?HttpUrl $streaming,
     ) {
+    }
+
+    public static function tryFrom(
+        string $identifier,
+        ?string $title,
+        ?string $summary,
+        ?HttpUrl $image,
+        ?string $status,
+        ?HttpUrl $streaming,
+    ): ?self {
+        $isUtf8 = array_all(
+            [$identifier, $title, $summary, $status],
+            static fn (?string $text): bool => null === $text || mb_check_encoding($text, 'UTF-8'),
+        );
+
+        return $isUtf8 ? new self($identifier, $title, $summary, $image, $status, $streaming) : null;
+    }
+
+    public static function from(
+        string $identifier,
+        ?string $title,
+        ?string $summary,
+        ?HttpUrl $image,
+        ?string $status,
+        ?HttpUrl $streaming,
+    ): self {
+        return self::tryFrom($identifier, $title, $summary, $image, $status, $streaming)
+            ?? throw new InvalidArgumentException('Live event identifier, title, summary and status must be UTF-8');
     }
 
     public function getIdentifier(): string
@@ -35,7 +65,7 @@ final readonly class LiveEventMetadata
         return $this->summary;
     }
 
-    public function getImage(): ?string
+    public function getImage(): ?HttpUrl
     {
         return $this->image;
     }
@@ -45,25 +75,25 @@ final readonly class LiveEventMetadata
         return $this->status;
     }
 
-    public function getStreaming(): ?string
+    public function getStreaming(): ?HttpUrl
     {
         return $this->streaming;
     }
 
     public static function tryFromTagCollection(TagCollection $tags): ?self
     {
-        $identifier = $tags->getFirstValueByType(TagType::identifier());
+        $identifier = $tags->getIdentifier();
         if (null === $identifier) {
             return null;
         }
 
-        return new self(
+        return self::tryFrom(
             $identifier,
-            $tags->getFirstValueByType(TagType::fromString(TagType::TITLE)),
-            $tags->getFirstValueByType(TagType::fromString(TagType::SUMMARY)),
-            $tags->getFirstValueByType(TagType::fromString(TagType::IMAGE)),
-            $tags->getFirstValueByType(TagType::fromString(TagType::STATUS)),
-            $tags->getFirstValueByType(TagType::fromString(TagType::STREAMING)),
+            $tags->getSoleValueByType(TagType::fromString(TagType::TITLE))->getValue(),
+            $tags->getSoleValueByType(TagType::fromString(TagType::SUMMARY))->getValue(),
+            HttpUrl::tryFromString($tags->getSoleValueByType(TagType::fromString(TagType::IMAGE))->getValue()),
+            $tags->getSoleValueByType(TagType::fromString(TagType::STATUS))->getValue(),
+            HttpUrl::tryFromString($tags->getSoleValueByType(TagType::fromString(TagType::STREAMING))->getValue()),
         );
     }
 
@@ -76,29 +106,30 @@ final readonly class LiveEventMetadata
             'identifier' => $this->identifier,
             'title' => $this->title,
             'summary' => $this->summary,
-            'image' => $this->image,
+            'image' => $this->image?->__toString(),
             'status' => $this->status,
-            'streaming' => $this->streaming,
+            'streaming' => $this->streaming?->__toString(),
         ];
     }
 
-    /**
-     * @param array<string, mixed> $data
-     */
-    public static function tryFromArray(array $data): ?self
+    public static function tryFromArray(mixed $data): ?self
     {
+        if (!is_array($data)) {
+            return null;
+        }
+
         $identifier = JsonWireFormat::stringField($data, 'identifier');
         if (null === $identifier) {
             return null;
         }
 
-        return new self(
+        return self::tryFrom(
             $identifier,
             JsonWireFormat::stringField($data, 'title'),
             JsonWireFormat::stringField($data, 'summary'),
-            JsonWireFormat::stringField($data, 'image'),
+            HttpUrl::tryFromString(JsonWireFormat::stringField($data, 'image')),
             JsonWireFormat::stringField($data, 'status'),
-            JsonWireFormat::stringField($data, 'streaming'),
+            HttpUrl::tryFromString(JsonWireFormat::stringField($data, 'streaming')),
         );
     }
 
@@ -107,8 +138,8 @@ final readonly class LiveEventMetadata
         return $this->identifier === $other->identifier
             && $this->title === $other->title
             && $this->summary === $other->summary
-            && $this->image === $other->image
+            && (null === $this->image ? null === $other->image : null !== $other->image && $this->image->equals($other->image))
             && $this->status === $other->status
-            && $this->streaming === $other->streaming;
+            && (null === $this->streaming ? null === $other->streaming : null !== $other->streaming && $this->streaming->equals($other->streaming));
     }
 }

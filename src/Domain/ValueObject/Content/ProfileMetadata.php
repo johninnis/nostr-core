@@ -22,9 +22,9 @@ final readonly class ProfileMetadata
 
     public static function tryFromJson(string $json): ?self
     {
-        $data = JsonWireFormat::decodeArray($json);
+        $fields = JsonWireFormat::decodeObject($json);
 
-        return null === $data ? null : self::fromArray($data);
+        return null === $fields ? null : self::fromArray($fields);
     }
 
     public function getName(): ?string
@@ -85,7 +85,7 @@ final readonly class ProfileMetadata
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param array<array-key, mixed> $data
      */
     public static function fromArray(array $data): self
     {

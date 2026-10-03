@@ -30,6 +30,11 @@ final class EventCountTest extends TestCase
         $this->assertSame(0, EventCount::exact(0)->toInt());
     }
 
+    public function testTryFromRefusesANegativeCount(): void
+    {
+        $this->assertNull(EventCount::tryFrom(-1, true));
+    }
+
     public function testANegativeCountIsRefused(): void
     {
         $this->expectException(InvalidArgumentException::class);

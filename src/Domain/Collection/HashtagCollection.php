@@ -8,9 +8,9 @@ use Innis\Nostr\Core\Domain\ValueObject\Tag\Hashtag;
 use Override;
 
 /**
- * @extends TypedCollection<Hashtag>
+ * @extends KeyedCollection<Hashtag>
  */
-final class HashtagCollection extends TypedCollection
+final class HashtagCollection extends KeyedCollection
 {
     #[Override]
     protected function elementType(): string
@@ -18,19 +18,9 @@ final class HashtagCollection extends TypedCollection
         return Hashtag::class;
     }
 
-    private static function keyOf(Hashtag $hashtag): string
-    {
-        return (string) $hashtag;
-    }
-
     public static function fromStrings(mixed $values): self
     {
         return self::fromEach($values, Hashtag::tryFromString(...));
-    }
-
-    public function unique(): self
-    {
-        return new self($this->deduplicate(self::keyOf(...)));
     }
 
     /**
@@ -38,26 +28,11 @@ final class HashtagCollection extends TypedCollection
      */
     public function toStrings(): array
     {
-        return $this->mapItems(self::keyOf(...));
+        return $this->mapItems(static fn (Hashtag $hashtag): string => (string) $hashtag);
     }
 
     public function equals(self $other): bool
     {
         return $this->toStrings() === $other->toStrings();
-    }
-
-    public function contains(Hashtag $hashtag): bool
-    {
-        return $this->containsByKey(self::keyOf($hashtag), self::keyOf(...));
-    }
-
-    public function intersect(self $other): self
-    {
-        return new self($this->retainByKey($other, self::keyOf(...), true));
-    }
-
-    public function diff(self $other): self
-    {
-        return new self($this->retainByKey($other, self::keyOf(...), false));
     }
 }

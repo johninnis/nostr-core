@@ -10,6 +10,8 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Infrastructure\Crypto\Nip44Cipher;
 use Innis\Nostr\Core\Tests\Fake\QueuedRandomBytesGenerator;
 use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
+use InvalidArgumentException;
+use ParagonIE_Sodium_Core_ChaCha20;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -53,6 +55,30 @@ final class Nip44CipherTest extends TestCase
         self::assertSame($plaintext, $decrypted);
     }
 
+    public function testEncryptRefusesPlaintextThatIsNotUtf8(): void
+    {
+        $this->expectExceptionObject(new EncryptionException('Plaintext is not valid UTF-8'));
+
+        $this->adapter->encrypt("caf\xC3", $this->createTestKey());
+    }
+
+    public function testDecryptRefusesPlaintextThatIsNotUtf8(): void
+    {
+        $payload = $this->sealPadded(pack('n', 4)."caf\xC3".str_repeat("\0", 28), $this->createTestKey());
+
+        $this->expectExceptionObject(new EncryptionException('Plaintext is not valid UTF-8'));
+
+        $this->adapter->decrypt($payload, $this->createTestKey());
+    }
+
+    public function testDecryptKeepsAByteOrderMark(): void
+    {
+        $plaintext = "\u{FEFF}hello";
+        $payload = $this->adapter->encrypt($plaintext, $this->createTestKey());
+
+        self::assertSame($plaintext, $this->adapter->decrypt($payload, $this->createTestKey()));
+    }
+
     public function testEncryptProducesDifferentCiphertexts(): void
     {
         $conversationKey = $this->createTestKey();
@@ -93,6 +119,28 @@ final class Nip44CipherTest extends TestCase
         $this->adapter->decrypt(str_repeat('!', 132), $conversationKey);
     }
 
+    #[DataProvider('nonCanonicalBase64')]
+    public function testDecryptRejectsAPayloadThatIsNotCanonicalBase64(callable $alter): void
+    {
+        $conversationKey = $this->createTestKey();
+        $payload = $this->adapter->encrypt(str_repeat('a', 40), $conversationKey);
+
+        $this->expectException(EncryptionException::class);
+        $this->expectExceptionMessage('Invalid base64 payload');
+
+        $this->adapter->decrypt($alter($payload), $conversationKey);
+    }
+
+    /**
+     * @return iterable<string, array{callable(string): string}>
+     */
+    public static function nonCanonicalBase64(): iterable
+    {
+        yield 'padding left off' => [static fn (string $encoded): string => rtrim($encoded, '=')];
+        yield 'non-zero trailing bits' => [self::withNonZeroTrailingBits(...)];
+        yield 'whitespace inside' => [static fn (string $encoded): string => substr($encoded, 0, 4).' '.substr($encoded, 4)];
+    }
+
     public function testDecryptRejectsPayloadTooShort(): void
     {
         $conversationKey = $this->createTestKey();
@@ -101,6 +149,103 @@ final class Nip44CipherTest extends TestCase
         $this->expectExceptionMessage('Payload size out of bounds');
 
         $this->adapter->decrypt(base64_encode('short'), $conversationKey);
+    }
+
+    public function testDecryptReportsAHashPrefixedPayloadAsAnUnsupportedVersion(): void
+    {
+        $this->expectExceptionObject(new EncryptionException('Unsupported NIP-44 version: non-base64 encoding'));
+
+        $this->adapter->decrypt('#'.str_repeat('A', 131), $this->createTestKey());
+    }
+
+    public function testDecryptReportsAHashPrefixedPayloadShorterThanTheMinimumAsAnUnsupportedVersion(): void
+    {
+        $this->expectExceptionObject(new EncryptionException('Unsupported NIP-44 version: non-base64 encoding'));
+
+        $this->adapter->decrypt('#abc', $this->createTestKey());
+    }
+
+    public function testDecryptRefusesAHashPrefixedPayloadOverTheCeilingByLength(): void
+    {
+        $this->expectExceptionObject(new EncryptionException('Payload size out of bounds'));
+
+        $this->adapter->decrypt('#'.str_repeat('A', 349620), $this->createTestKey());
+    }
+
+    public function testEncryptAcceptsAPlaintextAtTheDefaultMaximum(): void
+    {
+        $plaintext = str_repeat('a', 262144);
+
+        self::assertSame($plaintext, $this->adapter->decrypt($this->adapter->encrypt($plaintext, $this->createTestKey()), $this->createTestKey()));
+    }
+
+    public function testEncryptRefusesAPlaintextJustOverTheDefaultMaximum(): void
+    {
+        $this->expectExceptionObject(new EncryptionException('Plaintext length must be between 1 and 262144 bytes'));
+
+        $this->adapter->encrypt(str_repeat('a', 262145), $this->createTestKey());
+    }
+
+    public function testThePayloadAtTheDefaultMaximumIsTheDerivedCeiling(): void
+    {
+        self::assertSame(349620, strlen($this->adapter->encrypt(str_repeat('a', 262144), $this->createTestKey())));
+    }
+
+    public function testDecryptDecodesAPayloadAtTheDefaultCeiling(): void
+    {
+        $this->expectExceptionObject(new EncryptionException('Invalid base64 payload'));
+
+        $this->adapter->decrypt(str_repeat('!', 349620), $this->createTestKey());
+    }
+
+    public function testDecryptRefusesAPayloadJustOverTheDefaultCeilingBeforeDecodingIt(): void
+    {
+        $this->expectExceptionObject(new EncryptionException('Payload size out of bounds'));
+
+        $this->adapter->decrypt(str_repeat('!', 349621), $this->createTestKey());
+    }
+
+    public function testTheDefaultCeilingRefusesAPayloadSealedUnderARaisedOne(): void
+    {
+        $payload = new Nip44Cipher(maxPlaintextLength: 1048576)->encrypt(str_repeat('a', 262145), $this->createTestKey());
+
+        $this->expectExceptionObject(new EncryptionException('Payload size out of bounds'));
+
+        $this->adapter->decrypt($payload, $this->createTestKey());
+    }
+
+    public function testARaisedCeilingOpensAPlaintextOfSeventyThousandBytes(): void
+    {
+        $cipher = new Nip44Cipher(maxPlaintextLength: 1048576);
+        $plaintext = str_repeat('a', 70000);
+
+        self::assertSame($plaintext, $cipher->decrypt($cipher->encrypt($plaintext, $this->createTestKey()), $this->createTestKey()));
+    }
+
+    public function testALoweredCeilingRefusesAPlaintextOverItThatSharesItsPaddedLength(): void
+    {
+        $payload = $this->adapter->encrypt(str_repeat('a', 1010), $this->createTestKey());
+
+        $this->expectExceptionObject(new EncryptionException('Plaintext exceeds the maximum length'));
+
+        new Nip44Cipher(maxPlaintextLength: 1000)->decrypt($payload, $this->createTestKey());
+    }
+
+    #[DataProvider('maximumsOutsideTheNip')]
+    public function testTheMaximumMustBeOneTheNipAllows(int $maxPlaintextLength): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        new Nip44Cipher(maxPlaintextLength: $maxPlaintextLength);
+    }
+
+    /**
+     * @return iterable<string, array{int}>
+     */
+    public static function maximumsOutsideTheNip(): iterable
+    {
+        yield 'zero' => [0];
+        yield 'above 4294967295' => [4294967296];
     }
 
     public function testDecryptRejectsWrongVersion(): void
@@ -147,7 +292,7 @@ final class Nip44CipherTest extends TestCase
         $conversationKey = $this->createTestKey();
 
         $this->expectException(EncryptionException::class);
-        $this->expectExceptionMessage('Plaintext length must be between 1 and 65535 bytes');
+        $this->expectExceptionMessage('Plaintext length must be between 1 and 262144 bytes');
 
         $this->adapter->encrypt('', $conversationKey);
     }
@@ -219,14 +364,50 @@ final class Nip44CipherTest extends TestCase
         self::assertSame($length, strlen($decrypted));
     }
 
-    public function testEncryptRejectsPlaintextOneByteOverMaximum(): void
+    public function testAPlaintextOfSixtyFiveThousandFiveHundredAndThirtySixBytesTakesTheSixBytePrefix(): void
     {
-        $conversationKey = $this->createTestKey();
+        $decoded = base64_decode($this->adapter->encrypt(str_repeat('x', 65536), $this->createTestKey()), true);
+        self::assertNotFalse($decoded);
 
-        $this->expectException(EncryptionException::class);
-        $this->expectExceptionMessage('Plaintext length must be between 1 and 65535 bytes');
+        self::assertSame(65607, strlen($decoded));
+    }
 
-        $this->adapter->encrypt(str_repeat('x', 65536), $conversationKey);
+    public function testDecryptReadsAnExtendedPrefixSealedByHand(): void
+    {
+        $plaintext = str_repeat('a', 65536);
+        $payload = $this->sealPadded("\0\0".pack('N', 65536).$plaintext, $this->createTestKey());
+
+        self::assertSame($plaintext, $this->adapter->decrypt($payload, $this->createTestKey()));
+    }
+
+    public function testDecryptRefusesAnAuthenticPayloadWhosePaddingIsNotAllZero(): void
+    {
+        $payload = $this->sealPadded(pack('n', 5).'hello'.str_repeat("\0", 26)."\x07", $this->createTestKey());
+
+        $this->expectExceptionObject(new EncryptionException('Non-zero padding bytes'));
+
+        $this->adapter->decrypt($payload, $this->createTestKey());
+    }
+
+    #[DataProvider('invalidExtendedPrefixes')]
+    public function testDecryptRefusesAnExtendedPrefixThatIsNotAValidLength(string $padded, string $message): void
+    {
+        $payload = $this->sealPadded($padded, $this->createTestKey());
+
+        $this->expectExceptionObject(new EncryptionException($message));
+
+        $this->adapter->decrypt($payload, $this->createTestKey());
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function invalidExtendedPrefixes(): iterable
+    {
+        yield 'a length the u16 prefix could carry' => ["\0\0".pack('N', 65535).str_repeat('a', 65535)."\0", 'Invalid padding'];
+        yield 'a length of zero' => ["\0\0".pack('N', 0).str_repeat("\0", 32), 'Invalid padding'];
+        yield 'a length longer than the padded plaintext' => ["\0\0".pack('N', 70000).str_repeat('a', 65536), 'Invalid padding'];
+        yield 'padding short of the next bucket' => ["\0\0".pack('N', 65537).str_repeat('a', 65537).str_repeat("\0", 100), 'Invalid padding length'];
     }
 
     /**
@@ -243,8 +424,27 @@ final class Nip44CipherTest extends TestCase
         yield 'power_of_two_minus_one' => [511];
         yield 'power_of_two_exact' => [512];
         yield 'power_of_two_plus_one' => [513];
-        yield 'maximum_minus_one' => [65534];
-        yield 'maximum_exact' => [65535];
+        yield 'u16_prefix_maximum_minus_one' => [65534];
+        yield 'u16_prefix_maximum' => [65535];
+        yield 'extended_prefix_threshold' => [65536];
+        yield 'extended_prefix_threshold_plus_one' => [65537];
+    }
+
+    private function sealPadded(string $padded, ConversationKey $conversationKey): string
+    {
+        $nonce = str_repeat("\x02", 32);
+
+        return $conversationKey->expose(static function (string $prk) use ($padded, $nonce): string {
+            $first = hash_hmac('sha256', $nonce."\x01", $prk, true);
+            $second = hash_hmac('sha256', $first.$nonce."\x02", $prk, true);
+            $third = hash_hmac('sha256', $second.$nonce."\x03", $prk, true);
+            $keys = $first.$second.$third;
+
+            $ciphertext = ParagonIE_Sodium_Core_ChaCha20::ietfStreamXorIc($padded, substr($keys, 32, 12), substr($keys, 0, 32));
+            $mac = hash_hmac('sha256', $nonce.$ciphertext, substr($keys, 44, 32), true);
+
+            return base64_encode("\x02".$nonce.$ciphertext.$mac);
+        });
     }
 
     private function createTestKey(): ConversationKey
@@ -253,5 +453,14 @@ final class Nip44CipherTest extends TestCase
         self::assertNotNull($key);
 
         return $key;
+    }
+
+    private static function withNonZeroTrailingBits(string $encoded): string
+    {
+        $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+        $padded = strlen($encoded) - strlen(rtrim($encoded, '='));
+        $last = strlen($encoded) - $padded - 1;
+
+        return substr($encoded, 0, $last).$alphabet[(int) strpos($alphabet, $encoded[$last]) + 1].str_repeat('=', $padded);
     }
 }

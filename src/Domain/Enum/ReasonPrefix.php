@@ -27,4 +27,10 @@ enum ReasonPrefix: string
 
         return false === $separator ? null : self::tryFrom(substr($message, 0, $separator));
     }
+
+    // Deliberate: NIP-01 requires every refusal to carry a prefix and names error "for when none of that fits", so a refusal naming no known prefix is an error — see ADR-0087
+    public static function ofRefusal(string $message): self
+    {
+        return self::tryFromMessage($message) ?? self::Error;
+    }
 }

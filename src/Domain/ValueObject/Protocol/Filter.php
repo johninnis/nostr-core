@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol;
 
+use Countable;
 use Innis\Nostr\Core\Domain\Collection\EventIdCollection;
 use Innis\Nostr\Core\Domain\Collection\EventKindCollection;
 use Innis\Nostr\Core\Domain\Collection\PublicKeyCollection;
@@ -19,65 +20,71 @@ use Stringable;
 
 final readonly class Filter implements JsonSerializable, Stringable
 {
-    public const int MAX_VALUES_PER_FIELD = 1000;
-
-    public const int MAX_LIMIT = 5000;
+    // Deliberate: the six ASCII whitespace characters written out, not \s, so both cores split a search into the same terms — see nostr-adrs ADR-0082
+    private const string SEARCH_TERM_SEPARATOR = '/[\t\n\x{0B}\f\r ]+/u';
+    private const string SEARCH_EXTENSION = '~^[a-z][a-z0-9_-]*:[^:/]+$~i';
 
     /** @var list<string>|null */
     private ?array $searchTerms;
 
-    // Deliberate: one cohesive wire selector; the wide constructor and per-field with* methods are not decomposed, and with* is not collapsed onto a nullable-override helper (null means "field absent") — see ADR-0049
-    public function __construct(
-        private ?EventIdCollection $ids = null,
-        private ?PublicKeyCollection $authors = null,
-        private ?EventKindCollection $kinds = null,
-        private ?TagFilter $tags = null,
-        private ?Timestamp $since = null,
-        private ?Timestamp $until = null,
-        private ?int $limit = null,
-        private ?string $search = null,
+    private function __construct(
+        private ?EventIdCollection $ids,
+        private ?PublicKeyCollection $authors,
+        private ?EventKindCollection $kinds,
+        private ?TagFilter $tags,
+        private ?Timestamp $since,
+        private ?Timestamp $until,
+        private ?int $limit,
+        private ?string $search,
     ) {
-        if (!self::isValidLimit($this->limit)) {
-            throw new InvalidArgumentException('Limit must be between 0 and '.self::MAX_LIMIT);
-        }
-
-        if (!self::areTimestampsInOrder($this->since, $this->until)) {
-            throw new InvalidArgumentException('Since timestamp cannot be after until timestamp');
-        }
-
-        self::assertCountWithinCap('ids', $this->ids?->count());
-        self::assertCountWithinCap('authors', $this->authors?->count());
-        self::assertCountWithinCap('kinds', $this->kinds?->count());
-
-        $this->searchTerms = null === $this->search
-            ? null
-            : (preg_split('/\s+/', mb_strtolower(trim($this->search)), -1, PREG_SPLIT_NO_EMPTY) ?: []);
+        $this->searchTerms = null === $this->search ? null : self::searchTermsOf($this->search);
     }
 
-    private static function assertCountWithinCap(string $fieldName, ?int $count): void
-    {
-        if (!self::isCountWithinCap($count)) {
-            throw new InvalidArgumentException(sprintf('Filter field "%s" may contain at most %d values', $fieldName, self::MAX_VALUES_PER_FIELD));
-        }
+    // Deliberate: every invariant of the wire selector is decided here, and with* is not collapsed onto a nullable-override helper, because null means "field absent" — see ADR-0093
+    public static function tryFrom(
+        ?EventIdCollection $ids = null,
+        ?PublicKeyCollection $authors = null,
+        ?EventKindCollection $kinds = null,
+        ?TagFilter $tags = null,
+        ?Timestamp $since = null,
+        ?Timestamp $until = null,
+        ?int $limit = null,
+        ?string $search = null,
+    ): ?self {
+        $valid = (null === $limit || $limit >= 0)
+            && (null === $search || mb_check_encoding($search, 'UTF-8'));
+
+        return $valid ? new self($ids, $authors, $kinds, $tags, $since, $until, $limit, $search) : null;
     }
 
-    private static function isCountWithinCap(?int $count): bool
-    {
-        return null === $count || $count <= self::MAX_VALUES_PER_FIELD;
+    public static function from(
+        ?EventIdCollection $ids = null,
+        ?PublicKeyCollection $authors = null,
+        ?EventKindCollection $kinds = null,
+        ?TagFilter $tags = null,
+        ?Timestamp $since = null,
+        ?Timestamp $until = null,
+        ?int $limit = null,
+        ?string $search = null,
+    ): self {
+        return self::tryFrom($ids, $authors, $kinds, $tags, $since, $until, $limit, $search)
+            ?? throw new InvalidArgumentException('A filter needs a non-negative limit and a UTF-8 search');
     }
 
-    private static function areTimestampsInOrder(?Timestamp $since, ?Timestamp $until): bool
+    // Deliberate: an empty list or a since after its until matches nothing, never everything — see ADR-0094
+    public function canMatch(): bool
     {
-        return null === $since || null === $until || !$since->isAfter($until);
-    }
-
-    private static function isValidLimit(?int $limit): bool
-    {
-        return null === $limit || ($limit >= 0 && $limit <= self::MAX_LIMIT);
+        return array_all([$this->ids, $this->authors, $this->kinds], static fn (?Countable $field): bool => null === $field || count($field) > 0)
+            && ($this->tags?->canMatch() ?? true)
+            && (null === $this->since || null === $this->until || !$this->since->isAfter($this->until));
     }
 
     public function matches(Event $event): bool
     {
+        if (!$this->canMatch()) {
+            return false;
+        }
+
         if (null !== $this->ids && !$this->ids->contains($event->getId())) {
             return false;
         }
@@ -114,29 +121,14 @@ final readonly class Filter implements JsonSerializable, Stringable
         return $this->ids;
     }
 
-    public function hasIds(): bool
-    {
-        return null !== $this->ids;
-    }
-
     public function getAuthors(): ?PublicKeyCollection
     {
         return $this->authors;
     }
 
-    public function hasAuthors(): bool
-    {
-        return null !== $this->authors;
-    }
-
     public function getKinds(): ?EventKindCollection
     {
         return $this->kinds;
-    }
-
-    public function hasKinds(): bool
-    {
-        return null !== $this->kinds;
     }
 
     public function getTags(): ?TagFilter
@@ -159,24 +151,14 @@ final readonly class Filter implements JsonSerializable, Stringable
         return $this->limit;
     }
 
-    public function hasLimit(): bool
-    {
-        return null !== $this->limit;
-    }
-
     public function getSearch(): ?string
     {
         return $this->search;
     }
 
-    public function hasSearch(): bool
-    {
-        return null !== $this->search;
-    }
-
     public function withAuthors(PublicKeyCollection $authors): self
     {
-        return new self(
+        return self::from(
             ids: $this->ids,
             authors: $authors,
             kinds: $this->kinds,
@@ -190,7 +172,7 @@ final readonly class Filter implements JsonSerializable, Stringable
 
     public function withKinds(EventKindCollection $kinds): self
     {
-        return new self(
+        return self::from(
             ids: $this->ids,
             authors: $this->authors,
             kinds: $kinds,
@@ -204,7 +186,7 @@ final readonly class Filter implements JsonSerializable, Stringable
 
     public function withSince(?Timestamp $since): self
     {
-        return new self(
+        return self::from(
             ids: $this->ids,
             authors: $this->authors,
             kinds: $this->kinds,
@@ -218,7 +200,7 @@ final readonly class Filter implements JsonSerializable, Stringable
 
     public function withUntil(?Timestamp $until): self
     {
-        return new self(
+        return self::from(
             ids: $this->ids,
             authors: $this->authors,
             kinds: $this->kinds,
@@ -232,7 +214,7 @@ final readonly class Filter implements JsonSerializable, Stringable
 
     public function withLimit(?int $limit): self
     {
-        return new self(
+        return self::from(
             ids: $this->ids,
             authors: $this->authors,
             kinds: $this->kinds,
@@ -299,134 +281,70 @@ final readonly class Filter implements JsonSerializable, Stringable
 
     public static function tryFromJson(string $json): ?self
     {
-        $data = JsonWireFormat::decodeArray($json);
+        $data = JsonWireFormat::decode($json);
 
-        return null === $data ? null : self::tryFromArray($data);
+        return [] === $data ? null : self::tryFromArray($data);
     }
 
-    // Deliberate: a non-empty JSON list is refused, because a filter is an object and a list would otherwise match every key lookup with nothing and parse as the empty filter, which matches every event
+    // Deliberate: a non-empty list is refused, because a filter is a JSON object and a list would read as the empty filter, which matches every event — see ADR-0112
     public static function tryFromArray(mixed $value): ?self
     {
-        if (!is_array($value) && !$value instanceof stdClass) {
-            return null;
-        }
-
-        $data = (array) $value;
-
-        if ([] !== $data && array_is_list($data)) {
+        $data = [] === $value ? [] : JsonWireFormat::objectFields($value);
+        if (null === $data) {
             return null;
         }
 
         $tags = TagFilter::tryFromArray($data);
-        if (null === $tags) {
-            return null;
-        }
+        $ids = self::tryParseField($data, 'ids', EventIdCollection::tryFromArray(...));
+        $authors = self::tryParseField($data, 'authors', PublicKeyCollection::tryFromArray(...));
+        $kinds = self::tryParseField($data, 'kinds', EventKindCollection::tryFromArray(...));
+        $since = self::tryParseField($data, 'since', static fn (mixed $since): ?Timestamp => is_int($since) ? Timestamp::tryFromInt($since) : null);
+        $until = self::tryParseField($data, 'until', static fn (mixed $until): ?Timestamp => is_int($until) ? Timestamp::tryFromInt($until) : null);
+        $limit = self::tryParseField($data, 'limit', static fn (mixed $limit): ?int => is_int($limit) ? $limit : null);
+        $search = self::tryParseField($data, 'search', static fn (mixed $search): ?string => is_string($search) ? $search : null);
 
-        $ids = $data['ids'] ?? null;
-        $authors = $data['authors'] ?? null;
-        $kinds = $data['kinds'] ?? null;
-        $since = $data['since'] ?? null;
-        $until = $data['until'] ?? null;
-        $limit = $data['limit'] ?? null;
-        $search = $data['search'] ?? null;
-
-        if ((is_array($ids) && count($ids) > self::MAX_VALUES_PER_FIELD)
-            || (is_array($authors) && count($authors) > self::MAX_VALUES_PER_FIELD)
-            || (is_array($kinds) && count($kinds) > self::MAX_VALUES_PER_FIELD)
+        if (null === $tags || false === $ids || false === $authors || false === $kinds || false === $since || false === $until
+            || false === $limit || false === $search
         ) {
             return null;
         }
 
-        if ((null !== $since && !is_int($since))
-            || (null !== $until && !is_int($until))
-            || (null !== $limit && !is_int($limit))
-            || (null !== $search && !is_string($search))
-        ) {
+        return self::tryFrom($ids, $authors, $kinds, $tags->isEmpty() ? null : $tags, $since, $until, $limit, $search);
+    }
+
+    /**
+     * @template TField of object|int|string
+     *
+     * @param array<array-key, mixed>        $data
+     * @param callable(mixed): (TField|null) $tryParse
+     *
+     * @return TField|false|null
+     */
+    private static function tryParseField(array $data, string $key, callable $tryParse): object|int|string|false|null
+    {
+        if (!array_key_exists($key, $data)) {
             return null;
         }
 
-        if (null !== $search && !mb_check_encoding($search, 'UTF-8')) {
-            return null;
-        }
+        return $tryParse($data[$key]) ?? false;
+    }
 
-        $idCollection = null;
-        if (null !== $ids) {
-            $idCollection = EventIdCollection::tryFromArray($ids);
-            if (null === $idCollection) {
-                return null;
-            }
-        }
+    /**
+     * @return list<string>
+     */
+    // Deliberate: a key:value extension is ignored, as NIP-50 asks of extensions a matcher does not support — see nostr-adrs ADR-0082
+    private static function searchTermsOf(string $search): array
+    {
+        $pieces = preg_split(self::SEARCH_TERM_SEPARATOR, mb_strtolower(trim($search)), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
-        $authorCollection = null;
-        if (null !== $authors) {
-            $authorCollection = PublicKeyCollection::tryFromArray($authors);
-            if (null === $authorCollection) {
-                return null;
-            }
-        }
-
-        $kindCollection = null;
-        if (null !== $kinds) {
-            $kindCollection = EventKindCollection::tryFromArray($kinds);
-            if (null === $kindCollection) {
-                return null;
-            }
-        }
-
-        $sinceTimestamp = null;
-        if (null !== $since) {
-            $sinceTimestamp = Timestamp::tryFromInt($since);
-            if (null === $sinceTimestamp) {
-                return null;
-            }
-        }
-
-        $untilTimestamp = null;
-        if (null !== $until) {
-            $untilTimestamp = Timestamp::tryFromInt($until);
-            if (null === $untilTimestamp) {
-                return null;
-            }
-        }
-
-        if (!self::areTimestampsInOrder($sinceTimestamp, $untilTimestamp)
-            || !self::isValidLimit($limit)
-            || !self::isCountWithinCap($idCollection?->count())
-            || !self::isCountWithinCap($authorCollection?->count())
-            || !self::isCountWithinCap($kindCollection?->count())
-        ) {
-            return null;
-        }
-
-        return new self(
-            $idCollection,
-            $authorCollection,
-            $kindCollection,
-            $tags->isEmpty() ? null : $tags,
-            $sinceTimestamp,
-            $untilTimestamp,
-            $limit,
-            $search
-        );
+        return array_values(array_filter($pieces, static fn (string $piece): bool => 1 !== preg_match(self::SEARCH_EXTENSION, $piece)));
     }
 
     private function matchesSearch(Event $event): bool
     {
-        $terms = $this->searchTerms ?? [];
-
-        if ([] === $terms) {
-            return true;
-        }
-
         $content = mb_strtolower((string) $event->getContent());
 
-        foreach ($terms as $term) {
-            if (!str_contains($content, $term)) {
-                return false;
-            }
-        }
-
-        return true;
+        return array_all($this->searchTerms ?? [], static fn (string $term): bool => str_contains($content, $term));
     }
 
     #[Override]

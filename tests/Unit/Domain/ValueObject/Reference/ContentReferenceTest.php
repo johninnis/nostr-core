@@ -24,7 +24,7 @@ final class ContentReferenceTest extends TestCase
 
     public function testAddressableReferenceCarriesPubkeyKindAndIdentifier(): void
     {
-        $reference = new ContentReference(
+        $reference = ContentReference::from(
             ContentReferenceType::BareNaddr,
             'naddr1example',
             'my-article',
@@ -38,7 +38,7 @@ final class ContentReferenceTest extends TestCase
 
     public function testIsNotAddressableWhenIdentifierMissing(): void
     {
-        $reference = new ContentReference(
+        $reference = ContentReference::from(
             ContentReferenceType::BareNprofile,
             'nprofile1example',
             'profile',
@@ -50,17 +50,9 @@ final class ContentReferenceTest extends TestCase
         $this->assertFalse($reference->isAddressableReference());
     }
 
-    public function testBareReferenceWithoutDecodedEntityIsNeitherPubkeyNorAddressable(): void
-    {
-        $reference = new ContentReference(ContentReferenceType::LegacyRef, 'raw', 'identifier', 0);
-
-        $this->assertFalse($reference->isPubkeyReference());
-        $this->assertFalse($reference->isAddressableReference());
-    }
-
     public function testToArrayFromArrayRoundTripWithDecodedEntity(): void
     {
-        $reference = new ContentReference(
+        $reference = ContentReference::from(
             ContentReferenceType::BareNaddr,
             'naddr1example',
             'my-article',
@@ -74,14 +66,14 @@ final class ContentReferenceTest extends TestCase
         $this->assertSame($reference->toArray(), $restored->toArray());
     }
 
-    public function testToArrayFromArrayRoundTripWithoutDecodedEntity(): void
+    public function testTryFromArrayReturnsNullWhenTheDecodedEntityIsAbsent(): void
     {
-        $reference = new ContentReference(ContentReferenceType::LegacyRef, '#[0]', 'identifier', 0);
-
-        $restored = ContentReference::tryFromArray($reference->toArray());
-
-        $this->assertNotNull($restored);
-        $this->assertSame($reference->toArray(), $restored->toArray());
+        $this->assertNull(ContentReference::tryFromArray([
+            'type' => ContentReferenceType::BareNpub->value,
+            'raw_text' => 'npub1example',
+            'identifier' => 'npub1example',
+            'position' => 0,
+        ]));
     }
 
     public function testTryFromArrayReturnsNullWhenTypeIsUnknown(): void
@@ -97,9 +89,7 @@ final class ContentReferenceTest extends TestCase
     public function testTryFromArrayReturnsNullWhenPositionIsNegative(): void
     {
         $this->assertNull(ContentReference::tryFromArray([
-            'type' => ContentReferenceType::LegacyRef->value,
-            'raw_text' => 'raw',
-            'identifier' => 'id',
+            ...ContentReference::from(ContentReferenceType::BareNprofile, 'nprofile1example', 'profile', 0, $this->decodedProfile())->toArray(),
             'position' => -1,
         ]));
     }
@@ -108,7 +98,7 @@ final class ContentReferenceTest extends TestCase
     {
         $eventId = EventId::tryFromHex(self::EVENT_ID) ?? throw new RuntimeException('Invalid test event id');
 
-        $reference = new ContentReference(
+        $reference = ContentReference::from(
             ContentReferenceType::BareNevent,
             'nevent1example',
             'evt',
@@ -123,18 +113,18 @@ final class ContentReferenceTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        new ContentReference(ContentReferenceType::LegacyRef, 'raw', 'id', -1);
+        ContentReference::from(ContentReferenceType::BareNprofile, 'nprofile1example', 'profile', -1, $this->decodedProfile());
     }
 
-    // Deliberate: an Address carrying no identifier is unrepresentable now that the leaves are distinct types, so the pubkey-but-not-addressable case is an nprofile — see ADR-0060
-    private function decodedProfile(): ?Nprofile
+    // Deliberate: an Address carrying no coordinate is unrepresentable now that the leaves are distinct types, so the pubkey-but-not-addressable case is an nprofile — see ADR-0082
+    private function decodedProfile(): Nprofile
     {
         return Nprofile::tryFromPublicKey(
             PublicKey::tryFromHex(self::PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
-        );
+        ) ?? throw new RuntimeException('Invalid test nprofile');
     }
 
-    private function decodedAddress(?string $identifier): ?Naddr
+    private function decodedAddress(?string $identifier): Naddr
     {
         $coordinate = EventCoordinate::tryFrom(
             EventKind::fromInt(EventKind::LONGFORM_CONTENT),
@@ -142,6 +132,11 @@ final class ContentReferenceTest extends TestCase
             $identifier ?? '',
         );
 
-        return null === $coordinate ? null : Naddr::tryFromCoordinate($coordinate);
+        return (null === $coordinate ? null : Naddr::tryFromCoordinate($coordinate)) ?? throw new RuntimeException('Invalid test naddr');
+    }
+
+    public function testTryFromRefusesANegativePosition(): void
+    {
+        $this->assertNull(ContentReference::tryFrom(ContentReferenceType::NostrUri, 'nostr:x', 'x', -1, $this->decodedProfile()));
     }
 }

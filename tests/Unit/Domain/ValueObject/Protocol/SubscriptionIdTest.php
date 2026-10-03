@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol;
 
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -42,14 +43,6 @@ final class SubscriptionIdTest extends TestCase
         $this->assertMatchesRegularExpression('/^[a-f0-9]{32}$/', (string) $id);
     }
 
-    public function testShortCreatesValidId(): void
-    {
-        $id = SubscriptionId::short();
-
-        $this->assertSame(8, strlen((string) $id));
-        $this->assertMatchesRegularExpression('/^[a-f0-9]{8}$/', (string) $id);
-    }
-
     public function testEqualsReturnsTrueForSameId(): void
     {
         $id1 = SubscriptionId::tryFromString('test-id') ?? throw new RuntimeException('Expected a valid subscription ID');
@@ -74,40 +67,59 @@ final class SubscriptionIdTest extends TestCase
         $this->assertFalse($id1->equals($id2));
     }
 
-    public function testTryFromStringReturnsNullForNullByte(): void
+    #[DataProvider('arbitraryStringProvider')]
+    public function testTryFromStringAcceptsAnArbitraryString(string $value): void
     {
-        $this->assertNull(SubscriptionId::tryFromString("sub\x00id"));
+        $id = SubscriptionId::tryFromString($value) ?? throw new RuntimeException('Expected a valid subscription ID');
+
+        $this->assertSame($value, (string) $id);
     }
 
-    public function testTryFromStringReturnsNullForNewline(): void
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function arbitraryStringProvider(): iterable
     {
-        $this->assertNull(SubscriptionId::tryFromString("sub\nid"));
+        yield 'printable ascii' => ['sub-1.0_alpha:abc/def'];
+        yield 'space' => ['sub id'];
+        yield 'newline' => ["sub\nid"];
+        yield 'null byte' => ["sub\x00id"];
+        yield 'control character' => ["sub\x01id"];
+        yield 'delete character' => ["sub\x7Fid"];
+        yield 'non-ascii' => ['abonnement-é-日本'];
+        yield 'single space' => [' '];
     }
 
-    public function testTryFromStringReturnsNullForTrailingNewline(): void
+    public function testTryFromStringCountsCharactersNotBytes(): void
     {
-        $this->assertNull(SubscriptionId::tryFromString("subid\n"));
+        $value = str_repeat('é', 64);
+
+        $id = SubscriptionId::tryFromString($value) ?? throw new RuntimeException('Expected a valid subscription ID');
+
+        $this->assertSame($value, (string) $id);
     }
 
-    public function testTryFromStringReturnsNullForControlCharacter(): void
+    public function testTryFromStringAcceptsSixtyFourFourByteCharacters(): void
     {
-        $this->assertNull(SubscriptionId::tryFromString("sub\x01id"));
+        $value = str_repeat("\u{1F600}", 64);
+
+        $id = SubscriptionId::tryFromString($value) ?? throw new RuntimeException('Expected a valid subscription ID');
+
+        $this->assertSame($value, (string) $id);
     }
 
-    public function testTryFromStringReturnsNullForSpace(): void
+    public function testTryFromStringReturnsNullForSixtyFiveMultiByteCharacters(): void
     {
-        $this->assertNull(SubscriptionId::tryFromString('sub id'));
+        $this->assertNull(SubscriptionId::tryFromString(str_repeat('é', 65)));
     }
 
-    public function testTryFromStringReturnsNullForDelCharacter(): void
+    public function testTryFromStringReturnsNullForInvalidUtf8(): void
     {
-        $this->assertNull(SubscriptionId::tryFromString("sub\x7Fid"));
+        $this->assertNull(SubscriptionId::tryFromString("sub\xFFid"));
     }
 
-    public function testTryFromStringAcceptsPrintableAsciiRange(): void
+    public function testTryFromStringReturnsNullForANonString(): void
     {
-        $id = SubscriptionId::tryFromString('sub-1.0_alpha:abc/def') ?? throw new RuntimeException('Expected a valid subscription ID');
-
-        $this->assertSame('sub-1.0_alpha:abc/def', (string) $id);
+        $this->assertNull(SubscriptionId::tryFromString(42));
     }
 }

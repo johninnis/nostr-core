@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\Client;
 
 use Innis\Nostr\Core\Domain\Collection\FilterCollection;
-use Innis\Nostr\Core\Domain\ValueObject\Protocol\Filter;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Message\ClientMessage;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\SubscriptionId;
 use InvalidArgumentException;
@@ -13,19 +12,25 @@ use Override;
 
 abstract readonly class FilterRequestMessage extends ClientMessage
 {
-    public const int MAX_FILTERS = 20;
-
-    final public function __construct(
+    final private function __construct(
         private SubscriptionId $subscriptionId,
         private FilterCollection $filters,
     ) {
-        if ($this->filters->isEmpty()) {
-            throw new InvalidArgumentException(sprintf('%s message must have at least one filter', $this->type()->value));
+    }
+
+    final public static function tryFrom(SubscriptionId $subscriptionId, FilterCollection $filters): ?static
+    {
+        if ($filters->isEmpty()) {
+            return null;
         }
 
-        if (count($this->filters) > self::MAX_FILTERS) {
-            throw new InvalidArgumentException(sprintf('%s message may contain at most %d filters', $this->type()->value, self::MAX_FILTERS));
-        }
+        return new static($subscriptionId, $filters);
+    }
+
+    final public static function from(SubscriptionId $subscriptionId, FilterCollection $filters): static
+    {
+        return static::tryFrom($subscriptionId, $filters)
+            ?? throw new InvalidArgumentException(static::type()->value.' message must carry at least one filter');
     }
 
     final public function getSubscriptionId(): SubscriptionId
@@ -38,45 +43,28 @@ abstract readonly class FilterRequestMessage extends ClientMessage
         return $this->filters;
     }
 
-    /**
-     * @return list<mixed>
-     */
     #[Override]
-    final public function toArray(): array
+    final protected function toPayload(): array
     {
         return [
-            $this->type()->value,
             (string) $this->subscriptionId,
-            ...array_map(static fn (Filter $filter) => $filter->jsonSerialize(), $this->filters->toArray()),
+            ...$this->filters->toJsonArray(),
         ];
     }
 
-    /**
-     * @param array<array-key, mixed> $data
-     */
     #[Override]
-    final public static function tryFromArray(array $data): ?static
+    final protected static function tryFromPayload(array $payload): ?static
     {
-        if (!array_is_list($data) || count($data) < 3) {
+        $subscriptionId = SubscriptionId::tryFromString($payload[0] ?? null);
+        $filterValues = array_slice($payload, 1);
+
+        // Deliberate: an empty list is a JSON array, never the filter that matches everything; that filter arrives as a stdClass — see ADR-0112
+        if (array_any($filterValues, static fn (mixed $filter): bool => [] === $filter)) {
             return null;
         }
 
-        if (count($data) - 2 > self::MAX_FILTERS) {
-            return null;
-        }
+        $filters = FilterCollection::tryFromArray($filterValues);
 
-        $subscriptionId = SubscriptionId::tryFromString($data[1]);
-        if (null === $subscriptionId) {
-            return null;
-        }
-
-        $filters = FilterCollection::tryFromArray(array_slice($data, 2));
-        if (null === $filters) {
-            return null;
-        }
-
-        $parsed = new static($subscriptionId, $filters);
-
-        return $parsed->type()->value === $data[0] ? $parsed : null;
+        return null === $subscriptionId || null === $filters ? null : static::tryFrom($subscriptionId, $filters);
     }
 }

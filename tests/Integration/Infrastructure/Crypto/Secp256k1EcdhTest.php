@@ -8,6 +8,7 @@ use Innis\Nostr\Core\Domain\Exception\EcdhException;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\SecretKeyMaterial;
 use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
 use Innis\Nostr\Core\Infrastructure\Crypto\NativeRandomBytesGenerator;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Backend;
@@ -21,6 +22,8 @@ final class Secp256k1EcdhTest extends TestCase
     private const string OFF_CURVE_X_HEX = '0000000000000000000000000000000000000000000000000000000000000005';
     private const string ZERO_X_HEX = '0000000000000000000000000000000000000000000000000000000000000000';
     private const string FIELD_PRIME_X_HEX = 'fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f';
+    private const int REPEATED_AGREEMENT_COUNT = 2000;
+    private const int REPEATED_AGREEMENT_MEMORY_BOUND_BYTES = 65536;
 
     #[Group('ffi')]
     public function testBackendReportsNativeWhenFfiHandleIsInjected(): void
@@ -29,6 +32,25 @@ final class Secp256k1EcdhTest extends TestCase
             ?? self::markTestSkipped('libsecp256k1 FFI unavailable');
 
         $this->assertSame(Secp256k1Backend::Native, new Secp256k1Ecdh($ffi)->backend());
+    }
+
+    #[Group('ffi')]
+    public function testRepeatedNativeKeyAgreementKeepsMemoryFlat(): void
+    {
+        $ffi = LibSecp256k1Ffi::tryLoad(new NativeRandomBytesGenerator())
+            ?? self::markTestSkipped('libsecp256k1 FFI unavailable');
+        $ecdh = new Secp256k1Ecdh($ffi);
+        $signer = new Secp256k1Signer($ffi, new NativeRandomBytesGenerator());
+        $privateKey = PrivateKey::generate();
+        $otherPublicKey = $signer->derivePublicKey(PrivateKey::generate());
+        $ecdh->computeSharedX($privateKey, $otherPublicKey);
+
+        $memoryBefore = memory_get_usage();
+        for ($agreement = 0; $agreement < self::REPEATED_AGREEMENT_COUNT; ++$agreement) {
+            $ecdh->computeSharedX($privateKey, $otherPublicKey);
+        }
+
+        $this->assertLessThan(self::REPEATED_AGREEMENT_MEMORY_BOUND_BYTES, memory_get_usage() - $memoryBefore);
     }
 
     public function testBackendReportsPurePhpWhenNoFfiHandleIsInjected(): void
@@ -46,8 +68,8 @@ final class Secp256k1EcdhTest extends TestCase
         $publicKeyA = $signer->derivePublicKey($privateKeyA);
         $publicKeyB = $signer->derivePublicKey($privateKeyB);
 
-        $aToB = $ecdh->computeSharedX($privateKeyA, $publicKeyB);
-        $bToA = $ecdh->computeSharedX($privateKeyB, $publicKeyA);
+        $aToB = self::bytes($ecdh->computeSharedX($privateKeyA, $publicKeyB));
+        $bToA = self::bytes($ecdh->computeSharedX($privateKeyB, $publicKeyA));
 
         $this->assertSame($aToB, $bToA);
     }
@@ -60,8 +82,8 @@ final class Secp256k1EcdhTest extends TestCase
         $privateKey = PrivateKey::generate();
         $otherPublicKey = $signer->derivePublicKey(PrivateKey::generate());
 
-        $first = $ecdh->computeSharedX($privateKey, $otherPublicKey);
-        $second = $ecdh->computeSharedX($privateKey, $otherPublicKey);
+        $first = self::bytes($ecdh->computeSharedX($privateKey, $otherPublicKey));
+        $second = self::bytes($ecdh->computeSharedX($privateKey, $otherPublicKey));
 
         $this->assertSame($first, $second);
     }
@@ -74,7 +96,7 @@ final class Secp256k1EcdhTest extends TestCase
         $privateKey = PrivateKey::generate();
         $otherPublicKey = $signer->derivePublicKey(PrivateKey::generate());
 
-        $sharedX = $ecdh->computeSharedX($privateKey, $otherPublicKey);
+        $sharedX = self::bytes($ecdh->computeSharedX($privateKey, $otherPublicKey));
         $expectedConversationKey = hash_hmac('sha256', $sharedX, 'nip44-v2', true);
 
         $legacyKey = ConversationKey::derive($privateKey, $otherPublicKey, $ecdh);
@@ -91,7 +113,7 @@ final class Secp256k1EcdhTest extends TestCase
         $privateKey = PrivateKey::generate();
         $otherPublicKey = $signer->derivePublicKey(PrivateKey::generate());
 
-        $sharedX = $ecdh->computeSharedX($privateKey, $otherPublicKey);
+        $sharedX = self::bytes($ecdh->computeSharedX($privateKey, $otherPublicKey));
 
         $this->assertSame(32, strlen($sharedX));
     }
@@ -144,5 +166,10 @@ final class Secp256k1EcdhTest extends TestCase
         $this->expectException(EcdhException::class);
         $this->expectExceptionMessage('out of field range');
         $ecdh->computeSharedX(PrivateKey::generate(), $outOfRangeKey);
+    }
+
+    private static function bytes(SecretKeyMaterial $sharedX): string
+    {
+        return $sharedX->expose(static fn (string $bytes): string => $bytes);
     }
 }

@@ -5,14 +5,12 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Nip19;
 
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\SoleTagValue;
 
 /**
- * The type-length-value record list an nprofile, nevent or naddr carries.
- *
- * @internal this models the framing the NIP-19 entities are built from; it is not part of the
- *           package's supported surface and may change whenever those entities need it to
+ * @internal
  */
-// Deliberate: a value object holding both the encoded bytes and the parsed records, not a stateless codec — it is minted by the entities in this namespace and belongs beside them — see ADR-0059
+// Deliberate: a value object holding both the encoded bytes and the parsed records, not a stateless codec — it is minted by the entities in this namespace and belongs beside them — see ADR-0104
 final readonly class Nip19Tlv
 {
     public const int TYPE_SPECIAL = 0;
@@ -33,7 +31,7 @@ final readonly class Nip19Tlv
     /**
      * @param list<array{type: int, value: string}> $records
      */
-    // Deliberate: NIP-19 encodes BOTH the type and the length as a uint8, so either out of range has no representation; pack('C') would wrap it modulo 256, and for a length the remainder would then decode as further records — see ADR-0059
+    // Deliberate: NIP-19 encodes BOTH the type and the length as a uint8, so either out of range has no representation; pack('C') would wrap it modulo 256, and for a length the remainder would then decode as further records — see ADR-0104
     public static function tryFromRecords(array $records): ?self
     {
         $bytes = '';
@@ -92,9 +90,10 @@ final readonly class Nip19Tlv
         return $this->bytes;
     }
 
-    public function first(int $type): ?string
+    // Deliberate: a record repeated with one value is one claim, and records of one type that disagree state none — see nostr-adrs ADR-0094
+    public function sole(int $type): ?string
     {
-        return $this->records[$type][0] ?? null;
+        return SoleTagValue::fromValues($this->all($type))->getValue();
     }
 
     /**
@@ -107,13 +106,14 @@ final readonly class Nip19Tlv
 
     public function kind(): ?EventKind
     {
-        $value = $this->first(self::TYPE_KIND);
+        $value = $this->sole(self::TYPE_KIND);
 
-        if (null === $value || self::KIND_BYTE_LENGTH !== strlen($value)) {
-            return null;
-        }
+        return null === $value ? null : self::decodeKind($value);
+    }
 
-        $unpacked = unpack('N', $value);
+    public static function decodeKind(string $value): ?EventKind
+    {
+        $unpacked = self::KIND_BYTE_LENGTH === strlen($value) ? unpack('N', $value) : false;
 
         return false === $unpacked ? null : EventKind::tryFromInt($unpacked[1]);
     }

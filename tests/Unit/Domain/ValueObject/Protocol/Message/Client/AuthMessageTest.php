@@ -22,7 +22,7 @@ final class AuthMessageTest extends TestCase
 {
     public function testGetTypeReturnsAuth(): void
     {
-        $message = new AuthMessage($this->createAuthEvent());
+        $message = AuthMessage::fromEvent($this->createAuthEvent());
 
         $this->assertSame(ClientMessageType::Auth, $message->type());
     }
@@ -30,7 +30,7 @@ final class AuthMessageTest extends TestCase
     public function testGetEventReturnsConstructedEvent(): void
     {
         $event = $this->createAuthEvent();
-        $message = new AuthMessage($event);
+        $message = AuthMessage::fromEvent($event);
 
         $this->assertSame($event, $message->getEvent());
     }
@@ -40,21 +40,39 @@ final class AuthMessageTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('AUTH message must contain a kind 22242 event');
 
-        $event = EventMother::fromRumour(new Rumour(
+        $event = EventMother::fromRumour(Rumour::draft(
             self::createPublicKey(),
-            Timestamp::fromInt(1700000000),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            new TagCollection(),
             EventContent::fromString(''),
+            new TagCollection(),
+            Timestamp::fromInt(1700000000),
         ));
 
-        new AuthMessage($event);
+        AuthMessage::fromEvent($event);
+    }
+
+    public function testTryFromEventRefusesANonAuthKind(): void
+    {
+        $event = EventMother::fromRumour(Rumour::draft(
+            self::createPublicKey(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString(''),
+            new TagCollection(),
+            Timestamp::fromInt(1700000000),
+        ));
+
+        $this->assertNull(AuthMessage::tryFromEvent($event));
+    }
+
+    public function testTryFromArrayRefusesANonListValue(): void
+    {
+        $this->assertNull(AuthMessage::tryFromArray('AUTH'));
     }
 
     public function testToArrayReturnsCorrectFormat(): void
     {
         $event = $this->createAuthEvent();
-        $message = new AuthMessage($event);
+        $message = AuthMessage::fromEvent($event);
 
         $result = $message->toArray();
 
@@ -65,7 +83,7 @@ final class AuthMessageTest extends TestCase
 
     public function testToJsonReturnsValidJson(): void
     {
-        $message = new AuthMessage($this->createAuthEvent());
+        $message = AuthMessage::fromEvent($this->createAuthEvent());
 
         $decoded = json_decode($message->toJson(), true, flags: JSON_THROW_ON_ERROR);
         $this->assertIsArray($decoded);
@@ -97,7 +115,7 @@ final class AuthMessageTest extends TestCase
 
     public function testRoundTripPreservesData(): void
     {
-        $original = new AuthMessage($this->createAuthEvent());
+        $original = AuthMessage::fromEvent($this->createAuthEvent());
 
         $restored = AuthMessage::tryFromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
 
@@ -118,12 +136,12 @@ final class AuthMessageTest extends TestCase
 
     private function createAuthEvent(): Event
     {
-        return EventMother::fromRumour(new Rumour(
+        return EventMother::fromRumour(Rumour::draft(
             self::createPublicKey(),
-            Timestamp::fromInt(1700000000),
             EventKind::fromInt(EventKind::CLIENT_AUTH),
-            new TagCollection(),
             EventContent::fromString(''),
+            new TagCollection(),
+            Timestamp::fromInt(1700000000),
         ));
     }
 }

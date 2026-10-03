@@ -16,7 +16,7 @@ final readonly class EventMessage extends ClientMessage
     }
 
     #[Override]
-    public function type(): ClientMessageType
+    public static function type(): ClientMessageType
     {
         return ClientMessageType::Event;
     }
@@ -26,33 +26,21 @@ final readonly class EventMessage extends ClientMessage
         return $this->event;
     }
 
-    /**
-     * @return list<mixed>
-     */
     #[Override]
-    public function toArray(): array
+    protected function toPayload(): array
     {
-        return [$this->type()->value, $this->event->toArray()];
+        return [$this->event->toArray()];
     }
 
-    /**
-     * @param array<array-key, mixed> $data
-     */
     #[Override]
-    public static function tryFromArray(array $data): ?static
+    protected static function tryFromPayload(array $payload): ?static
     {
-        if (!array_is_list($data) || 2 !== count($data)) {
+        if (1 !== count($payload)) {
             return null;
         }
 
-        $event = Event::tryFromArray($data[1]);
+        $event = Event::tryFromArray($payload[0]);
 
-        if (null === $event) {
-            return null;
-        }
-
-        $parsed = new self($event->withRawJson());
-
-        return $parsed->type()->value === $data[0] ? $parsed : null;
+        return null === $event ? null : new self($event);
     }
 }

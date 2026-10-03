@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
+use Innis\Nostr\Core\Domain\Enum\Nip10Marker;
+use Innis\Nostr\Core\Domain\Enum\RelayMarker;
 use Innis\Nostr\Core\Domain\Service\TagReferenceExtractor;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\TagReferences;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -33,7 +36,7 @@ final class TagReferenceExtractorTest extends TestCase
         $event = $references->getEvents()->toArray()[0];
         $this->assertSame(self::EVENT_ID, $event->getEventId()->toHex());
         $this->assertSame(self::RELAY, (string) $event->getRelayUrl());
-        $this->assertSame('reply', $event->getMarker());
+        $this->assertSame(Nip10Marker::Reply, $event->getMarker());
         $this->assertSame(self::EVENT_AUTHOR, $event->getAuthor()?->toHex());
     }
 
@@ -96,7 +99,7 @@ final class TagReferenceExtractorTest extends TestCase
         $this->assertSame(self::RELAY, (string) $coordinate->getRelayHint());
     }
 
-    public function testReferenceTagBecomesRelayReferenceWithMode(): void
+    public function testReferenceTagBecomesRelayReferenceWithMarker(): void
     {
         $references = TagReferenceExtractor::extract(new TagCollection([
             $this->tag('r', self::RELAY, 'read'),
@@ -106,7 +109,7 @@ final class TagReferenceExtractorTest extends TestCase
 
         $relay = $references->getRelays()->toArray()[0];
         $this->assertSame(self::RELAY, (string) $relay->getRelayUrl());
-        $this->assertSame('read', $relay->getMode());
+        $this->assertSame(RelayMarker::Read, $relay->getMarker());
     }
 
     public function testChallengeTagBecomesChallengeString(): void
@@ -178,6 +181,32 @@ final class TagReferenceExtractorTest extends TestCase
     public function testEmptyTagCollectionYieldsEmptyReferences(): void
     {
         $this->assertReferencesAreEmpty(TagReferenceExtractor::extract(new TagCollection()));
+    }
+
+    /**
+     * @return iterable<string, array{list<string>, string|null}>
+     */
+    public static function eventTagAuthorShapes(): iterable
+    {
+        yield 'id only' => [['e', self::EVENT_ID], null];
+        yield 'NIP-22/25 author in the fourth element' => [['e', self::EVENT_ID, self::RELAY, self::EVENT_AUTHOR], self::EVENT_AUTHOR];
+        yield 'NIP-10 root with author' => [['e', self::EVENT_ID, self::RELAY, 'root', self::EVENT_AUTHOR], self::EVENT_AUTHOR];
+        yield 'NIP-10 empty marker with author' => [['e', self::EVENT_ID, self::RELAY, '', self::EVENT_AUTHOR], self::EVENT_AUTHOR];
+        yield 'NIP-10 reply without author' => [['e', self::EVENT_ID, self::RELAY, 'reply'], null];
+        yield 'NIP-10 mention with author' => [['e', self::EVENT_ID, self::RELAY, 'mention', self::EVENT_AUTHOR], self::EVENT_AUTHOR];
+        yield 'unknown fourth element' => [['e', self::EVENT_ID, self::RELAY, 'zz'], null];
+        yield 'fifth element is not a public key' => [['e', self::EVENT_ID, self::RELAY, self::EVENT_AUTHOR, 'extra'], null];
+    }
+
+    /**
+     * @param list<string> $parts
+     */
+    #[DataProvider('eventTagAuthorShapes')]
+    public function testEventTagAuthorIsReadByTheTagsLength(array $parts, ?string $expectedAuthor): void
+    {
+        $references = TagReferenceExtractor::extract(new TagCollection([$this->tag(...$parts)]));
+
+        $this->assertSame($expectedAuthor, $references->getEvents()->toArray()[0]->getAuthor()?->toHex());
     }
 
     private function tag(string ...$parts): Tag

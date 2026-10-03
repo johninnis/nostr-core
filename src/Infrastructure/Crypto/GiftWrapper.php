@@ -4,10 +4,16 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Infrastructure\Crypto;
 
+use Innis\Nostr\Core\Domain\Collection\EventCollection;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\Exception\EcdhException;
+use Innis\Nostr\Core\Domain\Exception\EncryptionException;
 use Innis\Nostr\Core\Domain\Exception\GiftWrapException;
-use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
+use Innis\Nostr\Core\Domain\Failure\GiftWrapUnwrapFailure;
+use Innis\Nostr\Core\Domain\Failure\RumourParseFailure;
+use Innis\Nostr\Core\Domain\Service\ConversationCipher;
+use Innis\Nostr\Core\Domain\Service\ConversationCipherInterface;
 use Innis\Nostr\Core\Domain\Service\EcdhServiceInterface;
 use Innis\Nostr\Core\Domain\Service\GiftWrapServiceInterface;
 use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
@@ -15,24 +21,25 @@ use Innis\Nostr\Core\Domain\Service\Nip44EncryptionInterface;
 use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
+use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use InvalidArgumentException;
 use Override;
-use Throwable;
 
-final class GiftWrapper implements GiftWrapServiceInterface
+final readonly class GiftWrapper implements GiftWrapServiceInterface
 {
-    // Deliberate: four cohesive crypto collaborators for one NIP-59 operation, not a group to fold into a parameter object — see ADR-0035
+    // Deliberate: the seal is the rumour's NIP-44 payload inside a second NIP-44 plaintext, so the default 262144-byte maximum admits a rumour only up to the padded length whose payload still fits it — see ADR-0117
+    public const int MAX_RUMOUR_LENGTH = 163840;
+
     public function __construct(
-        private readonly Nip44EncryptionInterface $encryption,
-        private readonly SignatureServiceInterface $signatureService,
-        private readonly EcdhServiceInterface $ecdhService,
-        private readonly GiftWrapEnvelopeFactoryInterface $envelopeFactory,
+        private ConversationCipherInterface $cipher,
+        private SignatureServiceInterface $signatureService,
+        private GiftWrapEnvelopeFactoryInterface $envelopeFactory,
     ) {
     }
 
@@ -41,7 +48,7 @@ final class GiftWrapper implements GiftWrapServiceInterface
         SignatureServiceInterface $signatureService,
         EcdhServiceInterface $ecdhService,
     ): self {
-        return new self($encryption, $signatureService, $ecdhService, new RandomGiftWrapEnvelopeFactory($signatureService));
+        return new self(new ConversationCipher($encryption, $ecdhService), $signatureService, new RandomGiftWrapEnvelopeFactory($signatureService));
     }
 
     #[Override]
@@ -50,143 +57,169 @@ final class GiftWrapper implements GiftWrapServiceInterface
         PrivateKey $senderPrivateKey,
         PublicKey $recipientPublicKey,
     ): Event {
-        $this->validateRumour($rumour, $senderPrivateKey);
+        $senderKeyPair = $this->senderKeyPairFor($rumour, $senderPrivateKey);
 
-        $senderKeyPair = KeyPair::fromPrivateKey($senderPrivateKey, $this->signatureService);
+        return $this->sealAndWrap($this->wrappableRumourJson($rumour), $senderKeyPair, $recipientPublicKey);
+    }
 
-        $envelope = $this->envelopeFactory->create();
-        $ephemeralKeyPair = $envelope->getEphemeralKeyPair();
+    #[Override]
+    public function wrapForChatRoom(
+        Rumour $rumour,
+        PrivateKey $senderPrivateKey,
+    ): EventCollection {
+        $senderKeyPair = $this->senderKeyPairFor($rumour, $senderPrivateKey);
+        $rumourJson = $this->wrappableRumourJson($rumour);
 
-        try {
-            $seal = new Rumour(
-                $senderKeyPair->getPublicKey(),
-                $envelope->getSealTimestamp(),
-                EventKind::fromInt(EventKind::SEAL),
-                new TagCollection(),
-                EventContent::fromString($this->encryptFor($rumour, $senderKeyPair, $recipientPublicKey)),
-            )->sign($senderKeyPair, $this->signatureService);
-
-            return new Rumour(
-                $ephemeralKeyPair->getPublicKey(),
-                $envelope->getWrapTimestamp(),
-                EventKind::fromInt(EventKind::GIFT_WRAP),
-                new TagCollection([Tag::pubkey($recipientPublicKey)]),
-                EventContent::fromString($this->encryptFor($seal, $ephemeralKeyPair, $recipientPublicKey)),
-            )->sign($ephemeralKeyPair, $this->signatureService);
-        } finally {
-            $ephemeralKeyPair->getPrivateKey()->zero();
-        }
+        return new EventCollection(array_map(
+            fn (PublicKey $member): Event => $this->sealAndWrap($rumourJson, $senderKeyPair, $member),
+            $rumour->getChatRoom()->toArray(),
+        ));
     }
 
     #[Override]
     public function unwrap(
         Event $giftWrap,
         PrivateKey $recipientPrivateKey,
-    ): Rumour {
-        $this->validateGiftWrap($giftWrap);
+    ): Rumour|GiftWrapUnwrapFailure {
+        $seal = $this->openGiftWrap($giftWrap, $recipientPrivateKey);
 
-        $sealJson = $this->decrypt($giftWrap, $recipientPrivateKey, 'gift wrap');
-        $seal = Event::tryFromJson($sealJson)
-            ?? throw new GiftWrapException('Failed to parse decrypted gift wrap');
-        $this->validateSeal($seal);
-
-        $rumourJson = $this->decrypt($seal, $recipientPrivateKey, 'seal');
-        $rumour = $this->deserialiseRumour($rumourJson);
-        $this->validateDecryptedRumour($rumour, $seal);
-
-        return $rumour;
-    }
-
-    private function encryptFor(Rumour|Event $inner, KeyPair $signingKeyPair, PublicKey $recipientPublicKey): string
-    {
-        $conversationKey = ConversationKey::derive($signingKeyPair->getPrivateKey(), $recipientPublicKey, $this->ecdhService);
-
-        try {
-            return $this->encryption->encrypt($this->serialise($inner), $conversationKey);
-        } finally {
-            $conversationKey->zero();
-        }
-    }
-
-    private function decrypt(Event $envelope, PrivateKey $recipientPrivateKey, string $layerName): string
-    {
-        $conversationKey = ConversationKey::derive($recipientPrivateKey, $envelope->getPubkey(), $this->ecdhService);
-
-        try {
-            return $this->encryption->decrypt((string) $envelope->getContent(), $conversationKey);
-        } catch (Throwable $e) {
-            throw new GiftWrapException('Failed to decrypt '.$layerName, 0, $e);
-        } finally {
-            $conversationKey->zero();
-        }
-    }
-
-    private function validateRumour(Rumour $rumour, PrivateKey $senderPrivateKey): void
-    {
-        if (!$rumour->getKind()->is(EventKind::PRIVATE_MESSAGE)) {
-            throw new GiftWrapException('Rumour must be kind 14 (private message)');
+        if ($seal instanceof GiftWrapUnwrapFailure) {
+            return $seal;
         }
 
-        if (!$this->signatureService->derivePublicKey($senderPrivateKey)->equals($rumour->getPubkey())) {
-            throw new InvalidArgumentException('Sender private key does not match rumour public key');
+        $rumour = $this->openSeal($seal, $recipientPrivateKey);
+
+        if ($rumour instanceof GiftWrapUnwrapFailure) {
+            return $rumour;
         }
+
+        return $rumour->getPubkey()->equals($seal->getPubkey())
+            ? $rumour
+            : GiftWrapUnwrapFailure::RumourPubkeyMismatch;
     }
 
-    private function validateGiftWrap(Event $giftWrap): void
+    private function openGiftWrap(Event $giftWrap, PrivateKey $recipientPrivateKey): Event|GiftWrapUnwrapFailure
     {
-        if (!$giftWrap->getKind()->is(EventKind::GIFT_WRAP)) {
-            throw new GiftWrapException('Event must be kind 1059 (gift wrap)');
+        if (!$giftWrap->getKind()->is(EventKind::GIFT_WRAP) && !$giftWrap->getKind()->is(EventKind::EPHEMERAL_GIFT_WRAP)) {
+            return GiftWrapUnwrapFailure::NotGiftWrap;
         }
 
         if (!$giftWrap->verify($this->signatureService)) {
-            throw new GiftWrapException('Gift wrap signature is invalid');
+            return GiftWrapUnwrapFailure::WrapSignatureInvalid;
         }
-    }
 
-    private function validateSeal(Event $seal): void
-    {
+        $sealJson = $this->decrypt($giftWrap, $recipientPrivateKey);
+
+        if (null === $sealJson) {
+            return GiftWrapUnwrapFailure::SealDecryptFailed;
+        }
+
+        $seal = Event::tryFromJson($sealJson);
+
+        if (null === $seal || !self::holdsOnlyExpirations($seal->getTags())) {
+            return GiftWrapUnwrapFailure::SealMalformed;
+        }
+
         if (!$seal->getKind()->is(EventKind::SEAL)) {
-            throw new GiftWrapException('Decrypted event is not a seal (kind 13)');
+            return GiftWrapUnwrapFailure::SealWrongKind;
         }
 
-        if (!$seal->verify($this->signatureService)) {
-            throw new GiftWrapException('Seal signature is invalid');
-        }
+        return $seal->verify($this->signatureService) ? $seal : GiftWrapUnwrapFailure::SealSignatureInvalid;
     }
 
-    private function validateDecryptedRumour(Rumour $rumour, Event $seal): void
+    // Deliberate: NIP-17 asks for a disappearing message's expiration on the seal as well as the wrap, so a seal may carry expiration tags that each state a valid NIP-40 timestamp, and nothing else — see ADR-0133
+    private static function holdsOnlyExpirations(TagCollection $tags): bool
     {
-        if (!$rumour->getKind()->is(EventKind::PRIVATE_MESSAGE)) {
-            throw new GiftWrapException('Decrypted event is not a rumour (kind 14)');
-        }
+        $expiration = TagType::expiration();
 
-        if (!$rumour->getPubkey()->equals($seal->getPubkey())) {
-            throw new GiftWrapException('Rumour pubkey does not match seal pubkey');
-        }
+        return array_all(
+            $tags->toArray(),
+            static fn (Tag $tag): bool => $tag->getType()->equals($expiration) && null !== Timestamp::tryFromDecimalString($tag->getValue() ?? ''),
+        );
     }
 
-    private function serialise(Rumour|Event $inner): string
+    private function openSeal(Event $seal, PrivateKey $recipientPrivateKey): Rumour|GiftWrapUnwrapFailure
     {
-        try {
-            return $inner->toJson();
-        } catch (InvalidEventException $exception) {
-            throw new GiftWrapException('Failed to serialise event', previous: $exception);
-        }
-    }
+        $rumourJson = $this->decrypt($seal, $recipientPrivateKey);
 
-    private function deserialiseRumour(string $json): Rumour
-    {
-        $data = JsonWireFormat::decodeArray($json);
+        if (null === $rumourJson) {
+            return GiftWrapUnwrapFailure::RumourDecryptFailed;
+        }
+
+        $data = JsonWireFormat::decodeObject($rumourJson);
 
         if (null === $data) {
-            throw new GiftWrapException('Failed to parse decrypted seal');
+            return GiftWrapUnwrapFailure::RumourMalformed;
         }
 
         if (isset($data['sig']) && '' !== $data['sig']) {
-            throw new GiftWrapException('Decrypted rumour must not be signed');
+            return GiftWrapUnwrapFailure::RumourSigned;
         }
 
-        return Rumour::tryFromArray($data)
-            ?? throw new GiftWrapException('Failed to parse decrypted seal');
+        $rumour = Rumour::tryFromArray($data);
+
+        return $rumour instanceof Rumour ? $rumour : match ($rumour) {
+            RumourParseFailure::Malformed => GiftWrapUnwrapFailure::RumourMalformed,
+            RumourParseFailure::IdMismatch => GiftWrapUnwrapFailure::RumourIdMismatch,
+        };
+    }
+
+    private function decrypt(Event $envelope, PrivateKey $recipientPrivateKey): ?string
+    {
+        // Deliberate: the ciphertext comes from a peer, so the primitive's thrown decryption fault is converted to a returned failure here, where it enters — see ADR-0089
+        try {
+            return $this->cipher->decrypt((string) $envelope->getContent(), $recipientPrivateKey, $envelope->getPubkey());
+        } catch (EcdhException|EncryptionException) {
+            return null;
+        }
+    }
+
+    private function senderKeyPairFor(Rumour $rumour, PrivateKey $senderPrivateKey): KeyPair
+    {
+        $senderKeyPair = KeyPair::fromPrivateKey($senderPrivateKey, $this->signatureService);
+
+        if (!$senderKeyPair->getPublicKey()->equals($rumour->getPubkey())) {
+            throw new InvalidArgumentException('Sender private key does not match rumour public key');
+        }
+
+        return $senderKeyPair;
+    }
+
+    private function sealAndWrap(string $rumourJson, KeyPair $senderKeyPair, PublicKey $recipientPublicKey): Event
+    {
+        $envelope = $this->envelopeFactory->create();
+        $ephemeralKeyPair = $envelope->getEphemeralKeyPair();
+
+        try {
+            $seal = Rumour::draft(
+                $senderKeyPair->getPublicKey(),
+                EventKind::fromInt(EventKind::SEAL),
+                EventContent::fromString($this->cipher->encrypt($rumourJson, $senderKeyPair->getPrivateKey(), $recipientPublicKey)),
+                new TagCollection(),
+                $envelope->getSealTimestamp(),
+            )->sign($senderKeyPair, $this->signatureService);
+
+            return Rumour::draft(
+                $ephemeralKeyPair->getPublicKey(),
+                EventKind::fromInt(EventKind::GIFT_WRAP),
+                EventContent::fromString($this->cipher->encrypt($seal->toJson(), $ephemeralKeyPair->getPrivateKey(), $recipientPublicKey)),
+                new TagCollection([Tag::pubkey($recipientPublicKey)]),
+                $envelope->getWrapTimestamp(),
+            )->sign($ephemeralKeyPair, $this->signatureService);
+        } finally {
+            $ephemeralKeyPair->getPrivateKey()->zero();
+        }
+    }
+
+    private function wrappableRumourJson(Rumour $rumour): string
+    {
+        $rumourJson = $rumour->toJson();
+        $length = strlen($rumourJson);
+
+        if ($length > self::MAX_RUMOUR_LENGTH) {
+            throw new GiftWrapException(sprintf('Rumour serialises to %d bytes; a gift wrap holds at most %d, the largest rumour whose seal fits the NIP-44 maximum plaintext of %d bytes', $length, self::MAX_RUMOUR_LENGTH, Nip44Cipher::DEFAULT_MAX_PLAINTEXT_LENGTH));
+        }
+
+        return $rumourJson;
     }
 }

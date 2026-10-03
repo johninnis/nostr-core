@@ -11,7 +11,7 @@ use Innis\Nostr\Core\Domain\Exception\CryptoException;
 use Innis\Nostr\Core\Domain\Exception\EcdhException;
 use Throwable;
 
-final class LibSecp256k1Ffi
+final readonly class LibSecp256k1Ffi
 {
     private const string CDEF = <<<'C'
         typedef struct secp256k1_context_struct secp256k1_context;
@@ -47,28 +47,29 @@ final class LibSecp256k1Ffi
     ];
 
     private function __construct(
-        private readonly FFI $ffi,
-        private readonly mixed $context,
+        private FFI $ffi,
+        private mixed $context,
+        private CData $copySharedX,
     ) {
     }
 
-    public static function tryLoad(?RandomBytesGeneratorInterface $randomBytes = null): ?self
+    public static function tryLoad(RandomBytesGeneratorInterface $randomBytes = new NativeRandomBytesGenerator()): ?self
     {
         $ffi = FfiLibraryLoader::tryLoad(self::CDEF, self::LIBRARY_NAMES);
         if (null === $ffi) {
             return null;
         }
 
-        $seed32 = ($randomBytes ?? new NativeRandomBytesGenerator())->bytes(self::CONTEXT_SEED_LENGTH);
+        $seed32 = $randomBytes->bytes(self::CONTEXT_SEED_LENGTH);
         $context = null;
 
         try {
             $context = $ffi->secp256k1_context_create(self::CONTEXT_SIGN_VERIFY);
             if (1 === $ffi->secp256k1_context_randomize($context, FfiLibraryLoader::toBuffer($ffi, $seed32))) {
-                return new self($ffi, $context);
+                return new self($ffi, $context, self::copySharedXCallback($ffi));
             }
         } catch (Throwable) {
-            // Deliberate: a loadable-but-incompatible native library is a failed capability probe, not a fault — fall through to the pure-PHP path rather than propagate — see ADR-0025
+            // Deliberate: a loadable-but-incompatible native library is a failed capability probe, not a fault — fall through to the pure-PHP path rather than propagate — see ADR-0101
         }
 
         if (null !== $context) {
@@ -76,6 +77,19 @@ final class LibSecp256k1Ffi
         }
 
         return null;
+    }
+
+    // Deliberate: the hash callback is converted to a C function pointer once per handle, because FFI retains a trampoline for every PHP callable passed to C and would leak one per key agreement — see ADR-0124
+    private static function copySharedXCallback(FFI $ffi): CData
+    {
+        $callback = $ffi->new('secp256k1_ecdh_hash_function');
+        FFI::addr($callback)[0] = static function (CData $out, CData $x32, CData $y32, ?CData $data): int {
+            FFI::memcpy($out, $x32, self::XONLY_PUBKEY_LENGTH);
+
+            return 1;
+        };
+
+        return $callback;
     }
 
     public function sign(string $messageBytes, string $privkeyBytes, string $auxRand32): string
@@ -165,16 +179,10 @@ final class LibSecp256k1Ffi
         $privkeyBuffer = FfiLibraryLoader::toBuffer($this->ffi, $privkeyBytes);
         $output = $this->ffi->new('unsigned char['.self::XONLY_PUBKEY_LENGTH.']');
 
-        // Deliberate: secp256k1_ecdh runs the constant-time scalar multiply; the raw-x callback returns the shared point's x-coordinate unhashed, which is what NIP-04/NIP-44 key agreement consumes — see ADR-0025
-        $copySharedX = static function (CData $out, CData $x32, CData $y32, ?CData $data): int {
-            FFI::memcpy($out, $x32, self::XONLY_PUBKEY_LENGTH);
-
-            return 1;
-        };
-
         try {
-            if (1 !== $this->ffi->secp256k1_ecdh($this->context, $output, FFI::addr($pubkey), $privkeyBuffer, $copySharedX, null)) {
-                throw new EcdhException('ECDH shared point is the identity');
+            // Deliberate: secp256k1_ecdh runs the constant-time scalar multiply; the raw-x callback returns the shared point's x-coordinate unhashed, which is what NIP-04/NIP-44 key agreement consumes — see ADR-0101
+            if (1 !== $this->ffi->secp256k1_ecdh($this->context, $output, FFI::addr($pubkey), $privkeyBuffer, $this->copySharedX, null)) {
+                throw new EcdhException('ECDH secret scalar is invalid');
             }
 
             return FFI::string($output, self::XONLY_PUBKEY_LENGTH);

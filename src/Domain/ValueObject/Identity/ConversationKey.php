@@ -17,11 +17,11 @@ final readonly class ConversationKey
     public static function derive(PrivateKey $privateKey, PublicKey $publicKey, EcdhServiceInterface $ecdhService): self
     {
         $sharedX = $ecdhService->computeSharedX($privateKey, $publicKey);
-        $conversationKey = hash_hmac('sha256', $sharedX, 'nip44-v2', true);
+        $conversationKey = $sharedX->expose(static fn (string $sharedXBytes): string => hash_hmac('sha256', $sharedXBytes, 'nip44-v2', true));
 
-        sodium_memzero($sharedX);
+        $sharedX->zero();
 
-        return new self(new SecretKeyMaterial($conversationKey));
+        return new self(SecretKeyMaterial::fromBytes($conversationKey));
     }
 
     public static function tryFromHex(#[SensitiveParameter] string $hex): ?self

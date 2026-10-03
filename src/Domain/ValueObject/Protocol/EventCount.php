@@ -12,19 +12,21 @@ final readonly class EventCount
         private int $count,
         private bool $approximate,
     ) {
-        if ($count < 0) {
-            throw new InvalidArgumentException('An event count cannot be negative');
-        }
+    }
+
+    public static function tryFrom(int $count, bool $approximate): ?self
+    {
+        return $count < 0 ? null : new self($count, $approximate);
     }
 
     public static function exact(int $count): self
     {
-        return new self($count, false);
+        return self::tryFrom($count, false) ?? throw new InvalidArgumentException('An event count cannot be negative');
     }
 
     public static function approximate(int $count): self
     {
-        return new self($count, true);
+        return self::tryFrom($count, true) ?? throw new InvalidArgumentException('An event count cannot be negative');
     }
 
     public function toInt(): int

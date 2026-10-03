@@ -11,23 +11,68 @@ use InvalidArgumentException;
 
 final readonly class Tag
 {
-    /** @var list<string> */
-    private array $values;
-
     /**
-     * @param array<array-key, mixed> $values
+     * @param list<string> $values
      */
-    public function __construct(
+    private function __construct(
         private TagType $type,
-        array $values,
+        private array $values,
     ) {
-        $strings = array_values(array_filter($values, is_string(...)));
+    }
 
-        if (count($strings) !== count($values)) {
-            throw new InvalidArgumentException('All tag values must be strings');
+    public static function tryFromArray(mixed $data): ?self
+    {
+        if (!is_array($data) || !array_is_list($data)) {
+            return null;
         }
 
-        $this->values = $strings;
+        $strings = array_values(array_filter($data, is_string(...)));
+
+        if ([] === $strings || count($strings) !== count($data)) {
+            return null;
+        }
+
+        if (!array_all($strings, static fn (string $value): bool => mb_check_encoding($value, 'UTF-8'))) {
+            return null;
+        }
+
+        $type = TagType::tryFromString(array_shift($strings));
+
+        return null === $type ? null : new self($type, $strings);
+    }
+
+    /**
+     * @param list<string> $data
+     */
+    public static function fromArray(array $data): self
+    {
+        return self::tryFromArray($data) ?? throw new InvalidArgumentException('A tag is one or more UTF-8 strings');
+    }
+
+    public static function event(EventId $eventId, ?RelayUrl $relayUrl = null, ?PublicKey $author = null): self
+    {
+        return self::withRelayHint(TagType::EVENT, $eventId->toHex(), $relayUrl, $author?->toHex());
+    }
+
+    public static function rootEvent(EventId $eventId, ?RelayUrl $relayUrl = null, ?PublicKey $author = null): self
+    {
+        return self::withRelayHint(TagType::ROOT_EVENT, $eventId->toHex(), $relayUrl, $author?->toHex());
+    }
+
+    public static function pubkey(PublicKey $pubkey, ?RelayUrl $relayUrl = null, ?string $petname = null): self
+    {
+        return self::withRelayHint(TagType::PUBKEY, $pubkey->toHex(), $relayUrl, $petname);
+    }
+
+    // Deliberate: takes a Hashtag where its neighbours take a string, because the lowercase rule lives in the value object and a string overload here would be a second answer to what a hashtag is — see ADR-0068
+    public static function hashtag(Hashtag $hashtag): self
+    {
+        return self::fromArray([TagType::HASHTAG, (string) $hashtag]);
+    }
+
+    public static function identifier(string $identifier): self
+    {
+        return self::fromArray([TagType::IDENTIFIER, $identifier]);
     }
 
     public function getType(): TagType
@@ -66,69 +111,13 @@ final readonly class Tag
         return $this->type->equals($other->type) && $this->values === $other->values;
     }
 
-    public static function event(EventId $eventId, ?RelayUrl $relayUrl = null, ?string $marker = null): self
+    private static function withRelayHint(string $name, string $value, ?RelayUrl $relayUrl, ?string $afterRelay): self
     {
-        $values = [$eventId->toHex()];
-
-        if (null !== $marker) {
-            $values[] = null !== $relayUrl ? (string) $relayUrl : '';
-            $values[] = $marker;
-        } elseif (null !== $relayUrl) {
-            $values[] = (string) $relayUrl;
-        }
-
-        return new self(TagType::event(), $values);
-    }
-
-    public static function pubkey(PublicKey $pubkey, ?RelayUrl $relayUrl = null, ?string $petname = null): self
-    {
-        $values = [$pubkey->toHex()];
-        if (null !== $relayUrl) {
-            $values[] = (string) $relayUrl;
-        }
-        if (null !== $petname) {
-            $values[] = $petname;
-        }
-
-        return new self(TagType::pubkey(), $values);
-    }
-
-    // Deliberate: takes a Hashtag where its neighbours take a string, because the lowercase rule lives in the value object and a string overload here would be a second answer to what a hashtag is — see ADR-0068
-    public static function hashtag(Hashtag $hashtag): self
-    {
-        return new self(TagType::hashtag(), [(string) $hashtag]);
-    }
-
-    public static function identifier(string $identifier): self
-    {
-        return new self(TagType::identifier(), [$identifier]);
-    }
-
-    public static function create(string $type, string ...$values): self
-    {
-        return new self(TagType::fromString($type), $values);
-    }
-
-    /**
-     * @param array<array-key, mixed> $data
-     */
-    public static function tryFromArray(array $data): ?self
-    {
-        $strings = array_values(array_filter($data, is_string(...)));
-
-        if ([] === $strings || count($strings) !== count($data)) {
-            return null;
-        }
-
-        if (!array_all($strings, static fn (string $value): bool => mb_check_encoding($value, 'UTF-8'))) {
-            return null;
-        }
-
-        $name = array_shift($strings);
-        if ('' === $name) {
-            return null;
-        }
-
-        return new self(TagType::fromString($name), $strings);
+        return self::fromArray([
+            $name,
+            $value,
+            ...(null === $relayUrl && null === $afterRelay ? [] : [null === $relayUrl ? '' : (string) $relayUrl]),
+            ...(null === $afterRelay ? [] : [$afterRelay]),
+        ]);
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
 use Innis\Nostr\Core\Domain\Enum\KeySecurityByte;
+use Innis\Nostr\Core\Domain\Exception\SerialisationException;
 use Innis\Nostr\Core\Domain\Service\Bech32Codec;
 use InvalidArgumentException;
 use Override;
@@ -26,31 +27,51 @@ final readonly class Ncryptsec implements Stringable
     private const int KEY_SECURITY_OFFSET = 42;
     private const int CIPHERTEXT_OFFSET = 43;
 
-    private function __construct(
-        private string $bech32,
-        private string $payload,
-    ) {
+    private function __construct(private string $payload)
+    {
     }
 
     public static function tryFromString(string $bech32): ?self
     {
         $payload = Bech32Codec::decodeWithHrp($bech32, self::HRP);
-        if (null === $payload) {
+        if (null === $payload || self::PAYLOAD_LENGTH !== strlen($payload)) {
             return null;
         }
-
-        if (self::PAYLOAD_LENGTH !== strlen($payload)) {
-            return null;
-        }
-
         if (self::VERSION_BYTE !== ord($payload[self::VERSION_OFFSET])) {
             return null;
         }
+        // Deliberate: an unrecognised key-security byte is refused here, never mapped to Untracked, so a tampered byte cannot pass for a valid one — see ADR-0119
+        $keySecurity = KeySecurityByte::tryFrom(ord($payload[self::KEY_SECURITY_OFFSET]));
+        if (null === $keySecurity) {
+            return null;
+        }
 
-        return new self($bech32, $payload);
+        return self::tryFrom(
+            ord($payload[self::LOG_N_OFFSET]),
+            substr($payload, self::SALT_OFFSET, self::SALT_LENGTH),
+            substr($payload, self::NONCE_OFFSET, self::NONCE_LENGTH),
+            $keySecurity,
+            substr($payload, self::CIPHERTEXT_OFFSET, self::AEAD_OUTPUT_LENGTH),
+        );
     }
 
-    // Deliberate: the five arguments are the irreducible ncryptsec structure (logN, salt, nonce, key-security byte, ciphertext), not a group to fold into a parameter object
+    public static function tryFrom(
+        int $logN,
+        string $salt,
+        string $nonce,
+        KeySecurityByte $keySecurity,
+        string $aeadOutput,
+    ): ?self {
+        $fieldsFit = $logN >= 0 && $logN <= 255
+            && self::SALT_LENGTH === strlen($salt)
+            && self::NONCE_LENGTH === strlen($nonce)
+            && self::AEAD_OUTPUT_LENGTH === strlen($aeadOutput);
+
+        return $fieldsFit
+            ? new self(chr(self::VERSION_BYTE).chr($logN).$salt.$nonce.chr($keySecurity->value).$aeadOutput)
+            : null;
+    }
+
     public static function create(
         int $logN,
         string $salt,
@@ -58,30 +79,8 @@ final readonly class Ncryptsec implements Stringable
         KeySecurityByte $keySecurity,
         string $aeadOutput,
     ): self {
-        if ($logN < 0 || $logN > 255) {
-            throw new InvalidArgumentException('logN must fit in a single byte');
-        }
-
-        if (self::SALT_LENGTH !== strlen($salt)) {
-            throw new InvalidArgumentException(sprintf('Salt must be %d bytes', self::SALT_LENGTH));
-        }
-
-        if (self::NONCE_LENGTH !== strlen($nonce)) {
-            throw new InvalidArgumentException(sprintf('Nonce must be %d bytes', self::NONCE_LENGTH));
-        }
-
-        if (self::AEAD_OUTPUT_LENGTH !== strlen($aeadOutput)) {
-            throw new InvalidArgumentException(sprintf('AEAD output must be %d bytes', self::AEAD_OUTPUT_LENGTH));
-        }
-
-        $payload = chr(self::VERSION_BYTE)
-            .chr($logN)
-            .$salt
-            .$nonce
-            .chr($keySecurity->value)
-            .$aeadOutput;
-
-        return new self(Bech32Codec::encode(self::HRP, $payload), $payload);
+        return self::tryFrom($logN, $salt, $nonce, $keySecurity, $aeadOutput)
+            ?? throw new InvalidArgumentException(sprintf('An ncryptsec takes a logN of 0 to 255, a %d-byte salt, a %d-byte nonce and a %d-byte AEAD output', self::SALT_LENGTH, self::NONCE_LENGTH, self::AEAD_OUTPUT_LENGTH));
     }
 
     public function getLogN(): int
@@ -99,9 +98,9 @@ final readonly class Ncryptsec implements Stringable
         return substr($this->payload, self::NONCE_OFFSET, self::NONCE_LENGTH);
     }
 
-    public function getKeySecurityByteRaw(): int
+    public function getKeySecurity(): KeySecurityByte
     {
-        return ord($this->payload[self::KEY_SECURITY_OFFSET]);
+        return KeySecurityByte::from(ord($this->payload[self::KEY_SECURITY_OFFSET]));
     }
 
     public function getAeadCiphertextAndTag(): string
@@ -112,6 +111,7 @@ final readonly class Ncryptsec implements Stringable
     #[Override]
     public function __toString(): string
     {
-        return $this->bech32;
+        return Bech32Codec::encode(self::HRP, $this->payload)
+            ?? throw new SerialisationException('A 91-byte ncryptsec payload always fits a bech32 string');
     }
 }

@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Payment;
 
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
+use Innis\Nostr\Core\Domain\Enum\SoleTagValueState;
 use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
@@ -14,8 +15,11 @@ use Override;
 
 final readonly class Nutzap implements PaymentReceiptInterface
 {
+    private const string DEFAULT_UNIT = 'sat';
+    private const array MILLISATS_PER_BITCOIN_UNIT = ['sat' => ZapAmount::MILLISATS_PER_SAT, 'msat' => 1];
+
     private function __construct(
-        private ?PublicKey $senderPubkey,
+        private PublicKey $senderPubkey,
         private ?PublicKey $recipientPubkey,
         private ?ZapAmount $amount,
         private ?string $message,
@@ -23,7 +27,7 @@ final readonly class Nutzap implements PaymentReceiptInterface
     }
 
     #[Override]
-    public function getSenderPubkey(): ?PublicKey
+    public function getSenderPubkey(): PublicKey
     {
         return $this->senderPubkey;
     }
@@ -53,24 +57,33 @@ final readonly class Nutzap implements PaymentReceiptInterface
         }
 
         $tags = $event->getTags();
-
-        $recipientPubkey = $tags->getFirstPubkeyByType(TagType::pubkey());
-
+        $unit = $tags->getSoleValueByType(TagType::unit());
         $proofAmounts = self::extractProofAmounts($tags);
-        $amount = null;
-        if ([] !== $proofAmounts) {
-            $amount = self::totalWithinCap($proofAmounts, $tags);
-            if (null === $amount) {
-                return null;
-            }
+
+        if (SoleTagValueState::Disagreeing === $unit->getState() || array_any($proofAmounts, static fn (int $amount): bool => $amount < 0)) {
+            return null;
         }
 
+        $millisatsPerUnit = self::MILLISATS_PER_BITCOIN_UNIT[$unit->getValue() ?? self::DEFAULT_UNIT] ?? null;
+        if (null === $millisatsPerUnit || [] === $proofAmounts) {
+            return self::withAmount($event, null);
+        }
+
+        $totalMillisats = self::totalMillisatsWithinCap($proofAmounts, $millisatsPerUnit);
+
+        return null === $totalMillisats ? null : self::withAmount($event, ZapAmount::fromMillisats($totalMillisats));
+    }
+
+    private static function withAmount(Event $event, ?ZapAmount $amount): self
+    {
         $message = (string) $event->getContent();
-        if ('' === $message) {
-            $message = null;
-        }
 
-        return new self($event->getPubkey(), $recipientPubkey, $amount, $message);
+        return new self(
+            $event->getPubkey(),
+            $event->getTags()->getSolePubkeyByType(TagType::pubkey()),
+            $amount,
+            '' === $message ? null : $message,
+        );
     }
 
     /**
@@ -78,45 +91,31 @@ final readonly class Nutzap implements PaymentReceiptInterface
      */
     private static function extractProofAmounts(TagCollection $tags): array
     {
-        $amounts = [];
+        return array_values(array_filter(
+            array_map(self::proofAmount(...), $tags->getValuesByType(TagType::proof())),
+            static fn (?int $amount): bool => null !== $amount,
+        ));
+    }
 
-        foreach ($tags->getValuesByType(TagType::proof()) as $proofJson) {
-            $decoded = JsonWireFormat::decodeArray($proofJson);
-            if (null !== $decoded && isset($decoded['amount']) && is_numeric($decoded['amount'])) {
-                $amounts[] = (int) $decoded['amount'];
-            }
-        }
+    private static function proofAmount(string $proofJson): ?int
+    {
+        $proof = JsonWireFormat::decodeObject($proofJson);
 
-        return $amounts;
+        return null === $proof ? null : JsonWireFormat::intField($proof, 'amount');
     }
 
     /**
-     * @param list<int> $proofAmounts
+     * @param non-empty-list<int> $proofAmounts
      */
-    private static function totalWithinCap(array $proofAmounts, TagCollection $tags): ?ZapAmount
+    private static function totalMillisatsWithinCap(array $proofAmounts, int $millisatsPerUnit): ?int
     {
-        $unitValues = $tags->getValuesByType(TagType::unit());
-        $unit = $unitValues[0] ?? 'sat';
+        $maxTotal = intdiv(ZapAmount::MAX_MILLISATS, $millisatsPerUnit);
+        $total = array_reduce(
+            $proofAmounts,
+            static fn (?int $total, int $amount): ?int => null === $total || $amount > $maxTotal - $total ? null : $total + $amount,
+            0,
+        );
 
-        if ('sat' !== $unit && 'msat' !== $unit) {
-            return null;
-        }
-
-        $maxTotal = 'msat' === $unit
-            ? ZapAmount::MAX_MILLISATS
-            : intdiv(ZapAmount::MAX_MILLISATS, ZapAmount::MILLISATS_PER_SAT);
-
-        $total = 0;
-        foreach ($proofAmounts as $proofAmount) {
-            if ($proofAmount < 0 || $proofAmount > $maxTotal - $total) {
-                return null;
-            }
-
-            $total += $proofAmount;
-        }
-
-        return 'msat' === $unit
-            ? ZapAmount::fromMillisats($total)
-            : ZapAmount::fromSats($total);
+        return null === $total ? null : $total * $millisatsPerUnit;
     }
 }

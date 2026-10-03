@@ -26,11 +26,7 @@ final class PaymentReceiptParserTest extends TestCase
 
     public function testParsesZapReceiptEvent(): void
     {
-        $zapRequest = json_encode([
-            'pubkey' => self::SENDER_PUBKEY,
-            'content' => 'Great post!',
-            'tags' => [['amount', '21000']],
-        ], JSON_THROW_ON_ERROR);
+        $zapRequest = $this->buildEvent(EventKind::ZAP_REQUEST, [['amount', '21000']])->toJson();
 
         $event = $this->buildEvent(EventKind::ZAP_RECEIPT, [
             ['p', self::RECIPIENT_PUBKEY],
@@ -62,12 +58,12 @@ final class PaymentReceiptParserTest extends TestCase
      */
     private function buildEvent(int $kind, array $rawTags): Event
     {
-        return EventMother::fromRumour(new Rumour(
+        return EventMother::fromRumour(Rumour::draft(
             PublicKey::tryFromHex(self::SENDER_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
-            Timestamp::fromInt(1700000000),
             EventKind::fromInt($kind),
-            [] === $rawTags ? new TagCollection() : TagCollectionMother::fromRaw($rawTags),
             EventContent::fromString(''),
+            [] === $rawTags ? new TagCollection() : TagCollectionMother::fromRaw($rawTags),
+            Timestamp::fromInt(1700000000),
         ));
     }
 }

@@ -59,9 +59,16 @@ final class EoseMessageTest extends TestCase
         $this->assertNull(EoseMessage::tryFromArray(['CLOSED', 'sub-1']));
     }
 
-    public function testTryFromArrayReturnsNullOnTooManyElements(): void
+    public function testTryFromArrayIgnoresATrailingCompletenessHint(): void
     {
-        $this->assertNull(EoseMessage::tryFromArray(['EOSE', 'sub-1', 'extra']));
+        $message = EoseMessage::tryFromJson('["EOSE","s",["finish"]]') ?? throw new RuntimeException('Expected a valid message');
+
+        $this->assertSame('s', (string) $message->getSubscriptionId());
+    }
+
+    public function testTryFromArrayReturnsNullWithoutASubscriptionId(): void
+    {
+        $this->assertNull(EoseMessage::tryFromArray(['EOSE']));
     }
 
     public function testRoundTripPreservesData(): void
@@ -74,5 +81,10 @@ final class EoseMessageTest extends TestCase
             (string) $original->getSubscriptionId(),
             (string) $restored->getSubscriptionId()
         );
+    }
+
+    public function testTryFromJsonRefusesAnObjectKeyedLikeTheMessage(): void
+    {
+        $this->assertNull(EoseMessage::tryFromJson('{"0":"EOSE","1":"s"}'));
     }
 }

@@ -48,4 +48,24 @@ final class ReasonPrefixTest extends TestCase
     {
         $this->assertSame(ReasonPrefix::Error, ReasonPrefix::tryFromMessage('error: could not connect: timeout'));
     }
+
+    public function testOfRefusalReadsAKnownPrefix(): void
+    {
+        $this->assertSame(ReasonPrefix::RateLimited, ReasonPrefix::ofRefusal('rate-limited: slow down there chief'));
+    }
+
+    public function testOfRefusalIsErrorWithoutAPrefix(): void
+    {
+        $this->assertSame(ReasonPrefix::Error, ReasonPrefix::ofRefusal('you are banned'));
+    }
+
+    public function testOfRefusalIsErrorForAnUnknownPrefix(): void
+    {
+        $this->assertSame(ReasonPrefix::Error, ReasonPrefix::ofRefusal('unsupported: filter contains unknown elements'));
+    }
+
+    public function testOfRefusalIsErrorForAnEmptyMessage(): void
+    {
+        $this->assertSame(ReasonPrefix::Error, ReasonPrefix::ofRefusal(''));
+    }
 }

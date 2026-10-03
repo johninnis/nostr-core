@@ -8,9 +8,9 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Override;
 
 /**
- * @extends TypedCollection<RelayUrl>
+ * @extends KeyedCollection<RelayUrl>
  */
-final class RelayUrlCollection extends TypedCollection
+final class RelayUrlCollection extends KeyedCollection
 {
     #[Override]
     protected function elementType(): string
@@ -18,24 +18,9 @@ final class RelayUrlCollection extends TypedCollection
         return RelayUrl::class;
     }
 
-    private static function keyOf(RelayUrl $relayUrl): string
-    {
-        return (string) $relayUrl;
-    }
-
-    private static function tryParse(mixed $value): ?RelayUrl
-    {
-        return is_string($value) ? RelayUrl::tryFromString($value) : null;
-    }
-
     public static function fromStrings(mixed $values): self
     {
-        return self::fromEach($values, self::tryParse(...));
-    }
-
-    public function unique(): self
-    {
-        return new self($this->deduplicate(self::keyOf(...)));
+        return self::fromEach($values, RelayUrl::tryFromString(...))->unique();
     }
 
     /**
@@ -43,21 +28,6 @@ final class RelayUrlCollection extends TypedCollection
      */
     public function toStrings(): array
     {
-        return $this->mapItems(self::keyOf(...));
-    }
-
-    public function contains(RelayUrl $relayUrl): bool
-    {
-        return $this->containsByKey(self::keyOf($relayUrl), self::keyOf(...));
-    }
-
-    public function intersect(self $other): self
-    {
-        return new self($this->retainByKey($other, self::keyOf(...), true));
-    }
-
-    public function diff(self $other): self
-    {
-        return new self($this->retainByKey($other, self::keyOf(...), false));
+        return $this->mapItems(static fn (RelayUrl $relayUrl): string => (string) $relayUrl);
     }
 }

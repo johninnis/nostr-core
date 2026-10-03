@@ -14,14 +14,14 @@ final class NoticeMessageTest extends TestCase
 {
     public function testGetTypeReturnsNotice(): void
     {
-        $message = new NoticeMessage('something happened');
+        $message = NoticeMessage::fromString('something happened');
 
         $this->assertSame(RelayMessageType::Notice, $message->type());
     }
 
     public function testGetMessageReturnsConstructedValue(): void
     {
-        $message = new NoticeMessage('rate limited');
+        $message = NoticeMessage::fromString('rate limited');
 
         $this->assertSame('rate limited', $message->getMessage());
     }
@@ -31,19 +31,24 @@ final class NoticeMessageTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Notice message cannot be empty');
 
-        new NoticeMessage('');
+        NoticeMessage::fromString('');
+    }
+
+    public function testTryFromStringRefusesAnEmptyMessage(): void
+    {
+        $this->assertNull(NoticeMessage::tryFromString(''));
     }
 
     public function testToArrayReturnsCorrectFormat(): void
     {
-        $message = new NoticeMessage('something happened');
+        $message = NoticeMessage::fromString('something happened');
 
         $this->assertSame(['NOTICE', 'something happened'], $message->toArray());
     }
 
     public function testToJsonReturnsValidJson(): void
     {
-        $message = new NoticeMessage('hello world');
+        $message = NoticeMessage::fromString('hello world');
 
         $this->assertSame('["NOTICE","hello world"]', $message->toJson());
     }
@@ -66,9 +71,16 @@ final class NoticeMessageTest extends TestCase
         $this->assertNull(NoticeMessage::tryFromArray(['AUTH', 'some message']));
     }
 
+    public function testTryFromArrayIgnoresATrailingElement(): void
+    {
+        $message = NoticeMessage::tryFromArray(['NOTICE', 'rate limited', 'extra']) ?? throw new RuntimeException('Expected a valid message');
+
+        $this->assertSame('rate limited', $message->getMessage());
+    }
+
     public function testRoundTripPreservesData(): void
     {
-        $original = new NoticeMessage('error: could not connect');
+        $original = NoticeMessage::fromString('error: could not connect');
 
         $restored = NoticeMessage::tryFromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
 

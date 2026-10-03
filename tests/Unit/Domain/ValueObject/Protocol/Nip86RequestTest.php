@@ -13,7 +13,7 @@ final class Nip86RequestTest extends TestCase
 {
     public function testARequestCarriesItsMethodAndParams(): void
     {
-        $request = new Nip86Request('banpubkey', ['abcd', 'spam']);
+        $request = Nip86Request::from('banpubkey', ['abcd', 'spam']);
 
         $this->assertSame('banpubkey', $request->getMethod());
         $this->assertSame(['abcd', 'spam'], $request->getParams());
@@ -21,24 +21,24 @@ final class Nip86RequestTest extends TestCase
 
     public function testParamsDefaultToAnEmptyList(): void
     {
-        $this->assertSame([], new Nip86Request('supportedmethods')->getParams());
+        $this->assertSame([], Nip86Request::from('supportedmethods')->getParams());
     }
 
     public function testAnEmptyMethodIsRefused(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
-        new Nip86Request('');
+        Nip86Request::from('');
     }
 
     public function testToArrayIsTheWireEnvelope(): void
     {
-        $this->assertSame(['method' => 'blockip', 'params' => ['10.0.0.1']], new Nip86Request('blockip', ['10.0.0.1'])->toArray());
+        $this->assertSame(['method' => 'blockip', 'params' => ['10.0.0.1']], Nip86Request::from('blockip', ['10.0.0.1'])->toArray());
     }
 
     public function testToJsonEncodesTheEnvelope(): void
     {
-        $this->assertSame('{"method":"supportedmethods","params":[]}', new Nip86Request('supportedmethods')->toJson());
+        $this->assertSame('{"method":"supportedmethods","params":[]}', Nip86Request::from('supportedmethods')->toJson());
     }
 
     public function testTryFromArrayReadsTheEnvelope(): void
@@ -78,7 +78,7 @@ final class Nip86RequestTest extends TestCase
 
     public function testTryFromJsonRoundTrips(): void
     {
-        $original = new Nip86Request('changerelayname', ['My Relay']);
+        $original = Nip86Request::from('changerelayname', ['My Relay']);
 
         $restored = Nip86Request::tryFromJson($original->toJson()) ?? throw new RuntimeException('Expected a request');
 
@@ -93,5 +93,35 @@ final class Nip86RequestTest extends TestCase
     public function testTryFromJsonRefusesAJsonList(): void
     {
         $this->assertNull(Nip86Request::tryFromJson('["banpubkey"]'));
+    }
+
+    public function testTryFromRefusesAnEmptyMethod(): void
+    {
+        $this->assertNull(Nip86Request::tryFrom(''));
+    }
+
+    public function testTryFromArrayRefusesANonArray(): void
+    {
+        $this->assertNull(Nip86Request::tryFromArray('supportedmethods'));
+    }
+
+    public function testTryFromJsonRefusesParamsGivenAsAnEmptyObject(): void
+    {
+        $this->assertNull(Nip86Request::tryFromJson('{"method":"supportedmethods","params":{}}'));
+    }
+
+    public function testTryFromJsonRefusesParamsGivenAsAnObjectKeyedLikeAList(): void
+    {
+        $this->assertNull(Nip86Request::tryFromJson('{"method":"banpubkey","params":{"0":"a"}}'));
+    }
+
+    public function testTryFromJsonRefusesParamsGivenAsNull(): void
+    {
+        $this->assertNull(Nip86Request::tryFromJson('{"method":"banpubkey","params":null}'));
+    }
+
+    public function testTryFromJsonReadsAnEmptyParamsList(): void
+    {
+        $this->assertSame([], Nip86Request::tryFromJson('{"method":"supportedmethods","params":[]}')?->getParams());
     }
 }

@@ -12,5 +12,4 @@ enum ContentReferenceType: string
     case BareNevent = 'bare_nevent';
     case BareNprofile = 'bare_nprofile';
     case BareNaddr = 'bare_naddr';
-    case LegacyRef = 'legacy_ref';
 }

@@ -21,7 +21,7 @@ final class Nip44PropertyComplianceTest extends TestCase
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
             $plaintextLength = random_int(self::MIN_PLAINTEXT_LENGTH, self::MAX_PLAINTEXT_LENGTH);
-            $plaintext = random_bytes($plaintextLength);
+            $plaintext = self::randomUtf8($plaintextLength);
             $conversationKey = ConversationKey::tryFromBytes(random_bytes(32));
             $this->assertNotNull($conversationKey);
 
@@ -42,7 +42,7 @@ final class Nip44PropertyComplianceTest extends TestCase
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
             $plaintextLength = random_int(self::MIN_PLAINTEXT_LENGTH, 256);
-            $plaintext = random_bytes($plaintextLength);
+            $plaintext = self::randomUtf8($plaintextLength);
             $conversationKey = ConversationKey::tryFromBytes(random_bytes(32));
             $this->assertNotNull($conversationKey);
 
@@ -67,7 +67,7 @@ final class Nip44PropertyComplianceTest extends TestCase
         $adapter = new Nip44Cipher();
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            $plaintext = random_bytes(random_int(1, 256));
+            $plaintext = self::randomUtf8(random_int(1, 256));
             $conversationKey = ConversationKey::tryFromBytes(random_bytes(32));
             $this->assertNotNull($conversationKey);
 
@@ -88,7 +88,7 @@ final class Nip44PropertyComplianceTest extends TestCase
         $adapter = new Nip44Cipher();
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            $plaintext = random_bytes(random_int(1, 256));
+            $plaintext = self::randomUtf8(random_int(1, 256));
             $correctKey = ConversationKey::tryFromBytes(random_bytes(32));
             $wrongKey = ConversationKey::tryFromBytes(random_bytes(32));
             $this->assertNotNull($correctKey);
@@ -103,6 +103,14 @@ final class Nip44PropertyComplianceTest extends TestCase
                 $this->addToAssertionCount(1);
             }
         }
+    }
+
+    /**
+     * @param positive-int $length
+     */
+    private static function randomUtf8(int $length): string
+    {
+        return substr(base64_encode(random_bytes($length)), 0, $length);
     }
 
     private function flipOneBitInPayload(string $base64Payload): string

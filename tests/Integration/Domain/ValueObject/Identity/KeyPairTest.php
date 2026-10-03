@@ -7,6 +7,8 @@ namespace Innis\Nostr\Core\Tests\Integration\Domain\ValueObject\Identity;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
+use Innis\Nostr\Core\Tests\Support\KeyMother;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class KeyPairTest extends TestCase
@@ -47,5 +49,22 @@ final class KeyPairTest extends TestCase
 
         $this->assertNotEquals($keyPair1->getPrivateKey()->toHex(), $keyPair2->getPrivateKey()->toHex());
         $this->assertNotEquals($keyPair1->getPublicKey()->toHex(), $keyPair2->getPublicKey()->toHex());
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function fixtureKeyPairs(): iterable
+    {
+        yield 'alice' => [KeyMother::ALICE_PRIVATE_KEY_HEX, KeyMother::ALICE_PUBLIC_KEY_HEX];
+        yield 'bob' => [KeyMother::BOB_PRIVATE_KEY_HEX, KeyMother::BOB_PUBLIC_KEY_HEX];
+    }
+
+    #[DataProvider('fixtureKeyPairs')]
+    public function testTheFixturePublicKeyDerivesFromItsPrivateKey(string $privateKeyHex, string $publicKeyHex): void
+    {
+        $privateKey = PrivateKey::tryFromHex($privateKeyHex) ?? self::fail('invalid fixture private key');
+
+        $this->assertSame($publicKeyHex, CryptoFixtures::signer()->derivePublicKey($privateKey)->toHex());
     }
 }

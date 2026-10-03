@@ -16,7 +16,7 @@ final readonly class EoseMessage extends RelayMessage
     }
 
     #[Override]
-    public function type(): RelayMessageType
+    public static function type(): RelayMessageType
     {
         return RelayMessageType::Eose;
     }
@@ -26,33 +26,21 @@ final readonly class EoseMessage extends RelayMessage
         return $this->subscriptionId;
     }
 
-    /**
-     * @return list<mixed>
-     */
     #[Override]
-    public function toArray(): array
+    protected function toPayload(): array
     {
-        return [$this->type()->value, (string) $this->subscriptionId];
+        return [(string) $this->subscriptionId];
     }
 
-    /**
-     * @param array<array-key, mixed> $data
-     */
     #[Override]
-    public static function tryFromArray(array $data): ?static
+    protected static function tryFromPayload(array $payload): ?static
     {
-        if (!array_is_list($data) || 2 !== count($data)) {
+        if ([] === $payload) {
             return null;
         }
 
-        $subscriptionId = SubscriptionId::tryFromString($data[1]);
+        $subscriptionId = SubscriptionId::tryFromString($payload[0]);
 
-        if (null === $subscriptionId) {
-            return null;
-        }
-
-        $parsed = new self($subscriptionId);
-
-        return $parsed->type()->value === $data[0] ? $parsed : null;
+        return null === $subscriptionId ? null : new self($subscriptionId);
     }
 }

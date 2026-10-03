@@ -16,7 +16,7 @@ final readonly class CloseMessage extends ClientMessage
     }
 
     #[Override]
-    public function type(): ClientMessageType
+    public static function type(): ClientMessageType
     {
         return ClientMessageType::Close;
     }
@@ -26,33 +26,21 @@ final readonly class CloseMessage extends ClientMessage
         return $this->subscriptionId;
     }
 
-    /**
-     * @return list<mixed>
-     */
     #[Override]
-    public function toArray(): array
+    protected function toPayload(): array
     {
-        return [$this->type()->value, (string) $this->subscriptionId];
+        return [(string) $this->subscriptionId];
     }
 
-    /**
-     * @param array<array-key, mixed> $data
-     */
     #[Override]
-    public static function tryFromArray(array $data): ?static
+    protected static function tryFromPayload(array $payload): ?static
     {
-        if (!array_is_list($data) || 2 !== count($data)) {
+        if (1 !== count($payload)) {
             return null;
         }
 
-        $subscriptionId = SubscriptionId::tryFromString($data[1]);
+        $subscriptionId = SubscriptionId::tryFromString($payload[0]);
 
-        if (null === $subscriptionId) {
-            return null;
-        }
-
-        $parsed = new self($subscriptionId);
-
-        return $parsed->type()->value === $data[0] ? $parsed : null;
+        return null === $subscriptionId ? null : new self($subscriptionId);
     }
 }

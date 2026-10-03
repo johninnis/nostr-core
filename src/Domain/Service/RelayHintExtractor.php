@@ -13,21 +13,21 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReference;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\PubkeyReference;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\RelayReference;
-use Override;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 
-final readonly class RelayHintExtractor implements RelayHintExtractorInterface
+final class RelayHintExtractor
 {
-    public function __construct(
-        private ContentReferenceExtractorInterface $contentReferenceExtractor,
-    ) {
+    private function __construct()
+    {
     }
 
-    #[Override]
-    public function extractRelayHints(Event $event): RelayUrlCollection
+    public static function extract(Event $event): RelayUrlCollection
     {
         $relays = [
-            ...$this->extractFromTags($event->getTags()),
-            ...$this->extractFromContent($event->getContent()),
+            ...self::extractFromTags($event->getTags()),
+            ...self::extractFromRootScope($event->getTags()),
+            ...self::extractFromContent($event->getContent()),
         ];
 
         return new RelayUrlCollection($relays)->unique();
@@ -36,7 +36,7 @@ final readonly class RelayHintExtractor implements RelayHintExtractorInterface
     /**
      * @return list<RelayUrl>
      */
-    private function extractFromTags(TagCollection $tags): array
+    private static function extractFromTags(TagCollection $tags): array
     {
         $references = TagReferenceExtractor::extract($tags);
 
@@ -54,11 +54,27 @@ final readonly class RelayHintExtractor implements RelayHintExtractorInterface
     /**
      * @return list<RelayUrl>
      */
-    private function extractFromContent(EventContent $content): array
+    // Deliberate: a NIP-22 comment names its root scope in upper-case E, A and P tags, whose relay hints are as much hints as their lower-case parents' — see ADR-0085
+    private static function extractFromRootScope(TagCollection $tags): array
+    {
+        $relayUrls = array_map(static fn (Tag $tag): ?RelayUrl => match ((string) $tag->getType()) {
+            TagType::ROOT_EVENT => EventReference::tryFromTag($tag)?->getRelayUrl(),
+            TagType::ROOT_ADDRESS => EventCoordinate::tryFromTag($tag)?->getRelayHint(),
+            TagType::ROOT_PUBKEY => PubkeyReference::tryFromTag($tag)?->getRelayUrl(),
+            default => null,
+        }, $tags->toArray());
+
+        return array_values(array_filter($relayUrls, static fn (?RelayUrl $relayUrl): bool => null !== $relayUrl));
+    }
+
+    /**
+     * @return list<RelayUrl>
+     */
+    private static function extractFromContent(EventContent $content): array
     {
         $relays = [];
 
-        foreach ($this->contentReferenceExtractor->extractContentReferences($content) as $reference) {
+        foreach (ContentReferenceExtractor::extract($content) as $reference) {
             foreach ($reference->getRelays() as $relay) {
                 $relays[] = $relay;
             }

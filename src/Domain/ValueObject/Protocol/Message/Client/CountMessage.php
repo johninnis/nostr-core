@@ -10,7 +10,7 @@ use Override;
 final readonly class CountMessage extends FilterRequestMessage
 {
     #[Override]
-    public function type(): ClientMessageType
+    public static function type(): ClientMessageType
     {
         return ClientMessageType::Count;
     }

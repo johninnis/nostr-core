@@ -63,12 +63,12 @@ final class EventVersionTest extends TestCase
 
     public function testAVersionIsReadOffAnEvent(): void
     {
-        $event = EventMother::fromRumour(new Rumour(
+        $event = EventMother::fromRumour(Rumour::draft(
             KeyMother::alicePublicKey(),
-            Timestamp::fromInt(100),
             EventKind::fromInt(EventKind::METADATA),
-            new TagCollection([]),
             EventContent::fromString(''),
+            new TagCollection([]),
+            Timestamp::fromInt(100),
         ));
 
         $this->assertTrue(EventVersion::of($event)->supersedes(self::version(99, self::LOWER_ID)));

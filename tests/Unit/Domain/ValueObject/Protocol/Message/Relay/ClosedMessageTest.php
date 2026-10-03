@@ -15,10 +15,7 @@ final class ClosedMessageTest extends TestCase
 {
     public function testGetTypeReturnsClosed(): void
     {
-        $message = new ClosedMessage(
-            SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
-            'error: subscription not found',
-        );
+        $message = ClosedMessage::closed(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), ReasonPrefix::Error, 'subscription not found');
 
         $this->assertSame(RelayMessageType::Closed, $message->type());
     }
@@ -26,69 +23,55 @@ final class ClosedMessageTest extends TestCase
     public function testGetSubscriptionIdReturnsConstructedValue(): void
     {
         $subId = SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID');
-        $message = new ClosedMessage($subId, 'reason');
+        $message = ClosedMessage::closed($subId, ReasonPrefix::Error, 'reason');
 
         $this->assertTrue($subId->equals($message->getSubscriptionId()));
     }
 
     public function testGetMessageReturnsConstructedValue(): void
     {
-        $message = new ClosedMessage(
-            SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
-            'error: too many subscriptions',
-        );
+        $message = ClosedMessage::closed(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), ReasonPrefix::Error, 'too many subscriptions');
 
         $this->assertSame('error: too many subscriptions', $message->getMessage());
     }
 
     public function testGetReasonPrefixReadsTheMachineReadablePrefix(): void
     {
-        $message = new ClosedMessage(
-            SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
-            ReasonPrefix::AuthRequired->format('authentication required'),
-        );
+        $message = ClosedMessage::closed(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), ReasonPrefix::AuthRequired, 'authentication required');
 
         $this->assertSame(ReasonPrefix::AuthRequired, $message->getReasonPrefix());
     }
 
-    public function testGetReasonPrefixIsNullWithoutAPrefix(): void
+    public function testGetReasonPrefixIsErrorForAPrefixOutsideTheProtocolList(): void
     {
-        $message = new ClosedMessage(
-            SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
-            'closed by relay',
-        );
+        $message = ClosedMessage::tryFromArray(['CLOSED', 'sub-1', 'unsupported: filter contains unknown elements'])
+            ?? throw new RuntimeException('Expected a valid message');
 
-        $this->assertNull($message->getReasonPrefix());
+        $this->assertSame(ReasonPrefix::Error, $message->getReasonPrefix());
     }
 
     public function testToArrayReturnsCorrectFormat(): void
     {
-        $message = new ClosedMessage(
-            SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
-            'shutting down',
-        );
+        $message = ClosedMessage::closed(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), ReasonPrefix::Error, 'shutting down');
 
         $result = $message->toArray();
 
         $this->assertSame('CLOSED', $result[0]);
         $this->assertSame('sub-1', $result[1]);
-        $this->assertSame('shutting down', $result[2]);
+        $this->assertSame('error: shutting down', $result[2]);
         $this->assertCount(3, $result);
     }
 
     public function testToJsonReturnsValidJson(): void
     {
-        $message = new ClosedMessage(
-            SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
-            'reason',
-        );
+        $message = ClosedMessage::closed(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), ReasonPrefix::Error, 'reason');
 
         $decoded = json_decode($message->toJson(), true, flags: JSON_THROW_ON_ERROR);
         $this->assertIsArray($decoded);
 
         $this->assertSame('CLOSED', $decoded[0]);
         $this->assertSame('sub-1', $decoded[1]);
-        $this->assertSame('reason', $decoded[2]);
+        $this->assertSame('error: reason', $decoded[2]);
     }
 
     public function testTryFromArrayCreatesValidMessage(): void
@@ -102,13 +85,42 @@ final class ClosedMessageTest extends TestCase
         $this->assertSame('error: subscription closed', $message->getMessage());
     }
 
-    public function testTryFromArrayWithoutMessageUsesEmptyString(): void
+    public function testTryFromArrayReturnsNullWithoutTheMessage(): void
     {
-        $data = ['CLOSED', 'sub-1'];
+        $this->assertNull(ClosedMessage::tryFromArray(['CLOSED', 'sub-1']));
+    }
 
-        $message = ClosedMessage::tryFromArray($data) ?? throw new RuntimeException('Expected a valid message');
+    public function testTryFromArrayReadsEveryNip01Example(): void
+    {
+        foreach ([
+            'unsupported: filter contains unknown elements',
+            'error: could not connect to the database',
+            'error: shutting down idle subscription',
+        ] as $reason) {
+            $this->assertNotNull(ClosedMessage::tryFromArray(['CLOSED', 'sub1', $reason]), $reason);
+        }
+    }
 
-        $this->assertSame('', $message->getMessage());
+    public function testAMessageWithoutAPrefixIsReadAsAnErrorAndKeptAsSent(): void
+    {
+        $message = ClosedMessage::tryFromArray(['CLOSED', 'sub-1', 'closed by relay']) ?? throw new RuntimeException('Expected a valid message');
+
+        $this->assertSame(ReasonPrefix::Error, $message->getReasonPrefix());
+        $this->assertSame('closed by relay', $message->getMessage());
+    }
+
+    public function testAnEmptyMessageIsReadAsAnError(): void
+    {
+        $message = ClosedMessage::tryFromArray(['CLOSED', 'sub-1', '']) ?? throw new RuntimeException('Expected a valid message');
+
+        $this->assertSame(ReasonPrefix::Error, $message->getReasonPrefix());
+    }
+
+    public function testTryFromArrayIgnoresATrailingElement(): void
+    {
+        $message = ClosedMessage::tryFromArray(['CLOSED', 'sub-1', 'error: reason', 'extra']) ?? throw new RuntimeException('Expected a valid message');
+
+        $this->assertSame('error: reason', $message->getMessage());
     }
 
     public function testTryFromArrayReturnsNullOnInvalidFormat(): void
@@ -123,10 +135,7 @@ final class ClosedMessageTest extends TestCase
 
     public function testRoundTripPreservesData(): void
     {
-        $original = new ClosedMessage(
-            SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
-            'error: shutting down',
-        );
+        $original = ClosedMessage::closed(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), ReasonPrefix::Error, 'shutting down');
 
         $restored = ClosedMessage::tryFromArray($original->toArray()) ?? throw new RuntimeException('Expected a valid message');
 
@@ -139,11 +148,22 @@ final class ClosedMessageTest extends TestCase
 
     public function testTryFromArrayRejectsNonStringSubscriptionId(): void
     {
-        $this->assertNull(ClosedMessage::tryFromArray(['CLOSED', 42, 'reason']));
+        $this->assertNull(ClosedMessage::tryFromArray(['CLOSED', 42, 'error: reason']));
     }
 
     public function testTryFromArrayRejectsNonStringReason(): void
     {
         $this->assertNull(ClosedMessage::tryFromArray(['CLOSED', 'sub-1', ['structured']]));
+    }
+
+    public function testClosedWritesThePrefixBeforeTheDetail(): void
+    {
+        $message = ClosedMessage::closed(
+            SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'),
+            ReasonPrefix::RateLimited,
+            'slow down',
+        );
+
+        $this->assertSame('rate-limited: slow down', $message->getMessage());
     }
 }

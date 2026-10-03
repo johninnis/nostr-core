@@ -4,22 +4,25 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Application\Service;
 
+use Innis\Nostr\Core\Application\Port\ClockInterface;
 use Innis\Nostr\Core\Application\Port\Nip98ReplayGuardInterface;
 use Innis\Nostr\Core\Application\Service\Nip98Validator;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Failure\AuthHeaderDecodeFailure;
 use Innis\Nostr\Core\Domain\Failure\Nip98ValidationFailure;
+use Innis\Nostr\Core\Domain\Service\Nip98EventChecker;
+use Innis\Nostr\Core\Domain\Service\Nip98EventCheckerInterface;
+use Innis\Nostr\Core\Domain\Service\NostrAuthHeaderCodec;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
-use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\HttpUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Nip98Request;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
-use Innis\Nostr\Core\Infrastructure\Time\SystemClock;
 use Innis\Nostr\Core\Tests\Fake\FakeSignatureService;
 use Innis\Nostr\Core\Tests\Support\KeyMother;
 use Override;
@@ -27,506 +30,142 @@ use PHPUnit\Framework\TestCase;
 
 final class Nip98ValidatorTest extends TestCase
 {
-    private Nip98Validator $service;
-    private KeyPair $keyPair;
+    private const int NOW = 1_700_000_000;
+    private const string URL = 'https://relay.example.com/';
 
-    protected function setUp(): void
+    public function testChecksTheEventAtTheClocksInstant(): void
     {
-        $this->service = new Nip98Validator(FakeSignatureService::accepting(), $this->createReplayGuard(), new SystemClock());
-        $this->keyPair = KeyMother::alice();
+        $event = $this->authEvent(self::NOW);
+        $request = self::request();
+        $checker = $this->createMock(Nip98EventCheckerInterface::class);
+        $checker->expects($this->once())
+            ->method('check')
+            ->with($event, $request, Timestamp::fromInt(self::NOW))
+            ->willReturn(null);
+
+        new Nip98Validator($checker, $this->replayGuard(), $this->clockAt(self::NOW))->validate($event, $request);
     }
 
-    public function testValidEventReturnsPublicKey(): void
+    public function testReturnsTheFailureItsCheckerReports(): void
     {
-        $event = $this->createValidSignedEvent();
-
-        $result = $this->service->validate(
-            $event,
-            Nip98Request::fromBodyHash('https://relay.example.com/', 'POST', hash('sha256', '{"method":"test"}')),
-        );
-
-        $this->assertInstanceOf(PublicKey::class, $result);
-        $this->assertTrue($result->equals($this->keyPair->getPublicKey()));
-    }
-
-    public function testRejectsWrongKind(): void
-    {
-        $event = $this->createSignedEvent(EventKind::fromInt(EventKind::TEXT_NOTE));
-
-        $this->assertSame(
-            Nip98ValidationFailure::WrongKind,
-            $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST'))
-        );
-    }
-
-    public function testRejectsExpiredTimestamp(): void
-    {
-        $event = $this->createSignedEventWithTimestamp(Timestamp::fromInt(time() - 120));
-
-        $this->assertSame(
-            Nip98ValidationFailure::TimestampOutsideTolerance,
-            $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST'))
-        );
-    }
-
-    public function testRejectsFutureDatedTimestamp(): void
-    {
-        $event = $this->createSignedEventWithTimestamp(Timestamp::fromInt(time() + 120));
-
-        $this->assertSame(
-            Nip98ValidationFailure::TimestampOutsideTolerance,
-            $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST'))
-        );
-    }
-
-    public function testAcceptsTimestampWithinTolerance(): void
-    {
-        $event = $this->createSignedEventWithTimestamp(Timestamp::fromInt(time() - 30));
-
-        $result = $this->service->validate(
-            $event,
-            Nip98Request::fromBodyHash('https://relay.example.com/', 'POST', hash('sha256', '{"method":"test"}')),
-        );
-
-        $this->assertInstanceOf(PublicKey::class, $result);
-        $this->assertTrue($result->equals($this->keyPair->getPublicKey()));
-    }
-
-    public function testRejectsMissingUrlTag(): void
-    {
-        $tags = new TagCollection([
-            Tag::tryFromArray(['method', 'POST']),
-        ]);
-        $event = $this->createSignedEventWithTags($tags);
-
-        $this->assertSame(
-            Nip98ValidationFailure::MissingUrlTag,
-            $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST'))
-        );
-    }
-
-    public function testRejectsWrongUrl(): void
-    {
-        $event = $this->createValidSignedEvent();
+        $checker = $this->createStub(Nip98EventCheckerInterface::class);
+        $checker->method('check')->willReturn(Nip98ValidationFailure::UrlMismatch);
 
         $this->assertSame(
             Nip98ValidationFailure::UrlMismatch,
-            $this->service->validate($event, Nip98Request::fromBodyHash('https://other-relay.example.com/', 'POST'))
+            new Nip98Validator($checker, $this->replayGuard(), $this->clockAt(self::NOW))->validate($this->authEvent(self::NOW), self::request()),
         );
     }
 
-    public function testRejectsMissingMethodTag(): void
+    public function testDoesNotRecordAnEventItsCheckerRefuses(): void
     {
-        $tags = new TagCollection([
-            Tag::tryFromArray(['u', 'https://relay.example.com/']),
-        ]);
-        $event = $this->createSignedEventWithTags($tags);
+        $checker = $this->createStub(Nip98EventCheckerInterface::class);
+        $checker->method('check')->willReturn(Nip98ValidationFailure::BadSignature);
+        $guard = $this->createMock(Nip98ReplayGuardInterface::class);
+        $guard->expects($this->never())->method('recordOnce');
 
-        $this->assertSame(
-            Nip98ValidationFailure::MissingMethodTag,
-            $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST'))
-        );
+        new Nip98Validator($checker, $guard, $this->clockAt(self::NOW))->validate($this->authEvent(self::NOW), self::request());
     }
 
-    public function testRejectsWrongMethod(): void
+    public function testRecordsAnAcceptedEventForItsCheckersReplayWindow(): void
     {
-        $event = $this->createValidSignedEvent();
+        $event = $this->authEvent(self::NOW);
+        $checker = $this->createStub(Nip98EventCheckerInterface::class);
+        $checker->method('check')->willReturn(null);
+        $checker->method('getReplayWindowSeconds')->willReturn(21);
+        $guard = $this->createMock(Nip98ReplayGuardInterface::class);
+        $guard->expects($this->once())->method('recordOnce')->with($event->getId(), 21)->willReturn(true);
 
-        $this->assertSame(
-            Nip98ValidationFailure::MethodMismatch,
-            $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'GET'))
-        );
+        new Nip98Validator($checker, $guard, $this->clockAt(self::NOW))->validate($event, self::request());
     }
 
-    public function testRejectsMissingPayloadTag(): void
+    public function testAnAcceptedEventReturnsItsAuthor(): void
     {
-        $tags = new TagCollection([
-            Tag::tryFromArray(['u', 'https://relay.example.com/']),
-            Tag::tryFromArray(['method', 'POST']),
-        ]);
-        $event = $this->createSignedEventWithTags($tags);
-
-        $this->assertSame(
-            Nip98ValidationFailure::MissingPayloadTag,
-            $this->service->validate(
-                $event,
-                Nip98Request::fromBodyHash('https://relay.example.com/', 'POST', hash('sha256', 'body')),
-            )
-        );
-    }
-
-    public function testRejectsWrongPayloadHash(): void
-    {
-        $event = $this->createValidSignedEvent();
-
-        $this->assertSame(
-            Nip98ValidationFailure::PayloadMismatch,
-            $this->service->validate(
-                $event,
-                Nip98Request::fromBodyHash('https://relay.example.com/', 'POST', hash('sha256', 'different body')),
-            )
-        );
-    }
-
-    public function testSkipsPayloadValidationWhenHashNotProvided(): void
-    {
-        $tags = new TagCollection([
-            Tag::tryFromArray(['u', 'https://relay.example.com/']),
-            Tag::tryFromArray(['method', 'POST']),
-        ]);
-        $event = $this->createSignedEventWithTags($tags);
-
-        $result = $this->service->validate(
-            $event,
-            Nip98Request::fromBodyHash('https://relay.example.com/', 'POST'),
-        );
+        $result = $this->validator()->validate($this->authEvent(self::NOW), self::request());
 
         $this->assertInstanceOf(PublicKey::class, $result);
-        $this->assertTrue($result->equals($this->keyPair->getPublicKey()));
+        $this->assertTrue(KeyMother::alicePublicKey()->equals($result));
     }
 
-    public function testUrlNormalisationMatchesWithTrailingSlash(): void
+    public function testAnEventPresentedTwiceIsRefusedAsReplayed(): void
     {
-        $tags = new TagCollection([
-            Tag::tryFromArray(['u', 'https://relay.example.com']),
-            Tag::tryFromArray(['method', 'GET']),
-        ]);
-        $event = $this->createSignedEventWithTags($tags);
+        $validator = $this->validator();
+        $event = $this->authEvent(self::NOW);
+        $validator->validate($event, self::request());
 
-        $result = $this->service->validate(
-            $event,
-            Nip98Request::fromBodyHash('https://relay.example.com', 'GET'),
-        );
-
-        $this->assertInstanceOf(PublicKey::class, $result);
-        $this->assertTrue($result->equals($this->keyPair->getPublicKey()));
+        $this->assertSame(Nip98ValidationFailure::Replayed, $validator->validate($event, self::request()));
     }
 
-    public function testUrlNormalisationPreservesQueryString(): void
+    public function testAnEventFromBeyondTheToleranceOfTheClockIsRefused(): void
     {
-        $tags = new TagCollection([
-            Tag::tryFromArray(['u', 'https://relay.example.com/api?token=abc&page=1']),
-            Tag::tryFromArray(['method', 'GET']),
-        ]);
-        $event = $this->createSignedEventWithTags($tags);
-
-        $result = $this->service->validate(
-            $event,
-            Nip98Request::fromBodyHash('https://relay.example.com/api?token=abc&page=1', 'GET'),
-        );
-
-        $this->assertInstanceOf(PublicKey::class, $result);
-        $this->assertTrue($result->equals($this->keyPair->getPublicKey()));
-    }
-
-    public function testUrlNormalisationRejectsDifferentQueryStrings(): void
-    {
-        $tags = new TagCollection([
-            Tag::tryFromArray(['u', 'https://relay.example.com/api?token=abc']),
-            Tag::tryFromArray(['method', 'GET']),
-        ]);
-        $event = $this->createSignedEventWithTags($tags);
-
-        $this->assertSame(
-            Nip98ValidationFailure::UrlMismatch,
-            $this->service->validate(
-                $event,
-                Nip98Request::fromBodyHash('https://relay.example.com/api?token=xyz', 'GET'),
-            )
-        );
-    }
-
-    public function testMethodComparisonIsCaseInsensitive(): void
-    {
-        $tags = new TagCollection([
-            Tag::tryFromArray(['u', 'https://relay.example.com/']),
-            Tag::tryFromArray(['method', 'post']),
-        ]);
-        $event = $this->createSignedEventWithTags($tags);
-
-        $result = $this->service->validate(
-            $event,
-            Nip98Request::fromBodyHash('https://relay.example.com/', 'POST'),
-        );
-
-        $this->assertInstanceOf(PublicKey::class, $result);
-        $this->assertTrue($result->equals($this->keyPair->getPublicKey()));
-    }
-
-    public function testRejectsDuplicateUrlTag(): void
-    {
-        $tags = new TagCollection([
-            Tag::tryFromArray(['u', 'https://relay.example.com/']),
-            Tag::tryFromArray(['u', 'https://decoy.example.com/']),
-            Tag::tryFromArray(['method', 'POST']),
-        ]);
-        $event = $this->createSignedEventWithTags($tags);
-
-        $this->assertSame(
-            Nip98ValidationFailure::MultipleUrlTags,
-            $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST'))
-        );
-    }
-
-    public function testRejectsDuplicateMethodTag(): void
-    {
-        $tags = new TagCollection([
-            Tag::tryFromArray(['u', 'https://relay.example.com/']),
-            Tag::tryFromArray(['method', 'POST']),
-            Tag::tryFromArray(['method', 'GET']),
-        ]);
-        $event = $this->createSignedEventWithTags($tags);
-
-        $this->assertSame(
-            Nip98ValidationFailure::MultipleMethodTags,
-            $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST'))
-        );
-    }
-
-    public function testRejectsDuplicatePayloadTag(): void
-    {
-        $body = '{"method":"test"}';
-        $tags = new TagCollection([
-            Tag::tryFromArray(['u', 'https://relay.example.com/']),
-            Tag::tryFromArray(['method', 'POST']),
-            Tag::tryFromArray(['payload', hash('sha256', $body)]),
-            Tag::tryFromArray(['payload', hash('sha256', 'something else')]),
-        ]);
-        $event = $this->createSignedEventWithTags($tags);
-
-        $this->assertSame(
-            Nip98ValidationFailure::MultiplePayloadTags,
-            $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST', hash('sha256', $body)))
-        );
-    }
-
-    public function testRejectsMalformedRequestUrl(): void
-    {
-        $event = $this->createValidSignedEvent();
-
-        $this->assertSame(
-            Nip98ValidationFailure::MalformedUrl,
-            $this->service->validate($event, Nip98Request::fromBodyHash('http://:/bad', 'POST', hash('sha256', '{"method":"test"}')))
-        );
-    }
-
-    public function testRejectsMalformedEventUrl(): void
-    {
-        $tags = new TagCollection([
-            Tag::tryFromArray(['u', 'http://:/bad']),
-            Tag::tryFromArray(['method', 'POST']),
-        ]);
-        $event = $this->createSignedEventWithTags($tags);
-
-        $this->assertSame(
-            Nip98ValidationFailure::MalformedUrl,
-            $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST'))
-        );
-    }
-
-    public function testRejectsReplayedAuthEvent(): void
-    {
-        $event = $this->createValidSignedEvent();
-        $body = hash('sha256', '{"method":"test"}');
-
-        $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST', $body));
-
-        $this->assertSame(
-            Nip98ValidationFailure::Replayed,
-            $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST', $body))
-        );
-    }
-
-    public function testCustomTimestampTolerance(): void
-    {
-        $service = new Nip98Validator(FakeSignatureService::accepting(), $this->createReplayGuard(), new SystemClock(), timestampTolerance: 10);
-        $event = $this->createSignedEventWithTimestamp(Timestamp::fromInt(time() - 30));
-
         $this->assertSame(
             Nip98ValidationFailure::TimestampOutsideTolerance,
-            $service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST'))
+            $this->validator()->validate($this->authEvent(self::NOW - 61), self::request()),
         );
     }
 
-    public function testRejectsEventWithPayloadTagWhenBodyHashNotProvided(): void
+    public function testValidatesTheEventAnAuthHeaderCarries(): void
     {
-        $event = $this->createValidSignedEvent();
+        $header = NostrAuthHeaderCodec::encode($this->authEvent(self::NOW)) ?? self::fail('Expected an encodable header');
 
-        $this->assertSame(
-            Nip98ValidationFailure::PayloadTagWithoutBodyHash,
-            $this->service->validate($event, Nip98Request::fromBodyHash('https://relay.example.com/', 'POST'))
-        );
-    }
-
-    public function testValidateAuthHeaderReturnsPublicKey(): void
-    {
-        $body = '{"method":"test"}';
-        $event = $this->createValidSignedEvent();
-        $authHeader = 'Nostr '.base64_encode((string) json_encode($event->toArray(), JSON_THROW_ON_ERROR));
-
-        $result = $this->service->validateAuthHeader($authHeader, Nip98Request::fromBody('https://relay.example.com/', 'POST', $body));
+        $result = $this->validator()->validateAuthHeader($header, self::request());
 
         $this->assertInstanceOf(PublicKey::class, $result);
-        $this->assertTrue($result->equals($this->keyPair->getPublicKey()));
+        $this->assertTrue(KeyMother::alicePublicKey()->equals($result));
     }
 
-    public function testValidateAuthHeaderAllowsEmptyBodyWithoutPayloadTag(): void
+    public function testReturnsTheDecodeFailureOfAnAuthHeader(): void
     {
-        $tags = new TagCollection([
-            Tag::tryFromArray(['u', 'https://relay.example.com/']),
-            Tag::tryFromArray(['method', 'GET']),
-        ]);
-        $event = $this->createSignedEventWithTags($tags);
-        $authHeader = 'Nostr '.base64_encode((string) json_encode($event->toArray(), JSON_THROW_ON_ERROR));
-
-        $result = $this->service->validateAuthHeader($authHeader, Nip98Request::fromBody('https://relay.example.com/', 'GET', ''));
-
-        $this->assertInstanceOf(PublicKey::class, $result);
-        $this->assertTrue($result->equals($this->keyPair->getPublicKey()));
+        $this->assertSame(AuthHeaderDecodeFailure::BadFormat, $this->validator()->validateAuthHeader('Bearer token', self::request()));
     }
 
-    public function testValidateAuthHeaderRejectsOversizedHeader(): void
+    private function validator(): Nip98Validator
     {
-        $oversized = 'Nostr '.str_repeat('A', 4096);
-
-        $this->assertSame(
-            AuthHeaderDecodeFailure::TooLong,
-            $this->service->validateAuthHeader($oversized, Nip98Request::fromBody('https://relay.example.com/', 'POST', ''))
-        );
+        return new Nip98Validator(new Nip98EventChecker(FakeSignatureService::accepting()), $this->replayGuard(), $this->clockAt(self::NOW));
     }
 
-    public function testValidateAuthHeaderRejectsMissingPrefix(): void
+    private static function request(): Nip98Request
     {
-        $this->assertSame(
-            AuthHeaderDecodeFailure::BadFormat,
-            $this->service->validateAuthHeader('Bearer token', Nip98Request::fromBody('https://relay.example.com/', 'POST', ''))
-        );
+        return Nip98Request::fromBodyHash(HttpUrl::fromString(self::URL), 'GET');
     }
 
-    public function testValidateAuthHeaderRejectsInvalidBase64(): void
+    private function clockAt(int $now): ClockInterface
     {
-        $this->assertSame(
-            AuthHeaderDecodeFailure::BadBase64,
-            $this->service->validateAuthHeader('Nostr !!!not-base64!!!', Nip98Request::fromBody('https://relay.example.com/', 'POST', ''))
-        );
+        $clock = $this->createStub(ClockInterface::class);
+        $clock->method('now')->willReturn(Timestamp::fromInt($now));
+
+        return $clock;
     }
 
-    public function testValidateAuthHeaderRejectsInvalidJson(): void
-    {
-        $this->assertSame(
-            AuthHeaderDecodeFailure::BadJson,
-            $this->service->validateAuthHeader('Nostr '.base64_encode('not-json'), Nip98Request::fromBody('https://relay.example.com/', 'POST', ''))
-        );
-    }
-
-    public function testValidateAuthHeaderRejectsNonObjectJson(): void
-    {
-        $this->assertSame(
-            AuthHeaderDecodeFailure::BadJson,
-            $this->service->validateAuthHeader('Nostr '.base64_encode('"a string"'), Nip98Request::fromBody('https://relay.example.com/', 'POST', ''))
-        );
-    }
-
-    public function testValidateAuthHeaderRejectsMalformedEvent(): void
-    {
-        $this->assertSame(
-            AuthHeaderDecodeFailure::InvalidEvent,
-            $this->service->validateAuthHeader(
-                'Nostr '.base64_encode((string) json_encode(['kind' => 27235])),
-                Nip98Request::fromBody('https://relay.example.com/', 'POST', ''),
-            )
-        );
-    }
-
-    public function testValidateAuthHeaderRejectsPayloadHashMismatch(): void
-    {
-        $event = $this->createValidSignedEvent();
-        $authHeader = 'Nostr '.base64_encode((string) json_encode($event->toArray(), JSON_THROW_ON_ERROR));
-
-        $this->assertSame(
-            Nip98ValidationFailure::PayloadMismatch,
-            $this->service->validateAuthHeader($authHeader, Nip98Request::fromBody('https://relay.example.com/', 'POST', '{"different":"body"}'))
-        );
-    }
-
-    private function createValidSignedEvent(): Event
-    {
-        $tags = new TagCollection([
-            Tag::tryFromArray(['u', 'https://relay.example.com/']),
-            Tag::tryFromArray(['method', 'POST']),
-            Tag::tryFromArray(['payload', hash('sha256', '{"method":"test"}')]),
-        ]);
-
-        return $this->createSignedEventWithTags($tags);
-    }
-
-    private function createSignedEvent(EventKind $kind): Event
-    {
-        $tags = new TagCollection([
-            Tag::tryFromArray(['u', 'https://relay.example.com/']),
-            Tag::tryFromArray(['method', 'POST']),
-        ]);
-
-        $rumour = new Rumour(
-            $this->keyPair->getPublicKey(),
-            Timestamp::now(),
-            $kind,
-            $tags,
-            EventContent::empty()
-        );
-
-        return $rumour->sign($this->keyPair, FakeSignatureService::accepting());
-    }
-
-    private function createSignedEventWithTimestamp(Timestamp $timestamp): Event
-    {
-        $tags = new TagCollection([
-            Tag::tryFromArray(['u', 'https://relay.example.com/']),
-            Tag::tryFromArray(['method', 'POST']),
-            Tag::tryFromArray(['payload', hash('sha256', '{"method":"test"}')]),
-        ]);
-
-        $rumour = new Rumour(
-            $this->keyPair->getPublicKey(),
-            $timestamp,
-            EventKind::fromInt(EventKind::HTTP_AUTH),
-            $tags,
-            EventContent::empty()
-        );
-
-        return $rumour->sign($this->keyPair, FakeSignatureService::accepting());
-    }
-
-    private function createReplayGuard(): Nip98ReplayGuardInterface
+    private function replayGuard(): Nip98ReplayGuardInterface
     {
         return new class implements Nip98ReplayGuardInterface {
-            /** @var array<string, int> */
+            /** @var array<string, true> */
             private array $seen = [];
 
             #[Override]
             public function recordOnce(EventId $eventId, int $ttlSeconds): bool
             {
-                $key = $eventId->toHex();
-                if (isset($this->seen[$key])) {
+                if (isset($this->seen[$eventId->toHex()])) {
                     return false;
                 }
-                $this->seen[$key] = $ttlSeconds;
+                $this->seen[$eventId->toHex()] = true;
 
                 return true;
             }
         };
     }
 
-    private function createSignedEventWithTags(TagCollection $tags): Event
+    private function authEvent(int $createdAt): Event
     {
-        $rumour = new Rumour(
-            $this->keyPair->getPublicKey(),
-            Timestamp::now(),
-            EventKind::fromInt(EventKind::HTTP_AUTH),
-            $tags,
-            EventContent::empty()
-        );
+        $keyPair = KeyMother::alice();
 
-        return $rumour->sign($this->keyPair, FakeSignatureService::accepting());
+        return Rumour::draft(
+            $keyPair->getPublicKey(),
+            EventKind::fromInt(EventKind::HTTP_AUTH),
+            EventContent::empty(),
+            new TagCollection([Tag::fromArray(['u', self::URL]), Tag::fromArray(['method', 'GET'])]),
+            Timestamp::fromInt($createdAt),
+        )->sign($keyPair, FakeSignatureService::accepting());
     }
 }

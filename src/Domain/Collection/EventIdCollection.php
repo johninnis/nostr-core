@@ -8,19 +8,14 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Override;
 
 /**
- * @extends TypedCollection<EventId>
+ * @extends KeyedCollection<EventId>
  */
-final class EventIdCollection extends TypedCollection
+final class EventIdCollection extends KeyedCollection
 {
     #[Override]
     protected function elementType(): string
     {
         return EventId::class;
-    }
-
-    private static function keyOf(EventId $eventId): string
-    {
-        return $eventId->toHex();
     }
 
     private static function tryParse(mixed $value): ?EventId
@@ -38,21 +33,11 @@ final class EventIdCollection extends TypedCollection
         return self::tryFromEach($values, self::tryParse(...));
     }
 
-    public function unique(): self
-    {
-        return new self($this->deduplicate(self::keyOf(...)));
-    }
-
-    public function contains(EventId $eventId): bool
-    {
-        return $this->containsByKey(self::keyOf($eventId), self::keyOf(...));
-    }
-
     /**
      * @return list<string>
      */
     public function toHexes(): array
     {
-        return $this->mapItems(self::keyOf(...));
+        return $this->mapItems(static fn (EventId $eventId): string => $eventId->toHex());
     }
 }

@@ -18,14 +18,9 @@ final class PubkeyReferenceCollection extends TypedCollection
         return PubkeyReference::class;
     }
 
-    private static function tryParse(mixed $value): ?PubkeyReference
-    {
-        return is_array($value) ? PubkeyReference::tryFromArray($value) : null;
-    }
-
     public static function fromArrays(mixed $values): self
     {
-        return self::fromEach($values, self::tryParse(...));
+        return self::fromEach($values, PubkeyReference::tryFromArray(...));
     }
 
     /**

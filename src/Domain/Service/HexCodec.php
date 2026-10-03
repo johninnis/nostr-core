@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Service;
 
-use InvalidArgumentException;
-
 final class HexCodec
 {
     private function __construct()
@@ -28,26 +26,5 @@ final class HexCodec
         }
 
         return $hex;
-    }
-
-    /**
-     * @return ($hex is non-empty-string ? non-empty-string : string)
-     */
-    public static function decode(string $hex): string
-    {
-        $bytes = hex2bin($hex);
-        if (false === $bytes) {
-            throw new InvalidArgumentException('Hexadecimal string must contain an even number of valid hex digits');
-        }
-
-        return $bytes;
-    }
-
-    /**
-     * @return ($bytes is non-empty-string ? non-empty-string : string)
-     */
-    public static function encode(string $bytes): string
-    {
-        return bin2hex($bytes);
     }
 }

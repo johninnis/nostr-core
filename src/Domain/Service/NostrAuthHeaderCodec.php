@@ -13,7 +13,6 @@ final class NostrAuthHeaderCodec
 
     public const string HEADER_PREFIX = self::SCHEME.' ';
     public const int MAX_HEADER_LENGTH = 4096;
-    private const int JSON_MAX_DEPTH = 16;
 
     private function __construct()
     {
@@ -30,23 +29,25 @@ final class NostrAuthHeaderCodec
             return AuthHeaderDecodeFailure::BadFormat;
         }
 
-        $json = base64_decode(substr($authHeader, strlen(self::HEADER_PREFIX)), true);
-        if (false === $json) {
+        $json = Base64Codec::tryDecodeCanonical(substr($authHeader, strlen(self::HEADER_PREFIX)));
+        if (null === $json) {
             return AuthHeaderDecodeFailure::BadBase64;
         }
 
-        $data = JsonWireFormat::decodeArray($json, self::JSON_MAX_DEPTH);
-        if (null === $data) {
+        $fields = JsonWireFormat::decodeObject($json);
+        if (null === $fields) {
             return AuthHeaderDecodeFailure::BadJson;
         }
 
-        $event = Event::tryFromArray($data);
+        $event = Event::tryFromArray($fields);
 
         return $event ?? AuthHeaderDecodeFailure::InvalidEvent;
     }
 
-    public static function encode(Event $event): string
+    public static function encode(Event $event): ?string
     {
-        return self::HEADER_PREFIX.base64_encode($event->toJson());
+        $authHeader = self::HEADER_PREFIX.base64_encode($event->toJson());
+
+        return strlen($authHeader) > self::MAX_HEADER_LENGTH ? null : $authHeader;
     }
 }

@@ -17,31 +17,33 @@ final class SecretKeyMaterial
 
     private ?string $bytes;
 
-    public function __construct(#[SensitiveParameter] string $bytes)
+    private function __construct(#[SensitiveParameter] string $bytes)
     {
-        if (self::BYTE_LENGTH !== strlen($bytes)) {
-            throw new InvalidArgumentException(sprintf('Secret key material must be %d bytes', self::BYTE_LENGTH));
-        }
-
         $this->bytes = $bytes;
+    }
+
+    public static function tryFromBytes(#[SensitiveParameter] string $bytes): ?self
+    {
+        return self::BYTE_LENGTH === strlen($bytes) ? new self($bytes) : null;
+    }
+
+    public static function fromBytes(#[SensitiveParameter] string $bytes): self
+    {
+        return self::tryFromBytes($bytes) ?? throw new InvalidArgumentException(sprintf('Secret key material must be %d bytes', self::BYTE_LENGTH));
     }
 
     // Deliberate: reads random_bytes directly, not via an injected port; no random-dependent output under test — see ADR-0018
     public static function random(): self
     {
-        return new self(random_bytes(self::BYTE_LENGTH));
+        return self::fromBytes(random_bytes(self::BYTE_LENGTH));
     }
 
     public static function tryFromHex(#[SensitiveParameter] string $hex): ?self
     {
         $canonical = HexCodec::tryCanonical($hex, self::BYTE_LENGTH);
 
-        return null === $canonical ? null : new self(HexCodec::decode($canonical));
-    }
-
-    public static function tryFromBytes(#[SensitiveParameter] string $bytes): ?self
-    {
-        return self::BYTE_LENGTH === strlen($bytes) ? new self($bytes) : null;
+        // Deliberate: sodium's hex codec runs in constant time, so secret hex is read without a branch on its digits — see ADR-0120
+        return null === $canonical ? null : self::tryFromBytes(sodium_hex2bin($canonical));
     }
 
     /**

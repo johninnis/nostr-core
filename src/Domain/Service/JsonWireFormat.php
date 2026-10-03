@@ -5,16 +5,19 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Exception\SerialisationException;
+use stdClass;
 
 final class JsonWireFormat
 {
-    // Deliberate: emits U+2028/U+2029 verbatim so event ids are reproducible; do not drop a flag to align with FILTER_HASH — see ADR-0020
+    // Deliberate: emits U+2028/U+2029 verbatim and keeps the encoder's \u00XX control escapes, so event ids match the ecosystem; do not drop a flag to align with FILTER_HASH — see ADR-0123
     public const int EVENT = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_LINE_TERMINATORS;
 
-    public const int MESSAGE = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
+    public const int MESSAGE = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_LINE_TERMINATORS;
 
     // Deliberate: omits JSON_UNESCAPED_UNICODE so the canonical form is pure ASCII and hashes byte-for-byte with the TypeScript side — see ADR-0020
     public const int FILTER_HASH = JSON_UNESCAPED_SLASHES;
+
+    private const int MAX_DEPTH = 512;
 
     private function __construct()
     {
@@ -31,36 +34,45 @@ final class JsonWireFormat
         return $json;
     }
 
-    /**
-     * @param positive-int $depth
-     *
-     * @return array<mixed>|null
-     */
-    public static function decodeArray(string $json, int $depth = 512): ?array
+    public static function decode(string $json): mixed
     {
-        if (!json_validate($json, $depth)) {
-            return null;
-        }
-
-        $decoded = json_decode($json, true, $depth);
-
-        return is_array($decoded) ? $decoded : null;
+        return json_validate($json, self::MAX_DEPTH) ? self::keepObjectsApartFromLists(json_decode($json, false, self::MAX_DEPTH)) : null;
     }
 
     /**
-     * @param positive-int $depth
-     *
-     * @return non-empty-list<mixed>|null
+     * @return array<array-key, mixed>|null
      */
-    public static function decodeList(string $json, int $depth = 512): ?array
+    public static function decodeObject(string $json): ?array
     {
-        $data = self::decodeArray($json, $depth);
+        return self::objectFields(self::decode($json));
+    }
 
-        if (null === $data || [] === $data || !array_is_list($data)) {
-            return null;
+    /**
+     * @return array<array-key, mixed>|null
+     */
+    public static function objectFields(mixed $decoded): ?array
+    {
+        return match (true) {
+            $decoded instanceof stdClass => get_object_vars($decoded),
+            is_array($decoded) && !array_is_list($decoded) => $decoded,
+            default => null,
+        };
+    }
+
+    // Deliberate: a JSON object that would read back as a PHP list, {} or one keyed 0 to n-1, stays a stdClass, so every list decoded here was a JSON array — see ADR-0112
+    private static function keepObjectsApartFromLists(mixed $value): mixed
+    {
+        if (is_array($value)) {
+            return array_map(self::keepObjectsApartFromLists(...), $value);
         }
 
-        return $data;
+        if (!$value instanceof stdClass) {
+            return $value;
+        }
+
+        $fields = array_map(self::keepObjectsApartFromLists(...), get_object_vars($value));
+
+        return array_is_list($fields) ? (object) $fields : $fields;
     }
 
     /**
@@ -98,10 +110,29 @@ final class JsonWireFormat
      *
      * @return array<array-key, mixed>|null
      */
-    public static function arrayField(array $data, string $key): ?array
+    public static function objectField(array $data, string $key): ?array
+    {
+        return self::objectFields($data[$key] ?? null);
+    }
+
+    /**
+     * @template T
+     *
+     * @param array<mixed>              $data
+     * @param callable(mixed): (T|null) $parseElement
+     *
+     * @return list<T>|null
+     */
+    public static function listField(array $data, string $key, callable $parseElement): ?array
     {
         $value = $data[$key] ?? null;
 
-        return is_array($value) ? $value : null;
+        if (!is_array($value) || !array_is_list($value)) {
+            return null;
+        }
+
+        $elements = array_values(array_filter(array_map($parseElement, $value), static fn (mixed $element): bool => null !== $element));
+
+        return count($elements) === count($value) ? $elements : null;
     }
 }

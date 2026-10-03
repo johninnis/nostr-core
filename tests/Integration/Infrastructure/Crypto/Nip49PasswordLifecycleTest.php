@@ -12,15 +12,13 @@ use PHPUnit\Framework\TestCase;
 #[Group('ffi')]
 final class Nip49PasswordLifecycleTest extends TestCase
 {
-    private const int LOG_N = 16;
-
     public function testItRoundTripsWhenTheProviderReturnsAFreshStringEachCall(): void
     {
         $cipher = Nip49Cipher::create();
         $privateKey = PrivateKey::generate();
         $expectedHex = $privateKey->toHex();
 
-        $ncryptsec = $cipher->encrypt($privateKey, self::freshPassword(...), self::LOG_N);
+        $ncryptsec = $cipher->encrypt($privateKey, self::freshPassword(...));
         $recovered = $cipher->decrypt($ncryptsec, self::freshPassword(...));
 
         $this->assertSame($expectedHex, $recovered->toHex());
@@ -33,7 +31,7 @@ final class Nip49PasswordLifecycleTest extends TestCase
         $privateKey = PrivateKey::generate();
         $expectedHex = $privateKey->toHex();
 
-        $ncryptsec = $cipher->encrypt($privateKey, static fn (): string => '', self::LOG_N);
+        $ncryptsec = $cipher->encrypt($privateKey, static fn (): string => '');
 
         $this->assertSame($expectedHex, $cipher->decrypt($ncryptsec, static fn (): string => '')->toHex());
     }

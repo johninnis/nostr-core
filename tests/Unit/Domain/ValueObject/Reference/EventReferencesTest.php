@@ -12,6 +12,7 @@ use Innis\Nostr\Core\Domain\Collection\EventReferenceCollection;
 use Innis\Nostr\Core\Domain\Collection\PubkeyReferenceCollection;
 use Innis\Nostr\Core\Domain\Collection\PublicKeyCollection;
 use Innis\Nostr\Core\Domain\Collection\RelayReferenceCollection;
+use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReference;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReferences;
@@ -54,7 +55,7 @@ final class EventReferencesTest extends TestCase
     public function testIsReplyReflectsTheReplyChain(): void
     {
         $replying = $this->referencesWith(
-            new ReplyChain(true, null, null, new PublicKeyCollection(), new EventReferenceCollection()),
+            new ReplyChain(EventKind::fromInt(EventKind::TEXT_NOTE), null, new EventReference(EventId::tryFromHex(self::ID_B) ?? throw new RuntimeException('Invalid test event id')), new PublicKeyCollection(), new EventReferenceCollection()),
             QuoteAnalysis::fromArray([]),
         );
         $notReplying = $this->referencesWith(ReplyChain::fromArray([]), QuoteAnalysis::fromArray([]));
@@ -77,7 +78,7 @@ final class EventReferencesTest extends TestCase
         $references = new EventReferences(
             $this->tagReferencesWithOneEvent(),
             new ContentReferenceCollection(),
-            new ReplyChain(true, null, null, PublicKeyCollection::fromHexValues([self::ID_A]), new EventReferenceCollection()),
+            new ReplyChain(EventKind::fromInt(EventKind::TEXT_NOTE), null, null, PublicKeyCollection::fromHexValues([self::ID_A]), new EventReferenceCollection()),
             new QuoteAnalysis(true, false, false, true),
             EventIdCollection::fromHexValues([self::ID_A, self::ID_B]),
             PublicKeyCollection::fromHexValues([self::ID_A]),

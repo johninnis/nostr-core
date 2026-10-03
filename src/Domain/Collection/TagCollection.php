@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Collection;
 
+use Innis\Nostr\Core\Domain\Enum\SoleTagValueState;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\SoleTagValue;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
+use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Override;
 
 /**
@@ -20,15 +24,12 @@ final class TagCollection extends TypedCollection
         return Tag::class;
     }
 
-    public function add(Tag $newTag): self
+    /**
+     * Returns a collection with $tag at the end, replacing any tag with the same name and value.
+     */
+    public function add(Tag $tag): self
     {
-        $type = $newTag->getType();
-        $filtered = array_filter(
-            $this->items,
-            static fn (Tag $tag) => !$tag->getType()->equals($type) || $tag->getValue() !== $newTag->getValue()
-        );
-
-        return new self([...array_values($filtered), $newTag]);
+        return new self([...$this->remove($tag)->items, $tag]);
     }
 
     public function remove(Tag $tagToRemove): self
@@ -42,24 +43,14 @@ final class TagCollection extends TypedCollection
         )));
     }
 
-    public function removeAll(TagType $type): self
-    {
-        return new self(array_values(array_filter(
-            $this->items,
-            static fn (Tag $tag) => !$tag->getType()->equals($type)
-        )));
-    }
-
     /**
      * @return list<Tag>
      */
     public function findByType(TagType $type): array
     {
-        $name = (string) $type;
-
         return array_values(array_filter(
             $this->items,
-            static fn (Tag $tag): bool => (string) $tag->getType() === $name,
+            static fn (Tag $tag): bool => $tag->getType()->equals($type),
         ));
     }
 
@@ -93,26 +84,48 @@ final class TagCollection extends TypedCollection
         return EventIdCollection::fromHexValues($this->getValuesByType(TagType::event()));
     }
 
+    public function getCoordinates(): EventCoordinateCollection
+    {
+        return new EventCoordinateCollection(array_values(array_filter(
+            array_map(
+                static fn (Tag $tag): ?EventCoordinate => EventCoordinate::tryFromString($tag->getValue(0) ?? '', $tag->getValue(1)),
+                $this->findByType(TagType::addressable()),
+            ),
+            static fn (?EventCoordinate $coordinate): bool => null !== $coordinate,
+        )));
+    }
+
     public function getHashtags(): HashtagCollection
     {
         return HashtagCollection::fromStrings($this->getValuesByType(TagType::hashtag()))->unique();
     }
 
-    public function getFirstValueByType(TagType $type): ?string
+    // Deliberate: tags of one type that disagree are no answer rather than whichever came first, and the one reader says whether the tag is absent, one value or disagreeing, so no caller re-reads the tags — see ADR-0092
+    public function getSoleValueByType(TagType $type): SoleTagValue
     {
-        return $this->getValuesByType($type)[0] ?? null;
+        return SoleTagValue::fromValues($this->getValuesByType($type));
     }
 
-    public function getFirstPubkeyByType(TagType $type): ?PublicKey
+    // Deliberate: an event with no d tag has the empty identifier, and d tags that disagree name none — see ADR-0092
+    public function getIdentifier(): ?string
     {
-        foreach ($this->getValuesByType($type) as $value) {
-            $pubkey = PublicKey::tryFromHex($value);
-            if (null !== $pubkey) {
-                return $pubkey;
-            }
-        }
+        $identifier = $this->getSoleValueByType(TagType::identifier());
 
-        return null;
+        return SoleTagValueState::Absent === $identifier->getState() ? '' : $identifier->getValue();
+    }
+
+    public function getSolePubkeyByType(TagType $type): ?PublicKey
+    {
+        $value = $this->getSoleValueByType($type)->getValue();
+
+        return null === $value ? null : PublicKey::tryFromHex($value);
+    }
+
+    public function getPublishedAt(): ?Timestamp
+    {
+        $value = $this->getSoleValueByType(TagType::fromString(TagType::PUBLISHED_AT))->getValue();
+
+        return null === $value ? null : Timestamp::tryFromDecimalString($value);
     }
 
     /**
@@ -135,13 +148,8 @@ final class TagCollection extends TypedCollection
         );
     }
 
-    private static function tryParse(mixed $value): ?Tag
-    {
-        return is_array($value) ? Tag::tryFromArray($value) : null;
-    }
-
     public static function tryFromArray(mixed $values): ?self
     {
-        return self::tryFromEach($values, self::tryParse(...));
+        return self::tryFromEach($values, Tag::tryFromArray(...));
     }
 }

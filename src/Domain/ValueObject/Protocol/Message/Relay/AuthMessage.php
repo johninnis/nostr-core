@@ -16,7 +16,7 @@ final readonly class AuthMessage extends RelayMessage
     }
 
     #[Override]
-    public function type(): RelayMessageType
+    public static function type(): RelayMessageType
     {
         return RelayMessageType::Auth;
     }
@@ -26,33 +26,21 @@ final readonly class AuthMessage extends RelayMessage
         return $this->challenge;
     }
 
-    /**
-     * @return list<mixed>
-     */
     #[Override]
-    public function toArray(): array
+    protected function toPayload(): array
     {
-        return [$this->type()->value, (string) $this->challenge];
+        return [(string) $this->challenge];
     }
 
-    /**
-     * @param array<array-key, mixed> $data
-     */
     #[Override]
-    public static function tryFromArray(array $data): ?static
+    protected static function tryFromPayload(array $payload): ?static
     {
-        if (!array_is_list($data) || 2 !== count($data)) {
+        if ([] === $payload) {
             return null;
         }
 
-        $challenge = Challenge::tryFromString($data[1]);
+        $challenge = Challenge::tryFromString($payload[0]);
 
-        if (null === $challenge) {
-            return null;
-        }
-
-        $parsed = new self($challenge);
-
-        return $parsed->type()->value === $data[0] ? $parsed : null;
+        return null === $challenge ? null : new self($challenge);
     }
 }

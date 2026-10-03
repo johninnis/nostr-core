@@ -29,7 +29,7 @@ final readonly class Signature implements Stringable
 
     public function toBytes(): string
     {
-        return HexCodec::decode($this->signature);
+        return sodium_hex2bin($this->signature);
     }
 
     public function equals(self $other): bool
@@ -50,7 +50,7 @@ final readonly class Signature implements Stringable
             return null;
         }
 
-        return new self(HexCodec::encode($bytes));
+        return new self(sodium_bin2hex($bytes));
     }
 
     /**

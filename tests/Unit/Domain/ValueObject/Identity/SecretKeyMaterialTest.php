@@ -16,18 +16,18 @@ final class SecretKeyMaterialTest extends TestCase
     public function testConstructorRejectsShortInput(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        new SecretKeyMaterial(str_repeat("\x00", 31));
+        SecretKeyMaterial::fromBytes(str_repeat("\x00", 31));
     }
 
     public function testConstructorRejectsLongInput(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        new SecretKeyMaterial(str_repeat("\x00", 33));
+        SecretKeyMaterial::fromBytes(str_repeat("\x00", 33));
     }
 
     public function testConstructorAcceptsExactLength(): void
     {
-        $material = new SecretKeyMaterial(self::EXACT_LENGTH_BYTES);
+        $material = SecretKeyMaterial::fromBytes(self::EXACT_LENGTH_BYTES);
 
         $this->assertFalse($material->isZeroed());
     }
@@ -42,7 +42,7 @@ final class SecretKeyMaterialTest extends TestCase
 
     public function testExposePassesBytesToClosure(): void
     {
-        $material = new SecretKeyMaterial(self::EXACT_LENGTH_BYTES);
+        $material = SecretKeyMaterial::fromBytes(self::EXACT_LENGTH_BYTES);
 
         $received = $material->expose(static fn (string $bytes): string => $bytes);
 
@@ -51,7 +51,7 @@ final class SecretKeyMaterialTest extends TestCase
 
     public function testExposeReturnsClosureReturnValue(): void
     {
-        $material = new SecretKeyMaterial(self::EXACT_LENGTH_BYTES);
+        $material = SecretKeyMaterial::fromBytes(self::EXACT_LENGTH_BYTES);
 
         $this->assertSame(
             bin2hex(self::EXACT_LENGTH_BYTES),
@@ -61,7 +61,7 @@ final class SecretKeyMaterialTest extends TestCase
 
     public function testExposeForcesCopyNotAlias(): void
     {
-        $material = new SecretKeyMaterial(self::EXACT_LENGTH_BYTES);
+        $material = SecretKeyMaterial::fromBytes(self::EXACT_LENGTH_BYTES);
 
         $material->expose(static function (string $bytes): void {
             sodium_memzero($bytes);
@@ -74,7 +74,7 @@ final class SecretKeyMaterialTest extends TestCase
 
     public function testZeroMakesExposeThrow(): void
     {
-        $material = new SecretKeyMaterial(self::EXACT_LENGTH_BYTES);
+        $material = SecretKeyMaterial::fromBytes(self::EXACT_LENGTH_BYTES);
         $material->zero();
 
         $this->expectException(SecretKeyMaterialZeroedException::class);
@@ -83,7 +83,7 @@ final class SecretKeyMaterialTest extends TestCase
 
     public function testZeroIsIdempotent(): void
     {
-        $material = new SecretKeyMaterial(self::EXACT_LENGTH_BYTES);
+        $material = SecretKeyMaterial::fromBytes(self::EXACT_LENGTH_BYTES);
 
         $material->zero();
         $material->zero();
@@ -93,7 +93,7 @@ final class SecretKeyMaterialTest extends TestCase
 
     public function testIsZeroedReflectsState(): void
     {
-        $material = new SecretKeyMaterial(self::EXACT_LENGTH_BYTES);
+        $material = SecretKeyMaterial::fromBytes(self::EXACT_LENGTH_BYTES);
         $this->assertFalse($material->isZeroed());
 
         $material->zero();
@@ -102,7 +102,7 @@ final class SecretKeyMaterialTest extends TestCase
 
     public function testDestructorZeros(): void
     {
-        $material = new SecretKeyMaterial(self::EXACT_LENGTH_BYTES);
+        $material = SecretKeyMaterial::fromBytes(self::EXACT_LENGTH_BYTES);
 
         $material->__destruct();
 
@@ -111,7 +111,7 @@ final class SecretKeyMaterialTest extends TestCase
 
     public function testExceptionMessageDoesNotLeakBytes(): void
     {
-        $material = new SecretKeyMaterial(self::EXACT_LENGTH_BYTES);
+        $material = SecretKeyMaterial::fromBytes(self::EXACT_LENGTH_BYTES);
         $material->zero();
 
         try {

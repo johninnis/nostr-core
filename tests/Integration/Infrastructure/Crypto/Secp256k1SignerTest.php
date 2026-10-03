@@ -18,7 +18,14 @@ use RuntimeException;
 
 final class Secp256k1SignerTest extends TestCase
 {
-    public function testCreateYieldsFfiServiceWhenLibraryAvailable(): void
+    public function testCreateUsesTheNativeBackendExactlyWhenTheLibraryLoads(): void
+    {
+        $expected = null === LibSecp256k1Ffi::tryLoad() ? Secp256k1Backend::PurePhp : Secp256k1Backend::Native;
+
+        $this->assertSame($expected, Secp256k1Signer::create()->backend());
+    }
+
+    public function testCreateYieldsASignerWhoseSignaturesVerify(): void
     {
         $service = Secp256k1Signer::create();
 
@@ -93,6 +100,17 @@ final class Secp256k1SignerTest extends TestCase
 
         $this->assertTrue($purePhpService->verify($publicKey, $message, $ffiSignature));
         $this->assertTrue($ffiService->verify($publicKey, $message, $purePhpSignature));
+    }
+
+    #[Group('ffi')]
+    public function testThePurePhpPathSignsAMessageOfHexDigitBytesAsTheBytesItIs(): void
+    {
+        $privateKey = PrivateKey::generate();
+        $message = '0123456789abcdef0123456789abcdef';
+
+        $signature = $this->purePhpService()->sign($privateKey, $message);
+
+        $this->assertTrue($this->ffiService()->verify($this->ffiService()->derivePublicKey($privateKey), $message, $signature));
     }
 
     #[Group('ffi')]

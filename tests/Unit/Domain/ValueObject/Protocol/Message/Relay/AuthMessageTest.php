@@ -63,6 +63,13 @@ final class AuthMessageTest extends TestCase
         $this->assertNull(AuthMessage::tryFromArray(['NOTICE', 'challenge-xyz']));
     }
 
+    public function testTryFromArrayIgnoresATrailingElement(): void
+    {
+        $message = AuthMessage::tryFromArray(['AUTH', 'challenge-xyz', 'extra']) ?? throw new RuntimeException('Expected a valid message');
+
+        $this->assertSame('challenge-xyz', (string) $message->getChallenge());
+    }
+
     public function testRoundTripPreservesData(): void
     {
         $original = new AuthMessage(Challenge::fromString('my-challenge-string'));

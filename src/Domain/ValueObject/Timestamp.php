@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject;
 
 use DateTimeImmutable;
 use DateTimeInterface;
+use Innis\Nostr\Core\Domain\Service\DecimalIntegerParser;
 use InvalidArgumentException;
 use Override;
 use Stringable;
@@ -14,9 +15,6 @@ final readonly class Timestamp implements Stringable
 {
     private function __construct(private int $timestamp)
     {
-        if ($this->timestamp < 0) {
-            throw new InvalidArgumentException('Timestamp cannot be negative');
-        }
     }
 
     public function toInt(): int
@@ -27,19 +25,6 @@ final readonly class Timestamp implements Stringable
     public function toDateTime(): DateTimeImmutable
     {
         return new DateTimeImmutable('@'.$this->timestamp);
-    }
-
-    public function isReasonableAt(self $reference): bool
-    {
-        $oneHourInFuture = $reference->timestamp + 3600;
-        $tenYearsAgo = $reference->timestamp - (10 * 365 * 24 * 3600);
-
-        return $this->timestamp >= $tenYearsAgo && $this->timestamp <= $oneHourInFuture;
-    }
-
-    public function isReasonable(): bool
-    {
-        return $this->isReasonableAt(self::now());
     }
 
     public function equals(self $other): bool
@@ -67,31 +52,31 @@ final readonly class Timestamp implements Stringable
         return abs($this->timestamp - $other->timestamp);
     }
 
+    public function isWithinSecondsOf(self $reference, int $toleranceSeconds): bool
+    {
+        return $this->differenceInSeconds($reference) <= $toleranceSeconds;
+    }
+
     public function hasPassedAt(self $reference): bool
     {
         return !$reference->isBefore($this);
     }
 
-    public function hasPassed(): bool
-    {
-        return $this->hasPassedAt(self::now());
-    }
-
     // Deliberate: reads time() directly rather than through an injected clock; no elapsed-time behaviour under test here — see ADR-0005
     public static function now(): self
     {
-        return new self(time());
+        return self::fromInt(time());
     }
 
     // Deliberate: reads the entropy source directly, not via an injected port; no random-dependent output under test — see ADR-0018
     public static function randomised(int $maxSecondsAgo = 172800): self
     {
-        return new self(self::now()->toInt() - random_int(0, $maxSecondsAgo));
+        return self::fromInt(self::now()->toInt() - random_int(0, $maxSecondsAgo));
     }
 
     public static function fromInt(int $timestamp): self
     {
-        return new self($timestamp);
+        return self::tryFromInt($timestamp) ?? throw new InvalidArgumentException('Timestamp cannot be negative');
     }
 
     public static function tryFromInt(int $timestamp): ?self
@@ -101,18 +86,14 @@ final readonly class Timestamp implements Stringable
 
     public static function tryFromDecimalString(string $value): ?self
     {
-        if (!ctype_digit($value)) {
-            return null;
-        }
+        $seconds = DecimalIntegerParser::tryParse($value);
 
-        $seconds = filter_var($value, FILTER_VALIDATE_INT);
-
-        return false === $seconds ? null : self::tryFromInt($seconds);
+        return null === $seconds ? null : self::tryFromInt($seconds);
     }
 
     public static function fromDateTime(DateTimeInterface $dateTime): self
     {
-        return new self($dateTime->getTimestamp());
+        return self::fromInt($dateTime->getTimestamp());
     }
 
     #[Override]

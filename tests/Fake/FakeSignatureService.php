@@ -14,6 +14,11 @@ use RuntimeException;
 
 final class FakeSignatureService implements SignatureServiceInterface
 {
+    private const array PUBLIC_KEY_HEX_BY_PRIVATE_KEY_HEX = [
+        KeyMother::ALICE_PRIVATE_KEY_HEX => KeyMother::ALICE_PUBLIC_KEY_HEX,
+        KeyMother::BOB_PRIVATE_KEY_HEX => KeyMother::BOB_PUBLIC_KEY_HEX,
+    ];
+
     private const string SIGNATURE_HEX = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 
     private function __construct(private bool $verifies)
@@ -45,6 +50,9 @@ final class FakeSignatureService implements SignatureServiceInterface
     #[Override]
     public function derivePublicKey(PrivateKey $privateKey): PublicKey
     {
-        return KeyMother::alicePublicKey();
+        $publicKeyHex = self::PUBLIC_KEY_HEX_BY_PRIVATE_KEY_HEX[$privateKey->toHex()]
+            ?? throw new RuntimeException('The fake signature service derives only the KeyMother key pairs');
+
+        return PublicKey::tryFromHex($publicKeyHex) ?? throw new RuntimeException('Invalid fixture public key');
     }
 }

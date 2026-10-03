@@ -26,18 +26,24 @@ final class SubscriptionTest extends TestCase
     public function testCreateSetsDefaultPendingState(): void
     {
         $id = SubscriptionId::generate();
-        $filters = new FilterCollection([new Filter()]);
+        $filters = new FilterCollection([Filter::from()]);
         $subscription = Subscription::create($id, $filters);
 
         $this->assertTrue($id->equals($subscription->getId()));
         $this->assertSame($filters, $subscription->getFilters());
         $this->assertSame(SubscriptionState::Pending, $subscription->getState());
-        $this->assertSame(time(), $subscription->getCreatedAt()->toInt());
+    }
+
+    public function testCreateKeepsTheCreationInstantItIsGiven(): void
+    {
+        $subscription = Subscription::create(SubscriptionId::generate(), new FilterCollection([Filter::from()]), createdAt: Timestamp::fromInt(1_700_000_000));
+
+        $this->assertSame(1_700_000_000, $subscription->getCreatedAt()->toInt());
     }
 
     public function testCreateAcceptsExplicitState(): void
     {
-        $subscription = Subscription::create(SubscriptionId::generate(), new FilterCollection([new Filter()]), SubscriptionState::Active);
+        $subscription = Subscription::create(SubscriptionId::generate(), new FilterCollection([Filter::from()]), SubscriptionState::Active);
 
         $this->assertSame(SubscriptionState::Active, $subscription->getState());
     }
@@ -51,7 +57,7 @@ final class SubscriptionTest extends TestCase
 
     public function testWithStateReturnsNewInstance(): void
     {
-        $subscription = Subscription::create(SubscriptionId::generate(), new FilterCollection([new Filter()]));
+        $subscription = Subscription::create(SubscriptionId::generate(), new FilterCollection([Filter::from()]));
         $updated = $subscription->withState(SubscriptionState::Active);
 
         $this->assertSame(SubscriptionState::Pending, $subscription->getState());
@@ -62,7 +68,7 @@ final class SubscriptionTest extends TestCase
 
     public function testIsOpenDelegatesToState(): void
     {
-        $subscription = Subscription::create(SubscriptionId::generate(), new FilterCollection([new Filter()]));
+        $subscription = Subscription::create(SubscriptionId::generate(), new FilterCollection([Filter::from()]));
 
         $this->assertTrue($subscription->isOpen());
         $this->assertTrue($subscription->withState(SubscriptionState::Active)->isOpen());
@@ -74,15 +80,15 @@ final class SubscriptionTest extends TestCase
     public function testMatchesEventWhenReceivingEvents(): void
     {
         $keyPair = KeyMother::alice();
-        $event = EventMother::fromRumour(new Rumour(
+        $event = EventMother::fromRumour(Rumour::draft(
             $keyPair->getPublicKey(),
-            Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            new TagCollection(),
             EventContent::fromString('test'),
+            new TagCollection(),
+            Timestamp::now(),
         ));
 
-        $filter = new Filter(kinds: EventKindCollection::fromInts([EventKind::TEXT_NOTE]));
+        $filter = Filter::from(kinds: EventKindCollection::fromInts([EventKind::TEXT_NOTE]));
         $subscription = Subscription::create(SubscriptionId::generate(), new FilterCollection([$filter]));
 
         $this->assertFalse($subscription->matchesEvent($event));
@@ -97,15 +103,15 @@ final class SubscriptionTest extends TestCase
     public function testMatchesEventReturnsFalseWhenClosed(): void
     {
         $keyPair = KeyMother::alice();
-        $event = EventMother::fromRumour(new Rumour(
+        $event = EventMother::fromRumour(Rumour::draft(
             $keyPair->getPublicKey(),
-            Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            new TagCollection(),
             EventContent::fromString('test'),
+            new TagCollection(),
+            Timestamp::now(),
         ));
 
-        $filter = new Filter(kinds: EventKindCollection::fromInts([EventKind::TEXT_NOTE]));
+        $filter = Filter::from(kinds: EventKindCollection::fromInts([EventKind::TEXT_NOTE]));
         $closed = Subscription::create(SubscriptionId::generate(), new FilterCollection([$filter]))
             ->withState(SubscriptionState::ClosedByClient);
 
@@ -115,8 +121,8 @@ final class SubscriptionTest extends TestCase
     public function testToArray(): void
     {
         $id = SubscriptionId::tryFromString('test-sub') ?? throw new RuntimeException('Expected a valid subscription ID');
-        $filter = new Filter(kinds: EventKindCollection::fromInts([EventKind::TEXT_NOTE]));
-        $subscription = new Subscription($id, new FilterCollection([$filter]), Timestamp::fromInt(1700000000), SubscriptionState::Live);
+        $filter = Filter::from(kinds: EventKindCollection::fromInts([EventKind::TEXT_NOTE]));
+        $subscription = Subscription::create($id, new FilterCollection([$filter]), SubscriptionState::Live, Timestamp::fromInt(1700000000));
 
         $array = $subscription->toArray();
 
@@ -125,6 +131,11 @@ final class SubscriptionTest extends TestCase
         $this->assertSame('live', $array['state']);
         $this->assertIsArray($array['filters']);
         $this->assertCount(1, $array['filters']);
+    }
+
+    public function testTryFromArrayRefusesAValueThatIsNotAnArray(): void
+    {
+        $this->assertNull(Subscription::tryFromArray('sub'));
     }
 
     public function testTryFromArrayWithState(): void
@@ -169,6 +180,16 @@ final class SubscriptionTest extends TestCase
             'filters' => [['kinds' => [1]]],
             'created_at' => 1700000000,
             'state' => 'bogus',
+        ]));
+    }
+
+    public function testTryFromArrayReturnsNullWhenStateIsNull(): void
+    {
+        $this->assertNull(Subscription::tryFromArray([
+            'id' => 'test-sub',
+            'filters' => [['kinds' => [1]]],
+            'created_at' => 1700000000,
+            'state' => null,
         ]));
     }
 

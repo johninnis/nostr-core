@@ -5,30 +5,77 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Content;
 
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
+use Innis\Nostr\Core\Domain\Service\DecimalIntegerParser;
+use Innis\Nostr\Core\Domain\Service\MimeTypeParser;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\SoleTagValue;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
+use InvalidArgumentException;
 
 final readonly class FileMetadata
 {
-    private const string IMETA_TYPE = 'imeta';
+    /**
+     * @param list<string> $fallbacks
+     */
+    private function __construct(
+        private string $url,
+        private ?string $mimeType,
+        private ?string $hash,
+        private ?string $originalHash,
+        private ?int $size,
+        private ?string $dimensions,
+        private ?string $blurhash,
+        private ?string $thumbnail,
+        private ?string $image,
+        private ?string $summary,
+        private ?string $alt,
+        private array $fallbacks,
+    ) {
+    }
 
     /**
      * @param list<string> $fallbacks
      */
-    public function __construct(
-        private string $url,
-        private ?string $mimeType = null,
-        private ?string $hash = null,
-        private ?string $originalHash = null,
-        private ?int $size = null,
-        private ?string $dimensions = null,
-        private ?string $blurhash = null,
-        private ?string $thumbnail = null,
-        private ?string $image = null,
-        private ?string $summary = null,
-        private ?string $alt = null,
-        private array $fallbacks = [],
-    ) {
+    public static function tryFrom(
+        string $url,
+        ?string $mimeType = null,
+        ?string $hash = null,
+        ?string $originalHash = null,
+        ?int $size = null,
+        ?string $dimensions = null,
+        ?string $blurhash = null,
+        ?string $thumbnail = null,
+        ?string $image = null,
+        ?string $summary = null,
+        ?string $alt = null,
+        array $fallbacks = [],
+    ): ?self {
+        $metadata = new self($url, $mimeType, $hash, $originalHash, $size, $dimensions, $blurhash, $thumbnail, $image, $summary, $alt, $fallbacks);
+
+        return null === $metadata->refusal() ? $metadata : null;
+    }
+
+    /**
+     * @param list<string> $fallbacks
+     */
+    public static function from(
+        string $url,
+        ?string $mimeType = null,
+        ?string $hash = null,
+        ?string $originalHash = null,
+        ?int $size = null,
+        ?string $dimensions = null,
+        ?string $blurhash = null,
+        ?string $thumbnail = null,
+        ?string $image = null,
+        ?string $summary = null,
+        ?string $alt = null,
+        array $fallbacks = [],
+    ): self {
+        $metadata = new self($url, $mimeType, $hash, $originalHash, $size, $dimensions, $blurhash, $thumbnail, $image, $summary, $alt, $fallbacks);
+        $refusal = $metadata->refusal();
+
+        return null === $refusal ? $metadata : throw new InvalidArgumentException($refusal);
     }
 
     public function getUrl(): string
@@ -109,7 +156,7 @@ final readonly class FileMetadata
 
     public static function tryFromImetaTag(Tag $tag): ?self
     {
-        if (!$tag->getType()->is(self::IMETA_TYPE)) {
+        if (!$tag->getType()->is(TagType::IMETA)) {
             return null;
         }
 
@@ -123,27 +170,33 @@ final readonly class FileMetadata
             $fields[substr($entry, 0, $boundary)][] = substr($entry, $boundary + 1);
         }
 
-        return self::tryFromFields($fields);
+        $metadata = self::tryFromFields($fields);
+
+        return true === $metadata?->describesTheUrl() ? $metadata : null;
     }
 
     public function toTags(): TagCollection
     {
         return new TagCollection(array_map(
             /** @param list<string> $field */
-            static fn (array $field): Tag => new Tag(TagType::fromString((string) $field[0]), array_slice($field, 1)),
+            static fn (array $field): Tag => Tag::fromArray($field),
             $this->fields(),
         ));
     }
 
-    public function toImetaTag(): Tag
+    public function toImetaTag(): ?Tag
     {
+        if (!$this->describesTheUrl()) {
+            return null;
+        }
+
         $entries = array_map(
             /** @param list<string> $field */
             static fn (array $field): string => $field[0].' '.$field[1],
             $this->fields(),
         );
 
-        return new Tag(TagType::fromString(self::IMETA_TYPE), $entries);
+        return Tag::fromArray([TagType::IMETA, ...$entries]);
     }
 
     public function equals(self $other): bool
@@ -167,10 +220,10 @@ final readonly class FileMetadata
      */
     private function fields(): array
     {
-        $fields = [['url', $this->url]];
+        $fields = [[TagType::FILE_URL, $this->url]];
 
         if (null !== $this->mimeType) {
-            $fields[] = ['m', $this->mimeType];
+            $fields[] = [TagType::MIME_TYPE, $this->mimeType];
         }
         if (null !== $this->hash) {
             $fields[] = [TagType::SHA256, $this->hash];
@@ -179,28 +232,28 @@ final readonly class FileMetadata
             $fields[] = [TagType::ORIGINAL_SHA256, $this->originalHash];
         }
         if (null !== $this->size) {
-            $fields[] = ['size', (string) $this->size];
+            $fields[] = [TagType::SIZE, (string) $this->size];
         }
         if (null !== $this->dimensions) {
-            $fields[] = ['dim', $this->dimensions];
+            $fields[] = [TagType::DIMENSIONS, $this->dimensions];
         }
         if (null !== $this->blurhash) {
-            $fields[] = ['blurhash', $this->blurhash];
+            $fields[] = [TagType::BLURHASH, $this->blurhash];
         }
         if (null !== $this->thumbnail) {
-            $fields[] = ['thumb', $this->thumbnail];
+            $fields[] = [TagType::THUMBNAIL, $this->thumbnail];
         }
         if (null !== $this->image) {
-            $fields[] = ['image', $this->image];
+            $fields[] = [TagType::IMAGE, $this->image];
         }
         if (null !== $this->summary) {
-            $fields[] = ['summary', $this->summary];
+            $fields[] = [TagType::SUMMARY, $this->summary];
         }
         if (null !== $this->alt) {
-            $fields[] = ['alt', $this->alt];
+            $fields[] = [TagType::ALT, $this->alt];
         }
         foreach ($this->fallbacks as $fallback) {
-            $fields[] = ['fallback', $fallback];
+            $fields[] = [TagType::FALLBACK, $fallback];
         }
 
         return $fields;
@@ -211,56 +264,46 @@ final readonly class FileMetadata
      */
     private static function tryFromFields(array $fields): ?self
     {
-        $url = self::firstString($fields, 'url');
-        if (null === $url) {
-            return null;
-        }
+        $size = self::soleValue($fields, TagType::SIZE);
+        $mimeType = self::soleValue($fields, TagType::MIME_TYPE);
 
-        $size = self::firstString($fields, 'size');
-
-        return new self(
-            $url,
-            self::firstString($fields, 'm'),
-            self::firstString($fields, TagType::SHA256),
-            self::firstString($fields, TagType::ORIGINAL_SHA256),
-            null !== $size && is_numeric($size) ? (int) $size : null,
-            self::firstString($fields, 'dim'),
-            self::firstString($fields, 'blurhash'),
-            self::firstString($fields, 'thumb'),
-            self::firstString($fields, 'image'),
-            self::firstString($fields, 'summary'),
-            self::firstString($fields, 'alt'),
-            self::stringList($fields, 'fallback'),
+        return self::tryFrom(
+            self::soleValue($fields, TagType::FILE_URL) ?? '',
+            null === $mimeType ? null : MimeTypeParser::tryParse($mimeType),
+            self::soleValue($fields, TagType::SHA256),
+            self::soleValue($fields, TagType::ORIGINAL_SHA256),
+            null === $size ? null : DecimalIntegerParser::tryParse($size),
+            self::soleValue($fields, TagType::DIMENSIONS),
+            self::soleValue($fields, TagType::BLURHASH),
+            self::soleValue($fields, TagType::THUMBNAIL),
+            self::soleValue($fields, TagType::IMAGE),
+            self::soleValue($fields, TagType::SUMMARY),
+            self::soleValue($fields, TagType::ALT),
+            $fields[TagType::FALLBACK] ?? [],
         );
     }
 
     /**
      * @param array<string, list<string>> $fields
      */
-    private static function firstString(array $fields, string $key): ?string
+    private static function soleValue(array $fields, string $key): ?string
     {
-        $values = $fields[$key] ?? null;
-        if (!is_array($values)) {
-            return null;
-        }
-
-        $value = $values[0] ?? null;
-
-        return is_string($value) ? $value : null;
+        return SoleTagValue::fromValues($fields[$key] ?? [])->getValue();
     }
 
-    /**
-     * @param array<string, list<string>> $fields
-     *
-     * @return list<string>
-     */
-    private static function stringList(array $fields, string $key): array
+    private function refusal(): ?string
     {
-        $values = $fields[$key] ?? null;
-        if (!is_array($values)) {
-            return [];
-        }
+        return match (true) {
+            '' === $this->url => 'File metadata names the URL to download the file from, and an empty URL names none',
+            !array_all($this->fields(), static fn (array $field): bool => mb_check_encoding($field[1], 'UTF-8')) => 'File metadata is UTF-8 text, and a field of it is not',
+            null !== $this->mimeType && MimeTypeParser::tryParse($this->mimeType) !== $this->mimeType => sprintf('File metadata states its MIME type as a lowercase type/subtype, not "%s"', $this->mimeType),
+            null !== $this->size && $this->size < 0 => sprintf('File metadata states its size as a whole number of bytes, not %d', $this->size),
+            default => null,
+        };
+    }
 
-        return array_values(array_filter($values, is_string(...)));
+    private function describesTheUrl(): bool
+    {
+        return count($this->fields()) > 1;
     }
 }

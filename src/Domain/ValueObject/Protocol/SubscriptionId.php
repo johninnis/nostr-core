@@ -10,8 +10,6 @@ use Stringable;
 final readonly class SubscriptionId implements Stringable
 {
     private const int MAX_LENGTH = 64;
-    // Deliberate: printable-ASCII only, stricter than NIP-01's "arbitrary string", to keep the correlation handle byte-clean — see ADR-0053
-    private const string ALLOWED_PATTERN = '/^[\x21-\x7E]+$/D';
 
     private function __construct(private string $id)
     {
@@ -32,11 +30,12 @@ final readonly class SubscriptionId implements Stringable
             return null;
         }
 
-        if (strlen($value) > self::MAX_LENGTH) {
+        if (!mb_check_encoding($value, 'UTF-8')) {
             return null;
         }
 
-        if (!preg_match(self::ALLOWED_PATTERN, $value)) {
+        // Deliberate: NIP-01's 64 "chars" are Unicode characters of the JSON string, not UTF-8 bytes, and any character is allowed — see ADR-0084
+        if (mb_strlen($value, 'UTF-8') > self::MAX_LENGTH) {
             return null;
         }
 
@@ -47,12 +46,6 @@ final readonly class SubscriptionId implements Stringable
     public static function generate(): self
     {
         return new self(bin2hex(random_bytes(16)));
-    }
-
-    // Deliberate: reads the entropy source directly, not via an injected port; no random-dependent output under test — see ADR-0018
-    public static function short(): self
-    {
-        return new self(bin2hex(random_bytes(4)));
     }
 
     #[Override]

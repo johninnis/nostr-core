@@ -29,7 +29,7 @@ final class FilterTest extends TestCase
 {
     public function testCanCreateFilter(): void
     {
-        $filter = new Filter(
+        $filter = Filter::from(
             ids: EventIdCollection::fromHexValues([str_repeat('a', 64)]),
             authors: PublicKeyCollection::fromHexValues([str_repeat('b', 64)]),
             kinds: EventKindCollection::fromInts([1, 2]),
@@ -55,44 +55,89 @@ final class FilterTest extends TestCase
     public function testThrowsExceptionForInvalidLimit(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Limit must be between 0 and 5000');
 
-        new Filter(limit: -1);
+        Filter::from(limit: -1);
     }
 
     public function testAcceptsLimitOfZero(): void
     {
-        $filter = new Filter(limit: 0);
+        $filter = Filter::from(limit: 0);
 
         $this->assertSame(0, $filter->getLimit());
-        $this->assertTrue($filter->hasLimit());
+        $this->assertNotNull($filter->getLimit());
         $this->assertSame(0, $filter->toArray()['limit']);
     }
 
-    public function testThrowsExceptionForInvalidTimeRange(): void
+    public function testTryFromRefusesASearchThatIsNotUtf8(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Since timestamp cannot be after until timestamp');
+        $this->assertNull(Filter::tryFrom(search: "\xff"));
+    }
 
-        new Filter(
-            since: Timestamp::fromInt(1234567900),
-            until: Timestamp::fromInt(1234567890)
-        );
+    public function testAFilterWhoseSinceIsAfterItsUntilCannotMatch(): void
+    {
+        $filter = Filter::from(since: Timestamp::fromInt(1234567900), until: Timestamp::fromInt(1234567890));
+
+        $this->assertFalse($filter->canMatch());
+    }
+
+    public function testAFilterWhoseSinceEqualsItsUntilCanMatch(): void
+    {
+        $this->assertTrue(Filter::from(since: Timestamp::fromInt(1234567890), until: Timestamp::fromInt(1234567890))->canMatch());
+    }
+
+    public function testTheEmptyFilterCanMatch(): void
+    {
+        $this->assertTrue(Filter::from()->canMatch());
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function filtersWithAnEmptyList(): iterable
+    {
+        yield 'ids' => ['{"ids":[]}'];
+        yield 'authors' => ['{"authors":[]}'];
+        yield 'kinds' => ['{"kinds":[]}'];
+        yield 'a tag condition' => ['{"#e":[]}'];
+    }
+
+    #[DataProvider('filtersWithAnEmptyList')]
+    public function testAFilterWithAnEmptyListCannotMatch(string $json): void
+    {
+        $this->assertFalse((Filter::tryFromJson($json) ?? $this->fail('Expected a filter'))->canMatch());
+    }
+
+    #[DataProvider('filtersWithAnEmptyList')]
+    public function testAFilterWithAnEmptyListMatchesNoEvent(string $json): void
+    {
+        $filter = Filter::tryFromJson($json) ?? $this->fail('Expected a filter');
+        $event = EventMother::fromRumour(Rumour::draft(
+            KeyMother::alice()->getPublicKey(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
+            tags: new TagCollection([Tag::fromArray(['e', str_repeat('a', 64)])]),
+        ));
+
+        $this->assertFalse($filter->matches($event));
+    }
+
+    public function testTryFromArrayRefusesATagConditionNotNamedByOneLetter(): void
+    {
+        $this->assertNull(Filter::tryFromArray(['#emoji' => ['wave']]));
     }
 
     public function testMatchesEventById(): void
     {
         $keyPair = KeyMother::alice();
-        $rumour = new Rumour(
+        $rumour = Rumour::draft(
             $keyPair->getPublicKey(),
-            Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('test'),
             new TagCollection(),
-            EventContent::fromString('test')
+            Timestamp::now(),
         );
         $signedEvent = $rumour->sign($keyPair, FakeSignatureService::accepting());
 
-        $filter = new Filter(ids: EventIdCollection::fromHexValues([$signedEvent->getId()->toHex()]));
+        $filter = Filter::from(ids: EventIdCollection::fromHexValues([$signedEvent->getId()->toHex()]));
 
         $this->assertTrue($filter->matches($signedEvent));
     }
@@ -100,15 +145,15 @@ final class FilterTest extends TestCase
     public function testMatchesEventByAuthor(): void
     {
         $keyPair = KeyMother::alice();
-        $event = EventMother::fromRumour(new Rumour(
+        $event = EventMother::fromRumour(Rumour::draft(
             $keyPair->getPublicKey(),
-            Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('test'),
             new TagCollection(),
-            EventContent::fromString('test')
+            Timestamp::now(),
         ));
 
-        $filter = new Filter(authors: PublicKeyCollection::fromHexValues([$keyPair->getPublicKey()->toHex()]));
+        $filter = Filter::from(authors: PublicKeyCollection::fromHexValues([$keyPair->getPublicKey()->toHex()]));
 
         $this->assertTrue($filter->matches($event));
     }
@@ -116,15 +161,15 @@ final class FilterTest extends TestCase
     public function testMatchesEventByKind(): void
     {
         $keyPair = KeyMother::alice();
-        $event = EventMother::fromRumour(new Rumour(
+        $event = EventMother::fromRumour(Rumour::draft(
             $keyPair->getPublicKey(),
-            Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('test'),
             new TagCollection(),
-            EventContent::fromString('test')
+            Timestamp::now(),
         ));
 
-        $filter = new Filter(kinds: EventKindCollection::fromInts([1]));
+        $filter = Filter::from(kinds: EventKindCollection::fromInts([1]));
 
         $this->assertTrue($filter->matches($event));
     }
@@ -133,15 +178,15 @@ final class FilterTest extends TestCase
     {
         $keyPair = KeyMother::alice();
         $tags = new TagCollection([Tag::hashtag(Hashtag::fromString('nostr'))]);
-        $event = EventMother::fromRumour(new Rumour(
+        $event = EventMother::fromRumour(Rumour::draft(
             $keyPair->getPublicKey(),
-            Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('test'),
             $tags,
-            EventContent::fromString('test')
+            Timestamp::now(),
         ));
 
-        $filter = new Filter(tags: TagFilter::fromValues(['t' => ['nostr']]));
+        $filter = Filter::from(tags: TagFilter::fromValues(['t' => ['nostr']]));
 
         $this->assertTrue($filter->matches($event));
     }
@@ -149,21 +194,21 @@ final class FilterTest extends TestCase
     public function testMatchesEventAtTheMaximumAuthorCount(): void
     {
         $keyPair = KeyMother::alice();
-        $event = EventMother::fromRumour(new Rumour(
+        $event = EventMother::fromRumour(Rumour::draft(
             $keyPair->getPublicKey(),
-            Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('test'),
             new TagCollection(),
-            EventContent::fromString('test')
+            Timestamp::now(),
         ));
 
         $authors = array_map(
             static fn (int $i): string => str_pad(dechex($i), 64, '0', STR_PAD_LEFT),
-            range(1, Filter::MAX_VALUES_PER_FIELD - 1),
+            range(1, 999),
         );
         $authors[] = $keyPair->getPublicKey()->toHex();
 
-        $this->assertTrue(new Filter(authors: PublicKeyCollection::fromHexValues($authors))->matches($event));
+        $this->assertTrue(Filter::from(authors: PublicKeyCollection::fromHexValues($authors))->matches($event));
     }
 
     public function testTagFilterMatchesAnEventCarryingManyTags(): void
@@ -175,15 +220,15 @@ final class FilterTest extends TestCase
         }
         $tags[] = Tag::hashtag(Hashtag::fromString('target'));
 
-        $event = EventMother::fromRumour(new Rumour(
+        $event = EventMother::fromRumour(Rumour::draft(
             $keyPair->getPublicKey(),
-            Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('test'),
             new TagCollection($tags),
-            EventContent::fromString('test')
+            Timestamp::now(),
         ));
 
-        $this->assertTrue(new Filter(tags: TagFilter::fromValues(['t' => ['target']]))->matches($event));
+        $this->assertTrue(Filter::from(tags: TagFilter::fromValues(['t' => ['target']]))->matches($event));
     }
 
     public function testMatchesEventWithMultipleTagTypesRequiresAll(): void
@@ -192,23 +237,23 @@ final class FilterTest extends TestCase
         $pubkeyHex = str_repeat('a', 64);
         $tags = new TagCollection([
             Tag::hashtag(Hashtag::fromString('nostr')),
-            Tag::create('p', $pubkeyHex),
+            Tag::fromArray(['p', $pubkeyHex]),
         ]);
-        $event = EventMother::fromRumour(new Rumour(
+        $event = EventMother::fromRumour(Rumour::draft(
             $keyPair->getPublicKey(),
-            Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('test'),
             $tags,
-            EventContent::fromString('test')
+            Timestamp::now(),
         ));
 
-        $filterBothMatch = new Filter(tags: TagFilter::fromValues(['t' => ['nostr'], 'p' => [$pubkeyHex]]));
+        $filterBothMatch = Filter::from(tags: TagFilter::fromValues(['t' => ['nostr'], 'p' => [$pubkeyHex]]));
         $this->assertTrue($filterBothMatch->matches($event));
 
-        $filterOnlyPMissing = new Filter(tags: TagFilter::fromValues(['t' => ['nostr'], 'p' => [str_repeat('b', 64)]]));
+        $filterOnlyPMissing = Filter::from(tags: TagFilter::fromValues(['t' => ['nostr'], 'p' => [str_repeat('b', 64)]]));
         $this->assertFalse($filterOnlyPMissing->matches($event));
 
-        $filterOnlyTMissing = new Filter(tags: TagFilter::fromValues(['t' => ['bitcoin'], 'p' => [$pubkeyHex]]));
+        $filterOnlyTMissing = Filter::from(tags: TagFilter::fromValues(['t' => ['bitcoin'], 'p' => [$pubkeyHex]]));
         $this->assertFalse($filterOnlyTMissing->matches($event));
     }
 
@@ -216,70 +261,70 @@ final class FilterTest extends TestCase
     {
         $pubkey = PublicKey::tryFromHex(str_repeat('a', 64)) ?? throw new RuntimeException('Invalid test public key');
         $referencedId = str_repeat('c', 64);
-        $tags = new TagCollection([Tag::create('e', $referencedId, 'wss://relay.example', 'reply')]);
-        $event = EventMother::fromRumour(new Rumour(
+        $referencedAuthor = str_repeat('d', 64);
+        $tags = new TagCollection([Tag::fromArray(['e', $referencedId, 'wss://relay.example', 'reply', $referencedAuthor])]);
+        $event = EventMother::fromRumour(Rumour::draft(
             $pubkey,
-            Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('test'),
             $tags,
-            EventContent::fromString('test')
+            Timestamp::now(),
         ));
 
-        $this->assertTrue(new Filter(tags: TagFilter::fromValues(['e' => [$referencedId]]))->matches($event));
-        $this->assertFalse(new Filter(tags: TagFilter::fromValues(['e' => ['wss://relay.example']]))->matches($event));
-        $this->assertFalse(new Filter(tags: TagFilter::fromValues(['e' => ['reply']]))->matches($event));
+        $this->assertTrue(Filter::from(tags: TagFilter::fromValues(['e' => [$referencedId]]))->matches($event));
+        $this->assertFalse(Filter::from(tags: TagFilter::fromValues(['e' => [$referencedAuthor]]))->matches($event));
     }
 
     public function testMatchesEventWithMultipleValuesInSameTagType(): void
     {
         $keyPair = KeyMother::alice();
         $tags = new TagCollection([Tag::hashtag(Hashtag::fromString('nostr'))]);
-        $event = EventMother::fromRumour(new Rumour(
+        $event = EventMother::fromRumour(Rumour::draft(
             $keyPair->getPublicKey(),
-            Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('test'),
             $tags,
-            EventContent::fromString('test')
+            Timestamp::now(),
         ));
 
-        $filter = new Filter(tags: TagFilter::fromValues(['t' => ['nostr', 'bitcoin']]));
+        $filter = Filter::from(tags: TagFilter::fromValues(['t' => ['nostr', 'bitcoin']]));
         $this->assertTrue($filter->matches($event));
     }
 
     public function testDoesNotMatchWhenNoTagsMatchFilter(): void
     {
         $keyPair = KeyMother::alice();
-        $event = EventMother::fromRumour(new Rumour(
+        $event = EventMother::fromRumour(Rumour::draft(
             $keyPair->getPublicKey(),
-            Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('test'),
             new TagCollection(),
-            EventContent::fromString('test')
+            Timestamp::now(),
         ));
 
-        $filter = new Filter(tags: TagFilter::fromValues(['t' => ['nostr']]));
+        $filter = Filter::from(tags: TagFilter::fromValues(['t' => ['nostr']]));
         $this->assertFalse($filter->matches($event));
     }
 
     public function testDoesNotMatchWhenCriteriaNotMet(): void
     {
         $keyPair = KeyMother::alice();
-        $event = EventMother::fromRumour(new Rumour(
+        $event = EventMother::fromRumour(Rumour::draft(
             $keyPair->getPublicKey(),
-            Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('test'),
             new TagCollection(),
-            EventContent::fromString('test')
+            Timestamp::now(),
         ));
 
-        $filter = new Filter(kinds: EventKindCollection::fromInts([2])); // Different kind
+        $filter = Filter::from(kinds: EventKindCollection::fromInts([2]));
 
         $this->assertFalse($filter->matches($event));
     }
 
     public function testCanConvertToArray(): void
     {
-        $filter = new Filter(
+        $filter = Filter::from(
             ids: EventIdCollection::fromHexValues([str_repeat('a', 64)]),
             authors: PublicKeyCollection::fromHexValues([str_repeat('b', 64)]),
             kinds: EventKindCollection::fromInts([1]),
@@ -328,65 +373,65 @@ final class FilterTest extends TestCase
         $this->assertSame(10, $filter->getLimit());
     }
 
-    public function testHasIdsReturnsTrueWhenIdsAreSet(): void
+    public function testGetIdsIsPresentWhenIdsAreSet(): void
     {
-        $filter = new Filter(ids: EventIdCollection::fromHexValues([str_repeat('a', 64)]));
+        $filter = Filter::from(ids: EventIdCollection::fromHexValues([str_repeat('a', 64)]));
 
-        $this->assertTrue($filter->hasIds());
+        $this->assertNotNull($filter->getIds());
     }
 
-    public function testHasIdsReturnsFalseWhenIdsAreNull(): void
+    public function testGetIdsIsAbsentWhenIdsAreNull(): void
     {
-        $filter = new Filter();
+        $filter = Filter::from();
 
-        $this->assertFalse($filter->hasIds());
+        $this->assertNull($filter->getIds());
     }
 
-    public function testHasAuthorsReturnsTrueWhenAuthorsAreSet(): void
+    public function testGetAuthorsIsPresentWhenAuthorsAreSet(): void
     {
-        $filter = new Filter(authors: PublicKeyCollection::fromHexValues([str_repeat('b', 64)]));
+        $filter = Filter::from(authors: PublicKeyCollection::fromHexValues([str_repeat('b', 64)]));
 
-        $this->assertTrue($filter->hasAuthors());
+        $this->assertNotNull($filter->getAuthors());
     }
 
-    public function testHasAuthorsReturnsFalseWhenAuthorsAreNull(): void
+    public function testGetAuthorsIsAbsentWhenAuthorsAreNull(): void
     {
-        $filter = new Filter();
+        $filter = Filter::from();
 
-        $this->assertFalse($filter->hasAuthors());
+        $this->assertNull($filter->getAuthors());
     }
 
-    public function testHasKindsReturnsTrueWhenKindsAreSet(): void
+    public function testGetKindsIsPresentWhenKindsAreSet(): void
     {
-        $filter = new Filter(kinds: EventKindCollection::fromInts([1]));
+        $filter = Filter::from(kinds: EventKindCollection::fromInts([1]));
 
-        $this->assertTrue($filter->hasKinds());
+        $this->assertNotNull($filter->getKinds());
     }
 
-    public function testHasKindsReturnsFalseWhenKindsAreNull(): void
+    public function testGetKindsIsAbsentWhenKindsAreNull(): void
     {
-        $filter = new Filter();
+        $filter = Filter::from();
 
-        $this->assertFalse($filter->hasKinds());
+        $this->assertNull($filter->getKinds());
     }
 
-    public function testHasLimitReturnsTrueWhenLimitIsSet(): void
+    public function testGetLimitIsPresentWhenLimitIsSet(): void
     {
-        $filter = new Filter(limit: 100);
+        $filter = Filter::from(limit: 100);
 
-        $this->assertTrue($filter->hasLimit());
+        $this->assertNotNull($filter->getLimit());
     }
 
-    public function testHasLimitReturnsFalseWhenLimitIsNull(): void
+    public function testGetLimitIsAbsentWhenLimitIsNull(): void
     {
-        $filter = new Filter();
+        $filter = Filter::from();
 
-        $this->assertFalse($filter->hasLimit());
+        $this->assertNull($filter->getLimit());
     }
 
     public function testWithAuthorsReturnsNewFilterWithUpdatedAuthors(): void
     {
-        $filter = new Filter(
+        $filter = Filter::from(
             ids: EventIdCollection::fromHexValues([str_repeat('a', 64)]),
             authors: PublicKeyCollection::fromHexValues([str_repeat('c', 64)]),
             kinds: EventKindCollection::fromInts([1]),
@@ -404,7 +449,7 @@ final class FilterTest extends TestCase
 
     public function testWithKindsReturnsNewFilterWithReplacedKinds(): void
     {
-        $filter = new Filter(
+        $filter = Filter::from(
             authors: PublicKeyCollection::fromHexValues([str_repeat('f', 64)]),
             kinds: EventKindCollection::fromInts([1, 2]),
             limit: 10
@@ -420,7 +465,7 @@ final class FilterTest extends TestCase
 
     public function testWithUntilReturnsNewFilterWithReplacedUntil(): void
     {
-        $filter = new Filter(
+        $filter = Filter::from(
             kinds: EventKindCollection::fromInts([1]),
             until: Timestamp::fromInt(1234567900),
             limit: 10
@@ -436,7 +481,7 @@ final class FilterTest extends TestCase
 
     public function testWithSinceReturnsNewFilterWithReplacedSince(): void
     {
-        $filter = new Filter(kinds: EventKindCollection::fromInts([1]));
+        $filter = Filter::from(kinds: EventKindCollection::fromInts([1]));
 
         $newFilter = $filter->withSince(Timestamp::fromInt(1234567890));
 
@@ -446,14 +491,14 @@ final class FilterTest extends TestCase
 
     public function testWithUntilNullClearsTheUpperBound(): void
     {
-        $filter = new Filter(until: Timestamp::fromInt(1234567900));
+        $filter = Filter::from(until: Timestamp::fromInt(1234567900));
 
         $this->assertNull($filter->withUntil(null)->getUntil());
     }
 
     public function testWithLimitReturnsNewFilterWithReplacedLimit(): void
     {
-        $filter = new Filter(kinds: EventKindCollection::fromInts([1]), limit: 10);
+        $filter = Filter::from(kinds: EventKindCollection::fromInts([1]), limit: 10);
 
         $newFilter = $filter->withLimit(50);
 
@@ -462,28 +507,26 @@ final class FilterTest extends TestCase
         $this->assertKinds([1], $newFilter->getKinds());
     }
 
-    public function testWithUntilRejectsAnInvertedWindow(): void
+    public function testWithUntilBeforeSinceGivesAFilterThatCannotMatch(): void
     {
-        $filter = new Filter(since: Timestamp::fromInt(1234567900));
+        $filter = Filter::from(since: Timestamp::fromInt(1234567900))->withUntil(Timestamp::fromInt(1234567800));
 
-        $this->expectException(InvalidArgumentException::class);
-
-        $filter->withUntil(Timestamp::fromInt(1234567800));
+        $this->assertFalse($filter->canMatch());
     }
 
     public function testMatchesEventBySinceTimestamp(): void
     {
         $keyPair = KeyMother::alice();
-        $event = EventMother::fromRumour(new Rumour(
+        $event = EventMother::fromRumour(Rumour::draft(
             $keyPair->getPublicKey(),
-            Timestamp::fromInt(1234567895),
             EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('test'),
             new TagCollection(),
-            EventContent::fromString('test')
+            Timestamp::fromInt(1234567895),
         ));
 
-        $filterMatches = new Filter(since: Timestamp::fromInt(1234567890));
-        $filterDoesNotMatch = new Filter(since: Timestamp::fromInt(1234567900));
+        $filterMatches = Filter::from(since: Timestamp::fromInt(1234567890));
+        $filterDoesNotMatch = Filter::from(since: Timestamp::fromInt(1234567900));
 
         $this->assertTrue($filterMatches->matches($event));
         $this->assertFalse($filterDoesNotMatch->matches($event));
@@ -492,16 +535,16 @@ final class FilterTest extends TestCase
     public function testMatchesEventByUntilTimestamp(): void
     {
         $keyPair = KeyMother::alice();
-        $event = EventMother::fromRumour(new Rumour(
+        $event = EventMother::fromRumour(Rumour::draft(
             $keyPair->getPublicKey(),
-            Timestamp::fromInt(1234567895),
             EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('test'),
             new TagCollection(),
-            EventContent::fromString('test')
+            Timestamp::fromInt(1234567895),
         ));
 
-        $filterMatches = new Filter(until: Timestamp::fromInt(1234567900));
-        $filterDoesNotMatch = new Filter(until: Timestamp::fromInt(1234567890));
+        $filterMatches = Filter::from(until: Timestamp::fromInt(1234567900));
+        $filterDoesNotMatch = Filter::from(until: Timestamp::fromInt(1234567890));
 
         $this->assertTrue($filterMatches->matches($event));
         $this->assertFalse($filterDoesNotMatch->matches($event));
@@ -510,15 +553,15 @@ final class FilterTest extends TestCase
     public function testMatchesEmptyFilterMatchesAnyEvent(): void
     {
         $keyPair = KeyMother::alice();
-        $event = EventMother::fromRumour(new Rumour(
+        $event = EventMother::fromRumour(Rumour::draft(
             $keyPair->getPublicKey(),
-            Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('test'),
             new TagCollection(),
-            EventContent::fromString('test')
+            Timestamp::now(),
         ));
 
-        $filter = new Filter();
+        $filter = Filter::from();
 
         $this->assertTrue($filter->matches($event));
     }
@@ -526,16 +569,16 @@ final class FilterTest extends TestCase
     public function testDoesNotMatchEventWithWrongId(): void
     {
         $keyPair = KeyMother::alice();
-        $rumour = new Rumour(
+        $rumour = Rumour::draft(
             $keyPair->getPublicKey(),
-            Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('test'),
             new TagCollection(),
-            EventContent::fromString('test')
+            Timestamp::now(),
         );
         $signedEvent = $rumour->sign($keyPair, FakeSignatureService::accepting());
 
-        $filter = new Filter(ids: EventIdCollection::fromHexValues(['0000000000000000000000000000000000000000000000000000000000000000']));
+        $filter = Filter::from(ids: EventIdCollection::fromHexValues(['0000000000000000000000000000000000000000000000000000000000000000']));
 
         $this->assertFalse($filter->matches($signedEvent));
     }
@@ -543,30 +586,29 @@ final class FilterTest extends TestCase
     public function testDoesNotMatchEventWithWrongAuthor(): void
     {
         $keyPair = KeyMother::alice();
-        $event = EventMother::fromRumour(new Rumour(
+        $event = EventMother::fromRumour(Rumour::draft(
             $keyPair->getPublicKey(),
-            Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('test'),
             new TagCollection(),
-            EventContent::fromString('test')
+            Timestamp::now(),
         ));
 
-        $filter = new Filter(authors: PublicKeyCollection::fromHexValues([str_repeat('0', 64)]));
+        $filter = Filter::from(authors: PublicKeyCollection::fromHexValues([str_repeat('0', 64)]));
 
         $this->assertFalse($filter->matches($event));
     }
 
-    public function testThrowsExceptionForLimitAboveMaximum(): void
+    public function testKeepsALimitOfAnySizeAsTheRelayDecidesItsCeiling(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Limit must be between 0 and 5000');
+        $filter = Filter::from(limit: PHP_INT_MAX);
 
-        new Filter(limit: 5001);
+        $this->assertSame(PHP_INT_MAX, $filter->getLimit());
     }
 
     public function testToArrayOmitsNullFields(): void
     {
-        $filter = new Filter(kinds: EventKindCollection::fromInts([1]));
+        $filter = Filter::from(kinds: EventKindCollection::fromInts([1]));
 
         $array = $filter->toArray();
 
@@ -580,7 +622,7 @@ final class FilterTest extends TestCase
 
     public function testToArrayConvertsEventKindObjectsToIntegers(): void
     {
-        $filter = new Filter(kinds: EventKindCollection::fromInts([EventKind::TEXT_NOTE]));
+        $filter = Filter::from(kinds: EventKindCollection::fromInts([EventKind::TEXT_NOTE]));
 
         $array = $filter->toArray();
 
@@ -620,7 +662,7 @@ final class FilterTest extends TestCase
 
     public function testTryFromArrayReturnsNullForInvalidUtf8TagValue(): void
     {
-        $this->assertNull(Filter::tryFromArray(['#e' => ["bad\xff\xfeutf8"]]));
+        $this->assertNull(Filter::tryFromArray(['#t' => ["bad\xff\xfeutf8"]]));
     }
 
     public function testTryFromArrayParsesAnArrayPayload(): void
@@ -655,21 +697,17 @@ final class FilterTest extends TestCase
         yield 'kinds with out-of-range value' => [['kinds' => [70000]]];
         yield 'ids not an array' => [['ids' => str_repeat('a', 64)]];
         yield 'ids with non-string element' => [['ids' => [123]]];
-        yield 'ids exceeding the value cap' => [['ids' => array_fill(0, 1001, str_repeat('0', 64))]];
         yield 'authors not an array' => [['authors' => str_repeat('a', 64)]];
         yield 'authors with non-string element' => [['authors' => [123]]];
-        yield 'authors exceeding the value cap' => [['authors' => array_fill(0, 1001, str_repeat('0', 64))]];
-        yield 'tag values exceeding the value cap' => [['#t' => array_fill(0, 1001, 'x')]];
         yield 'tag values with a non-string element' => [['#e' => [str_repeat('a', 64), 123]]];
         yield 'tag values with a nested-array element' => [['#p' => [['nested']]]];
         yield 'limit not an int' => [['limit' => '5']];
         yield 'limit below minimum' => [['limit' => -1]];
-        yield 'limit above maximum' => [['limit' => 99999]];
         yield 'search not a string' => [['search' => ['nostr']]];
         yield 'since not an int' => [['since' => '1700000000']];
         yield 'since negative' => [['since' => -1]];
         yield 'until negative' => [['until' => -1]];
-        yield 'since after until' => [['since' => 2000, 'until' => 1000]];
+        yield 'a tag condition named by two letters' => [['#tt' => ['x']]];
     }
 
     /**
@@ -681,9 +719,35 @@ final class FilterTest extends TestCase
         $this->assertNull(Filter::tryFromArray($data));
     }
 
+    #[DataProvider('fieldsStatedAsNull')]
+    public function testTryFromJsonRefusesAFieldStatedAsNull(string $json): void
+    {
+        $this->assertNull(Filter::tryFromJson($json));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function fieldsStatedAsNull(): iterable
+    {
+        yield 'ids' => ['{"ids":null}'];
+        yield 'authors' => ['{"authors":null}'];
+        yield 'kinds' => ['{"kinds":null}'];
+        yield 'since' => ['{"since":null}'];
+        yield 'until' => ['{"until":null}'];
+        yield 'limit' => ['{"limit":null}'];
+        yield 'search' => ['{"search":null}'];
+        yield 'a tag condition' => ['{"#e":null}'];
+    }
+
+    public function testTryFromArrayParsesASinceAfterItsUntilAsAFilterThatCannotMatch(): void
+    {
+        $this->assertFalse(Filter::tryFromArray(['since' => 2000, 'until' => 1000])?->canMatch());
+    }
+
     public function testToStringReturnsJsonRepresentation(): void
     {
-        $filter = new Filter(kinds: EventKindCollection::fromInts([1]), limit: 10);
+        $filter = Filter::from(kinds: EventKindCollection::fromInts([1]), limit: 10);
 
         $string = (string) $filter;
 
@@ -720,18 +784,25 @@ final class FilterTest extends TestCase
         $this->assertSame(['limit' => 0], $filter->toArray());
     }
 
+    public function testTryFromArrayKeepsALimitAboveFiveThousand(): void
+    {
+        $filter = Filter::tryFromArray(['limit' => 99999]);
+
+        $this->assertSame(99999, $filter?->getLimit());
+    }
+
     public function testMatchesSearchTermInContent(): void
     {
         $keyPair = KeyMother::alice();
-        $event = EventMother::fromRumour(new Rumour(
+        $event = EventMother::fromRumour(Rumour::draft(
             $keyPair->getPublicKey(),
-            Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('Hello Nostr world'),
             new TagCollection(),
-            EventContent::fromString('Hello Nostr world')
+            Timestamp::now(),
         ));
 
-        $filter = new Filter(search: 'nostr');
+        $filter = Filter::from(search: 'nostr');
 
         $this->assertTrue($filter->matches($event));
     }
@@ -739,15 +810,15 @@ final class FilterTest extends TestCase
     public function testSearchIsCaseInsensitive(): void
     {
         $keyPair = KeyMother::alice();
-        $event = EventMother::fromRumour(new Rumour(
+        $event = EventMother::fromRumour(Rumour::draft(
             $keyPair->getPublicKey(),
-            Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('Hello NOSTR World'),
             new TagCollection(),
-            EventContent::fromString('Hello NOSTR World')
+            Timestamp::now(),
         ));
 
-        $filter = new Filter(search: 'nostr world');
+        $filter = Filter::from(search: 'nostr world');
 
         $this->assertTrue($filter->matches($event));
     }
@@ -755,15 +826,15 @@ final class FilterTest extends TestCase
     public function testSearchRequiresAllTerms(): void
     {
         $keyPair = KeyMother::alice();
-        $event = EventMother::fromRumour(new Rumour(
+        $event = EventMother::fromRumour(Rumour::draft(
             $keyPair->getPublicKey(),
-            Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('Hello Nostr'),
             new TagCollection(),
-            EventContent::fromString('Hello Nostr')
+            Timestamp::now(),
         ));
 
-        $filter = new Filter(search: 'nostr bitcoin');
+        $filter = Filter::from(search: 'nostr bitcoin');
 
         $this->assertFalse($filter->matches($event));
     }
@@ -771,66 +842,169 @@ final class FilterTest extends TestCase
     public function testSearchDoesNotMatchWhenTermAbsent(): void
     {
         $keyPair = KeyMother::alice();
-        $event = EventMother::fromRumour(new Rumour(
+        $event = EventMother::fromRumour(Rumour::draft(
             $keyPair->getPublicKey(),
-            Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('Hello world'),
             new TagCollection(),
-            EventContent::fromString('Hello world')
+            Timestamp::now(),
         ));
 
-        $filter = new Filter(search: 'nostr');
+        $filter = Filter::from(search: 'nostr');
 
         $this->assertFalse($filter->matches($event));
+    }
+
+    #[DataProvider('searchTermSeparators')]
+    public function testSearchSeparatesTermsByEachAsciiWhitespaceCharacter(string $separator): void
+    {
+        $event = EventMother::fromRumour(Rumour::draft(
+            KeyMother::alice()->getPublicKey(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('world, hello'),
+        ));
+
+        $this->assertTrue(Filter::from(search: 'hello'.$separator.'world')->matches($event));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function searchTermSeparators(): iterable
+    {
+        yield 'space' => [' '];
+        yield 'tab' => ["\t"];
+        yield 'line feed' => ["\n"];
+        yield 'vertical tab' => ["\v"];
+        yield 'form feed' => ["\f"];
+        yield 'carriage return' => ["\r"];
+    }
+
+    public function testSearchKeepsANoBreakSpaceInsideItsTerm(): void
+    {
+        $event = EventMother::fromRumour(Rumour::draft(
+            KeyMother::alice()->getPublicKey(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('world, hello'),
+        ));
+
+        $this->assertFalse(Filter::from(search: "hello\u{A0}world")->matches($event));
     }
 
     public function testWhitespaceOnlySearchMatchesAnyEvent(): void
     {
         $keyPair = KeyMother::alice();
-        $event = EventMother::fromRumour(new Rumour(
+        $event = EventMother::fromRumour(Rumour::draft(
             $keyPair->getPublicKey(),
-            Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('Hello world'),
             new TagCollection(),
-            EventContent::fromString('Hello world')
+            Timestamp::now(),
         ));
 
-        $filter = new Filter(search: '   ');
+        $filter = Filter::from(search: '   ');
 
         $this->assertTrue($filter->matches($event));
+    }
+
+    public function testSearchIgnoresAKeyValueExtension(): void
+    {
+        $event = EventMother::fromRumour(Rumour::draft(
+            KeyMother::alice()->getPublicKey(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('Hello Nostr world'),
+            new TagCollection(),
+            Timestamp::now(),
+        ));
+
+        $this->assertTrue(Filter::from(search: 'nostr language:en')->matches($event));
+    }
+
+    public function testSearchOfOnlyExtensionsMatchesWhatTheRestOfTheFilterMatches(): void
+    {
+        $event = EventMother::fromRumour(Rumour::draft(
+            KeyMother::alice()->getPublicKey(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('Hello world'),
+            new TagCollection(),
+            Timestamp::now(),
+        ));
+
+        $this->assertTrue(Filter::from(kinds: EventKindCollection::fromInts([1]), search: 'include:spam domain:example.com Language:EN nsfw:false')->matches($event));
+    }
+
+    public function testSearchOfOnlyExtensionsStillAppliesTheRestOfTheFilter(): void
+    {
+        $event = EventMother::fromRumour(Rumour::draft(
+            KeyMother::alice()->getPublicKey(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('Hello world'),
+            new TagCollection(),
+            Timestamp::now(),
+        ));
+
+        $this->assertFalse(Filter::from(kinds: EventKindCollection::fromInts([2]), search: 'nsfw:false')->matches($event));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function searchTokensThatAreNotExtensions(): iterable
+    {
+        yield 'a colon with nothing before it' => [':nostr'];
+        yield 'a colon with nothing after it' => ['nostr:'];
+        yield 'two colons' => ['a:b:c'];
+        yield 'a url' => ['https://x.com'];
+        yield 'a time' => ['12:30'];
+        yield 'a key that starts with a digit' => ['1a:b'];
+        yield 'a key holding a dot' => ['a.b:c'];
+    }
+
+    #[DataProvider('searchTokensThatAreNotExtensions')]
+    public function testSearchReadsATokenThatIsNotAKeyValueExtensionAsATerm(string $term): void
+    {
+        $event = EventMother::fromRumour(Rumour::draft(
+            KeyMother::alice()->getPublicKey(),
+            EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('Hello world'),
+            new TagCollection(),
+            Timestamp::now(),
+        ));
+
+        $this->assertFalse(Filter::from(search: $term)->matches($event));
     }
 
     public function testSearchCombinesWithOtherFilters(): void
     {
         $keyPair = KeyMother::alice();
-        $event = EventMother::fromRumour(new Rumour(
+        $event = EventMother::fromRumour(Rumour::draft(
             $keyPair->getPublicKey(),
-            Timestamp::now(),
             EventKind::fromInt(EventKind::TEXT_NOTE),
+            EventContent::fromString('Hello Nostr'),
             new TagCollection(),
-            EventContent::fromString('Hello Nostr')
+            Timestamp::now(),
         ));
 
-        $matchingFilter = new Filter(kinds: EventKindCollection::fromInts([1]), search: 'nostr');
-        $nonMatchingFilter = new Filter(kinds: EventKindCollection::fromInts([2]), search: 'nostr');
+        $matchingFilter = Filter::from(kinds: EventKindCollection::fromInts([1]), search: 'nostr');
+        $nonMatchingFilter = Filter::from(kinds: EventKindCollection::fromInts([2]), search: 'nostr');
 
         $this->assertTrue($matchingFilter->matches($event));
         $this->assertFalse($nonMatchingFilter->matches($event));
     }
 
-    public function testHasSearchReturnsTrueWhenSet(): void
+    public function testGetSearchIsPresentWhenSet(): void
     {
-        $filter = new Filter(search: 'nostr');
+        $filter = Filter::from(search: 'nostr');
 
-        $this->assertTrue($filter->hasSearch());
+        $this->assertNotNull($filter->getSearch());
         $this->assertSame('nostr', $filter->getSearch());
     }
 
-    public function testHasSearchReturnsFalseWhenNull(): void
+    public function testGetSearchIsAbsentWhenNull(): void
     {
-        $filter = new Filter();
+        $filter = Filter::from();
 
-        $this->assertFalse($filter->hasSearch());
+        $this->assertNull($filter->getSearch());
         $this->assertNull($filter->getSearch());
     }
 
@@ -849,7 +1023,7 @@ final class FilterTest extends TestCase
 
     public function testToArrayOmitsSearchWhenNull(): void
     {
-        $filter = new Filter(kinds: EventKindCollection::fromInts([1]));
+        $filter = Filter::from(kinds: EventKindCollection::fromInts([1]));
 
         $array = $filter->toArray();
 
@@ -858,7 +1032,7 @@ final class FilterTest extends TestCase
 
     public function testWithAuthorsPreservesSearch(): void
     {
-        $filter = new Filter(search: 'nostr');
+        $filter = Filter::from(search: 'nostr');
 
         $newFilter = $filter->withAuthors(PublicKeyCollection::fromHexValues([str_repeat('c', 64)]));
 
@@ -892,44 +1066,29 @@ final class FilterTest extends TestCase
         $this->assertSame($expectedHexes, $actual->toHexes());
     }
 
-    public function testConstructorRejectsIdsExceedingMaxValues(): void
+    public function testTryFromArrayParsesAFilterOfMoreThanAThousandAuthors(): void
     {
-        $ids = array_fill(0, Filter::MAX_VALUES_PER_FIELD + 1, str_repeat('0', 64));
+        $authors = array_map(static fn (int $i): string => str_pad(dechex($i), 64, '0', STR_PAD_LEFT), range(1, 1001));
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('may contain at most');
-
-        new Filter(ids: EventIdCollection::fromHexValues($ids));
+        $this->assertCount(1001, Filter::tryFromArray(['authors' => $authors])?->getAuthors() ?? []);
     }
 
-    public function testConstructorRejectsAuthorsExceedingMaxValues(): void
+    public function testFromBuildsAFilterForAFollowListOfMoreThanAThousandKeys(): void
     {
-        $authors = array_fill(0, Filter::MAX_VALUES_PER_FIELD + 1, str_repeat('0', 64));
+        $follows = array_map(static fn (int $i): string => str_pad(dechex($i), 64, '0', STR_PAD_LEFT), range(1, 1500));
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('may contain at most');
-
-        new Filter(authors: PublicKeyCollection::fromHexValues($authors));
+        $this->assertCount(1500, Filter::from(authors: PublicKeyCollection::fromHexValues($follows))->getAuthors() ?? []);
     }
 
-    public function testConstructorRejectsKindsExceedingMaxValues(): void
+    public function testFromBuildsAFilterOfMoreThanAThousandIdsKindsAndTagValues(): void
     {
-        $kinds = array_fill(0, Filter::MAX_VALUES_PER_FIELD + 1, 1);
+        $filter = Filter::from(
+            ids: EventIdCollection::fromHexValues(array_fill(0, 1001, str_repeat('0', 64))),
+            kinds: EventKindCollection::fromInts(range(0, 1000)),
+            tags: TagFilter::fromValues(['t' => array_fill(0, 1001, 'abc')]),
+        );
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('may contain at most');
-
-        new Filter(kinds: EventKindCollection::fromInts($kinds));
-    }
-
-    public function testConstructorRejectsTagValuesExceedingMaxValues(): void
-    {
-        $values = array_fill(0, Filter::MAX_VALUES_PER_FIELD + 1, 'abc');
-
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('may contain at most');
-
-        TagFilter::fromValues(['e' => $values]);
+        $this->assertSame([1001, 1001, 1001], [count($filter->getIds() ?? []), count($filter->getKinds() ?? []), count($filter->getTags()?->getValues()['t'] ?? [])]);
     }
 
     public function testTryFromArrayReturnsNullForEmptyTagName(): void
@@ -944,29 +1103,29 @@ final class FilterTest extends TestCase
 
     public function testEmptyFilterJsonSerialisesAsAnObject(): void
     {
-        $this->assertSame('{}', json_encode(new Filter()->jsonSerialize(), JSON_THROW_ON_ERROR));
+        $this->assertSame('{}', json_encode(Filter::from()->jsonSerialize(), JSON_THROW_ON_ERROR));
     }
 
     public function testNonEmptyFilterJsonSerialisesWithItsArrayShape(): void
     {
-        $this->assertSame('{"kinds":[1]}', json_encode(new Filter(kinds: EventKindCollection::fromInts([1]))->jsonSerialize(), JSON_THROW_ON_ERROR));
+        $this->assertSame('{"kinds":[1]}', json_encode(Filter::from(kinds: EventKindCollection::fromInts([1]))->jsonSerialize(), JSON_THROW_ON_ERROR));
     }
 
     public function testEmptyFilterCastsToStringAsAnObject(): void
     {
-        $this->assertSame('{}', (string) new Filter());
+        $this->assertSame('{}', (string) Filter::from());
     }
 
     public function testCastToStringAgreesWithJsonSerialisation(): void
     {
-        $filter = new Filter(kinds: EventKindCollection::fromInts([1]), authors: PublicKeyCollection::fromHexValues([str_repeat('d', 64)]));
+        $filter = Filter::from(kinds: EventKindCollection::fromInts([1]), authors: PublicKeyCollection::fromHexValues([str_repeat('d', 64)]));
 
         $this->assertSame(json_encode($filter->jsonSerialize(), JSON_THROW_ON_ERROR), (string) $filter);
     }
 
     public function testEmptyFilterRoundTripsThroughTheJsonForm(): void
     {
-        $restored = Filter::tryFromArray(new Filter()->jsonSerialize());
+        $restored = Filter::tryFromArray(Filter::from()->jsonSerialize());
 
         $this->assertNotNull($restored);
         $this->assertSame([], $restored->toArray());
@@ -1009,5 +1168,33 @@ final class FilterTest extends TestCase
     public function testATryFromArrayListIsRefused(): void
     {
         $this->assertNull(Filter::tryFromArray(['REQ', 'sub']));
+    }
+
+    public function testAnObjectKeyedLikeAListIsReadAsAnObject(): void
+    {
+        $this->assertNotNull(Filter::tryFromJson('{"0":1}'));
+    }
+
+    public function testAnObjectKeyedLikeAListIgnoresItsKeyAsAnyUnknownKeyIs(): void
+    {
+        $listKeyed = Filter::tryFromJson('{"0":1}') ?? self::fail('{"0":1} did not parse');
+        $unknownKeyed = Filter::tryFromJson('{"foo":1}') ?? self::fail('{"foo":1} did not parse');
+
+        $this->assertSame($unknownKeyed->toArray(), $listKeyed->toArray());
+    }
+
+    public function testTryFromJsonRefusesAnEmptyJsonList(): void
+    {
+        $this->assertNull(Filter::tryFromJson('[]'));
+    }
+
+    public function testTryFromJsonRefusesAFieldGivenAsAnObjectKeyedLikeAList(): void
+    {
+        $this->assertNull(Filter::tryFromJson('{"kinds":{"0":1}}'));
+    }
+
+    public function testTryFromJsonRefusesAFieldGivenAsAnObjectWithNamedKeys(): void
+    {
+        $this->assertNull(Filter::tryFromJson('{"kinds":{"x":1}}'));
     }
 }

@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
+use Innis\Nostr\Core\Domain\Exception\SerialisationException;
 use Innis\Nostr\Core\Domain\Service\Bech32Codec;
 use Innis\Nostr\Core\Domain\Service\HexCodec;
+use Innis\Nostr\Core\Domain\ValueObject\IdentityKeyedInterface;
 use Override;
 use Stringable;
 
-final readonly class PublicKey implements Stringable
+final readonly class PublicKey implements Stringable, IdentityKeyedInterface
 {
     public const string BECH32_HRP = 'npub';
 
@@ -32,7 +34,7 @@ final readonly class PublicKey implements Stringable
 
     public function toBytes(): string
     {
-        return HexCodec::decode($this->key);
+        return sodium_hex2bin($this->key);
     }
 
     /**
@@ -40,7 +42,14 @@ final readonly class PublicKey implements Stringable
      */
     public function toBech32(): string
     {
-        return Bech32Codec::encode(self::BECH32_HRP, $this->toBytes());
+        return Bech32Codec::encode(self::BECH32_HRP, $this->toBytes())
+            ?? throw new SerialisationException('A 32-byte public key always fits a bech32 string');
+    }
+
+    #[Override]
+    public function identityKey(): string
+    {
+        return $this->key;
     }
 
     public function equals(self $other): bool
@@ -62,7 +71,7 @@ final readonly class PublicKey implements Stringable
             return null;
         }
 
-        return new self(HexCodec::encode($bytes));
+        return new self(sodium_bin2hex($bytes));
     }
 
     public static function tryFromBech32(string $bech32): ?self
@@ -74,7 +83,7 @@ final readonly class PublicKey implements Stringable
 
     public static function tryFromNpubOrHex(string $value): ?self
     {
-        return str_starts_with($value, 'npub') ? self::tryFromBech32($value) : self::tryFromHex($value);
+        return self::tryFromHex($value) ?? self::tryFromBech32($value);
     }
 
     /**

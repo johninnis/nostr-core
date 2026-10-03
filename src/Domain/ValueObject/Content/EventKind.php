@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\ValueObject\Content;
 
 use Innis\Nostr\Core\Domain\Enum\EventKindCategory;
+use Innis\Nostr\Core\Domain\ValueObject\IdentityKeyedInterface;
 use InvalidArgumentException;
 use Override;
 use Stringable;
 
-final readonly class EventKind implements Stringable
+final readonly class EventKind implements Stringable, IdentityKeyedInterface
 {
     public const int METADATA = 0;
     public const int TEXT_NOTE = 1;
-    public const int RECOMMEND_SERVER = 2;
     public const int FOLLOW_LIST = 3;
     public const int ENCRYPTED_DIRECT_MESSAGE = 4;
     public const int EVENT_DELETION = 5;
@@ -56,6 +56,7 @@ final readonly class EventKind implements Stringable
     public const int ZAP_RECEIPT = 9735;
     public const int NUTZAP = 9321;
     public const int HIGHLIGHT = 9802;
+    public const int EPHEMERAL_GIFT_WRAP = 21059;
     public const int CLIENT_AUTH = 22242;
     public const int WALLET_REQUEST = 23194;
     public const int WALLET_RESPONSE = 23195;
@@ -80,10 +81,13 @@ final readonly class EventKind implements Stringable
     public const int GIT_REPOSITORIES_LIST = 10018;
     public const int NUTZAP_MINT_RECOMMENDATION = 10019;
     public const int MEDIA_FOLLOWS_LIST = 10020;
+    public const int FAVOURITE_FOLLOW_SETS_LIST = 10021;
     public const int CUSTOM_EMOJI_LIST = 10030;
     public const int DM_RELAY_LIST = 10050;
     public const int KEY_PACKAGE_RELAYS = 10051;
+    public const int FAVOURITE_PODCASTS_LIST = 10054;
     public const int BLOSSOM_SERVER_LIST = 10063;
+    public const int AUTHORED_PODCASTS_LIST = 10064;
     public const int GOOD_WIKI_AUTHORS_LIST = 10101;
     public const int GOOD_WIKI_RELAYS_LIST = 10102;
     public const int RELAY_MONITOR_ANNOUNCEMENT = 10166;
@@ -111,9 +115,6 @@ final readonly class EventKind implements Stringable
     public const int INTERACTIVE_ROOM = 30312;
     public const int CONFERENCE_EVENT = 30313;
     public const int USER_STATUS = 30315;
-    public const int SITE_MANIFEST = 30630;
-    public const int WEB_PAGE = 30631;
-    public const int WEB_PAGE_DRAFT = 30632;
     public const int WIKI_ARTICLE = 30818;
     public const int WIKI_REDIRECT = 30819;
     public const int DRAFT_EVENT = 31234;
@@ -138,14 +139,12 @@ final readonly class EventKind implements Stringable
 
     private function __construct(private int $kind)
     {
-        if (!self::isValid($kind)) {
-            throw new InvalidArgumentException('Event kind must be between 0 and 65535');
-        }
     }
 
-    private static function isValid(int $kind): bool
+    #[Override]
+    public function identityKey(): int
     {
-        return $kind >= 0 && $kind <= 65535;
+        return $this->kind;
     }
 
     public function toInt(): int
@@ -177,12 +176,12 @@ final readonly class EventKind implements Stringable
 
     public static function fromInt(int $kind): self
     {
-        return new self($kind);
+        return self::tryFromInt($kind) ?? throw new InvalidArgumentException('Event kind must be between 0 and 65535');
     }
 
     public static function tryFromInt(int $kind): ?self
     {
-        return self::isValid($kind) ? new self($kind) : null;
+        return $kind >= 0 && $kind <= 65535 ? new self($kind) : null;
     }
 
     #[Override]

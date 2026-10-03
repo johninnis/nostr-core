@@ -106,6 +106,13 @@ final class CountMessageTest extends TestCase
         $this->assertNull(CountMessage::tryFromArray(['COUNT', 'sub1']));
     }
 
+    public function testTryFromArrayIgnoresATrailingElement(): void
+    {
+        $message = CountMessage::tryFromArray(['COUNT', 'sub1', ['count' => 42], 'extra']) ?? throw new RuntimeException('Expected a valid message');
+
+        $this->assertSame(42, $message->getCount()->toInt());
+    }
+
     public function testTryFromArrayReturnsNullOnWrongType(): void
     {
         $this->assertNull(CountMessage::tryFromArray(['EVENT', 'sub1', ['count' => 42]]));

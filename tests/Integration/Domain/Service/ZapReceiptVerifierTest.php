@@ -12,12 +12,15 @@ use Innis\Nostr\Core\Domain\Service\ZapReceiptVerifier;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
+use Innis\Nostr\Core\Domain\ValueObject\Payment\ZapReceipt;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Signer;
+use Innis\Nostr\Core\Tests\Support\EventMother;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class ZapReceiptVerifierTest extends TestCase
 {
@@ -43,7 +46,6 @@ final class ZapReceiptVerifierTest extends TestCase
         $this->assertNull($this->verifier->verify($receipt, $this->provider->getPublicKey()));
     }
 
-    // NIP-57 Appendix F: the receipt's pubkey MUST be the recipient lnurl provider's nostrPubkey.
     public function testAReceiptFromAnotherProviderIsRejected(): void
     {
         $receipt = $this->receipt($this->zapRequest($this->sender));
@@ -55,18 +57,6 @@ final class ZapReceiptVerifierTest extends TestCase
         );
     }
 
-    // NIP-57 Appendix F: the bolt11 invoiceAmount MUST equal the zap request's amount tag.
-    public function testAnAmountDisagreeingWithTheInvoiceIsRejected(): void
-    {
-        $receipt = $this->receipt($this->zapRequest($this->sender, amountMillisats: 999_999));
-
-        $this->assertSame(
-            ZapReceiptVerificationFailure::AmountMismatch,
-            $this->verifier->verify($receipt, $this->provider->getPublicKey()),
-        );
-    }
-
-    // NIP-57 Appendix F: the zap request's lnurl tag SHOULD equal the recipient's lnurl.
     public function testAnLnurlDisagreeingWithTheRecipientIsRejected(): void
     {
         $receipt = $this->receipt($this->zapRequest($this->sender, lnurl: 'lnurl1someoneelse'));
@@ -84,7 +74,7 @@ final class ZapReceiptVerifierTest extends TestCase
         $this->assertNull($this->verifier->verify($receipt, $this->provider->getPublicKey(), 'lnurl1therecipient'));
     }
 
-    // Deliberate: not an Appendix F requirement, but the sender a consumer displays comes from this request; without the check a trusted provider could attribute a zap to anyone
+    // Deliberate: the zap request's own signature is checked because the sender a consumer displays comes from it — see ADR-0079
     public function testAZapRequestNotSignedByItsClaimedSenderIsRejected(): void
     {
         $forged = $this->forgedZapRequestJson();
@@ -96,99 +86,46 @@ final class ZapReceiptVerifierTest extends TestCase
         );
     }
 
-    public function testAReceiptWithNoDescriptionTagIsRejected(): void
+    public function testAReceiptNotSignedByItsAuthorIsRejected(): void
     {
-        $receipt = $this->signedEvent(
-            $this->provider,
-            EventKind::ZAP_RECEIPT,
-            new TagCollection([Tag::create((string) TagType::bolt11(), self::INVOICE_1000_SATS)]),
-        );
+        $genuine = $this->receiptEvent($this->zapRequest($this->sender));
+        $tampered = ZapReceipt::tryFromEvent(new Event($genuine->getRumour(), $genuine->getId(), EventMother::signature()))
+            ?? throw new RuntimeException('Expected a parsable zap receipt');
 
         $this->assertSame(
-            ZapReceiptVerificationFailure::MissingZapRequest,
-            $this->verifier->verify($receipt, $this->provider->getPublicKey()),
+            ZapReceiptVerificationFailure::ReceiptSignatureInvalid,
+            $this->verifier->verify($tampered, $this->provider->getPublicKey()),
         );
     }
 
-    public function testADescriptionThatIsNotAnEventIsRejected(): void
-    {
-        $receipt = $this->receiptFromDescription('{"not":"an event"}');
-
-        $this->assertSame(
-            ZapReceiptVerificationFailure::MalformedZapRequest,
-            $this->verifier->verify($receipt, $this->provider->getPublicKey()),
-        );
-    }
-
-    public function testANonReceiptKindIsRejected(): void
-    {
-        $notAReceipt = $this->signedEvent($this->provider, EventKind::TEXT_NOTE, new TagCollection());
-
-        $this->assertSame(
-            ZapReceiptVerificationFailure::WrongKind,
-            $this->verifier->verify($notAReceipt, $this->provider->getPublicKey()),
-        );
-    }
-
-    public function testAReceiptWithNoReadableInvoiceAmountIsRejected(): void
-    {
-        $receipt = $this->signedEvent(
-            $this->provider,
-            EventKind::ZAP_RECEIPT,
-            new TagCollection([
-                Tag::create((string) TagType::bolt11(), 'lnbc1notanamount'),
-                Tag::create((string) TagType::description(), $this->zapRequest($this->sender)),
-            ]),
-        );
-
-        $this->assertSame(
-            ZapReceiptVerificationFailure::MissingInvoiceAmount,
-            $this->verifier->verify($receipt, $this->provider->getPublicKey()),
-        );
-    }
-
-    // Deliberate: a duplicate description tag is ambiguous, not resolvable by position — pinning the rejection stops it being "fixed" back to picking the first
-    public function testAReceiptCarryingTwoDescriptionTagsIsRejected(): void
-    {
-        $receipt = $this->signedEvent(
-            $this->provider,
-            EventKind::ZAP_RECEIPT,
-            new TagCollection([
-                Tag::create((string) TagType::bolt11(), self::INVOICE_1000_SATS),
-                Tag::create((string) TagType::description(), '{"not":"an event"}'),
-                Tag::create((string) TagType::description(), $this->zapRequest($this->sender)),
-            ]),
-        );
-
-        $this->assertSame(
-            ZapReceiptVerificationFailure::MultipleZapRequests,
-            $this->verifier->verify($receipt, $this->provider->getPublicKey()),
-        );
-    }
-
-    private function receipt(string $zapRequestJson): Event
+    private function receipt(string $zapRequestJson): ZapReceipt
     {
         return $this->receiptFromDescription($zapRequestJson);
     }
 
-    private function receiptFromDescription(string $description): Event
+    private function receiptFromDescription(string $description): ZapReceipt
+    {
+        return ZapReceipt::tryFromEvent($this->receiptEvent($description)) ?? throw new RuntimeException('Expected a parsable zap receipt');
+    }
+
+    private function receiptEvent(string $description): Event
     {
         return $this->signedEvent(
             $this->provider,
             EventKind::ZAP_RECEIPT,
             new TagCollection([
-                Tag::create((string) TagType::bolt11(), self::INVOICE_1000_SATS),
-                Tag::create((string) TagType::description(), $description),
+                Tag::fromArray([TagType::BOLT11, self::INVOICE_1000_SATS]),
+                Tag::fromArray([TagType::DESCRIPTION, $description]),
             ]),
         );
     }
 
     private function zapRequest(KeyPair $sender, int $amountMillisats = 1_000_000, ?string $lnurl = null): string
     {
-        $tags = [Tag::create((string) TagType::amount(), (string) $amountMillisats)];
+        $tags = [Tag::fromArray([TagType::AMOUNT, (string) $amountMillisats])];
 
         if (null !== $lnurl) {
-            $tags[] = Tag::create((string) TagType::lnurl(), $lnurl);
+            $tags[] = Tag::fromArray([TagType::LNURL, $lnurl]);
         }
 
         return $this->signedEvent($sender, EventKind::ZAP_REQUEST, new TagCollection($tags))->toJson();
@@ -197,7 +134,7 @@ final class ZapReceiptVerifierTest extends TestCase
     private function forgedZapRequestJson(): string
     {
         $genuine = $this->signedEvent($this->sender, EventKind::ZAP_REQUEST, new TagCollection([
-            Tag::create((string) TagType::amount(), '1000000'),
+            Tag::fromArray([TagType::AMOUNT, '1000000']),
         ]))->toArray();
 
         $genuine['pubkey'] = KeyPair::generate($this->signer)->getPublicKey()->toHex();
@@ -207,12 +144,12 @@ final class ZapReceiptVerifierTest extends TestCase
 
     private function signedEvent(KeyPair $keyPair, int $kind, TagCollection $tags): Event
     {
-        return new Rumour(
+        return Rumour::draft(
             $keyPair->getPublicKey(),
-            Timestamp::now(),
             EventKind::fromInt($kind),
-            $tags,
             EventContent::fromString(''),
+            $tags,
+            Timestamp::now(),
         )->sign($keyPair, $this->signer);
     }
 }

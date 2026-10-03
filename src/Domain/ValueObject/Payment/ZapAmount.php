@@ -16,9 +16,6 @@ final readonly class ZapAmount
 
     private function __construct(private int $millisats)
     {
-        if ($this->millisats < 0) {
-            throw new InvalidArgumentException('Amount cannot be negative');
-        }
     }
 
     public function toMillisats(): int
@@ -38,18 +35,30 @@ final readonly class ZapAmount
 
     public static function fromMillisats(int $millisats): self
     {
-        return new self($millisats);
+        return self::tryFromMillisats($millisats) ?? throw new InvalidArgumentException('Amount cannot be negative');
     }
 
     public static function fromSats(int $sats): self
     {
-        return new self($sats * self::MILLISATS_PER_SAT);
+        if ($sats > intdiv(PHP_INT_MAX, self::MILLISATS_PER_SAT)) {
+            throw new InvalidArgumentException(sprintf('Amount of %d sats does not fit in millisats', $sats));
+        }
+
+        return self::fromMillisats($sats * self::MILLISATS_PER_SAT);
     }
 
     public static function tryFromBolt11(string $bolt11): ?self
     {
-        // Deliberate: the trailing '1' anchors the amount to the bech32 separator so an amount-less invoice is rejected, not read as 1 BTC; lowercase because the multipliers are case-sensitive — see ADR-0040
-        if (!preg_match('/^ln[a-z]+?(\d+)([munp])?1/', strtolower($bolt11), $matches)) {
+        // Deliberate: BIP-173 decoders must not accept a mixed-case string, and BOLT-11 parses the invoice as bech32 — see ADR-0083
+        if (strtolower($bolt11) !== $bolt11 && strtoupper($bolt11) !== $bolt11) {
+            return null;
+        }
+
+        $invoice = strtolower($bolt11);
+        $separator = strrpos($invoice, '1');
+
+        // Deliberate: only the BOLT-11 bitcoin prefixes; the whole human-readable part, up to the last '1' (the bech32 separator), must be prefix and amount, so an amount-less invoice is rejected, not read as 1 BTC; the amount is a positive integer with no leading zero, as BOLT-11 requires; lowercase because the multipliers are case-sensitive — see ADR-0083
+        if (false === $separator || !preg_match('/^ln(?:bcrt|bc|tbs|tb)([1-9]\d*)([munp])?$/D', substr($invoice, 0, $separator), $matches)) {
             return null;
         }
 
@@ -63,7 +72,7 @@ final readonly class ZapAmount
 
             $millisats = intdiv($amount, 10);
 
-            return $millisats > self::MAX_MILLISATS ? null : new self($millisats);
+            return $millisats > self::MAX_MILLISATS ? null : self::tryFromMillisats($millisats);
         }
 
         $millisatsPerUnit = match ($multiplier) {
@@ -77,6 +86,11 @@ final readonly class ZapAmount
             return null;
         }
 
-        return new self($amount * $millisatsPerUnit);
+        return self::tryFromMillisats($amount * $millisatsPerUnit);
+    }
+
+    private static function tryFromMillisats(int $millisats): ?self
+    {
+        return $millisats < 0 ? null : new self($millisats);
     }
 }

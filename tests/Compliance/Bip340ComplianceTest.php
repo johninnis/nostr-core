@@ -23,14 +23,6 @@ final class Bip340ComplianceTest extends TestCase
     private const int OFFICIAL_VECTOR_COUNT = 19;
     private const int OFFICIAL_REJECTION_COUNT = 10;
 
-    /**
-     * Every other test here folds mismatches into a `$problems` array and asserts it is empty, which
-     * is vacuously true when no vectors load at all — a truncated or missing CSV would leave them
-     * green. PHPUnit's risky-test check happens to catch that today only because one sibling test
-     * makes no assertion on an empty set; rewriting that one into the same accumulator style would
-     * silently turn the whole suite into a no-op. This asserts the corpus itself, so the guarantee is
-     * intentional rather than incidental.
-     */
     public function testTheOfficialVectorCorpusIsFullyLoaded(): void
     {
         $vectors = iterator_to_array($this->vectors(), false);

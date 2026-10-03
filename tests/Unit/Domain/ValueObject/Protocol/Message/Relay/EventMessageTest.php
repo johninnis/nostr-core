@@ -74,44 +74,25 @@ final class EventMessageTest extends TestCase
         $this->assertIsArray($decoded[2]);
     }
 
-    public function testToJsonSplicesRawJsonWhenEventCarriesIt(): void
+    public function testToJsonDoesNotReEmitAKeyTheParsedEventCarried(): void
     {
-        $rawEvent = json_encode(
-            $this->createEvent()->toArray(),
-            JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
-        );
-        $message = new EventMessage(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), Event::tryFromJson($rawEvent) ?? throw new RuntimeException('Expected a valid event'));
+        $parsed = Event::tryFromJson(json_encode([...$this->createEvent()->toArray(), 'evil' => 'payload'], JSON_THROW_ON_ERROR))
+            ?? throw new RuntimeException('Expected a valid event');
+        $message = new EventMessage(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), $parsed);
 
-        $this->assertSame('["EVENT","sub-1",'.$rawEvent.']', $message->toJson());
+        $this->assertStringNotContainsString('evil', $message->toJson());
     }
 
-    public function testToJsonIsByteIdenticalWithOrWithoutRawJson(): void
+    public function testToJsonIsTheSameForAParsedAndAFreshEvent(): void
     {
         $event = $this->createEvent();
-        $rawEvent = json_encode(
-            $event->toArray(),
-            JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
-        );
+        $spaced = json_encode($event->toArray(), JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT);
 
         $subscriptionId = SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID');
-        $withoutRaw = new EventMessage($subscriptionId, $event);
-        $withRaw = new EventMessage($subscriptionId, Event::tryFromJson($rawEvent) ?? throw new RuntimeException('Expected a valid event'));
+        $fresh = new EventMessage($subscriptionId, $event);
+        $parsed = new EventMessage($subscriptionId, Event::tryFromJson($spaced) ?? throw new RuntimeException('Expected a valid event'));
 
-        $this->assertSame($withoutRaw->toJson(), $withRaw->toJson());
-    }
-
-    public function testPreSerialisedJsonSplicesRawEventOrReturnsNull(): void
-    {
-        $rawEvent = json_encode(
-            $this->createEvent()->toArray(),
-            JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
-        );
-
-        $stored = new EventMessage(SubscriptionId::tryFromString('sub-1') ?? throw new RuntimeException('Expected a valid subscription ID'), Event::tryFromJson($rawEvent) ?? throw new RuntimeException('Expected a valid event'));
-        $fresh = new EventMessage(SubscriptionId::tryFromString('sub-1'), $this->createEvent());
-
-        self::assertSame('["EVENT","sub-1",'.$rawEvent.']', $stored->preSerialisedJson());
-        self::assertNull($fresh->preSerialisedJson());
+        $this->assertSame($fresh->toJson(), $parsed->toJson());
     }
 
     public function testTryFromArrayCreatesValidMessage(): void
@@ -128,6 +109,13 @@ final class EventMessageTest extends TestCase
     public function testTryFromArrayReturnsNullOnInvalidFormat(): void
     {
         $this->assertNull(EventMessage::tryFromArray(['EVENT', 'sub-1']));
+    }
+
+    public function testTryFromArrayIgnoresATrailingElement(): void
+    {
+        $message = EventMessage::tryFromArray(['EVENT', 'sub-1', $this->createEvent()->toArray(), 'extra']) ?? throw new RuntimeException('Expected a valid message');
+
+        $this->assertSame('sub-1', (string) $message->getSubscriptionId());
     }
 
     public function testTryFromArrayReturnsNullOnWrongType(): void
@@ -159,12 +147,12 @@ final class EventMessageTest extends TestCase
 
     private function createEvent(): Event
     {
-        return EventMother::fromRumour(new Rumour(
+        return EventMother::fromRumour(Rumour::draft(
             self::createPublicKey(),
-            Timestamp::fromInt(1700000000),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            new TagCollection(),
             EventContent::fromString('test content'),
+            new TagCollection(),
+            Timestamp::fromInt(1700000000),
         ));
     }
 }

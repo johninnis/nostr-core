@@ -6,10 +6,9 @@ namespace Innis\Nostr\Core\Application\Service;
 
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Failure\Nip42ValidationFailure;
-use Innis\Nostr\Core\Domain\ValueObject\Protocol\Challenge;
-use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayChallenge;
 
 interface Nip42ValidatorInterface
 {
-    public function validate(Event $event, Challenge $challenge, RelayUrl $relayUrl): ?Nip42ValidationFailure;
+    public function validate(Event $event, RelayChallenge $relayChallenge): ?Nip42ValidationFailure;
 }

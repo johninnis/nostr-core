@@ -14,13 +14,26 @@ final readonly class Nip86Request
     /**
      * @param list<mixed> $params
      */
-    public function __construct(
+    private function __construct(
         private string $method,
-        private array $params = [],
+        private array $params,
     ) {
-        if ('' === $method) {
-            throw new InvalidArgumentException('A NIP-86 request must name a method');
-        }
+    }
+
+    /**
+     * @param array<array-key, mixed> $params
+     */
+    public static function tryFrom(string $method, array $params = []): ?self
+    {
+        return '' === $method || !array_is_list($params) ? null : new self($method, $params);
+    }
+
+    /**
+     * @param list<mixed> $params
+     */
+    public static function from(string $method, array $params = []): self
+    {
+        return self::tryFrom($method, $params) ?? throw new InvalidArgumentException('A NIP-86 request must name a method');
     }
 
     // Deliberate: a string, not Nip86Method — a relay may serve methods the specification does not define — see ADR-0069
@@ -50,30 +63,22 @@ final readonly class Nip86Request
         return JsonWireFormat::encode($this->toArray(), JsonWireFormat::MESSAGE);
     }
 
-    /**
-     * @param array<array-key, mixed> $data
-     */
-    public static function tryFromArray(array $data): ?self
+    public static function tryFromArray(mixed $data): ?self
     {
-        $method = JsonWireFormat::stringField($data, 'method');
+        $fields = JsonWireFormat::objectFields($data);
 
-        if (null === $method || '' === $method) {
+        if (null === $fields) {
             return null;
         }
 
-        $params = $data['params'] ?? [];
+        $method = JsonWireFormat::stringField($fields, 'method');
+        $params = array_key_exists('params', $fields) ? $fields['params'] : [];
 
-        if (!is_array($params) || !array_is_list($params)) {
-            return null;
-        }
-
-        return new self($method, $params);
+        return null === $method || !is_array($params) ? null : self::tryFrom($method, $params);
     }
 
     public static function tryFromJson(string $json): ?self
     {
-        $data = JsonWireFormat::decodeArray($json);
-
-        return null === $data ? null : self::tryFromArray($data);
+        return self::tryFromArray(JsonWireFormat::decode($json));
     }
 }

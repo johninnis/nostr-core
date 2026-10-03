@@ -18,14 +18,9 @@ final class RelayReferenceCollection extends TypedCollection
         return RelayReference::class;
     }
 
-    private static function tryParse(mixed $value): ?RelayReference
-    {
-        return is_array($value) ? RelayReference::tryFromArray($value) : null;
-    }
-
     public static function fromArrays(mixed $values): self
     {
-        return self::fromEach($values, self::tryParse(...));
+        return self::fromEach($values, RelayReference::tryFromArray(...));
     }
 
     /**

@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Protocol;
 
 use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use stdClass;
 
 // Deliberate: a thin typed view that keeps the raw document and projects fields on access, not an eagerly fully-parsed value object like ProfileMetadata; the relay-info document is open and advisory — see ADR-0036
 final readonly class Nip11Info
@@ -17,7 +18,7 @@ final readonly class Nip11Info
      */
     private function __construct(
         private RelayUrl $relayUrl,
-        private array $rawData = [],
+        private array $rawData,
     ) {
     }
 
@@ -38,9 +39,12 @@ final readonly class Nip11Info
 
     public function getPubkey(): ?PublicKey
     {
-        $pubkey = JsonWireFormat::stringField($this->rawData, 'pubkey');
+        return $this->publicKeyField('pubkey');
+    }
 
-        return null === $pubkey ? null : PublicKey::tryFromHex($pubkey);
+    public function getSelf(): ?PublicKey
+    {
+        return $this->publicKeyField('self');
     }
 
     public function getContact(): ?string
@@ -49,11 +53,11 @@ final readonly class Nip11Info
     }
 
     /**
-     * @return array<array-key, mixed>|null
+     * @return list<int>|null
      */
     public function getSupportedNips(): ?array
     {
-        return JsonWireFormat::arrayField($this->rawData, 'supported_nips');
+        return JsonWireFormat::listField($this->rawData, 'supported_nips', static fn (mixed $nip): ?int => is_int($nip) ? $nip : null);
     }
 
     public function getSoftware(): ?string
@@ -81,7 +85,7 @@ final readonly class Nip11Info
      */
     public function getLimitation(): ?array
     {
-        return JsonWireFormat::arrayField($this->rawData, 'limitation');
+        return JsonWireFormat::objectField($this->rawData, 'limitation');
     }
 
     public function getMaxSubscriptions(): ?int
@@ -104,43 +108,6 @@ final readonly class Nip11Info
         return JsonWireFormat::boolField($this->getLimitation() ?? [], 'payment_required') ?? false;
     }
 
-    /**
-     * @return array<array-key, mixed>|null
-     */
-    public function getRetention(): ?array
-    {
-        return JsonWireFormat::arrayField($this->rawData, 'retention');
-    }
-
-    /**
-     * @return array<array-key, mixed>|null
-     */
-    public function getRelayCountries(): ?array
-    {
-        return JsonWireFormat::arrayField($this->rawData, 'relay_countries');
-    }
-
-    /**
-     * @return array<array-key, mixed>|null
-     */
-    public function getLanguageTags(): ?array
-    {
-        return JsonWireFormat::arrayField($this->rawData, 'language_tags');
-    }
-
-    /**
-     * @return array<array-key, mixed>|null
-     */
-    public function getTags(): ?array
-    {
-        return JsonWireFormat::arrayField($this->rawData, 'tags');
-    }
-
-    public function getPostingPolicy(): ?string
-    {
-        return JsonWireFormat::stringField($this->rawData, 'posting_policy');
-    }
-
     public function getPaymentsUrl(): ?string
     {
         return JsonWireFormat::stringField($this->rawData, 'payments_url');
@@ -151,12 +118,7 @@ final readonly class Nip11Info
      */
     public function getFees(): ?array
     {
-        return JsonWireFormat::arrayField($this->rawData, 'fees');
-    }
-
-    public function getPrivacyPolicy(): ?string
-    {
-        return JsonWireFormat::stringField($this->rawData, 'privacy_policy');
+        return JsonWireFormat::objectField($this->rawData, 'fees');
     }
 
     public function getTermsOfService(): ?string
@@ -170,6 +132,25 @@ final readonly class Nip11Info
     public function toArray(): array
     {
         return $this->rawData;
+    }
+
+    public function toJson(): string
+    {
+        return JsonWireFormat::encode($this->rawData ?: new stdClass(), JsonWireFormat::MESSAGE);
+    }
+
+    private function publicKeyField(string $key): ?PublicKey
+    {
+        $hex = JsonWireFormat::stringField($this->rawData, $key);
+
+        return null === $hex ? null : PublicKey::tryFromHex($hex);
+    }
+
+    public static function tryFromJson(RelayUrl $relayUrl, string $json): ?self
+    {
+        $fields = JsonWireFormat::decodeObject($json);
+
+        return null === $fields ? null : self::fromArray($relayUrl, array_filter($fields, is_string(...), ARRAY_FILTER_USE_KEY));
     }
 
     /**

@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Service;
 
+use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
-use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
-use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Override;
 
 final readonly class NipComplianceValidator implements NipComplianceValidatorInterface
@@ -21,7 +20,6 @@ final readonly class NipComplianceValidator implements NipComplianceValidatorInt
     #[Override]
     public function validateNip01Compliance(Event $event): void
     {
-        $this->validateBasicStructure($event);
         $this->validateSignature($event);
     }
 
@@ -42,9 +40,8 @@ final readonly class NipComplianceValidator implements NipComplianceValidatorInt
             throw new InvalidEventException('NIP-04 events must be kind 4');
         }
 
-        $pTags = $event->getTags()->findByType(TagType::pubkey());
-        if ([] === $pTags) {
-            throw new InvalidEventException('NIP-04 events must have a p tag');
+        if ($event->getTags()->getPubkeys()->isEmpty()) {
+            throw new InvalidEventException('NIP-04 events must have a p tag naming a public key');
         }
 
         $this->validateNip01Compliance($event);
@@ -53,39 +50,28 @@ final readonly class NipComplianceValidator implements NipComplianceValidatorInt
     #[Override]
     public function validateNip09Compliance(Event $event): void
     {
-        if (!$event->getKind()->is(EventKind::EVENT_DELETION)) {
-            throw new InvalidEventException('NIP-09 events must be kind 5');
-        }
-
-        $eTags = $event->getTags()->findByType(TagType::event());
-        $aTags = $event->getTags()->findByType(TagType::addressable());
-
-        if ([] === $eTags && [] === $aTags) {
-            throw new InvalidEventException('NIP-09 events must have at least one e or a tag');
-        }
-
-        $kTags = $event->getTags()->findByType(TagType::parentKind());
-
-        $targetsDeletion = array_any(
-            $kTags,
-            static fn (Tag $kTag): bool => (string) EventKind::EVENT_DELETION === $kTag->getValue(),
-        );
-
-        if ($targetsDeletion) {
-            throw new InvalidEventException('NIP-09 events cannot target kind 5 deletion events');
-        }
-
+        $this->validateNip09Shape($event);
         $this->validateNip01Compliance($event);
     }
 
-    private function validateBasicStructure(Event $event): void
+    #[Override]
+    public function validateNip09Shape(Event $event): void
     {
-        if (!$event->getCreatedAt()->isReasonable()) {
-            throw new InvalidEventException('Event timestamp is not reasonable');
+        if (!$event->isDeletion()) {
+            throw new InvalidEventException('NIP-09 events must be kind 5');
+        }
+
+        if (!self::namesADeletionTarget($event->getTags())) {
+            throw new InvalidEventException('NIP-09 events must have at least one e or a tag naming an event id or a coordinate');
         }
     }
 
-    // Deliberate: keeps its own signature gate wrapping Event::verify, scoped to this validator rather than merged into EventValidator — see ADR-0017
+    private static function namesADeletionTarget(TagCollection $tags): bool
+    {
+        return !$tags->getEventIds()->isEmpty() || !$tags->getCoordinates()->isEmpty();
+    }
+
+    // Deliberate: keeps its own signature gate wrapping Event::verify, scoped to this validator rather than merged into EventValidator — see ADR-0099
     private function validateSignature(Event $event): void
     {
         if (!$event->verify($this->signatureService)) {

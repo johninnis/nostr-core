@@ -7,8 +7,11 @@ namespace Innis\Nostr\Core\Infrastructure\Crypto;
 use GMP;
 use Innis\Nostr\Core\Domain\Exception\CryptoException;
 use Mdanter\Ecc\EccFactory;
+use Mdanter\Ecc\Exception\PointNotOnCurveException;
+use Mdanter\Ecc\Exception\PointRecoveryException;
 use Mdanter\Ecc\Primitives\CurveFpInterface;
 use Mdanter\Ecc\Primitives\GeneratorPoint;
+use Mdanter\Ecc\Primitives\PointInterface;
 
 final class Secp256k1Math
 {
@@ -33,14 +36,16 @@ final class Secp256k1Math
         return gmp_cmp($x, 0) > 0 && gmp_cmp($x, $prime) < 0;
     }
 
-    public static function scalarFromBytes(string $bytes): GMP
+    public static function liftX(GMP $x): ?PointInterface
     {
-        $hex = bin2hex($bytes);
+        if (!self::isXCoordinateInField($x)) {
+            return null;
+        }
 
         try {
-            return gmp_init($hex, 16);
-        } finally {
-            sodium_memzero($hex);
+            return self::curve()->getPoint($x, self::curve()->recoverYfromX(false, $x));
+        } catch (PointRecoveryException|PointNotOnCurveException) {
+            return null;
         }
     }
 
@@ -53,13 +58,7 @@ final class Secp256k1Math
 
     public static function reduceToScalar(string $bytes): GMP
     {
-        $hex = bin2hex($bytes);
-
-        try {
-            return gmp_mod(gmp_init($hex, 16), self::generator()->getOrder());
-        } finally {
-            sodium_memzero($hex);
-        }
+        return gmp_mod(gmp_import($bytes), self::generator()->getOrder());
     }
 
     public static function challenge(GMP $signatureX, GMP $publicKeyX, string $message): GMP
@@ -69,24 +68,18 @@ final class Secp256k1Math
         return self::reduceToScalar(self::taggedHash('BIP0340/challenge', $input));
     }
 
-    public static function gmpToHex(GMP $value, int $byteLength): string
-    {
-        return str_pad(gmp_strval($value, 16), $byteLength * 2, '0', STR_PAD_LEFT);
-    }
-
     public static function gmpToBytes(GMP $value, int $length): string
     {
-        $hex = self::gmpToHex($value, $length);
+        $bytes = gmp_export($value);
 
         try {
-            $bytes = hex2bin($hex);
-            if (false === $bytes) {
-                throw new CryptoException('GMP value produced invalid hex');
+            if (strlen($bytes) > $length) {
+                throw new CryptoException(sprintf('Value does not fit in %d bytes', $length));
             }
 
-            return $bytes;
+            return str_pad($bytes, $length, "\0", STR_PAD_LEFT);
         } finally {
-            sodium_memzero($hex);
+            sodium_memzero($bytes);
         }
     }
 }

@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol;
 
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Nip11Info;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
@@ -34,6 +35,52 @@ final class Nip11InfoTest extends TestCase
         $this->assertNull($info->getVersion());
         $this->assertNull($info->getBanner());
         $this->assertNull($info->getIcon());
+    }
+
+    public function testToJsonWritesAnEmptyDocumentAsAJsonObject(): void
+    {
+        $this->assertSame('{}', Nip11Info::fromArray($this->relayUrl)->toJson());
+    }
+
+    public function testToJsonRoundTripsThroughTryFromJson(): void
+    {
+        $json = '{"name":"Relay","supported_nips":[1,11],"limitation":{},"description":"ünïcode/path"}';
+
+        $this->assertSame($json, Nip11Info::tryFromJson($this->relayUrl, $json)?->toJson());
+    }
+
+    public function testTryFromJsonReadsAJsonObject(): void
+    {
+        $info = Nip11Info::tryFromJson($this->relayUrl, '{"name":"Example Relay","supported_nips":[1,11]}');
+
+        $this->assertNotNull($info);
+        $this->assertSame('Example Relay', $info->getName());
+        $this->assertSame([1, 11], $info->getSupportedNips());
+    }
+
+    public function testTryFromJsonReadsAnEmptyJsonObjectAsADocumentStatingNothing(): void
+    {
+        $info = Nip11Info::tryFromJson($this->relayUrl, '{}');
+
+        $this->assertNotNull($info);
+        $this->assertNull($info->getName());
+    }
+
+    #[DataProvider('jsonThatIsNotAnObject')]
+    public function testTryFromJsonRefusesJsonThatIsNotAnObject(string $json): void
+    {
+        $this->assertNull(Nip11Info::tryFromJson($this->relayUrl, $json));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function jsonThatIsNotAnObject(): iterable
+    {
+        yield 'malformed' => ['{"name":'];
+        yield 'an array' => ['[{"name":"Example Relay"}]'];
+        yield 'an empty array' => ['[]'];
+        yield 'a string' => ['"Example Relay"'];
     }
 
     public function testCanCreateWithAllFields(): void
@@ -133,6 +180,35 @@ final class Nip11InfoTest extends TestCase
         $this->assertSame($data, $array);
     }
 
+    public function testGetSelfReturnsTheRelaysOwnPublicKey(): void
+    {
+        $info = Nip11Info::fromArray($this->relayUrl, ['self' => str_repeat('c', 64)]);
+
+        $this->assertSame(str_repeat('c', 64), $info->getSelf()?->toHex());
+    }
+
+    public function testGetSelfReturnsNullWhenNotPresent(): void
+    {
+        $this->assertNull(Nip11Info::fromArray($this->relayUrl)->getSelf());
+    }
+
+    /**
+     * @return iterable<string, array{mixed}>
+     */
+    public static function selfValuesThatAreNotA32BytePublicKey(): iterable
+    {
+        yield 'not a string' => [42];
+        yield 'not hex' => [str_repeat('z', 64)];
+        yield 'too short' => [str_repeat('c', 62)];
+        yield 'uppercase hex' => [str_repeat('C', 64)];
+    }
+
+    #[DataProvider('selfValuesThatAreNotA32BytePublicKey')]
+    public function testGetSelfReturnsNullForAValueThatIsNotA32ByteHexPublicKey(mixed $self): void
+    {
+        $this->assertNull(Nip11Info::fromArray($this->relayUrl, ['self' => $self])->getSelf());
+    }
+
     public function testGetLimitationReturnsLimitationData(): void
     {
         $data = [
@@ -230,87 +306,6 @@ final class Nip11InfoTest extends TestCase
         $this->assertFalse($info->isPaymentRequired());
     }
 
-    public function testGetRetentionReturnsRetentionData(): void
-    {
-        $retentionData = [['kinds' => [0, 1], 'time' => 3600]];
-        $data = ['retention' => $retentionData];
-
-        $info = Nip11Info::fromArray($this->relayUrl, $data);
-
-        $this->assertSame($retentionData, $info->getRetention());
-    }
-
-    public function testGetRetentionReturnsNullWhenNotPresent(): void
-    {
-        $info = Nip11Info::fromArray($this->relayUrl, []);
-
-        $this->assertNull($info->getRetention());
-    }
-
-    public function testGetRelayCountriesReturnsCountryCodes(): void
-    {
-        $data = ['relay_countries' => ['GB', 'US', 'DE']];
-
-        $info = Nip11Info::fromArray($this->relayUrl, $data);
-
-        $this->assertSame(['GB', 'US', 'DE'], $info->getRelayCountries());
-    }
-
-    public function testGetRelayCountriesReturnsNullWhenNotPresent(): void
-    {
-        $info = Nip11Info::fromArray($this->relayUrl, []);
-
-        $this->assertNull($info->getRelayCountries());
-    }
-
-    public function testGetLanguageTagsReturnsLanguages(): void
-    {
-        $data = ['language_tags' => ['en', 'de', 'fr']];
-
-        $info = Nip11Info::fromArray($this->relayUrl, $data);
-
-        $this->assertSame(['en', 'de', 'fr'], $info->getLanguageTags());
-    }
-
-    public function testGetLanguageTagsReturnsNullWhenNotPresent(): void
-    {
-        $info = Nip11Info::fromArray($this->relayUrl, []);
-
-        $this->assertNull($info->getLanguageTags());
-    }
-
-    public function testGetTagsReturnsTags(): void
-    {
-        $data = ['tags' => ['sfw-only', 'bitcoin']];
-
-        $info = Nip11Info::fromArray($this->relayUrl, $data);
-
-        $this->assertSame(['sfw-only', 'bitcoin'], $info->getTags());
-    }
-
-    public function testGetTagsReturnsNullWhenNotPresent(): void
-    {
-        $info = Nip11Info::fromArray($this->relayUrl, []);
-
-        $this->assertNull($info->getTags());
-    }
-
-    public function testGetPostingPolicyReturnsUrl(): void
-    {
-        $data = ['posting_policy' => 'https://example.com/policy'];
-
-        $info = Nip11Info::fromArray($this->relayUrl, $data);
-
-        $this->assertSame('https://example.com/policy', $info->getPostingPolicy());
-    }
-
-    public function testGetPostingPolicyReturnsNullWhenNotPresent(): void
-    {
-        $info = Nip11Info::fromArray($this->relayUrl, []);
-
-        $this->assertNull($info->getPostingPolicy());
-    }
-
     public function testGetPaymentsUrlReturnsUrl(): void
     {
         $data = ['payments_url' => 'https://example.com/payments'];
@@ -342,22 +337,6 @@ final class Nip11InfoTest extends TestCase
         $info = Nip11Info::fromArray($this->relayUrl, []);
 
         $this->assertNull($info->getFees());
-    }
-
-    public function testGetPrivacyPolicyReturnsUrl(): void
-    {
-        $data = ['privacy_policy' => 'https://example.com/privacy'];
-
-        $info = Nip11Info::fromArray($this->relayUrl, $data);
-
-        $this->assertSame('https://example.com/privacy', $info->getPrivacyPolicy());
-    }
-
-    public function testGetPrivacyPolicyReturnsNullWhenNotPresent(): void
-    {
-        $info = Nip11Info::fromArray($this->relayUrl, []);
-
-        $this->assertNull($info->getPrivacyPolicy());
     }
 
     public function testGetTermsOfServiceReturnsUrl(): void
@@ -446,32 +425,52 @@ final class Nip11InfoTest extends TestCase
     public function testStringAccessorsReturnNullWhenFieldIsNotString(): void
     {
         $info = Nip11Info::fromArray($this->relayUrl, [
-            'posting_policy' => 42,
             'payments_url' => ['http://example.com'],
-            'privacy_policy' => true,
             'terms_of_service' => null,
         ]);
 
-        $this->assertNull($info->getPostingPolicy());
         $this->assertNull($info->getPaymentsUrl());
-        $this->assertNull($info->getPrivacyPolicy());
         $this->assertNull($info->getTermsOfService());
     }
 
-    public function testArrayAccessorsReturnNullWhenFieldIsNotArray(): void
+    public function testFeesIsNullWhenFieldIsNotAnObject(): void
     {
-        $info = Nip11Info::fromArray($this->relayUrl, [
-            'retention' => 'unexpected',
-            'relay_countries' => 42,
-            'language_tags' => true,
-            'tags' => null,
-            'fees' => 'free',
-        ]);
+        $this->assertNull(Nip11Info::fromArray($this->relayUrl, ['fees' => 'free'])->getFees());
+    }
 
-        $this->assertNull($info->getRetention());
-        $this->assertNull($info->getRelayCountries());
-        $this->assertNull($info->getLanguageTags());
-        $this->assertNull($info->getTags());
-        $this->assertNull($info->getFees());
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function supportedNipsThatAreNotAListOfIntegers(): iterable
+    {
+        yield 'strings and objects' => ['{"supported_nips":["one",{}]}'];
+        yield 'a fraction' => ['{"supported_nips":[1.5]}'];
+        yield 'an object keyed like a list' => ['{"supported_nips":{"0":1}}'];
+    }
+
+    #[DataProvider('supportedNipsThatAreNotAListOfIntegers')]
+    public function testSupportedNipsIsNullUnlessAJsonArrayOfIntegers(string $json): void
+    {
+        $this->assertNull(Nip11Info::tryFromJson($this->relayUrl, $json)?->getSupportedNips());
+    }
+
+    public function testLimitationWrittenAsAJsonArrayIsNull(): void
+    {
+        $this->assertNull(Nip11Info::tryFromJson($this->relayUrl, '{"limitation":[true]}')?->getLimitation());
+    }
+
+    public function testLimitationWrittenAsAnEmptyJsonObjectStatesNothing(): void
+    {
+        $this->assertSame([], Nip11Info::tryFromJson($this->relayUrl, '{"limitation":{}}')?->getLimitation());
+    }
+
+    public function testLimitationKeyedLikeAListIsStillAnObject(): void
+    {
+        $this->assertSame([0 => true], Nip11Info::tryFromJson($this->relayUrl, '{"limitation":{"0":true}}')?->getLimitation());
+    }
+
+    public function testFeesWrittenAsAJsonArrayIsNull(): void
+    {
+        $this->assertNull(Nip11Info::tryFromJson($this->relayUrl, '{"fees":[{"amount":1}]}')?->getFees());
     }
 }

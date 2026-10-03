@@ -14,6 +14,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Tests\Support\EventMother;
 use Innis\Nostr\Core\Tests\Support\TagCollectionMother;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -35,9 +36,7 @@ final class NutzapTest extends TestCase
         $nutzap = Nutzap::tryFromEvent($event);
 
         $this->assertNotNull($nutzap);
-        $senderPubkey = $nutzap->getSenderPubkey();
-        $this->assertNotNull($senderPubkey);
-        $this->assertSame(self::SENDER_PUBKEY, $senderPubkey->toHex());
+        $this->assertSame(self::SENDER_PUBKEY, $nutzap->getSenderPubkey()->toHex());
         $recipientPubkey = $nutzap->getRecipientPubkey();
         $this->assertNotNull($recipientPubkey);
         $this->assertSame(self::RECIPIENT_PUBKEY, $recipientPubkey->toHex());
@@ -91,12 +90,12 @@ final class NutzapTest extends TestCase
 
     public function testWrongKindReturnsNull(): void
     {
-        $event = EventMother::fromRumour(new Rumour(
+        $event = EventMother::fromRumour(Rumour::draft(
             PublicKey::tryFromHex(self::SENDER_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
-            Timestamp::fromInt(1700000000),
             EventKind::fromInt(EventKind::TEXT_NOTE),
-            new TagCollection(),
             EventContent::fromString('hello'),
+            new TagCollection(),
+            Timestamp::fromInt(1700000000),
         ));
 
         $this->assertNull(Nutzap::tryFromEvent($event));
@@ -135,6 +134,17 @@ final class NutzapTest extends TestCase
         $this->assertSame(5, $amount->toSats());
     }
 
+    public function testAProofWrittenAsAJsonArrayStatesNoAmount(): void
+    {
+        $event = $this->buildNutzapEvent([
+            ['p', self::RECIPIENT_PUBKEY],
+            ['proof', json_encode([['amount' => 21, 'id' => 'a', 'secret' => 's1', 'C' => '02a']])],
+            ['proof', json_encode(['amount' => 5, 'id' => 'b', 'secret' => 's2', 'C' => '02b'])],
+        ]);
+
+        $this->assertSame(5, Nutzap::tryFromEvent($event)?->getAmount()?->toSats());
+    }
+
     public function testTotalAboveCapReturnsNull(): void
     {
         $event = $this->buildNutzapEvent([
@@ -150,10 +160,33 @@ final class NutzapTest extends TestCase
     {
         $event = $this->buildNutzapEvent([
             ['p', self::RECIPIENT_PUBKEY],
-            ['proof', json_encode(['amount' => '9223372036854775807', 'id' => 'a', 'secret' => 's', 'C' => '02a'])],
+            ['proof', json_encode(['amount' => PHP_INT_MAX, 'id' => 'a', 'secret' => 's', 'C' => '02a'])],
         ]);
 
         $this->assertNull(Nutzap::tryFromEvent($event));
+    }
+
+    /**
+     * @return iterable<string, array{mixed}>
+     */
+    public static function proofAmountsThatAreNotIntegers(): iterable
+    {
+        yield 'fraction' => [1.5];
+        yield 'decimal string' => ['5'];
+        yield 'exponent string' => ['1e3'];
+        yield 'huge decimal string' => ['9223372036854775807'];
+    }
+
+    #[DataProvider('proofAmountsThatAreNotIntegers')]
+    public function testAProofWhoseAmountIsNotAJsonIntegerStatesNoAmount(mixed $amount): void
+    {
+        $event = $this->buildNutzapEvent([
+            ['p', self::RECIPIENT_PUBKEY],
+            ['proof', json_encode(['amount' => $amount, 'id' => 'a', 'secret' => 's1', 'C' => '02a'])],
+            ['proof', json_encode(['amount' => 10, 'id' => 'b', 'secret' => 's2', 'C' => '02b'])],
+        ]);
+
+        $this->assertSame(10, Nutzap::tryFromEvent($event)?->getAmount()?->toSats());
     }
 
     public function testNegativeProofAmountReturnsNull(): void
@@ -193,17 +226,97 @@ final class NutzapTest extends TestCase
         $this->assertNull($nutzap->getRecipientPubkey());
     }
 
+    public function testUnitTagsThatDisagreeReturnNull(): void
+    {
+        $event = $this->buildNutzapEvent([
+            ['p', self::RECIPIENT_PUBKEY],
+            ['proof', json_encode(['amount' => 21, 'id' => 'a', 'secret' => 's', 'C' => '02a'])],
+            ['unit', 'sat'],
+            ['unit', 'msat'],
+        ]);
+
+        $this->assertNull(Nutzap::tryFromEvent($event));
+    }
+
+    public function testUnitTagsThatDisagreeRefuseANutzapWithoutProofs(): void
+    {
+        $event = $this->buildNutzapEvent([
+            ['p', self::RECIPIENT_PUBKEY],
+            ['unit', 'sat'],
+            ['unit', 'usd'],
+        ]);
+
+        $this->assertNull(Nutzap::tryFromEvent($event));
+    }
+
+    public function testANonBitcoinUnitKeepsTheNutzap(): void
+    {
+        $event = $this->buildNutzapEvent([
+            ['p', self::RECIPIENT_PUBKEY],
+            ['proof', json_encode(['amount' => 21, 'id' => 'a', 'secret' => 's', 'C' => '02a'])],
+            ['unit', 'usd'],
+        ]);
+
+        $this->assertNotNull(Nutzap::tryFromEvent($event));
+    }
+
+    public function testANonBitcoinUnitStatesNoAmount(): void
+    {
+        $event = $this->buildNutzapEvent([
+            ['p', self::RECIPIENT_PUBKEY],
+            ['proof', json_encode(['amount' => 21, 'id' => 'a', 'secret' => 's', 'C' => '02a'])],
+            ['unit', 'eur'],
+        ]);
+
+        $this->assertNull(Nutzap::tryFromEvent($event)?->getAmount());
+    }
+
+    public function testARepeatedIdenticalProofIsOneProof(): void
+    {
+        $proof = json_encode(['amount' => 21, 'id' => 'a', 'secret' => 's', 'C' => '02a']);
+        $event = $this->buildNutzapEvent([
+            ['p', self::RECIPIENT_PUBKEY],
+            ['proof', $proof],
+            ['proof', $proof],
+        ]);
+
+        $this->assertSame(21, Nutzap::tryFromEvent($event)?->getAmount()?->toSats());
+    }
+
+    public function testRepeatedUnitTagIsOneClaim(): void
+    {
+        $event = $this->buildNutzapEvent([
+            ['p', self::RECIPIENT_PUBKEY],
+            ['proof', json_encode(['amount' => 21000, 'id' => 'a', 'secret' => 's', 'C' => '02a'])],
+            ['unit', 'msat'],
+            ['unit', 'msat'],
+        ]);
+
+        $this->assertSame(21000, Nutzap::tryFromEvent($event)?->getAmount()?->toMillisats());
+    }
+
+    public function testRecipientTagsThatDisagreeNameNoRecipient(): void
+    {
+        $event = $this->buildNutzapEvent([
+            ['p', self::RECIPIENT_PUBKEY],
+            ['p', str_repeat('ef', 32)],
+            ['proof', json_encode(['amount' => 10, 'id' => 'a', 'secret' => 's', 'C' => '02a'])],
+        ]);
+
+        $this->assertNull(Nutzap::tryFromEvent($event)?->getRecipientPubkey());
+    }
+
     /**
      * @param list<list<string|false>> $rawTags
      */
     private function buildNutzapEvent(array $rawTags, string $content = ''): Event
     {
-        return EventMother::fromRumour(new Rumour(
+        return EventMother::fromRumour(Rumour::draft(
             PublicKey::tryFromHex(self::SENDER_PUBKEY) ?? throw new RuntimeException('Invalid test pubkey'),
-            Timestamp::fromInt(1700000000),
             EventKind::fromInt(EventKind::NUTZAP),
-            TagCollectionMother::fromRaw($rawTags),
             EventContent::fromString($content),
+            TagCollectionMother::fromRaw($rawTags),
+            Timestamp::fromInt(1700000000),
         ));
     }
 }

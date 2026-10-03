@@ -22,6 +22,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagFilter;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Tests\Fake\FakeSignatureService;
+use Innis\Nostr\Core\Tests\Support\Bech32Mother;
 use Innis\Nostr\Core\Tests\Support\KeyMother;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -39,7 +40,7 @@ final class WireParserRoundTripComplianceTest extends TestCase
                 $hrp = $this->randomHrp();
                 $payload = random_bytes(random_int(1, 50));
 
-                $decoded = Bech32Codec::decode(Bech32Codec::encode($hrp, $payload, $variant), $variant);
+                $decoded = Bech32Codec::decode(Bech32Mother::encode($hrp, $payload, $variant), $variant);
 
                 $this->assertNotNull($decoded);
                 $this->assertSame($hrp, $decoded['hrp']);
@@ -52,7 +53,7 @@ final class WireParserRoundTripComplianceTest extends TestCase
     {
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
             $hrp = $this->randomHrp();
-            $encoded = Bech32Codec::encode($hrp, random_bytes(32));
+            $encoded = Bech32Mother::encode($hrp, random_bytes(32));
 
             $position = random_int(strlen($hrp) + 1, strlen($encoded) - 1);
             $corrupted = $encoded[$position];
@@ -107,12 +108,12 @@ final class WireParserRoundTripComplianceTest extends TestCase
         $keyPair = KeyMother::alice();
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            $event = new Rumour(
+            $event = Rumour::draft(
                 $keyPair->getPublicKey(),
-                Timestamp::fromInt(random_int(0, 2_000_000_000)),
                 EventKind::fromInt(random_int(0, 65535)),
-                $this->randomTags(),
                 EventContent::fromString($this->randomContent()),
+                $this->randomTags(),
+                Timestamp::fromInt(random_int(0, 2_000_000_000)),
             )->sign($keyPair, $signer);
 
             $array = $event->toArray();
@@ -128,18 +129,18 @@ final class WireParserRoundTripComplianceTest extends TestCase
         $keyPair = KeyMother::alice();
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
-            $rumour = new Rumour(
+            $rumour = Rumour::draft(
                 $keyPair->getPublicKey(),
-                Timestamp::fromInt(random_int(0, 2_000_000_000)),
                 EventKind::fromInt(random_int(0, 65535)),
-                $this->randomTags(),
                 EventContent::fromString($this->randomContent()),
+                $this->randomTags(),
+                Timestamp::fromInt(random_int(0, 2_000_000_000)),
             );
 
             $array = $rumour->toArray();
             $recovered = Rumour::tryFromArray($array);
 
-            $this->assertNotNull($recovered);
+            $this->assertInstanceOf(Rumour::class, $recovered);
             $this->assertSame($array, $recovered->toArray());
         }
     }
@@ -188,7 +189,7 @@ final class WireParserRoundTripComplianceTest extends TestCase
     {
         $since = random_int(0, 1_000_000_000);
 
-        return new Filter(
+        return Filter::from(
             ids: 1 === random_int(0, 1) ? EventIdCollection::fromHexValues([bin2hex(random_bytes(32))]) : null,
             authors: 1 === random_int(0, 1) ? PublicKeyCollection::fromHexValues([bin2hex(random_bytes(32))]) : null,
             kinds: 1 === random_int(0, 1) ? EventKindCollection::fromInts([random_int(0, 65535)]) : null,

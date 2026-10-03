@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Content;
 
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
+use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class EventContentTest extends TestCase
@@ -15,6 +17,23 @@ final class EventContentTest extends TestCase
 
         $this->assertSame('Hello Nostr!', (string) $content);
         $this->assertSame('Hello Nostr!', (string) $content);
+    }
+
+    public function testTryFromStringIsNullForTextThatIsNotUtf8(): void
+    {
+        $this->assertNull(EventContent::tryFromString("caf\xC3"));
+    }
+
+    public function testTryFromStringKeepsUtf8TextAsWritten(): void
+    {
+        $this->assertSame("\u{FEFF}naïve 🔑", (string) EventContent::tryFromString("\u{FEFF}naïve 🔑"));
+    }
+
+    public function testFromStringThrowsForTextThatIsNotUtf8(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        EventContent::fromString("\xFF");
     }
 
     public function testCanCreateEmpty(): void
@@ -57,7 +76,7 @@ final class EventContentTest extends TestCase
         $content = EventContent::fromString('Hello 🌍');
 
         $this->assertSame('Hello 🌍', (string) $content);
-        $this->assertSame(7, $content->getLength()); // UTF-8 character count, not byte count
+        $this->assertSame(7, $content->getLength());
     }
 
     public function testExtractsSingleHashtag(): void
@@ -110,6 +129,34 @@ final class EventContentTest extends TestCase
         $this->assertSame(['test_underscore', 'another_one'], $content->extractHashtags()->toStrings());
     }
 
+    public function testExtractHashtagsReadsLettersOfAnyScript(): void
+    {
+        $content = EventContent::fromString('Wir lieben #Zürich und #日本 und #Ελλάδα');
+
+        $this->assertSame(['zürich', '日本', 'ελλάδα'], $content->extractHashtags()->toStrings());
+    }
+
+    public function testExtractHashtagsKeepsCombiningMarks(): void
+    {
+        $content = EventContent::fromString("#cafe\u{0301} and #नमस्ते");
+
+        $this->assertSame(["cafe\u{0301}", 'नमस्ते'], $content->extractHashtags()->toStrings());
+    }
+
+    public function testExtractHashtagsIgnoresAHashAfterALetterOfAnyScript(): void
+    {
+        $content = EventContent::fromString('é#nottag and #tag');
+
+        $this->assertSame(['tag'], $content->extractHashtags()->toStrings());
+    }
+
+    public function testExtractHashtagsIgnoresAnHtmlEntity(): void
+    {
+        $content = EventContent::fromString('&#39; and #tag');
+
+        $this->assertSame(['tag'], $content->extractHashtags()->toStrings());
+    }
+
     public function testExtractHashtagsIgnoresHashtagsInUrls(): void
     {
         $content = EventContent::fromString('Check https://example.com#anchor but also #realtag');
@@ -143,5 +190,29 @@ final class EventContentTest extends TestCase
         $content = EventContent::empty();
 
         $this->assertEmpty($content->extractHashtags());
+    }
+
+    /**
+     * @return iterable<string, array{string, list<string>}>
+     */
+    public static function textWithUrls(): iterable
+    {
+        yield 'a fragment, a schemeless path and a word' => ['https://x.com/#frag x.com/#frag #a word#b', ['frag', 'a']];
+        yield 'a fragment' => ['https://x.com/#frag', []];
+        yield 'anything after the scheme separator' => ['see https://x.com/a.html#frag#more and wss://relay.example/?q=#x', []];
+        yield 'whitespace ends the url' => ['https://x.com/#frag #after', ['after']];
+        yield 'a hashtag before the scheme separator in its run' => ['#tag://x.com/#frag', ['tag']];
+        yield 'any unicode whitespace ends the url' => ["https://x.com/\u{00A0}#after\u{3000}#again", ['after', 'again']];
+        yield 'text without a scheme is no url' => ['x.com/#frag', ['frag']];
+        yield 'a hashtag followed by a scheme separator' => ['#tag://x', ['tag']];
+    }
+
+    /**
+     * @param list<string> $expected
+     */
+    #[DataProvider('textWithUrls')]
+    public function testExtractHashtagsLeavesOutTheTextOfAUrl(string $text, array $expected): void
+    {
+        $this->assertSame($expected, EventContent::fromString($text)->extractHashtags()->toStrings());
     }
 }

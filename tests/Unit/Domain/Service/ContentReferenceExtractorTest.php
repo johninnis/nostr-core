@@ -8,192 +8,147 @@ use Innis\Nostr\Core\Domain\Collection\RelayUrlCollection;
 use Innis\Nostr\Core\Domain\Enum\ContentReferenceType;
 use Innis\Nostr\Core\Domain\Enum\Nip19EntityType;
 use Innis\Nostr\Core\Domain\Service\ContentReferenceExtractor;
-use Innis\Nostr\Core\Domain\Service\Nip19CodecInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
+use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Nip19\Naddr;
 use Innis\Nostr\Core\Domain\ValueObject\Nip19\Nevent;
-use Innis\Nostr\Core\Domain\ValueObject\Nip19\Nip19EntityInterface;
-use Innis\Nostr\Core\Domain\ValueObject\Nip19\Note;
 use Innis\Nostr\Core\Domain\ValueObject\Nip19\Nprofile;
-use Innis\Nostr\Core\Domain\ValueObject\Nip19\Npub;
-use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
+use Innis\Nostr\Core\Tests\Support\Bech32Mother;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
 final class ContentReferenceExtractorTest extends TestCase
 {
-    /**
-     * @param list<string> $relayUrls
-     */
-    private static function decoded(Nip19EntityType $type, ?string $pubkeyHex = null, ?string $eventIdHex = null, array $relayUrls = []): ?Nip19EntityInterface
-    {
-        $relays = new RelayUrlCollection(array_values(array_filter(array_map(RelayUrl::tryFromString(...), $relayUrls))));
-        $publicKey = null !== $pubkeyHex ? PublicKey::tryFromHex($pubkeyHex) : null;
-        $eventId = null !== $eventIdHex ? EventId::tryFromHex($eventIdHex) : null;
+    private const string PUBKEY_HEX = 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210';
+    private const string EVENT_ID_HEX = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 
-        return match ($type) {
-            Nip19EntityType::Pubkey => null === $publicKey ? null : Npub::fromPublicKey($publicKey),
-            Nip19EntityType::Note => null === $eventId ? null : Note::fromEventId($eventId),
-            Nip19EntityType::Profile => null === $publicKey ? null : Nprofile::tryFromPublicKey($publicKey, $relays),
-            Nip19EntityType::Event => Nevent::tryFromEventId($eventId ?? self::placeholderEventId(), $relays, $publicKey),
-            Nip19EntityType::Address => null,
-        };
+    private static function npub(): string
+    {
+        return (PublicKey::tryFromHex(self::PUBKEY_HEX) ?? throw new RuntimeException('Invalid test pubkey'))->toBech32();
     }
 
-    private static function placeholderEventId(): EventId
+    private static function note(): string
     {
-        return EventId::tryFromHex(str_repeat('ab', 32)) ?? throw new RuntimeException('Invalid placeholder event id');
+        return self::eventId()->toBech32();
+    }
+
+    private static function eventId(): EventId
+    {
+        return EventId::tryFromHex(self::EVENT_ID_HEX) ?? throw new RuntimeException('Invalid test event id');
+    }
+
+    /**
+     * @param list<string> $relays
+     */
+    private static function nevent(array $relays, ?string $authorHex = null): string
+    {
+        $author = null === $authorHex ? null : PublicKey::tryFromHex($authorHex);
+        $relayUrls = RelayUrlCollection::fromStrings($relays);
+
+        return (Nevent::tryFromEventId(self::eventId(), $relayUrls, $author) ?? throw new RuntimeException('Invalid test nevent'))->toBech32();
     }
 
     public function testExtractNostrUriReferences(): void
     {
-        $content = EventContent::fromString('Check out nostr:npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz and nostr:note10123456789abcdef0123456789abcdef0123456789abcdef0123456abc');
+        $npub = self::npub();
+        $note = self::note();
+        $content = EventContent::fromString("Check out nostr:{$npub} and nostr:{$note}");
 
-        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
-        $bech32Encoder
-            ->method('decodeComplexEntity')
-            ->willReturnCallback(static function (string $bech32): ?Nip19EntityInterface {
-                if ('npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz' === $bech32) {
-                    return self::decoded(Nip19EntityType::Pubkey, pubkeyHex: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210');
-                }
-                if ('note10123456789abcdef0123456789abcdef0123456789abcdef0123456abc' === $bech32) {
-                    return self::decoded(Nip19EntityType::Note, eventIdHex: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef');
-                }
-
-                return null;
-            });
-
-        $references = new ContentReferenceExtractor($bech32Encoder)->extractContentReferences($content)->toArray();
+        $references = ContentReferenceExtractor::extract($content)->toArray();
 
         $this->assertCount(2, $references);
 
         $this->assertSame(ContentReferenceType::NostrUri, $references[0]->getType());
-        $this->assertEquals('nostr:npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz', $references[0]->getRawText());
-        $this->assertEquals('npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz', $references[0]->getIdentifier());
+        $this->assertEquals('nostr:'.$npub, $references[0]->getRawText());
+        $this->assertEquals($npub, $references[0]->getIdentifier());
         $this->assertEquals(10, $references[0]->getPosition());
 
         $this->assertSame(ContentReferenceType::NostrUri, $references[1]->getType());
-        $this->assertEquals('nostr:note10123456789abcdef0123456789abcdef0123456789abcdef0123456abc', $references[1]->getRawText());
-        $this->assertEquals('note10123456789abcdef0123456789abcdef0123456789abcdef0123456abc', $references[1]->getIdentifier());
+        $this->assertEquals('nostr:'.$note, $references[1]->getRawText());
+        $this->assertEquals($note, $references[1]->getIdentifier());
     }
 
     public function testStripsTheNostrSchemeCaseInsensitively(): void
     {
-        $content = EventContent::fromString('Hi NOSTR:npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz');
+        $npub = self::npub();
+        $content = EventContent::fromString('Hi NOSTR:'.$npub);
 
-        $codec = $this->createStub(Nip19CodecInterface::class);
-        $codec
-            ->method('decodeComplexEntity')
-            ->willReturnCallback(static fn (string $bech32): ?Nip19EntityInterface => 'npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz' === $bech32
-                ? self::decoded(Nip19EntityType::Pubkey, pubkeyHex: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210')
-                : null);
-
-        $references = new ContentReferenceExtractor($codec)->extractContentReferences($content)->toArray();
+        $references = ContentReferenceExtractor::extract($content)->toArray();
 
         $this->assertCount(1, $references);
         $this->assertSame(ContentReferenceType::NostrUri, $references[0]->getType());
-        $this->assertSame('NOSTR:npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz', $references[0]->getRawText());
-        $this->assertSame('npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz', $references[0]->getIdentifier());
-        $this->assertSame('fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210', $references[0]->getPublicKey()?->toHex());
+        $this->assertSame('NOSTR:'.$npub, $references[0]->getRawText());
+        $this->assertSame($npub, $references[0]->getIdentifier());
+        $this->assertSame(self::PUBKEY_HEX, $references[0]->getPublicKey()?->toHex());
     }
 
     public function testExtractBareReferences(): void
     {
-        $content = EventContent::fromString('Here is npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz and note10123456789abcdef0123456789abcdef0123456789abcdef0123456abc and nevent1qqstna2yrezu5wghjvswqqculvvwxsrcvu7uc0f78gan4xqhvz49d9spr3mhxue69uhkummnw3ez6un9d3shjtn4de6x2argwghx6egpr4mhxue69uhkummnw3ez6ur4vgh8wetvd3hhyer9wghxuet5nxnepm');
+        $npub = self::npub();
+        $note = self::note();
+        $nevent = self::nevent(['wss://relay.com']);
+        $content = EventContent::fromString("Here is {$npub} and {$note} and {$nevent}");
 
-        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
-        $bech32Encoder
-            ->method('decodeComplexEntity')
-            ->willReturnCallback(static function (string $bech32): ?Nip19EntityInterface {
-                if ('npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz' === $bech32) {
-                    return self::decoded(Nip19EntityType::Pubkey, pubkeyHex: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210');
-                }
-                if ('note10123456789abcdef0123456789abcdef0123456789abcdef0123456abc' === $bech32) {
-                    return self::decoded(Nip19EntityType::Note, eventIdHex: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef');
-                }
-                if ('nevent1qqstna2yrezu5wghjvswqqculvvwxsrcvu7uc0f78gan4xqhvz49d9spr3mhxue69uhkummnw3ez6un9d3shjtn4de6x2argwghx6egpr4mhxue69uhkummnw3ez6ur4vgh8wetvd3hhyer9wghxuet5nxnepm' === $bech32) {
-                    return self::decoded(Nip19EntityType::Event, eventIdHex: 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890', relayUrls: ['wss://relay.com']);
-                }
-
-                return null;
-            });
-
-        $references = new ContentReferenceExtractor($bech32Encoder)->extractContentReferences($content)->toArray();
+        $references = ContentReferenceExtractor::extract($content)->toArray();
 
         $this->assertCount(3, $references);
 
         $this->assertSame(ContentReferenceType::BareNpub, $references[0]->getType());
-        $this->assertEquals('npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz', $references[0]->getRawText());
+        $this->assertEquals($npub, $references[0]->getRawText());
 
         $this->assertSame(ContentReferenceType::BareNote, $references[1]->getType());
-        $this->assertEquals('note10123456789abcdef0123456789abcdef0123456789abcdef0123456abc', $references[1]->getRawText());
+        $this->assertEquals($note, $references[1]->getRawText());
 
         $this->assertSame(ContentReferenceType::BareNevent, $references[2]->getType());
-        $this->assertEquals('nevent1qqstna2yrezu5wghjvswqqculvvwxsrcvu7uc0f78gan4xqhvz49d9spr3mhxue69uhkummnw3ez6un9d3shjtn4de6x2argwghx6egpr4mhxue69uhkummnw3ez6ur4vgh8wetvd3hhyer9wghxuet5nxnepm', $references[2]->getRawText());
+        $this->assertEquals($nevent, $references[2]->getRawText());
     }
 
-    public function testExtractLegacyReferences(): void
+    public function testANip08IndexIsNoContentReference(): void
     {
-        $content = EventContent::fromString('Check out #[0] and #[1] references');
-
-        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
-        $bech32Encoder
-            ->method('decodeComplexEntity')
-            ->willReturn(self::decoded(Nip19EntityType::Event));
-
-        $references = new ContentReferenceExtractor($bech32Encoder)->extractContentReferences($content)->toArray();
-
-        $this->assertCount(2, $references);
-
-        $this->assertSame(ContentReferenceType::LegacyRef, $references[0]->getType());
-        $this->assertEquals('#[0]', $references[0]->getRawText());
-        $this->assertEquals('#[0]', $references[0]->getIdentifier());
-
-        $this->assertSame(ContentReferenceType::LegacyRef, $references[1]->getType());
-        $this->assertEquals('#[1]', $references[1]->getRawText());
-        $this->assertEquals('#[1]', $references[1]->getIdentifier());
+        $this->assertTrue(ContentReferenceExtractor::extract(EventContent::fromString('Check out #[0] and #[1] references'))->isEmpty());
     }
 
-    public function testReturnsUnknownReferenceForUndecodableBech32(): void
+    public function testABareRunThatDoesNotDecodeIsNoReference(): void
     {
         $content = EventContent::fromString('Invalid reference: npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz');
 
-        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
-        $bech32Encoder
-            ->method('decodeComplexEntity')
-            ->willReturn(null);
+        $this->assertTrue(ContentReferenceExtractor::extract($content)->isEmpty());
+    }
 
-        $references = new ContentReferenceExtractor($bech32Encoder)->extractContentReferences($content)->toArray();
+    public function testANostrUriWhoseRunDoesNotDecodeIsNoReference(): void
+    {
+        $content = EventContent::fromString('Invalid reference: nostr:nevent1qqqqqqqqqqqqqqqq');
 
-        $this->assertCount(1, $references);
-        $this->assertNull($references[0]->getDecodedType());
+        $this->assertTrue(ContentReferenceExtractor::extract($content)->isEmpty());
+    }
+
+    public function testARunThatDoesNotDecodeLeavesTheEntitiesAroundItReferenced(): void
+    {
+        $content = EventContent::fromString('nevent1qqqqqqqqqqqqqqqq then '.self::npub());
+
+        $references = ContentReferenceExtractor::extract($content)->toArray();
+
+        $this->assertSame([self::npub()], array_map(static fn ($reference): string => $reference->getIdentifier(), $references));
     }
 
     public function testCreatesValueObjectsFromDecodedData(): void
     {
-        $content = EventContent::fromString('Reference: nevent1test123');
+        $content = EventContent::fromString('Reference: '.self::nevent(['wss://relay1.com', 'wss://relay2.com'], self::PUBKEY_HEX));
 
-        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
-        $bech32Encoder
-            ->method('decodeComplexEntity')
-            ->willReturn(self::decoded(
-                Nip19EntityType::Event,
-                pubkeyHex: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
-                eventIdHex: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
-                relayUrls: ['wss://relay1.com', 'wss://relay2.com'],
-            ));
-
-        $references = new ContentReferenceExtractor($bech32Encoder)->extractContentReferences($content)->toArray();
+        $references = ContentReferenceExtractor::extract($content)->toArray();
 
         $this->assertCount(1, $references);
         $reference = $references[0];
 
         $this->assertSame(Nip19EntityType::Event, $reference->getDecodedType());
         $this->assertNotNull($reference->getEventId());
-        $this->assertEquals('0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef', $reference->getEventId()->toHex());
+        $this->assertEquals(self::EVENT_ID_HEX, $reference->getEventId()->toHex());
         $this->assertNotNull($reference->getPublicKey());
-        $this->assertEquals('fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210', $reference->getPublicKey()->toHex());
+        $this->assertEquals(self::PUBKEY_HEX, $reference->getPublicKey()->toHex());
         $relays = $reference->getRelays()->toArray();
         $this->assertCount(2, $relays);
         $this->assertEquals('wss://relay1.com', (string) $relays[0]);
@@ -202,40 +157,28 @@ final class ContentReferenceExtractorTest extends TestCase
 
     public function testExtractsAuthorKeyAsPublicKeyForNeventReferences(): void
     {
-        $content = EventContent::fromString('Reference: nevent1test456');
+        $content = EventContent::fromString('Reference: '.self::nevent(['wss://relay1.com'], self::PUBKEY_HEX));
 
-        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
-        $bech32Encoder
-            ->method('decodeComplexEntity')
-            ->willReturn(self::decoded(
-                Nip19EntityType::Event,
-                pubkeyHex: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
-                eventIdHex: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
-                relayUrls: ['wss://relay1.com'],
-            ));
-
-        $references = new ContentReferenceExtractor($bech32Encoder)->extractContentReferences($content)->toArray();
+        $references = ContentReferenceExtractor::extract($content)->toArray();
 
         $this->assertCount(1, $references);
         $reference = $references[0];
 
         $this->assertNotNull($reference->getPublicKey());
-        $this->assertEquals('fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210', $reference->getPublicKey()->toHex());
+        $this->assertEquals(self::PUBKEY_HEX, $reference->getPublicKey()->toHex());
     }
 
     public function testSkipsInvalidRelayUrls(): void
     {
-        $content = EventContent::fromString('Reference: nevent1test123');
+        $records = chr(0).chr(32).self::eventId()->toBytes();
 
-        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
-        $bech32Encoder
-            ->method('decodeComplexEntity')
-            ->willReturn(self::decoded(
-                Nip19EntityType::Event,
-                relayUrls: ['wss://valid-relay.com', 'invalid-url', 'wss://another-valid.com'],
-            ));
+        foreach (['wss://valid-relay.com', 'invalid-url', 'wss://another-valid.com'] as $relay) {
+            $records .= chr(1).chr(strlen($relay)).$relay;
+        }
 
-        $references = new ContentReferenceExtractor($bech32Encoder)->extractContentReferences($content)->toArray();
+        $content = EventContent::fromString('Reference: '.Bech32Mother::encode(Nevent::HRP, $records));
+
+        $references = ContentReferenceExtractor::extract($content)->toArray();
 
         $this->assertCount(1, $references);
         $relayUrls = $references[0]->getRelays()->toArray();
@@ -247,34 +190,50 @@ final class ContentReferenceExtractorTest extends TestCase
 
     public function testIgnoresBoundaryViolations(): void
     {
-        $content = EventContent::fromString('Invalid: xnpub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyzx and valid npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz');
+        $npub = self::npub();
+        $content = EventContent::fromString("Invalid: x{$npub}x and valid {$npub}");
 
-        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
-        $bech32Encoder
-            ->method('decodeComplexEntity')
-            ->willReturn(self::decoded(Nip19EntityType::Pubkey, pubkeyHex: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210'));
-
-        $references = new ContentReferenceExtractor($bech32Encoder)->extractContentReferences($content)->toArray();
+        $references = ContentReferenceExtractor::extract($content)->toArray();
 
         $this->assertCount(1, $references);
-        $this->assertEquals('npub10123456789abcdef0123456789abcdef0123456789abcdef0123456xyz', $references[0]->getIdentifier());
+        $this->assertEquals($npub, $references[0]->getIdentifier());
+    }
+
+    #[DataProvider('nostrUrisRunningOnIntoMoreCharacters')]
+    public function testANostrUriFollowedByMoreBech32CharactersIsNotAReference(string $content): void
+    {
+        $this->assertCount(0, ContentReferenceExtractor::extract(EventContent::fromString($content)));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function nostrUrisRunningOnIntoMoreCharacters(): iterable
+    {
+        yield 'an npub' => ['see nostr:'.self::npub().'xyz here'];
+        yield 'a note' => ['see nostr:'.self::note().'xyz here'];
+        yield 'an npub followed by a digit' => ['nostr:'.self::npub().'7'];
+        yield 'an uppercase npub' => ['NOSTR:'.strtoupper(self::npub()).'XYZ'];
+    }
+
+    public function testANostrUriEndsAtTheFirstCharacterThatCannotContinueIt(): void
+    {
+        $references = ContentReferenceExtractor::extract(EventContent::fromString('nostr:'.self::npub().'.'))->toArray();
+
+        $this->assertCount(1, $references);
+        $this->assertSame(self::npub(), $references[0]->getIdentifier());
     }
 
     public function testReturnsEmptyArrayForNoMatches(): void
     {
         $content = EventContent::fromString('No references here, just plain text');
 
-        $extractor = new ContentReferenceExtractor(
-            $this->createStub(Nip19CodecInterface::class)
-        );
-
-        $this->assertEmpty($extractor->extractContentReferences($content)->toArray());
+        $this->assertEmpty(ContentReferenceExtractor::extract($content)->toArray());
     }
 
     public function testReturnsContentReferenceCollection(): void
     {
-        $references = new ContentReferenceExtractor($this->createStub(Nip19CodecInterface::class))
-            ->extractContentReferences(EventContent::fromString('plain text'));
+        $references = ContentReferenceExtractor::extract(EventContent::fromString('plain text'));
 
         $this->assertCount(0, $references);
     }
@@ -286,56 +245,77 @@ final class ContentReferenceExtractorTest extends TestCase
 
         $content = EventContent::fromString("Some text\n\n{$bareNevent}nostr:{$prefixedNevent} ");
 
-        $bech32Encoder = $this->createStub(Nip19CodecInterface::class);
-        $bech32Encoder
-            ->method('decodeComplexEntity')
-            ->willReturnCallback(static function (string $bech32) use ($bareNevent, $prefixedNevent): ?Nip19EntityInterface {
-                if ($bech32 === $bareNevent || $bech32 === $prefixedNevent) {
-                    return self::decoded(Nip19EntityType::Event, eventIdHex: '5f5cb96cc6c499f5404e4799534d9ca39b9d9c471fe5dcfc58a4640ba4144f16');
-                }
-
-                return null;
-            });
-
-        $references = new ContentReferenceExtractor($bech32Encoder)->extractContentReferences($content)->toArray();
+        $references = ContentReferenceExtractor::extract($content)->toArray();
 
         $this->assertCount(2, $references);
 
         $this->assertSame(ContentReferenceType::BareNevent, $references[0]->getType());
         $this->assertEquals($bareNevent, $references[0]->getRawText());
         $this->assertEquals($bareNevent, $references[0]->getIdentifier());
+        $this->assertSame('5f5cb96cc6c499f5404e4799534d9ca39b9d9c471fe5dcfc58a4640ba4144f16', $references[0]->getEventId()?->toHex());
 
         $this->assertSame(ContentReferenceType::NostrUri, $references[1]->getType());
         $this->assertEquals('nostr:'.$prefixedNevent, $references[1]->getRawText());
         $this->assertEquals($prefixedNevent, $references[1]->getIdentifier());
     }
 
-    /**
-     * Overlap detection must stay linear in the match count. Measured on this suite's inputs at 14000
-     * matches: linear 92ms, quadratic 2510ms, and the original per-match scan of every prior range
-     * ~20s. Doubling the input takes the linear form from 43ms to 92ms (2.1x) and the quadratic form
-     * from 646ms to 2510ms (3.9x), which is what separates them. The 600ms bound sits 6.5x above the
-     * linear form and 4x below the quadratic one; recalibrate from those figures, not by nudging it.
-     */
-    public function testAdversarialContentIsExtractedInLinearTime(): void
+    public function testANostrNeventFollowedByANostrUriWithoutSeparatorYieldsBoth(): void
     {
-        $content = EventContent::fromString(str_repeat('nevent1a ', 14000));
-        $extractor = new ContentReferenceExtractor($this->createStub(Nip19CodecInterface::class));
+        $nevent = self::nevent([]);
+        $npub = self::npub();
 
-        $startedAt = hrtime(true);
-        $references = $extractor->extractContentReferences($content);
-        $elapsedMs = (hrtime(true) - $startedAt) / 1e6;
+        $references = ContentReferenceExtractor::extract(EventContent::fromString("nostr:{$nevent}nostr:{$npub}"))->toArray();
 
-        $this->assertSame(14000, $references->count());
-        $this->assertLessThan(600, $elapsedMs, sprintf('Extraction took %.0f ms; overlap detection is no longer linear', $elapsedMs));
+        $this->assertSame(['nostr:'.$nevent, 'nostr:'.$npub], array_map(static fn ($reference): string => $reference->getRawText(), $references));
+    }
+
+    public function testANostrNpubFollowedByANostrUriWithoutSeparatorYieldsBoth(): void
+    {
+        $npub = self::npub();
+        $note = self::note();
+
+        $references = ContentReferenceExtractor::extract(EventContent::fromString("nostr:{$npub}nostr:{$note}"))->toArray();
+
+        $this->assertSame(['nostr:'.$npub, 'nostr:'.$note], array_map(static fn ($reference): string => $reference->getRawText(), $references));
+    }
+
+    public function testANostrNprofileFollowedByANostrUriWithoutSeparatorYieldsBoth(): void
+    {
+        $nprofile = (Nprofile::tryFromPublicKey(PublicKey::tryFromHex(self::PUBKEY_HEX) ?? throw new RuntimeException('Invalid test pubkey')) ?? throw new RuntimeException('Invalid test nprofile'))->toBech32();
+        $note = self::note();
+
+        $references = ContentReferenceExtractor::extract(EventContent::fromString("nostr:{$nprofile}nostr:{$note}"))->toArray();
+
+        $this->assertSame(['nostr:'.$nprofile, 'nostr:'.$note], array_map(static fn ($reference): string => $reference->getRawText(), $references));
+    }
+
+    public function testANostrNaddrFollowedByANostrUriWithoutSeparatorYieldsBoth(): void
+    {
+        $coordinate = EventCoordinate::tryFrom(
+            EventKind::fromInt(30023),
+            PublicKey::tryFromHex(self::PUBKEY_HEX) ?? throw new RuntimeException('Invalid test pubkey'),
+            'article',
+        ) ?? throw new RuntimeException('Invalid test coordinate');
+        $naddr = (Naddr::tryFromCoordinate($coordinate) ?? throw new RuntimeException('Invalid test naddr'))->toBech32();
+        $npub = self::npub();
+
+        $references = ContentReferenceExtractor::extract(EventContent::fromString("nostr:{$naddr}nostr:{$npub}"))->toArray();
+
+        $this->assertSame(['nostr:'.$naddr, 'nostr:'.$npub], array_map(static fn ($reference): string => $reference->getRawText(), $references));
+    }
+
+    public function testAdversarialContentOfAdjacentReferencesKeepsEveryOne(): void
+    {
+        $content = EventContent::fromString(str_repeat(self::nevent([]).' ', 16000));
+
+        $this->assertSame(16000, ContentReferenceExtractor::extract($content)->count());
     }
 
     public function testANostrUriSuppressesTheBareMatchNestedInsideIt(): void
     {
-        $npub = 'npub1'.str_repeat('a', 58);
-        $extractor = new ContentReferenceExtractor($this->createStub(Nip19CodecInterface::class));
+        $npub = self::npub();
 
-        $references = $extractor->extractContentReferences(EventContent::fromString('nostr:'.$npub))->toArray();
+        $references = ContentReferenceExtractor::extract(EventContent::fromString('nostr:'.$npub))->toArray();
 
         $this->assertCount(1, $references);
         $this->assertSame(ContentReferenceType::NostrUri, $references[0]->getType());
@@ -343,11 +323,10 @@ final class ContentReferenceExtractorTest extends TestCase
 
     public function testAdjacentNonOverlappingReferencesAreAllKept(): void
     {
-        $npub = 'npub1'.str_repeat('a', 58);
-        $note = 'note1'.str_repeat('b', 58);
-        $extractor = new ContentReferenceExtractor($this->createStub(Nip19CodecInterface::class));
+        $npub = self::npub();
+        $note = self::note();
 
-        $references = $extractor->extractContentReferences(EventContent::fromString($npub.' '.$note))->toArray();
+        $references = ContentReferenceExtractor::extract(EventContent::fromString($npub.' '.$note))->toArray();
 
         $this->assertCount(2, $references);
         $this->assertSame(0, $references[0]->getPosition());

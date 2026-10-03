@@ -153,6 +153,16 @@ final class PrivateKeyTest extends TestCase
         $this->assertNull(PrivateKey::tryFromHex(str_repeat('f', 64)));
     }
 
+    public function testRejectsScalarOneAboveCurveOrder(): void
+    {
+        $this->assertNull(PrivateKey::tryFromHex('fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364142'));
+    }
+
+    public function testComparesTheScalarFromItsMostSignificantByte(): void
+    {
+        $this->assertNotNull(PrivateKey::tryFromHex(str_repeat('0', 62).'ff'));
+    }
+
     public function testAcceptsScalarOneBelowCurveOrder(): void
     {
         $this->assertNotNull(PrivateKey::tryFromHex('fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364140'));
@@ -166,5 +176,15 @@ final class PrivateKeyTest extends TestCase
     public function testTryFromBytesRejectsZeroScalar(): void
     {
         $this->assertNull(PrivateKey::tryFromBytes(str_repeat("\x00", 32)));
+    }
+
+    public function testTryFromBytesRejectsScalarEqualToCurveOrder(): void
+    {
+        $this->assertNull(PrivateKey::tryFromBytes(sodium_hex2bin('fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141')));
+    }
+
+    public function testTryFromBytesAcceptsScalarOneBelowCurveOrder(): void
+    {
+        $this->assertNotNull(PrivateKey::tryFromBytes(sodium_hex2bin('fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364140')));
     }
 }

@@ -114,6 +114,13 @@ final class PublicKeyTest extends TestCase
         $this->assertTrue($expected->equals($publicKey));
     }
 
+    public function testTryFromNpubOrHexAcceptsAnUpperCaseNpub(): void
+    {
+        $expected = PublicKey::tryFromHex(self::VALID_PUBLIC_KEY_HEX) ?? throw new RuntimeException('Invalid test pubkey');
+
+        $this->assertTrue(PublicKey::tryFromNpubOrHex(strtoupper($expected->toBech32()))?->equals($expected));
+    }
+
     public function testTryFromNpubOrHexReturnsNullForInvalidInput(): void
     {
         $this->assertNull(PublicKey::tryFromNpubOrHex('not-a-key'));

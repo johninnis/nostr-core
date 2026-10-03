@@ -24,14 +24,15 @@ final class Nip98ValidationFailureTest extends TestCase
         yield 'wrong kind' => [Nip98ValidationFailure::WrongKind, 'wrong_kind'];
         yield 'bad signature' => [Nip98ValidationFailure::BadSignature, 'bad_signature'];
         yield 'timestamp outside tolerance' => [Nip98ValidationFailure::TimestampOutsideTolerance, 'timestamp_outside_tolerance'];
+        yield 'expired' => [Nip98ValidationFailure::Expired, 'expired'];
         yield 'missing url tag' => [Nip98ValidationFailure::MissingUrlTag, 'missing_url_tag'];
-        yield 'multiple url tags' => [Nip98ValidationFailure::MultipleUrlTags, 'multiple_url_tags'];
+        yield 'disagreeing url tags' => [Nip98ValidationFailure::DisagreeingUrlTags, 'disagreeing_url_tags'];
         yield 'malformed url' => [Nip98ValidationFailure::MalformedUrl, 'malformed_url'];
         yield 'url mismatch' => [Nip98ValidationFailure::UrlMismatch, 'url_mismatch'];
         yield 'missing method tag' => [Nip98ValidationFailure::MissingMethodTag, 'missing_method_tag'];
-        yield 'multiple method tags' => [Nip98ValidationFailure::MultipleMethodTags, 'multiple_method_tags'];
+        yield 'disagreeing method tags' => [Nip98ValidationFailure::DisagreeingMethodTags, 'disagreeing_method_tags'];
         yield 'method mismatch' => [Nip98ValidationFailure::MethodMismatch, 'method_mismatch'];
-        yield 'multiple payload tags' => [Nip98ValidationFailure::MultiplePayloadTags, 'multiple_payload_tags'];
+        yield 'disagreeing payload tags' => [Nip98ValidationFailure::DisagreeingPayloadTags, 'disagreeing_payload_tags'];
         yield 'payload tag without body hash' => [Nip98ValidationFailure::PayloadTagWithoutBodyHash, 'payload_tag_without_body_hash'];
         yield 'missing payload tag' => [Nip98ValidationFailure::MissingPayloadTag, 'missing_payload_tag'];
         yield 'payload mismatch' => [Nip98ValidationFailure::PayloadMismatch, 'payload_mismatch'];
@@ -41,6 +42,22 @@ final class Nip98ValidationFailureTest extends TestCase
     public function testMessageIsAHumanReadableDescription(): void
     {
         $this->assertSame('Event must be kind 27235', Nip98ValidationFailure::WrongKind->message());
+    }
+
+    #[DataProvider('disagreementMessages')]
+    public function testADisagreementSaysTheTagsDisagree(Nip98ValidationFailure $failure, string $message): void
+    {
+        $this->assertSame($message, $failure->message());
+    }
+
+    /**
+     * @return iterable<string, array{Nip98ValidationFailure, string}>
+     */
+    public static function disagreementMessages(): iterable
+    {
+        yield 'u' => [Nip98ValidationFailure::DisagreeingUrlTags, 'Event u tags disagree'];
+        yield 'method' => [Nip98ValidationFailure::DisagreeingMethodTags, 'Event method tags disagree'];
+        yield 'payload' => [Nip98ValidationFailure::DisagreeingPayloadTags, 'Event payload tags disagree'];
     }
 
     public function testEveryCaseSeparatesItsCodeFromItsMessage(): void

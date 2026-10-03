@@ -5,15 +5,14 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Protocol;
 
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
 
 final class RelayUrlTest extends TestCase
 {
     private function createRelayUrl(string $url): RelayUrl
     {
-        return RelayUrl::tryFromString($url)
-            ?? throw new RuntimeException('Invalid test URL: '.$url);
+        return RelayUrl::fromString($url);
     }
 
     public function testValidWssUrl(): void
@@ -109,6 +108,16 @@ final class RelayUrlTest extends TestCase
         $this->assertNull(RelayUrl::tryFromString('wss://relay.example.com:70000'));
     }
 
+    public function testRejectsTheFirstPortAboveMax(): void
+    {
+        $this->assertNull(RelayUrl::tryFromString('wss://relay.example.com:65536'));
+    }
+
+    public function testAcceptsTheHighestPort(): void
+    {
+        $this->assertSame('wss://relay.example.com:65535', (string) RelayUrl::tryFromString('wss://relay.example.com:65535'));
+    }
+
     public function testRejectsSpacesInHost(): void
     {
         $this->assertNull(RelayUrl::tryFromString('wss://relay example.com'));
@@ -156,56 +165,49 @@ final class RelayUrlTest extends TestCase
 
     public function testIsSecureReturnsTrueForWss(): void
     {
-        $url = RelayUrl::tryFromString('wss://relay.example.com')
-            ?? throw new RuntimeException('Invalid test URL');
+        $url = RelayUrl::fromString('wss://relay.example.com');
 
         $this->assertTrue($url->isSecure());
     }
 
     public function testIsSecureReturnsFalseForWs(): void
     {
-        $url = RelayUrl::tryFromString('ws://localhost:7777')
-            ?? throw new RuntimeException('Invalid test URL');
+        $url = RelayUrl::fromString('ws://localhost:7777');
 
         $this->assertFalse($url->isSecure());
     }
 
     public function testGetHostReturnsHost(): void
     {
-        $url = RelayUrl::tryFromString('wss://relay.damus.io')
-            ?? throw new RuntimeException('Invalid test URL');
+        $url = RelayUrl::fromString('wss://relay.damus.io');
 
         $this->assertSame('relay.damus.io', $url->getHost());
     }
 
     public function testGetPortReturnsPortWhenPresent(): void
     {
-        $url = RelayUrl::tryFromString('wss://relay.example.com:8080')
-            ?? throw new RuntimeException('Invalid test URL');
+        $url = RelayUrl::fromString('wss://relay.example.com:8080');
 
         $this->assertSame(8080, $url->getPort());
     }
 
     public function testGetPortReturnsNullWhenAbsent(): void
     {
-        $url = RelayUrl::tryFromString('wss://relay.damus.io')
-            ?? throw new RuntimeException('Invalid test URL');
+        $url = RelayUrl::fromString('wss://relay.damus.io');
 
         $this->assertNull($url->getPort());
     }
 
     public function testGetPathReturnsPathWhenPresent(): void
     {
-        $url = RelayUrl::tryFromString('wss://relay.example.com/nostr')
-            ?? throw new RuntimeException('Invalid test URL');
+        $url = RelayUrl::fromString('wss://relay.example.com/nostr');
 
         $this->assertSame('/nostr', $url->getPath());
     }
 
     public function testGetPathReturnsSlashWhenAbsent(): void
     {
-        $url = RelayUrl::tryFromString('wss://relay.damus.io')
-            ?? throw new RuntimeException('Invalid test URL');
+        $url = RelayUrl::fromString('wss://relay.damus.io');
 
         $this->assertSame('/', $url->getPath());
     }
@@ -297,8 +299,7 @@ final class RelayUrlTest extends TestCase
 
     public function testGetPortReturnsNullAfterDefaultPortStripped(): void
     {
-        $url = RelayUrl::tryFromString('wss://relay.example.com:443')
-            ?? throw new RuntimeException('Invalid test URL');
+        $url = RelayUrl::fromString('wss://relay.example.com:443');
 
         $this->assertNull($url->getPort());
     }
@@ -315,20 +316,32 @@ final class RelayUrlTest extends TestCase
     {
         $url = $this->createRelayUrl('wss://relay.example.com');
 
-        $this->assertSame('https://relay.example.com', $url->toHttpUrl());
+        $this->assertSame('https://relay.example.com/', (string) $url->toHttpUrl());
     }
 
     public function testToHttpUrlMapsWsToHttp(): void
     {
         $url = $this->createRelayUrl('ws://localhost:7777');
 
-        $this->assertSame('http://localhost:7777', $url->toHttpUrl());
+        $this->assertSame('http://localhost:7777/', (string) $url->toHttpUrl());
     }
 
     public function testToHttpUrlPreservesPortAndPath(): void
     {
         $url = $this->createRelayUrl('wss://relay.example.com:8080/nostr');
 
-        $this->assertSame('https://relay.example.com:8080/nostr', $url->toHttpUrl());
+        $this->assertSame('https://relay.example.com:8080/nostr', (string) $url->toHttpUrl());
+    }
+
+    public function testFromStringBuildsTheCanonicalForm(): void
+    {
+        $this->assertSame('wss://relay.example.com', (string) RelayUrl::fromString('WSS://Relay.Example.com:443/'));
+    }
+
+    public function testFromStringThrowsOnWhatIsNotARelayUrl(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        RelayUrl::fromString('https://relay.example.com');
     }
 }

@@ -12,6 +12,8 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Nip19\Nevent;
 use Innis\Nostr\Core\Domain\ValueObject\Nip19\Nip19Tlv;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
+use Innis\Nostr\Core\Tests\Support\Bech32Mother;
+use Innis\Nostr\Core\Tests\Support\RelayUrlMother;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -22,7 +24,7 @@ final class NeventTest extends TestCase
 
     public function testRoundTripsEveryOptionalField(): void
     {
-        $relay = RelayUrl::tryFromString('wss://relay.example.com') ?? throw new RuntimeException('Invalid test relay');
+        $relay = RelayUrl::fromString('wss://relay.example.com');
 
         $nevent = Nevent::tryFromEventId(
             $this->eventId(),
@@ -41,34 +43,65 @@ final class NeventTest extends TestCase
         $this->assertSame(['wss://relay.example.com'], $decoded->getRelays()->toStrings());
     }
 
-    // Deliberate: author is optional, so its absence is legal — but a present, malformed author record is corruption and must not be reported as absence — see ADR-0060
+    // Deliberate: author is optional, so its absence is legal — but a present, malformed author record is corruption and must not be reported as absence — see nostr-adrs ADR-0094
     public function testRejectsAPresentButMalformedAuthorRecord(): void
     {
         $payload = $this->specialRecord().pack('CC', Nip19Tlv::TYPE_AUTHOR, 8).'SHORTKEY';
 
-        $this->assertNull(Nevent::tryFromBech32(Bech32Codec::encode(Nevent::HRP, $payload)));
+        $this->assertNull(Nevent::tryFromBech32(Bech32Mother::encode(Nevent::HRP, $payload)));
     }
 
     public function testRejectsAPresentButMalformedKindRecord(): void
     {
         $payload = $this->specialRecord().pack('CC', Nip19Tlv::TYPE_KIND, 2)."\x00\x01";
 
-        $this->assertNull(Nevent::tryFromBech32(Bech32Codec::encode(Nevent::HRP, $payload)));
+        $this->assertNull(Nevent::tryFromBech32(Bech32Mother::encode(Nevent::HRP, $payload)));
     }
 
-    // Deliberate: relay hints are a best-effort list, so an unusable one drops individually rather than discarding the event id with it — see ADR-0060
+    // Deliberate: relay hints are a best-effort list, so an unusable one drops individually rather than discarding the event id with it — see nostr-adrs ADR-0084
     public function testDropsAnUnusableRelayHintButKeepsTheEvent(): void
     {
         $payload = $this->specialRecord().pack('CC', Nip19Tlv::TYPE_RELAY, 11).'not a url!!';
 
-        $decoded = Nevent::tryFromBech32(Bech32Codec::encode(Nevent::HRP, $payload));
+        $decoded = Nevent::tryFromBech32(Bech32Mother::encode(Nevent::HRP, $payload));
 
         $this->assertNotNull($decoded);
         $this->assertTrue($decoded->getEventId()->equals($this->eventId()));
         $this->assertSame([], $decoded->getRelays()->toStrings());
     }
 
-    // Deliberate: toBech32 is canonical output, not the bytes decoded — record order is normalised and unrecognised types are dropped; see the round-trip consequence in ADR-0060
+    public function testKeepsARelayHintNamedTwiceOnce(): void
+    {
+        $payload = $this->specialRecord()
+            .pack('CC', Nip19Tlv::TYPE_RELAY, 24).'wss://relay.example.com/'
+            .pack('CC', Nip19Tlv::TYPE_RELAY, 23).'WSS://relay.example.com';
+
+        $decoded = Nevent::tryFromBech32(Bech32Mother::encode(Nevent::HRP, $payload));
+
+        $this->assertSame(['wss://relay.example.com'], $decoded?->getRelays()->toStrings());
+    }
+
+    public function testKeepsARelaySuppliedTwiceOnceAsItsDecoderDoes(): void
+    {
+        $relay = RelayUrl::fromString('wss://relay.example.com');
+
+        $nevent = Nevent::tryFromEventId($this->eventId(), new RelayUrlCollection([$relay, $relay]));
+
+        $this->assertSame(['wss://relay.example.com'], $nevent?->getRelays()->toStrings());
+    }
+
+    public function testRoundTripsARelaySuppliedTwiceToTheSameRelays(): void
+    {
+        $relay = RelayUrl::fromString('wss://relay.example.com');
+        $nevent = Nevent::tryFromEventId($this->eventId(), new RelayUrlCollection([$relay, $relay]));
+        $this->assertNotNull($nevent);
+
+        $decoded = Nevent::tryFromBech32($nevent->toBech32());
+
+        $this->assertSame($nevent->getRelays()->toStrings(), $decoded?->getRelays()->toStrings());
+    }
+
+    // Deliberate: toBech32 is canonical output, not the bytes decoded — record order is normalised and unrecognised types are dropped; see the round-trip consequence in ADR-0082
     public function testReEncodesCanonicallyAndDropsUnrecognisedRecords(): void
     {
         $foreign = $this->specialRecord()
@@ -77,7 +110,7 @@ final class NeventTest extends TestCase
             .pack('CC', Nip19Tlv::TYPE_RELAY, 23).'wss://relay.example.com'
             .pack('CC', 7, 5).'xxxxx';
 
-        $input = Bech32Codec::encode(Nevent::HRP, $foreign);
+        $input = Bech32Mother::encode(Nevent::HRP, $foreign);
         $decoded = Nevent::tryFromBech32($input);
 
         $this->assertNotNull($decoded);
@@ -86,7 +119,60 @@ final class NeventTest extends TestCase
         $reparsed = Nip19Tlv::tryFromBytes(Bech32Codec::decodeWithHrp($decoded->toBech32(), Nevent::HRP) ?? '');
         $this->assertNotNull($reparsed);
         $this->assertSame([], $reparsed->all(7));
-        $this->assertSame('wss://relay.example.com', $reparsed->first(Nip19Tlv::TYPE_RELAY));
+        $this->assertSame('wss://relay.example.com', $reparsed->sole(Nip19Tlv::TYPE_RELAY));
+    }
+
+    public function testReadsAnAuthorRecordRepeatedWithOneValueOnce(): void
+    {
+        $decoded = Nevent::tryFromPayload($this->specialRecord().$this->authorRecord($this->pubkey()).$this->authorRecord($this->pubkey()));
+
+        $this->assertTrue($decoded?->getAuthor()?->equals($this->pubkey()) ?? false);
+    }
+
+    public function testAuthorRecordsThatDisagreeNameNoAuthor(): void
+    {
+        $other = PublicKey::tryFromHex(str_repeat('c', 64)) ?? throw new RuntimeException('Invalid test pubkey');
+
+        $decoded = Nevent::tryFromPayload($this->specialRecord().$this->authorRecord($this->pubkey()).$this->authorRecord($other));
+
+        $this->assertNotNull($decoded);
+        $this->assertNull($decoded->getAuthor());
+    }
+
+    public function testRejectsAMalformedAuthorRecordBesideAWellFormedOne(): void
+    {
+        $payload = $this->specialRecord().$this->authorRecord($this->pubkey()).pack('CC', Nip19Tlv::TYPE_AUTHOR, 8).'SHORTKEY';
+
+        $this->assertNull(Nevent::tryFromPayload($payload));
+    }
+
+    public function testKindRecordsThatDisagreeNameNoKind(): void
+    {
+        $payload = $this->specialRecord().pack('CCN', Nip19Tlv::TYPE_KIND, 4, 1).pack('CCN', Nip19Tlv::TYPE_KIND, 4, 7);
+
+        $this->assertNull(Nevent::tryFromPayload($payload)?->getKind());
+    }
+
+    public function testRejectsAKindAboveTheNip01Range(): void
+    {
+        $this->assertNull(Nevent::tryFromPayload($this->specialRecord().pack('CCN', Nip19Tlv::TYPE_KIND, 4, 65536)));
+    }
+
+    public function testRejectsEventIdRecordsThatDisagree(): void
+    {
+        $other = pack('CC', Nip19Tlv::TYPE_SPECIAL, 32).str_repeat("\x01", 32);
+
+        $this->assertNull(Nevent::tryFromPayload($this->specialRecord().$other));
+    }
+
+    public function testRefusesAnEventWhoseEncodingWouldPassTheNip19Bound(): void
+    {
+        $this->assertNull(Nevent::tryFromEventId($this->eventId(), RelayUrlMother::beyondTheNip19EncodingBound()));
+    }
+
+    private function authorRecord(PublicKey $author): string
+    {
+        return pack('CC', Nip19Tlv::TYPE_AUTHOR, 32).$author->toBytes();
     }
 
     private function specialRecord(): string

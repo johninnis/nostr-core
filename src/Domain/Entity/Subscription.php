@@ -11,7 +11,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 
 final readonly class Subscription
 {
-    public function __construct(
+    private function __construct(
         private SubscriptionId $id,
         private FilterCollection $filters,
         private Timestamp $createdAt,
@@ -77,11 +77,12 @@ final readonly class Subscription
         ];
     }
 
-    /**
-     * @param array<array-key, mixed> $data
-     */
-    public static function tryFromArray(array $data): ?self
+    public static function tryFromArray(mixed $data): ?self
     {
+        if (!is_array($data)) {
+            return null;
+        }
+
         if (!isset($data['id'], $data['filters'], $data['created_at'])) {
             return null;
         }
@@ -106,7 +107,7 @@ final readonly class Subscription
         }
 
         $state = SubscriptionState::Pending;
-        if (isset($data['state'])) {
+        if (array_key_exists('state', $data)) {
             if (!is_string($data['state'])) {
                 return null;
             }

@@ -9,6 +9,7 @@ use Innis\Nostr\Core\Domain\Collection\EventCoordinateCollection;
 use Innis\Nostr\Core\Domain\Collection\EventReferenceCollection;
 use Innis\Nostr\Core\Domain\Collection\PubkeyReferenceCollection;
 use Innis\Nostr\Core\Domain\Collection\RelayReferenceCollection;
+use Innis\Nostr\Core\Domain\Enum\RelayMarker;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
@@ -33,7 +34,7 @@ final class TagReferencesTest extends TestCase
             new PubkeyReferenceCollection([new PubkeyReference($this->pubkey(), $this->relay(), 'alice')]),
             new EventReferenceCollection([new EventReference($this->eventId())]),
             new EventCoordinateCollection([$this->coordinate()]),
-            new RelayReferenceCollection([new RelayReference($this->relay(), 'read')]),
+            new RelayReferenceCollection([new RelayReference($this->relay(), RelayMarker::Read)]),
             ChallengeCollection::fromStrings(['challenge-token']),
         );
 
@@ -75,7 +76,7 @@ final class TagReferencesTest extends TestCase
 
     private function relay(): RelayUrl
     {
-        return RelayUrl::tryFromString('wss://relay.example') ?? throw new RuntimeException('Invalid test relay');
+        return RelayUrl::fromString('wss://relay.example');
     }
 
     private function coordinate(): EventCoordinate

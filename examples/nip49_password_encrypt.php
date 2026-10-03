@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 use Innis\Nostr\Core\Domain\Enum\KeySecurityByte;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Ncryptsec;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\Nip49WorkFactor;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Infrastructure\Crypto\Nip49Cipher;
 
 require __DIR__.'/../vendor/autoload.php';
 
-$cipher = Nip49Cipher::create();
+$cipher = Nip49Cipher::create(new Nip49WorkFactor(encryptLogN: 16));
 $privateKey = PrivateKey::generate();
 $password = static fn (): string => 'correct horse battery staple';
 
-$ncryptsec = $cipher->encrypt($privateKey, $password, logN: 16, keySecurity: KeySecurityByte::ClientSideOnly);
+$ncryptsec = $cipher->encrypt($privateKey, $password, KeySecurityByte::NotKnownInsecure);
 $stored = (string) $ncryptsec;
 
 $decoded = Ncryptsec::tryFromString($stored) ?? throw new RuntimeException('Failed to parse ncryptsec');

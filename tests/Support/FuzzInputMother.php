@@ -38,9 +38,6 @@ final class FuzzInputMother
     }
 
     /**
-     * A near-valid event array with each field independently mutated, so the parser is driven deep
-     * (past the required-field gate) rather than rejected at the first check.
-     *
      * @return array<array-key, mixed>
      */
     public static function nearValidEventArray(): array
@@ -82,8 +79,6 @@ final class FuzzInputMother
     }
 
     /**
-     * A protocol message as a list: a type tag followed by mutated payload elements.
-     *
      * @param list<string> $types
      *
      * @return list<mixed>
@@ -112,10 +107,6 @@ final class FuzzInputMother
         return json_encode(self::messageArray($types), JSON_PARTIAL_OUTPUT_ON_ERROR) ?: '';
     }
 
-    /**
-     * A JSON object whose numeric-string keys decode to a sparse-keyed PHP array (e.g. {"0":"EVENT","2":{}}),
-     * so count() passes while positional keys are absent — the message-leaf attack vector.
-     */
     public static function sparseObjectJson(): string
     {
         $object = new stdClass();

@@ -14,28 +14,25 @@ final class Nip05DocumentVerifier
     {
     }
 
-    /**
-     * @param array<string, mixed> $document
-     */
-    public static function verify(array $document, Nip05Identifier $identifier, PublicKey $expectedPubkey): ?Nip05VerificationFailure
+    // Deliberate: a body that is not a JSON object is no answer, not a verdict, so it is FetchFailed and can be checked again — see ADR-0090
+    public static function verify(string $document, Nip05Identifier $identifier, PublicKey $expectedPubkey): ?Nip05VerificationFailure
     {
-        if (!isset($document['names'])) {
+        $fields = JsonWireFormat::decodeObject($document);
+
+        if (null === $fields) {
+            return Nip05VerificationFailure::FetchFailed;
+        }
+
+        if (!isset($fields['names'])) {
             return Nip05VerificationFailure::MissingNames;
         }
 
-        $names = $document['names'];
-        $localPart = $identifier->getLocalPart();
+        $returnedPubkey = JsonWireFormat::objectFields($fields['names'])[$identifier->getLocalPart()] ?? null;
 
-        if (!is_array($names) || !isset($names[$localPart])) {
-            return Nip05VerificationFailure::NameNotFound;
-        }
-
-        $returnedPubkey = $names[$localPart];
-
-        if (!is_string($returnedPubkey) || 0 !== strcasecmp($returnedPubkey, $expectedPubkey->toHex())) {
-            return Nip05VerificationFailure::PubkeyMismatch;
-        }
-
-        return null;
+        return match (true) {
+            null === $returnedPubkey => Nip05VerificationFailure::NameNotFound,
+            $returnedPubkey !== $expectedPubkey->toHex() => Nip05VerificationFailure::PubkeyMismatch,
+            default => null,
+        };
     }
 }

@@ -56,19 +56,64 @@ final class CommentMetadataTest extends TestCase
         $this->assertSame(CommentScope::External, $metadata->getRootScope());
     }
 
-    public function testEventTakesPriorityOverAddress(): void
+    public function testAnExternalRootWithAnEmptyKHasNoScope(): void
     {
         $tags = TagCollectionMother::fromRaw([
-            ['K', '1'],
+            ['K', ''],
+            ['k', '1111'],
+            ['I', 'https://example.com/article'],
+        ]);
+
+        $this->assertNull(CommentMetadata::tryFromTagCollection($tags));
+    }
+
+    public function testAddressTakesPriorityOverEvent(): void
+    {
+        $tags = TagCollectionMother::fromRaw([
+            ['K', '30023'],
             ['k', '1111'],
             ['E', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
             ['A', '30023:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:slug'],
         ]);
 
-        $metadata = CommentMetadata::tryFromTagCollection($tags);
+        $this->assertSame(CommentScope::Address, CommentMetadata::tryFromTagCollection($tags)?->getRootScope());
+    }
 
-        $this->assertNotNull($metadata);
-        $this->assertSame(CommentScope::Event, $metadata->getRootScope());
+    public function testEventTakesPriorityOverExternalContent(): void
+    {
+        $tags = TagCollectionMother::fromRaw([
+            ['K', '1'],
+            ['k', '1111'],
+            ['I', 'isbn:9780765382030'],
+            ['E', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
+        ]);
+
+        $this->assertSame(CommentScope::Event, CommentMetadata::tryFromTagCollection($tags)?->getRootScope());
+    }
+
+    public function testAddressTagsThatDisagreeAreNoClaimSoTheEventIsRead(): void
+    {
+        $tags = TagCollectionMother::fromRaw([
+            ['K', '30023'],
+            ['k', '1111'],
+            ['A', '30023:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:one'],
+            ['A', '30023:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:two'],
+            ['E', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
+        ]);
+
+        $this->assertSame(CommentScope::Event, CommentMetadata::tryFromTagCollection($tags)?->getRootScope());
+    }
+
+    public function testEventTagsThatDisagreeAndNothingElseNameNoScope(): void
+    {
+        $tags = TagCollectionMother::fromRaw([
+            ['K', '1'],
+            ['k', '1111'],
+            ['E', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
+            ['E', 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'],
+        ]);
+
+        $this->assertNull(CommentMetadata::tryFromTagCollection($tags));
     }
 
     public function testReturnsNullWhenRootKindMissing(): void
@@ -118,7 +163,7 @@ final class CommentMetadataTest extends TestCase
 
     public function testToArrayFromArrayRoundTrip(): void
     {
-        $original = new CommentMetadata('1', '1111', CommentScope::Event);
+        $original = CommentMetadata::from('1', '1111', CommentScope::Event);
 
         $array = $original->toArray();
         $restored = CommentMetadata::tryFromArray($array);
@@ -128,6 +173,11 @@ final class CommentMetadataTest extends TestCase
         $this->assertSame('1', $array['root_kind']);
         $this->assertSame('1111', $array['parent_kind']);
         $this->assertSame('event', $array['root_scope']);
+    }
+
+    public function testTryFromArrayRefusesAValueThatIsNotAnArray(): void
+    {
+        $this->assertNull(CommentMetadata::tryFromArray('1111'));
     }
 
     public function testTryFromArrayReturnsNullWhenFieldMissing(): void
@@ -146,11 +196,89 @@ final class CommentMetadataTest extends TestCase
 
     public function testEquals(): void
     {
-        $a = new CommentMetadata('1', '1111', CommentScope::Event);
-        $b = new CommentMetadata('1', '1111', CommentScope::Event);
-        $c = new CommentMetadata('1', '1111', CommentScope::Address);
+        $a = CommentMetadata::from('1', '1111', CommentScope::Event);
+        $b = CommentMetadata::from('1', '1111', CommentScope::Event);
+        $c = CommentMetadata::from('1', '1111', CommentScope::Address);
 
         $this->assertTrue($a->equals($b));
         $this->assertFalse($a->equals($c));
+    }
+
+    public function testReturnsNullWhenRootKindTagsDisagree(): void
+    {
+        $tags = TagCollectionMother::fromRaw([
+            ['K', '1'],
+            ['K', '30023'],
+            ['k', '1111'],
+            ['E', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
+        ]);
+
+        $this->assertNull(CommentMetadata::tryFromTagCollection($tags));
+    }
+
+    public function testReturnsNullWhenParentKindTagsDisagree(): void
+    {
+        $tags = TagCollectionMother::fromRaw([
+            ['K', '1'],
+            ['k', '1'],
+            ['k', '1111'],
+            ['E', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
+        ]);
+
+        $this->assertNull(CommentMetadata::tryFromTagCollection($tags));
+    }
+
+    public function testReadsARepeatedKindTagAsOneClaim(): void
+    {
+        $tags = TagCollectionMother::fromRaw([
+            ['K', '1'],
+            ['K', '1'],
+            ['k', '1111'],
+            ['E', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
+        ]);
+
+        $this->assertSame('1', CommentMetadata::tryFromTagCollection($tags)?->getRootKind());
+    }
+
+    public function testTryFromRefusesARootKindThatIsNotUtf8(): void
+    {
+        $this->assertNull(CommentMetadata::tryFrom("\xff", '1111', CommentScope::Event));
+    }
+
+    public function testTryFromArrayRefusesAParentKindThatIsNotUtf8(): void
+    {
+        $this->assertNull(CommentMetadata::tryFromArray(['root_kind' => '1', 'parent_kind' => "\xff", 'root_scope' => 'event']));
+    }
+
+    public function testAnEventRootWithAnEmptyKHasNoMetadata(): void
+    {
+        $tags = TagCollectionMother::fromRaw([
+            ['K', ''],
+            ['k', '1111'],
+            ['E', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
+        ]);
+
+        $this->assertNull(CommentMetadata::tryFromTagCollection($tags));
+    }
+
+    public function testAnEmptyParentKindHasNoMetadata(): void
+    {
+        $tags = TagCollectionMother::fromRaw([
+            ['K', '1'],
+            ['k', ''],
+            ['E', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
+        ]);
+
+        $this->assertNull(CommentMetadata::tryFromTagCollection($tags));
+    }
+
+    public function testTryFromRefusesAnEmptyRootKind(): void
+    {
+        $this->assertNull(CommentMetadata::tryFrom('', '1111', CommentScope::Event));
+    }
+
+    public function testTryFromArrayRefusesAnEmptyParentKind(): void
+    {
+        $this->assertNull(CommentMetadata::tryFromArray(['root_kind' => '1', 'parent_kind' => '', 'root_scope' => 'event']));
     }
 }
