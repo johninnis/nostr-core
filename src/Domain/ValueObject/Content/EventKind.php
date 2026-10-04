@@ -61,7 +61,7 @@ final readonly class EventKind implements Stringable, IdentityKeyedInterface
     public const int WALLET_REQUEST = 23194;
     public const int WALLET_RESPONSE = 23195;
     public const int NOSTR_CONNECT = 24133;
-    public const int BLOSSOM_BLOB = 24242;
+    public const int BLOSSOM_AUTHORISATION = 24242;
     public const int HTTP_AUTH = 27235;
     public const int MUTE_LIST = 10000;
     public const int PIN_LIST = 10001;

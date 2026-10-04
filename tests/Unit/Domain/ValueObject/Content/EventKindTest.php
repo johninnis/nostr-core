@@ -174,7 +174,7 @@ final class EventKindTest extends TestCase
         yield 'ZAP_GOAL' => [9041, EventKind::ZAP_GOAL];
         yield 'WALLET_REQUEST' => [23194, EventKind::WALLET_REQUEST];
         yield 'WALLET_RESPONSE' => [23195, EventKind::WALLET_RESPONSE];
-        yield 'BLOSSOM_BLOB' => [24242, EventKind::BLOSSOM_BLOB];
+        yield 'BLOSSOM_AUTHORISATION' => [24242, EventKind::BLOSSOM_AUTHORISATION];
 
         yield 'FOLLOW_SET' => [30000, EventKind::FOLLOW_SET];
         yield 'RELAY_SET' => [30002, EventKind::RELAY_SET];
