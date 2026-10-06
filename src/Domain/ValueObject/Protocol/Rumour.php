@@ -109,6 +109,23 @@ final readonly class Rumour
         return new self($this->pubkey, $createdAt, $this->kind, $this->tags, $this->content);
     }
 
+    /**
+     * This rumour with one NIP-40 `expiration` tag naming $expiresAt, replacing any it carries — a reader tolerates
+     * many (shared ADR-0011), but a writer emits exactly one.
+     */
+    public function withExpiration(Timestamp $expiresAt): self
+    {
+        $tags = [];
+        foreach ($this->tags as $tag) {
+            if (!$tag->getType()->equals(TagType::expiration())) {
+                $tags[] = $tag;
+            }
+        }
+        $tags[] = Tag::fromArray([TagType::EXPIRATION, (string) $expiresAt->toInt()]);
+
+        return $this->withTags(new TagCollection($tags));
+    }
+
     public function getContent(): EventContent
     {
         return $this->content;

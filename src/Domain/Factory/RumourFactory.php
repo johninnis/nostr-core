@@ -139,6 +139,16 @@ final readonly class RumourFactory
         return Rumour::draft($this->author, EventKind::fromInt(EventKind::LONGFORM_CONTENT), $content, $metadata->toTags());
     }
 
+    public function createDraftWrap(string $identifier, EventKind $draftKind, EventContent $content): Rumour
+    {
+        $tags = new TagCollection([
+            Tag::fromArray([TagType::IDENTIFIER, $identifier]),
+            Tag::fromArray([TagType::PARENT_KIND, (string) $draftKind->toInt()]),
+        ]);
+
+        return Rumour::draft($this->author, EventKind::fromInt(EventKind::DRAFT_EVENT), $content, $tags);
+    }
+
     public function createDeletion(Event $target): Rumour
     {
         if (!$target->getPubkey()->equals($this->author)) {

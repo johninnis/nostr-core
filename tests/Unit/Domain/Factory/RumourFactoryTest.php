@@ -683,10 +683,42 @@ final class RumourFactoryTest extends TestCase
         $this->assertCount(2, $hashtagTags);
     }
 
+    public function testCanCreateDraftWrap(): void
+    {
+        $content = EventContent::fromString('{"kind":30023,"content":"wip"}');
+        $event = $this->authorFactory()->createDraftWrap(
+            'my-draft',
+            EventKind::fromInt(EventKind::LONGFORM_CONTENT),
+            $content,
+        );
+
+        $this->assertTrue($event->getKind()->is(EventKind::DRAFT_EVENT));
+        $this->assertTrue($event->getContent()->equals($content));
+
+        $tags = $event->getTags();
+        $dTags = $tags->findByType(TagType::identifier());
+        $this->assertCount(1, $dTags);
+        $this->assertSame('my-draft', $dTags[0]->getValue());
+
+        $kTags = $tags->findByType(TagType::fromString(TagType::PARENT_KIND));
+        $this->assertCount(1, $kTags);
+        $this->assertSame((string) EventKind::LONGFORM_CONTENT, $kTags[0]->getValue());
+    }
+
+    public function testCreateDraftWrapWritesAnEmptyContentForADeletedDraft(): void
+    {
+        $event = $this->authorFactory()->createDraftWrap(
+            'my-draft',
+            EventKind::fromInt(EventKind::LONGFORM_CONTENT),
+            EventContent::empty(),
+        );
+
+        $this->assertSame('', (string) $event->getContent());
+    }
+
     public function testCanCreateFileMetadata(): void
     {
         $metadata = FileEventMetadata::from(FileMetadata::from('https://example.com/image.png', 'image/png', str_repeat('a', 64), str_repeat('b', 64)));
-
         $event = $this->authorFactory()->createFileMetadata(
             $metadata,
             EventContent::fromString('a caption'),

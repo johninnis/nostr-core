@@ -15,6 +15,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Hashtag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
+use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Tests\Fake\FakeSignatureService;
 use Innis\Nostr\Core\Tests\Support\KeyMother;
@@ -320,6 +321,40 @@ final class RumourTest extends TestCase
         $drafted = Rumour::draft($this->rumour->getPubkey(), $this->rumour->getKind(), $this->rumour->getContent(), $this->rumour->getTags(), $instant);
 
         $this->assertTrue($restamped->getId()->equals($drafted->getId()));
+    }
+
+    public function testWithExpirationWritesTheExpiryAsADecimalStringExpirationTag(): void
+    {
+        $expiring = $this->rumour->withExpiration(Timestamp::fromInt(1800000000));
+
+        $expirationTags = $expiring->getTags()->findByType(TagType::expiration());
+        $this->assertCount(1, $expirationTags);
+        $this->assertSame('1800000000', $expirationTags[0]->getValue());
+    }
+
+    public function testWithExpirationLeavesTheOriginalRumourUnchanged(): void
+    {
+        $before = $this->rumour->getTags()->toJsonArray();
+        $this->rumour->withExpiration(Timestamp::fromInt(1800000000));
+
+        $this->assertSame($before, $this->rumour->getTags()->toJsonArray());
+    }
+
+    public function testWithExpirationReplacesExistingExpirationTags(): void
+    {
+        $expiring = $this->rumour
+            ->withExpiration(Timestamp::fromInt(1600000000))
+            ->withExpiration(Timestamp::fromInt(1800000000));
+
+        $this->assertSame(['1800000000'], $expiring->getTags()->getValuesByType(TagType::expiration()));
+    }
+
+    public function testWithExpirationExpiresTheRumourFromTheStatedSecondOnward(): void
+    {
+        $expiring = $this->rumour->withExpiration(Timestamp::fromInt(1800000000));
+
+        $this->assertFalse($expiring->isExpiredAt(Timestamp::fromInt(1799999999)));
+        $this->assertTrue($expiring->isExpiredAt(Timestamp::fromInt(1800000000)));
     }
 
     public function testDraftWritesAnEmptyDTagForAnAddressableKindWithoutOne(): void
