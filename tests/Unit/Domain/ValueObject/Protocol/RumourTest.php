@@ -554,13 +554,38 @@ final class RumourTest extends TestCase
         $this->assertTrue($rumour->isExpiredAt(Timestamp::fromInt(101)));
     }
 
-    public function testTheAnswerDoesNotDependOnTheOrderTheExpiriesWereWritten(): void
+    public function testExpiresAtIsTheStatedExpiry(): void
     {
-        $reference = Timestamp::fromInt(101);
+        $rumour = $this->rumourWithKindAndContent(1, 'test', [['expiration', '100']]);
+
+        $this->assertSame(100, $rumour->expiresAt()?->toInt());
+    }
+
+    public function testExpiresAtIsTheEarliestStatedExpiryThatParses(): void
+    {
+        $rumour = $this->rumourWithKindAndContent(1, 'test', [['expiration', '9999999999'], ['expiration', 'soon'], ['expiration', '100']]);
+
+        $this->assertSame(100, $rumour->expiresAt()?->toInt());
+    }
+
+    public function testExpiresAtDoesNotDependOnTheOrderTheExpiriesWereWritten(): void
+    {
         $laterFirst = $this->rumourWithKindAndContent(1, 'test', [['expiration', '9999999999'], ['expiration', '100']]);
         $earlierFirst = $this->rumourWithKindAndContent(1, 'test', [['expiration', '100'], ['expiration', '9999999999']]);
 
-        $this->assertSame($laterFirst->isExpiredAt($reference), $earlierFirst->isExpiredAt($reference));
+        $this->assertSame($laterFirst->expiresAt()?->toInt(), $earlierFirst->expiresAt()?->toInt());
+    }
+
+    public function testExpiresAtIsNullWithNoExpirationTag(): void
+    {
+        $this->assertNull($this->rumour->expiresAt());
+    }
+
+    public function testExpiresAtIsNullWhenNoStatedExpiryParses(): void
+    {
+        $rumour = $this->rumourWithKindAndContent(1, 'test', [['expiration', 'soon'], ['expiration', '-1'], ['expiration', '0100']]);
+
+        $this->assertNull($rumour->expiresAt());
     }
 
     public function testSeveralFutureExpiriesLeaveTheEventLive(): void

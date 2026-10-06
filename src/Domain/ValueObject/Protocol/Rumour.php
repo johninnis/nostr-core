@@ -10,6 +10,7 @@ use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Enum\EventKindCategory;
 use Innis\Nostr\Core\Domain\Exception\InvalidEventException;
 use Innis\Nostr\Core\Domain\Failure\RumourParseFailure;
+use Innis\Nostr\Core\Domain\Service\ExpirationDerivation;
 use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 use Innis\Nostr\Core\Domain\Service\ReplyChainAnalyser;
 use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
@@ -147,13 +148,15 @@ final readonly class Rumour
         return $this->kind->is(EventKind::EVENT_DELETION);
     }
 
-    // Deliberate: any stated expiry that has passed expires the event, never just the first tag, so the answer cannot depend on the order tags were stored in — see ADR-0071
+    // Deliberate: the derivation is public so a store can answer from the expiration values it indexed, without decoding the event — see ADR-0071
+    public function expiresAt(): ?Timestamp
+    {
+        return ExpirationDerivation::earliestStated($this->tags->getValuesByType(TagType::expiration()));
+    }
+
     public function isExpiredAt(Timestamp $reference): bool
     {
-        return array_any(
-            $this->tags->getValuesByType(TagType::expiration()),
-            static fn (string $value): bool => Timestamp::tryFromDecimalString($value)?->hasPassedAt($reference) ?? false,
-        );
+        return $this->expiresAt()?->hasPassedAt($reference) ?? false;
     }
 
     public function isProtected(): bool

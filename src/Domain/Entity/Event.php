@@ -104,6 +104,11 @@ final readonly class Event implements Stringable, IdentityKeyedInterface
         return $this->rumour->isDeletion();
     }
 
+    public function expiresAt(): ?Timestamp
+    {
+        return $this->rumour->expiresAt();
+    }
+
     public function isExpiredAt(Timestamp $reference): bool
     {
         return $this->rumour->isExpiredAt($reference);
