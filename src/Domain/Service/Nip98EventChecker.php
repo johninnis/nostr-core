@@ -109,6 +109,7 @@ final readonly class Nip98EventChecker implements Nip98EventCheckerInterface
             : Nip98ValidationFailure::MethodMismatch;
     }
 
+    // Deliberate: an empty body needs no payload tag, and a tag on one must state the empty body's hash — see nostr-adrs ADR-0024
     private function validatePayload(Event $event, ?Sha256Hash $requestBodyHash): ?Nip98ValidationFailure
     {
         $claim = $event->getTags()->getSoleValueByType(TagType::payload());
@@ -116,9 +117,8 @@ final readonly class Nip98EventChecker implements Nip98EventCheckerInterface
 
         return match (true) {
             SoleTagValueState::Disagreeing === $claim->getState() => Nip98ValidationFailure::DisagreeingPayloadTags,
-            null === $requestBodyHash => null === $claimed ? null : Nip98ValidationFailure::PayloadTagWithoutBodyHash,
-            null === $claimed => Nip98ValidationFailure::MissingPayloadTag,
-            default => hash_equals((string) $requestBodyHash, $claimed) ? null : Nip98ValidationFailure::PayloadMismatch,
+            null === $claimed => null === $requestBodyHash ? null : Nip98ValidationFailure::MissingPayloadTag,
+            default => hash_equals((string) ($requestBodyHash ?? Sha256Hash::ofContent('')), $claimed) ? null : Nip98ValidationFailure::PayloadMismatch,
         };
     }
 }

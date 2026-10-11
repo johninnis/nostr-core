@@ -13,7 +13,7 @@ final readonly class Nip98Request
     ) {
     }
 
-    // Deliberate: the empty body's hash is no body, so it neither demands nor admits a payload tag — see nostr-adrs ADR-0024
+    // Deliberate: the empty body's hash is no body, so it demands no payload tag and admits one only when it states that hash — see nostr-adrs ADR-0024
     public static function fromBodyHash(HttpUrl $url, string $method, ?Sha256Hash $bodyHash = null): self
     {
         return new self($url, $method, true === $bodyHash?->isOfEmptyContent() ? null : $bodyHash);

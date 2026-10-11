@@ -267,9 +267,14 @@ final class Nip98EventCheckerTest extends TestCase
         $this->assertNull($this->check($this->event([['u', self::URL], ['method', 'POST']]), self::post()));
     }
 
-    public function testNoBodyHashRefusesAnEventWithAPayloadTag(): void
+    public function testNoBodyRefusesAPayloadTagNamingAnotherBodysHashAsAMismatch(): void
     {
-        $this->assertSame(Nip98ValidationFailure::PayloadTagWithoutBodyHash, $this->check($this->event(self::conformingTags()), self::post()));
+        $this->assertSame(Nip98ValidationFailure::PayloadMismatch, $this->check($this->event(self::conformingTags()), self::post()));
+    }
+
+    public function testAnEmptyBodyRefusesAPayloadTagNamingAnotherBodysHashAsAMismatch(): void
+    {
+        $this->assertSame(Nip98ValidationFailure::PayloadMismatch, $this->check($this->event(self::conformingTags()), self::postWithBody('')));
     }
 
     public function testTheEmptyBodysHashIsNoBody(): void
@@ -279,12 +284,24 @@ final class Nip98EventCheckerTest extends TestCase
         $this->assertNull($this->check($this->event([['u', self::URL], ['method', 'GET']]), $request));
     }
 
-    public function testAPayloadTagCarryingTheEmptyBodysHashIsRefused(): void
+    public function testAPayloadTagCarryingTheEmptyBodysHashIsAdmittedOnAnEmptyBody(): void
     {
         $event = $this->event([['u', self::URL], ['method', 'GET'], ['payload', hash('sha256', '')]]);
         $request = Nip98Request::fromBodyHash(HttpUrl::fromString(self::URL), 'GET', Sha256Hash::ofContent(''));
 
-        $this->assertSame(Nip98ValidationFailure::PayloadTagWithoutBodyHash, $this->check($event, $request));
+        $this->assertNull($this->check($event, $request));
+    }
+
+    public function testAPayloadTagCarryingTheEmptyBodysHashIsAdmittedWithoutABody(): void
+    {
+        $this->assertNull($this->check($this->event([['u', self::URL], ['method', 'POST'], ['payload', hash('sha256', '')]]), self::post()));
+    }
+
+    public function testAPayloadTagCarryingTheEmptyBodysHashInUpperCaseIsAMismatch(): void
+    {
+        $event = $this->event([['u', self::URL], ['method', 'POST'], ['payload', strtoupper(hash('sha256', ''))]]);
+
+        $this->assertSame(Nip98ValidationFailure::PayloadMismatch, $this->check($event, self::post()));
     }
 
     public function testABadSignatureIsRefusedOnceEveryRequestCheckPasses(): void

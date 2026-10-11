@@ -27,3 +27,4 @@ Crucially, an invalid public key cannot cause a silent wrong result the way an o
 - The Domain value object stays free of elliptic-curve maths; curve validation lives with the cryptography services that own that computation.
 - This is a deliberate asymmetry with `PrivateKey` (ADR-0029), which range-checks because its invariant is cheap integer arithmetic and an out-of-range scalar *would* diverge between backends. A public key's invariant is neither cheap nor divergent-when-skipped, so it is checked at the consuming operation instead.
 - Do not add a curve-membership check to `PublicKey::tryFromHex` "for symmetry with `PrivateKey`" — it drags curve maths into the Domain layer to re-establish an invariant every consuming operation already enforces.
+- Shared decision: nostr-adrs ADR-0003.

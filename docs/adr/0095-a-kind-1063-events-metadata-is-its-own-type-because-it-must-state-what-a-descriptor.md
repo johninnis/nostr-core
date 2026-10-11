@@ -17,7 +17,7 @@ This package implements nostr-adrs ADR-0072 with these types:
 - `FileEventMetadata` wraps a `FileMetadata` that states a MIME type and an `x` and `ox` that are SHA-256 lowercase hex. `tryFrom` returns `null` otherwise and `from` throws `InvalidArgumentException` for trusted input.
 - `FileEventMetadata::tryFromEvent` is the parser of a kind 1063 event: it returns `null` for another kind or for metadata missing a field NIP-94 requires.
 - `RumourFactory::createFileMetadata` takes a `FileEventMetadata`, so an incomplete event cannot be built.
-- `FileMetadata::tryFromTagCollection` is the lenient reader for BUD-08; `tryFromImetaTag` and `toImetaTag` hold NIP-92's rule. `size` is read through `DecimalIntegerParser::tryParse` (nostr-adrs ADR-0096) and `m` through `MimeTypeParser::tryParse`. Each field is read as one claim (ADR-0092).
+- `FileMetadata::tryFromTagCollection` is the lenient reader for BUD-08; `tryFromImetaTag` and `toImetaTag` hold NIP-92's rule: a tag is read when it has a `url` and any other field, whether or not `FileMetadata` keeps that field, and written only when there is a field besides the `url` to write. `size` is read through `DecimalIntegerParser::tryParse` (nostr-adrs ADR-0096), and `m` through `MimeTypeParser::tryParse` from its part before the first `;`, without the spaces and tabs around it, so a parameter is dropped and not the type. Each field is read as one claim (ADR-0092), except `fallback`, every value of which is kept in order.
 
 ## Consequences
 

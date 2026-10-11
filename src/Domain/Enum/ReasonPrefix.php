@@ -14,7 +14,9 @@ enum ReasonPrefix: string
     case Restricted = 'restricted';
     case Mute = 'mute';
     case Error = 'error';
+    case Unsupported = 'unsupported';
     case AuthRequired = 'auth-required';
+    case Info = 'info';
 
     public function format(string $detail): string
     {

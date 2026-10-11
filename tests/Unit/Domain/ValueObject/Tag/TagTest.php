@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Tag;
 
+use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
@@ -70,6 +71,28 @@ final class TagTest extends TestCase
         $relay = RelayUrl::fromString('wss://relay.example.com');
 
         $this->assertSame([TagType::ROOT_EVENT, self::EVENT_ID, 'wss://relay.example.com', self::AUTHOR], Tag::rootEvent(self::eventId(), $relay, self::author())->toArray());
+    }
+
+    public function testABareQuoteTagCarriesOnlyTheEventId(): void
+    {
+        $this->assertSame([TagType::QUOTE, self::EVENT_ID], Tag::quote(self::eventId())->toArray());
+    }
+
+    public function testAQuoteTagNamesItsAuthorAfterAnEmptyRelay(): void
+    {
+        $this->assertSame([TagType::QUOTE, self::EVENT_ID, '', self::AUTHOR], Tag::quote(self::eventId(), null, self::author())->toArray());
+    }
+
+    public function testAQuoteTagNamesWhereTheEventCanBeFound(): void
+    {
+        $this->assertSame([TagType::QUOTE, self::EVENT_ID, 'wss://relay.example.com'], Tag::quote(self::eventId(), RelayUrl::fromString('wss://relay.example.com'))->toArray());
+    }
+
+    public function testAQuoteTagNamesAnAddressByItsCoordinate(): void
+    {
+        $coordinate = EventCoordinate::tryFromString('30023:'.self::AUTHOR.':article') ?? self::fail('Expected a coordinate');
+
+        $this->assertSame([TagType::QUOTE, '30023:'.self::AUTHOR.':article'], Tag::quote($coordinate)->toArray());
     }
 
     public function testGetValueReturnsNullForInvalidIndex(): void

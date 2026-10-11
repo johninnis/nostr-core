@@ -170,9 +170,8 @@ final readonly class FileMetadata
             $fields[substr($entry, 0, $boundary)][] = substr($entry, $boundary + 1);
         }
 
-        $metadata = self::tryFromFields($fields);
-
-        return true === $metadata?->describesTheUrl() ? $metadata : null;
+        // Deliberate: valid with a url and any other field, as NIP-92 requires, whatever fields this reader keeps — see nostr-adrs ADR-0072
+        return self::namesAFieldBesideTheUrl(array_keys($fields)) ? self::tryFromFields($fields) : null;
     }
 
     public function toTags(): TagCollection
@@ -186,7 +185,7 @@ final readonly class FileMetadata
 
     public function toImetaTag(): ?Tag
     {
-        if (!$this->describesTheUrl()) {
+        if (!self::namesAFieldBesideTheUrl(array_column($this->fields(), 0))) {
             return null;
         }
 
@@ -269,7 +268,7 @@ final readonly class FileMetadata
 
         return self::tryFrom(
             self::soleValue($fields, TagType::FILE_URL) ?? '',
-            null === $mimeType ? null : MimeTypeParser::tryParse($mimeType),
+            null === $mimeType ? null : self::mimeTypeBeforeItsParameters($mimeType),
             self::soleValue($fields, TagType::SHA256),
             self::soleValue($fields, TagType::ORIGINAL_SHA256),
             null === $size ? null : DecimalIntegerParser::tryParse($size),
@@ -281,6 +280,12 @@ final readonly class FileMetadata
             self::soleValue($fields, TagType::ALT),
             $fields[TagType::FALLBACK] ?? [],
         );
+    }
+
+    // Deliberate: an m is read from its part before the first ";", so a parameter drops itself, not the type — see nostr-adrs ADR-0072
+    private static function mimeTypeBeforeItsParameters(string $mimeType): ?string
+    {
+        return MimeTypeParser::tryParse(trim(explode(';', $mimeType, 2)[0], " \t"));
     }
 
     /**
@@ -302,8 +307,11 @@ final readonly class FileMetadata
         };
     }
 
-    private function describesTheUrl(): bool
+    /**
+     * @param list<array-key> $names
+     */
+    private static function namesAFieldBesideTheUrl(array $names): bool
     {
-        return count($this->fields()) > 1;
+        return array_any($names, static fn (int|string $name): bool => TagType::FILE_URL !== (string) $name);
     }
 }

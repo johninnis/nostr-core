@@ -1,4 +1,4 @@
-# 83. `ZapAmount::tryFromBolt11` reads only the BOLT-11 bitcoin prefixes, anchored to the bech32 separator
+# 83. `ZapAmount::tryFromBolt11` reads only the BOLT-11 bitcoin prefixes, anchored to the bech32 separator, and bounds an amount at one bitcoin as a plausibility check
 
 ## Status
 
@@ -12,7 +12,7 @@ nostr-adrs ADR-0039 decides how every implementation reads a BOLT-11 amount: onl
 
 BOLT-11 tells a writer to "encode `amount` as a positive decimal integer with no leading 0s" and that "If the `p` multiplier is used the last decimal of `amount` MUST be `0`"; a reader "MUST fail the payment" for a `p` amount whose last decimal is not `0`.
 
-ADR-0040's pattern accepted `ln[a-z]+?`, so an invoice for any currency, or a made-up one, was read as a bitcoin amount, and it read a mixed-case invoice that BIP-173 says "Decoders MUST NOT accept".
+Anyone can publish a zap receipt, so its invoice states whatever its author chose. Twenty-one million bitcoin in millisatoshis fits in 64 bits, so overflow was never the ceiling's reason: an absurd figure, such as the 2^63 millisatoshis a forged receipt once claimed, has to be kept out of every total built from it. A forged receipt for a plausible amount passes the ceiling; only verifying the receipt against the recipient's zap provider key proves a payment (ADR-0079).
 
 ## Decision
 
@@ -22,13 +22,15 @@ ADR-0040's pattern accepted `ln[a-z]+?`, so an invoice for any currency, or a ma
 - The amount is a positive decimal integer with no leading `0`: `lnbc0u…`, `lnbc010u…` and `lnbc01…` are `null`, never zero or the value their digits would give once the zero is stripped.
 - A `p` amount whose last digit is not `0` is `null`.
 - A `p` amount is divided by ten to millisatoshis, which is exact once its last digit is `0`.
-- `ZapAmount::MAX_MILLISATS` is one bitcoin; an amount above it is `null`, checked before multiplying so it cannot overflow.
+- `ZapAmount::MAX_MILLISATS` is one bitcoin, a plausibility bound on an amount read from untrusted input: an amount above it is `null`. It is checked before multiplying, so the arithmetic stays within the integer range on the way to refusing it. A nutzap's bitcoin amount is bounded by the same constant (nostr-adrs ADR-0080).
 - Every refusal is `null`, never a throw.
 
 ## Consequences
 
 - Tests pin the spec's example invoices, its mixed-case vector, the amount-less case, the unknown prefixes, zero and leading-zero amounts, and the spec's invalid sub-millisatoshi invoice.
+- A genuine zap above one bitcoin reads as no amount. A reader that needs one verifies the receipt and reads the invoice itself.
+- Do not raise the ceiling to the overflow limit: it is a plausibility bound, and overflow was never its reason.
 - Adding a prefix follows BOLT-11, not what one wallet emits, and lands in the shared record first.
 - Do not strip a leading `0` or read a zero amount to be forgiving.
 - Do not match the amount from the start of the invoice up to the first `1`, nor drop the anchor to the separator: the amount is the whole human-readable part after the prefix.
-- Shared decision: nostr-adrs ADR-0039.
+- Shared decisions: nostr-adrs ADR-0039 and ADR-0080.

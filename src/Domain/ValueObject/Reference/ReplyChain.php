@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Reference;
 
 use Innis\Nostr\Core\Domain\Collection\EventReferenceCollection;
 use Innis\Nostr\Core\Domain\Collection\PublicKeyCollection;
+use Innis\Nostr\Core\Domain\Enum\ThreadingConvention;
 use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
@@ -29,7 +30,9 @@ final readonly class ReplyChain
     // Deliberate: derived, never stored, so a chain cannot claim a reply it has no root or parent for; the kind decides whether the event threads at all — see ADR-0085
     public function isReply(): bool
     {
-        return $this->threads() && ($this->hasRoot() || $this->hasParent());
+        $convention = ThreadingConvention::ofKind($this->kind);
+
+        return null !== $convention && ($this->hasParent() || ($this->hasRoot() && $convention->answersItsRoot()));
     }
 
     public function getKind(): ?EventKind
@@ -106,11 +109,6 @@ final readonly class ReplyChain
             PublicKeyCollection::fromHexValues($data['conversation_participants'] ?? null),
             EventReferenceCollection::fromArrays($data['mentioned_events'] ?? null),
         );
-    }
-
-    private function threads(): bool
-    {
-        return null === $this->kind || $this->kind->is(EventKind::TEXT_NOTE) || $this->kind->is(EventKind::COMMENT);
     }
 
     /**

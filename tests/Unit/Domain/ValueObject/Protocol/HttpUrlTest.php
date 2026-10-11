@@ -26,7 +26,6 @@ final class HttpUrlTest extends TestCase
         yield 'upper-case scheme and host' => ['HTTPS://Relay.Example.COM/api?x=1'];
         yield 'default port' => ['https://relay.example.com:443/api?x=1'];
         yield 'fragment' => ['https://relay.example.com/api?x=1#top'];
-        yield 'user info' => ['https://user:pass@relay.example.com/api?x=1'];
     }
 
     public function testAnEmptyPathIsTheRootPath(): void
@@ -75,6 +74,9 @@ final class HttpUrlTest extends TestCase
         yield 'a host with a character RFC 3986 reserves for no part of a name' => ['https://exa|mple.com/a'];
         yield 'a host with a malformed percent escape' => ['https://exa%zzmple.com/a'];
         yield 'a host with a non-ASCII letter' => ['https://bücher.example/a'];
+        yield 'a user and password' => ['https://user:pass@example.com/a'];
+        yield 'a user' => ['https://user@example.com/a'];
+        yield 'an empty user' => ['https://@example.com/a'];
     }
 
     public function testFromStringThrowsOnWhatIsNotAnHttpUrl(): void

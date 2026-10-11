@@ -628,11 +628,18 @@ final class RumourTest extends TestCase
         $this->assertTrue($rumour->isProtected());
     }
 
-    public function testIsProtectedIsFalseForADashTagCarryingAValue(): void
+    public function testIsProtectedIsTrueForADashTagCarryingAValue(): void
     {
         $rumour = $this->rumourWithKindAndContent(1, 'test', [['-', 'x']]);
 
-        $this->assertFalse($rumour->isProtected());
+        $this->assertTrue($rumour->isProtected());
+    }
+
+    public function testIsProtectedIsTrueForADashTagCarryingAnEmptyValue(): void
+    {
+        $rumour = $this->rumourWithKindAndContent(1, 'test', [['-', '']]);
+
+        $this->assertTrue($rumour->isProtected());
     }
 
     public function testIsProtectedIsTrueWhenAnExactDashTagSitsBesideOneCarryingAValue(): void

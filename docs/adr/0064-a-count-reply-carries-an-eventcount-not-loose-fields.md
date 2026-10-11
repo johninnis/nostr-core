@@ -22,3 +22,4 @@ Folding the value into `CountMessage` itself is the other tempting shape, and it
 - A client parsing a COUNT reply reads one value and branches on it. There is no separate nullable accessor to consult.
 - The constructor changes shape and `getApproximate()` is gone, which is a breaking change on the 0.x line. The parsed form of an explicit `"approximate": false` is an exact count, so a reply that spelled the flag out serialises back without it; the two are the same statement.
 - Do not add a `getApproximate(): ?bool` back for convenience, and do not let `CountMessage` accept a bare integer again. Both reopen the gap this record closes.
+- Shared decision: nostr-adrs ADR-0033.

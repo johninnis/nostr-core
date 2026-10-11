@@ -44,7 +44,7 @@ final class ClosedMessageTest extends TestCase
 
     public function testGetReasonPrefixIsErrorForAPrefixOutsideTheProtocolList(): void
     {
-        $message = ClosedMessage::tryFromArray(['CLOSED', 'sub-1', 'unsupported: filter contains unknown elements'])
+        $message = ClosedMessage::tryFromArray(['CLOSED', 'sub-1', 'teapot: short and stout'])
             ?? throw new RuntimeException('Expected a valid message');
 
         $this->assertSame(ReasonPrefix::Error, $message->getReasonPrefix());
@@ -88,6 +88,14 @@ final class ClosedMessageTest extends TestCase
     public function testTryFromArrayReturnsNullWithoutTheMessage(): void
     {
         $this->assertNull(ClosedMessage::tryFromArray(['CLOSED', 'sub-1']));
+    }
+
+    public function testGetReasonPrefixReadsTheUnsupportedPrefixOfNip01sExample(): void
+    {
+        $message = ClosedMessage::tryFromArray(['CLOSED', 'sub1', 'unsupported: filter contains unknown elements'])
+            ?? throw new RuntimeException('Expected a valid message');
+
+        $this->assertSame(ReasonPrefix::Unsupported, $message->getReasonPrefix());
     }
 
     public function testTryFromArrayReadsEveryNip01Example(): void

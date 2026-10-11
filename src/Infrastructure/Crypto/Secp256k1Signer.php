@@ -140,9 +140,8 @@ final readonly class Secp256k1Signer implements SignatureServiceInterface
     private function verifyPurePhp(string $message, Signature $signature, PublicKey $publicKey): bool
     {
         $generator = Secp256k1Math::generator();
-        $curve = Secp256k1Math::curve();
 
-        $p = $curve->getPrime();
+        $p = Secp256k1Math::curve()->getPrime();
         $n = $generator->getOrder();
 
         $P_x = gmp_import($publicKey->toBytes());
@@ -162,12 +161,7 @@ final readonly class Secp256k1Signer implements SignatureServiceInterface
 
         $e = Secp256k1Math::challenge($r, $P_x, $message);
 
-        $sG = $generator->mul($s);
-        $eP = $P->mul($e);
-
-        $negEP_y = gmp_sub($p, $eP->getY());
-        $negEP = $curve->getPoint($eP->getX(), $negEP_y);
-        $R = $sG->add($negEP);
+        $R = $generator->mul($s)->add(Secp256k1Math::negate($P->mul($e)));
 
         if ($R->isInfinity()) {
             return false;

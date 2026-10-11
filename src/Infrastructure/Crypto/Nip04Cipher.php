@@ -9,6 +9,7 @@ use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
 use Innis\Nostr\Core\Domain\Exception\EncryptionException;
 use Innis\Nostr\Core\Domain\Service\Base64Codec;
 use Innis\Nostr\Core\Domain\Service\Nip04EncryptionInterface;
+use Innis\Nostr\Core\Domain\Service\Nip04InputValidator;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\SecretKeyMaterial;
 use Override;
 
@@ -17,10 +18,7 @@ final readonly class Nip04Cipher implements Nip04EncryptionInterface
     private const string CIPHER = 'aes-256-cbc';
     private const int IV_LENGTH = 16;
     private const string IV_SEPARATOR = '?iv=';
-    private const int MIN_PAYLOAD_LENGTH = 52;
-    private const int MAX_PAYLOAD_LENGTH = 87472;
-    private const int MAX_PLAINTEXT_LENGTH = 65567;
-    private const string DECRYPTION_FAILED = 'NIP-04 decryption failed';
+    private const string DECRYPTION_FAILED = Nip04InputValidator::DECRYPTION_FAILED;
 
     public function __construct(
         private RandomBytesGeneratorInterface $randomBytes = new NativeRandomBytesGenerator(),
@@ -31,15 +29,7 @@ final readonly class Nip04Cipher implements Nip04EncryptionInterface
     #[Deprecated(message: 'NIP-04 is unauthenticated and deprecated by the Nostr protocol; use Nip44Cipher instead')]
     public function encrypt(string $plaintext, SecretKeyMaterial $sharedSecret): string
     {
-        // Deliberate: the largest plaintext whose payload fits the decrypt ceiling, so this cipher never writes a payload it would refuse to open — see ADR-0118
-        if (strlen($plaintext) > self::MAX_PLAINTEXT_LENGTH) {
-            throw new EncryptionException(sprintf('NIP-04 plaintext must be at most %d bytes', self::MAX_PLAINTEXT_LENGTH));
-        }
-
-        // Deliberate: decrypt refuses a plaintext that is not UTF-8, so encrypt never seals one — see ADR-0116
-        if (!mb_check_encoding($plaintext, 'UTF-8')) {
-            throw new EncryptionException('NIP-04 plaintext must be UTF-8');
-        }
+        Nip04InputValidator::validatePlaintext($plaintext);
 
         $iv = $this->randomBytes->bytes(self::IV_LENGTH);
 
@@ -60,11 +50,7 @@ final readonly class Nip04Cipher implements Nip04EncryptionInterface
     #[Deprecated(message: 'NIP-04 is unauthenticated and deprecated by the Nostr protocol; use Nip44Cipher instead')]
     public function decrypt(string $payload, SecretKeyMaterial $sharedSecret): string
     {
-        $payloadLength = strlen($payload);
-
-        if ($payloadLength < self::MIN_PAYLOAD_LENGTH || $payloadLength > self::MAX_PAYLOAD_LENGTH) {
-            throw new EncryptionException(self::DECRYPTION_FAILED);
-        }
+        Nip04InputValidator::validatePayloadLength($payload);
 
         $separatorPosition = strpos($payload, self::IV_SEPARATOR);
 

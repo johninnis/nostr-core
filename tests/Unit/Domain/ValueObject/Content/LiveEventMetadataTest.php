@@ -6,7 +6,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Content;
 
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Content\LiveEventMetadata;
-use Innis\Nostr\Core\Domain\ValueObject\Protocol\HttpUrl;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\WebUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Tests\Support\TagCollectionMother;
 use PHPUnit\Framework\TestCase;
@@ -66,9 +66,9 @@ final class LiveEventMetadataTest extends TestCase
             'my-stream',
             'Title',
             'Summary',
-            HttpUrl::fromString('https://example.com/img.jpg'),
+            WebUrl::fromString('https://example.com/img.jpg'),
             'live',
-            HttpUrl::fromString('https://stream.example.com/live.m3u8'),
+            WebUrl::fromString('https://stream.example.com/live.m3u8'),
         );
 
         $array = $original->toArray();
@@ -152,7 +152,7 @@ final class LiveEventMetadataTest extends TestCase
         $this->assertNull(LiveEventMetadata::tryFromArray(['identifier' => 'slug', 'status' => "\xff"]));
     }
 
-    public function testTryFromTagCollectionHoldsTheImageAndStreamingUrlsInCanonicalForm(): void
+    public function testTryFromTagCollectionKeepsTheImageAndStreamingUrlsAsWritten(): void
     {
         $tags = TagCollectionMother::fromRaw([
             ['d', 'slug'],
@@ -163,7 +163,7 @@ final class LiveEventMetadataTest extends TestCase
         $metadata = LiveEventMetadata::tryFromTagCollection($tags) ?? $this->fail('Expected metadata');
 
         $this->assertSame(
-            ['https://example.com/thumb.jpg', 'https://stream.example.com/live.m3u8'],
+            ['HTTPS://Example.com:443/thumb.jpg', 'https://Stream.Example.com/live.m3u8'],
             [(string) $metadata->getImage(), (string) $metadata->getStreaming()],
         );
     }
@@ -188,8 +188,8 @@ final class LiveEventMetadataTest extends TestCase
 
     public function testEqualityComparesTheStreamingUrl(): void
     {
-        $a = LiveEventMetadata::from('slug', null, null, null, null, HttpUrl::fromString('https://a.example/live'));
-        $b = LiveEventMetadata::from('slug', null, null, null, null, HttpUrl::fromString('https://b.example/live'));
+        $a = LiveEventMetadata::from('slug', null, null, null, null, WebUrl::fromString('https://a.example/live'));
+        $b = LiveEventMetadata::from('slug', null, null, null, null, WebUrl::fromString('https://b.example/live'));
 
         $this->assertFalse($a->equals($b));
     }

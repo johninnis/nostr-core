@@ -29,3 +29,4 @@ The classifier is total by treating **regular as the default behaviour**: the re
 - A defined kind outside NIP-01's convention ranges (e.g. 62, 443, 818) classifies as `Regular` — matching how relays persist it — instead of satisfying no predicate. This is deliberate: the out-of-band bands default to regular.
 - This is a deliberate breaking change to the `EventKind` API. The booleans are deleted, not kept as delegators, because keeping both a `category()` and four `is*` methods would be two ways to ask one question. Downstream callers migrate to `category() === EventKindCategory::<Case>`, and the package takes a minor-version bump.
 - A test pins totality and disjointness across the range boundaries and the out-of-band kinds, and fails if the standalone `is*` range predicates are reintroduced.
+- Shared decision: nostr-adrs ADR-0010.

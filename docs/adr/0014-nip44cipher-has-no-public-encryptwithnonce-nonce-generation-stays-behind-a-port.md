@@ -19,3 +19,4 @@ Keeping nonce generation behind a port makes tests deterministic without giving 
 - Tests reproduce the official NIP-44 vectors byte-for-byte via a deterministic injected generator.
 - Production code has no API surface that accepts a caller-supplied nonce, so nonce reuse cannot be introduced at a call site.
 - Do not add a public `encryptWithNonce` for convenience — it reintroduces the reuse footgun.
+- Shared decision: nostr-adrs ADR-0019.

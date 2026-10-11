@@ -11,7 +11,6 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\ContentReference;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
-use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 
 final class ContentReferenceTagBuilder
 {
@@ -83,15 +82,9 @@ final class ContentReferenceTagBuilder
 
     private static function quoteTag(EventId|EventCoordinate $quoted, ContentReference $quote): Tag
     {
-        $relay = $quote->getRelays()->toStrings()[0] ?? '';
         $kind = $quote->getKind();
         $author = $quoted instanceof EventId && (null === $kind || EventKindCategory::Regular === $kind->category()) ? $quote->getPublicKey() : null;
-        $target = $quoted instanceof EventId ? $quoted->toHex() : (string) $quoted;
 
-        if (null !== $author) {
-            return Tag::fromArray([TagType::QUOTE, $target, $relay, $author->toHex()]);
-        }
-
-        return Tag::fromArray('' === $relay ? [TagType::QUOTE, $target] : [TagType::QUOTE, $target, $relay]);
+        return Tag::quote($quoted, $quote->getRelays()->toArray()[0] ?? null, $author);
     }
 }

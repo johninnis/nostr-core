@@ -199,6 +199,43 @@ final class ContentReferenceExtractorTest extends TestCase
         $this->assertEquals($npub, $references[0]->getIdentifier());
     }
 
+    #[DataProvider('entitiesInsideWebUrls')]
+    public function testAnEntityInsideAWebUrlIsNotAReference(string $content): void
+    {
+        $this->assertCount(0, ContentReferenceExtractor::extract(EventContent::fromString($content)));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function entitiesInsideWebUrls(): iterable
+    {
+        yield 'an npub in an https path' => ['see https://primal.net/p/'.self::npub()];
+        yield 'a note in an http path' => ['http://example.com/e/'.self::note().' here'];
+        yield 'an npub in a query' => ['https://example.com/?u='.self::npub()];
+        yield 'an npub in an upper-case scheme' => ['HTTPS://example.com/'.self::npub()];
+    }
+
+    public function testAnEntityAfterTheWhitespaceEndingAWebUrlIsAReference(): void
+    {
+        $this->assertCount(1, ContentReferenceExtractor::extract(EventContent::fromString('https://example.com/p '.self::npub())));
+    }
+
+    public function testAnEntityAfterANonBreakingSpaceEndingAWebUrlIsAReference(): void
+    {
+        $this->assertCount(1, ContentReferenceExtractor::extract(EventContent::fromString("https://example.com/p\u{A0}".self::npub())));
+    }
+
+    public function testAByteOrderMarkDoesNotEndAWebUrl(): void
+    {
+        $this->assertCount(0, ContentReferenceExtractor::extract(EventContent::fromString("https://example.com/p\u{FEFF}".self::npub())));
+    }
+
+    public function testANostrUriInsideAWebUrlIsAReference(): void
+    {
+        $this->assertCount(1, ContentReferenceExtractor::extract(EventContent::fromString('https://example.com/nostr:'.self::npub())));
+    }
+
     #[DataProvider('nostrUrisRunningOnIntoMoreCharacters')]
     public function testANostrUriFollowedByMoreBech32CharactersIsNotAReference(string $content): void
     {

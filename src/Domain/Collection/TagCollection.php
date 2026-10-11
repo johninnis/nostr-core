@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Collection;
 
+use Closure;
 use Innis\Nostr\Core\Domain\Enum\SoleTagValueState;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
@@ -100,10 +101,13 @@ final class TagCollection extends TypedCollection
         return HashtagCollection::fromStrings($this->getValuesByType(TagType::hashtag()))->unique();
     }
 
-    // Deliberate: tags of one type that disagree are no answer rather than whichever came first, and the one reader says whether the tag is absent, one value or disagreeing, so no caller re-reads the tags — see ADR-0092
-    public function getSoleValueByType(TagType $type): SoleTagValue
+    /**
+     * @param (Closure(string): ?string)|null $canonicalise
+     */
+    // Deliberate: tags of one type that disagree are no answer rather than whichever came first, and the one reader says whether the tag is absent, one value or disagreeing in the canonical form its caller names, so no caller re-reads or canonicalises the tags — see ADR-0092
+    public function getSoleValueByType(TagType $type, ?Closure $canonicalise = null): SoleTagValue
     {
-        return SoleTagValue::fromValues($this->getValuesByType($type));
+        return SoleTagValue::fromValues($this->getValuesByType($type), $canonicalise);
     }
 
     // Deliberate: an event with no d tag has the empty identifier, and d tags that disagree name none — see ADR-0092

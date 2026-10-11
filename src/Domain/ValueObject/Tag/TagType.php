@@ -40,6 +40,9 @@ final readonly class TagType implements Stringable
     public const string ORIGINAL_SHA256 = 'ox';
     public const string SERVER = 'server';
     public const string URL = 'u';
+    public const string MINT = 'u';
+    public const string ACCEPTED_MINT = 'mint';
+    public const string P2PK_PUBKEY = 'pubkey';
     public const string IMAGE = 'image';
     public const string SUMMARY = 'summary';
     public const string STATUS = 'status';

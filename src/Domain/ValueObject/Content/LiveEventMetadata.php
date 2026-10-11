@@ -6,7 +6,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Content;
 
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
-use Innis\Nostr\Core\Domain\ValueObject\Protocol\HttpUrl;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\WebUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use InvalidArgumentException;
 
@@ -16,9 +16,9 @@ final readonly class LiveEventMetadata
         private string $identifier,
         private ?string $title,
         private ?string $summary,
-        private ?HttpUrl $image,
+        private ?WebUrl $image,
         private ?string $status,
-        private ?HttpUrl $streaming,
+        private ?WebUrl $streaming,
     ) {
     }
 
@@ -26,9 +26,9 @@ final readonly class LiveEventMetadata
         string $identifier,
         ?string $title,
         ?string $summary,
-        ?HttpUrl $image,
+        ?WebUrl $image,
         ?string $status,
-        ?HttpUrl $streaming,
+        ?WebUrl $streaming,
     ): ?self {
         $isUtf8 = array_all(
             [$identifier, $title, $summary, $status],
@@ -42,9 +42,9 @@ final readonly class LiveEventMetadata
         string $identifier,
         ?string $title,
         ?string $summary,
-        ?HttpUrl $image,
+        ?WebUrl $image,
         ?string $status,
-        ?HttpUrl $streaming,
+        ?WebUrl $streaming,
     ): self {
         return self::tryFrom($identifier, $title, $summary, $image, $status, $streaming)
             ?? throw new InvalidArgumentException('Live event identifier, title, summary and status must be UTF-8');
@@ -65,7 +65,7 @@ final readonly class LiveEventMetadata
         return $this->summary;
     }
 
-    public function getImage(): ?HttpUrl
+    public function getImage(): ?WebUrl
     {
         return $this->image;
     }
@@ -75,7 +75,7 @@ final readonly class LiveEventMetadata
         return $this->status;
     }
 
-    public function getStreaming(): ?HttpUrl
+    public function getStreaming(): ?WebUrl
     {
         return $this->streaming;
     }
@@ -91,9 +91,9 @@ final readonly class LiveEventMetadata
             $identifier,
             $tags->getSoleValueByType(TagType::fromString(TagType::TITLE))->getValue(),
             $tags->getSoleValueByType(TagType::fromString(TagType::SUMMARY))->getValue(),
-            HttpUrl::tryFromString($tags->getSoleValueByType(TagType::fromString(TagType::IMAGE))->getValue()),
+            WebUrl::tryFromString($tags->getSoleValueByType(TagType::fromString(TagType::IMAGE))->getValue()),
             $tags->getSoleValueByType(TagType::fromString(TagType::STATUS))->getValue(),
-            HttpUrl::tryFromString($tags->getSoleValueByType(TagType::fromString(TagType::STREAMING))->getValue()),
+            WebUrl::tryFromString($tags->getSoleValueByType(TagType::fromString(TagType::STREAMING))->getValue()),
         );
     }
 
@@ -127,9 +127,9 @@ final readonly class LiveEventMetadata
             $identifier,
             JsonWireFormat::stringField($data, 'title'),
             JsonWireFormat::stringField($data, 'summary'),
-            HttpUrl::tryFromString(JsonWireFormat::stringField($data, 'image')),
+            WebUrl::tryFromString(JsonWireFormat::stringField($data, 'image')),
             JsonWireFormat::stringField($data, 'status'),
-            HttpUrl::tryFromString(JsonWireFormat::stringField($data, 'streaming')),
+            WebUrl::tryFromString(JsonWireFormat::stringField($data, 'streaming')),
         );
     }
 

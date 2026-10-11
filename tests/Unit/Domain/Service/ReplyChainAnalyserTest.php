@@ -320,6 +320,159 @@ final class ReplyChainAnalyserTest extends TestCase
         $this->assertTrue($chain->isReply());
     }
 
+    public function testAVoiceMessageCommentNamingItsRootIsAReply(): void
+    {
+        $tags = new TagCollection([Tag::tryFromArray(['E', self::ROOT_ID]), Tag::tryFromArray(['K', '1222'])]);
+
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::VOICE_MESSAGE_COMMENT));
+
+        $this->assertTrue($chain->isReply());
+    }
+
+    public function testAVoiceMessageCommentReadsItsParentAsACommentDoes(): void
+    {
+        $tags = new TagCollection([
+            Tag::tryFromArray(['E', self::ROOT_ID]),
+            Tag::tryFromArray(['K', '1222']),
+            Tag::tryFromArray(['e', self::PARENT_ID]),
+            Tag::tryFromArray(['k', '1244']),
+        ]);
+
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::VOICE_MESSAGE_COMMENT));
+
+        $this->assertSame(self::PARENT_ID, self::parentEvent($chain)?->getEventId()->toHex());
+    }
+
+    public function testAChannelMessageWithAReplyMarkerIsAReply(): void
+    {
+        $tags = new TagCollection([
+            Tag::tryFromArray(['e', self::ROOT_ID, '', 'root']),
+            Tag::tryFromArray(['e', self::PARENT_ID, '', 'reply']),
+        ]);
+
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::CHANNEL_MESSAGE));
+
+        $this->assertTrue($chain->isReply());
+    }
+
+    public function testAChannelMessageNamingOnlyItsChannelIsNotAReply(): void
+    {
+        $tags = new TagCollection([Tag::tryFromArray(['e', self::ROOT_ID, '', 'root'])]);
+
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::CHANNEL_MESSAGE));
+
+        $this->assertFalse($chain->isReply());
+    }
+
+    public function testAChannelMessagesRootIsItsChannel(): void
+    {
+        $tags = new TagCollection([Tag::tryFromArray(['e', self::ROOT_ID, '', 'root'])]);
+
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::CHANNEL_MESSAGE));
+
+        $this->assertSame(self::ROOT_ID, self::rootEvent($chain)?->getEventId()->toHex());
+    }
+
+    public function testAChannelMessageReadsAnUnmarkedEventTagAsNoParent(): void
+    {
+        $tags = new TagCollection([
+            Tag::tryFromArray(['e', self::ROOT_ID, '', 'root']),
+            Tag::tryFromArray(['e', self::PARENT_ID]),
+        ]);
+
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::CHANNEL_MESSAGE));
+
+        $this->assertNull($chain->getParent());
+    }
+
+    public function testALiveChatMessageNamingAnEventIsAReply(): void
+    {
+        $tags = new TagCollection([
+            Tag::tryFromArray(['a', '30311:'.self::ROOT_AUTHOR.':stream']),
+            Tag::tryFromArray(['e', self::PARENT_ID]),
+        ]);
+
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::LIVE_CHAT_MESSAGE));
+
+        $this->assertTrue($chain->isReply());
+    }
+
+    public function testALiveChatMessagesEventTagIsItsParentWhateverItsMarker(): void
+    {
+        $tags = new TagCollection([Tag::tryFromArray(['e', self::PARENT_ID, '', 'root'])]);
+
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::LIVE_CHAT_MESSAGE));
+
+        $this->assertSame(self::PARENT_ID, self::parentEvent($chain)?->getEventId()->toHex());
+    }
+
+    public function testALiveChatMessageHasNoRoot(): void
+    {
+        $tags = new TagCollection([Tag::tryFromArray(['e', self::PARENT_ID, '', 'root'])]);
+
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::LIVE_CHAT_MESSAGE));
+
+        $this->assertNull($chain->getRoot());
+    }
+
+    public function testALiveChatMessageNamingOnlyItsActivityIsNotAReply(): void
+    {
+        $tags = new TagCollection([Tag::tryFromArray(['a', '30311:'.self::ROOT_AUTHOR.':stream'])]);
+
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::LIVE_CHAT_MESSAGE));
+
+        $this->assertFalse($chain->isReply());
+    }
+
+    public function testLiveChatEventTagsThatDisagreeNameNoParent(): void
+    {
+        $tags = new TagCollection([Tag::tryFromArray(['e', self::PARENT_ID]), Tag::tryFromArray(['e', self::MENTION_ID])]);
+
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::LIVE_CHAT_MESSAGE));
+
+        $this->assertNull($chain->getParent());
+    }
+
+    public function testAChatMessageQuotingAnEventIsAReply(): void
+    {
+        $tags = new TagCollection([Tag::tryFromArray(['q', self::PARENT_ID, '', self::PARENT_AUTHOR])]);
+
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::CHAT_MESSAGE));
+
+        $this->assertTrue($chain->isReply());
+    }
+
+    public function testAChatMessagesParentIsTheFirstQuoteNamingAnEvent(): void
+    {
+        $tags = new TagCollection([
+            Tag::tryFromArray(['q', '30023:'.self::ROOT_AUTHOR.':post']),
+            Tag::tryFromArray(['q', self::PARENT_ID]),
+            Tag::tryFromArray(['q', self::MENTION_ID]),
+        ]);
+
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::CHAT_MESSAGE));
+
+        $this->assertSame(self::PARENT_ID, self::parentEvent($chain)?->getEventId()->toHex());
+    }
+
+    public function testAChatMessageHasNoRoot(): void
+    {
+        $tags = new TagCollection([Tag::tryFromArray(['e', self::ROOT_ID, '', 'root']), Tag::tryFromArray(['q', self::PARENT_ID])]);
+
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::CHAT_MESSAGE));
+
+        $this->assertNull($chain->getRoot());
+    }
+
+    public function testAChatMessageNamingAnEventOnlyByAnEventTagIsNotAReply(): void
+    {
+        $tags = new TagCollection([Tag::tryFromArray(['e', self::PARENT_ID])]);
+
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::CHAT_MESSAGE));
+
+        $this->assertFalse($chain->isReply());
+    }
+
     public function testAnalysingTagsWithoutAKindStillReadsThemAsAThread(): void
     {
         $tags = new TagCollection([Tag::tryFromArray(['e', self::PARENT_ID])]);
@@ -400,7 +553,7 @@ final class ReplyChainAnalyserTest extends TestCase
         $this->assertSame('https://example.com/book', (string) self::rootExternal($chain)?->getHint());
     }
 
-    public function testAnExternalRootHintIsReadInItsCanonicalForm(): void
+    public function testAnExternalRootHintIsKeptAsWritten(): void
     {
         $tags = new TagCollection([
             Tag::tryFromArray(['I', 'isbn:9780765382030', 'HTTPS://Example.com:443/book']),
@@ -409,10 +562,48 @@ final class ReplyChainAnalyserTest extends TestCase
 
         $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::COMMENT));
 
-        $this->assertSame('https://example.com/book', (string) self::rootExternal($chain)?->getHint());
+        $this->assertSame('HTTPS://Example.com:443/book', (string) self::rootExternal($chain)?->getHint());
     }
 
-    public function testExternalRootHintsInTwoSpellingsOfOneUrlAreOneClaim(): void
+    public function testAnExternalRootHintKeepsItsFragment(): void
+    {
+        $tags = new TagCollection([
+            Tag::tryFromArray(['I', 'isbn:9780765382030', 'HTTPS://Example.com:443/book#chapter-2']),
+            Tag::tryFromArray(['K', 'isbn']),
+        ]);
+
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::COMMENT));
+
+        $this->assertSame('HTTPS://Example.com:443/book#chapter-2', (string) self::rootExternal($chain)?->getHint());
+    }
+
+    public function testExternalRootHintsDifferingOnlyByFragmentStateNoHint(): void
+    {
+        $tags = new TagCollection([
+            Tag::tryFromArray(['I', 'isbn:9780765382030', 'https://example.com/#/book/1']),
+            Tag::tryFromArray(['I', 'isbn:9780765382030', 'https://example.com/#/book/2']),
+            Tag::tryFromArray(['K', 'isbn']),
+        ]);
+
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::COMMENT));
+
+        $this->assertNull(self::rootExternal($chain)?->getHint());
+    }
+
+    public function testExternalRootHintsWrittenIdenticallyAreOneClaim(): void
+    {
+        $tags = new TagCollection([
+            Tag::tryFromArray(['I', 'isbn:9780765382030', 'HTTPS://Example.com:443/book']),
+            Tag::tryFromArray(['I', 'isbn:9780765382030', 'HTTPS://Example.com:443/book']),
+            Tag::tryFromArray(['K', 'isbn']),
+        ]);
+
+        $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::COMMENT));
+
+        $this->assertSame('HTTPS://Example.com:443/book', (string) self::rootExternal($chain)?->getHint());
+    }
+
+    public function testExternalRootHintsInTwoSpellingsOfOneUrlStateNoHint(): void
     {
         $tags = new TagCollection([
             Tag::tryFromArray(['I', 'isbn:9780765382030', 'https://example.com/book']),
@@ -422,7 +613,7 @@ final class ReplyChainAnalyserTest extends TestCase
 
         $chain = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::COMMENT));
 
-        $this->assertSame('https://example.com/book', (string) self::rootExternal($chain)?->getHint());
+        $this->assertNull(self::rootExternal($chain)?->getHint());
     }
 
     public function testExternalRootHintsThatDisagreeStateNoHint(): void

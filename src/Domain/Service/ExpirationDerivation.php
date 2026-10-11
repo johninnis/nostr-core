@@ -12,7 +12,7 @@ final class ExpirationDerivation
     {
     }
 
-    // Deliberate: the one derivation of an event's expiry from the values it states — the earliest that parses as a canonical decimal timestamp wins, the rest are ignored, so tag order never decides — see ADR-0071 and shared ADR-0011
+    // Deliberate: the one derivation of an event's expiry from the values it states — the earliest that parses as a canonical decimal timestamp wins, the rest are ignored, so tag order never decides — see ADR-0071 and nostr-adrs ADR-0011
     /**
      * @param iterable<string> $statedExpiries
      */

@@ -133,7 +133,7 @@ final class EventKindTest extends TestCase
         yield 'BLOCKED_RELAYS_LIST' => [10006, EventKind::BLOCKED_RELAYS_LIST];
         yield 'SEARCH_RELAYS_LIST' => [10007, EventKind::SEARCH_RELAYS_LIST];
         yield 'PROFILE_BADGES' => [10008, EventKind::PROFILE_BADGES];
-        yield 'USER_GROUPS_LIST' => [10009, EventKind::USER_GROUPS_LIST];
+        yield 'SIMPLE_GROUPS_LIST' => [10009, EventKind::SIMPLE_GROUPS_LIST];
         yield 'EXTERNAL_IDENTITIES' => [10011, EventKind::EXTERNAL_IDENTITIES];
         yield 'RELAY_FEEDS_LIST' => [10012, EventKind::RELAY_FEEDS_LIST];
         yield 'PRIVATE_EVENT_RELAY_LIST' => [10013, EventKind::PRIVATE_EVENT_RELAY_LIST];
@@ -165,6 +165,8 @@ final class EventKindTest extends TestCase
         yield 'OPENTIMESTAMPS' => [1040, EventKind::OPENTIMESTAMPS];
         yield 'FILE_METADATA' => [1063, EventKind::FILE_METADATA];
         yield 'POLL' => [1068, EventKind::POLL];
+        yield 'VOICE_MESSAGE' => [1222, EventKind::VOICE_MESSAGE];
+        yield 'VOICE_MESSAGE_COMMENT' => [1244, EventKind::VOICE_MESSAGE_COMMENT];
         yield 'LIVE_CHAT_MESSAGE' => [1311, EventKind::LIVE_CHAT_MESSAGE];
         yield 'REPORTING' => [1984, EventKind::REPORTING];
         yield 'COMMUNITY_POST_APPROVAL' => [4550, EventKind::COMMUNITY_POST_APPROVAL];
@@ -196,7 +198,7 @@ final class EventKindTest extends TestCase
         yield 'USER_STATUS' => [30315, EventKind::USER_STATUS];
         yield 'WIKI_ARTICLE' => [30818, EventKind::WIKI_ARTICLE];
         yield 'WIKI_REDIRECT' => [30819, EventKind::WIKI_REDIRECT];
-        yield 'DRAFT_EVENT' => [31234, EventKind::DRAFT_EVENT];
+        yield 'DRAFT_WRAP' => [31234, EventKind::DRAFT_WRAP];
         yield 'CALENDAR_EVENT_DATE' => [31922, EventKind::CALENDAR_EVENT_DATE];
         yield 'CALENDAR_EVENT_TIME' => [31923, EventKind::CALENDAR_EVENT_TIME];
         yield 'CALENDAR' => [31924, EventKind::CALENDAR];
@@ -208,6 +210,7 @@ final class EventKindTest extends TestCase
         yield 'COMMUNITY_DEFINITION' => [34550, EventKind::COMMUNITY_DEFINITION];
         yield 'CASHU_MINT_ANNOUNCEMENT' => [38172, EventKind::CASHU_MINT_ANNOUNCEMENT];
         yield 'FEDIMINT_ANNOUNCEMENT' => [38173, EventKind::FEDIMINT_ANNOUNCEMENT];
+        yield 'GROUP_METADATA' => [39000, EventKind::GROUP_METADATA];
         yield 'STARTER_PACK' => [39089, EventKind::STARTER_PACK];
         yield 'MEDIA_STARTER_PACK' => [39092, EventKind::MEDIA_STARTER_PACK];
     }
@@ -244,7 +247,7 @@ final class EventKindTest extends TestCase
             EventKind::PUBLIC_CHATS_LIST,
             EventKind::BLOCKED_RELAYS_LIST,
             EventKind::SEARCH_RELAYS_LIST,
-            EventKind::USER_GROUPS_LIST,
+            EventKind::SIMPLE_GROUPS_LIST,
             EventKind::RELAY_FEEDS_LIST,
             EventKind::INTERESTS_LIST,
             EventKind::GIT_AUTHORS_LIST,

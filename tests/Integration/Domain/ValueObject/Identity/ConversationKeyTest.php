@@ -4,14 +4,46 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Integration\Domain\ValueObject\Identity;
 
+use Innis\Nostr\Core\Domain\Exception\EcdhException;
+use Innis\Nostr\Core\Domain\Exception\EncryptionException;
 use Innis\Nostr\Core\Domain\Exception\SecretKeyMaterialZeroedException;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Ecdh;
 use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class ConversationKeyTest extends TestCase
 {
+    public function testDerivingWithAPeerKeyTheKeyAgreementRefusesIsAnEncryptionFailure(): void
+    {
+        $this->expectException(EncryptionException::class);
+
+        ConversationKey::derive(self::ownKey(), self::offCurveKey(), CryptoFixtures::ecdh());
+    }
+
+    public function testARefusedPeerKeyKeepsTheKeyAgreementsRefusalAsItsCause(): void
+    {
+        $cause = null;
+
+        try {
+            ConversationKey::derive(self::ownKey(), self::offCurveKey(), CryptoFixtures::ecdh());
+        } catch (EncryptionException $failure) {
+            $cause = $failure->getPrevious();
+        }
+
+        $this->assertInstanceOf(EcdhException::class, $cause);
+    }
+
+    public function testARefusedPeerKeyReportsTheKeyAgreementsMessage(): void
+    {
+        $this->expectExceptionMessage('ECDH public key is not a valid curve point');
+
+        ConversationKey::derive(self::ownKey(), self::offCurveKey(), new Secp256k1Ecdh(null));
+    }
+
     public function testTryFromHexAcceptsValidHex(): void
     {
         $key = ConversationKey::tryFromHex(str_repeat('ab', 32));
@@ -124,5 +156,15 @@ final class ConversationKeyTest extends TestCase
         $this->assertFalse($key->isZeroed());
         $key->zero();
         $this->assertTrue($key->isZeroed());
+    }
+
+    private static function ownKey(): PrivateKey
+    {
+        return PrivateKey::tryFromHex(str_repeat('0', 63).'1') ?? throw new RuntimeException('Invalid fixture private key');
+    }
+
+    private static function offCurveKey(): PublicKey
+    {
+        return PublicKey::tryFromHex(str_repeat('0', 63).'5') ?? throw new RuntimeException('Invalid fixture public key');
     }
 }

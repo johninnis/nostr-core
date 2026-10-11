@@ -80,9 +80,26 @@ final class Nip86ResponseTest extends TestCase
         $this->assertTrue($response->isSuccess());
     }
 
-    public function testTryFromArrayRefusesAnEmptyError(): void
+    public function testTryFromArrayTreatsAnEmptyErrorBesideAResultAsASuccess(): void
+    {
+        $response = Nip86Response::tryFromArray(['result' => 1, 'error' => '']) ?? throw new RuntimeException('Expected a response');
+
+        $this->assertTrue($response->isSuccess());
+    }
+
+    public function testTryFromArrayKeepsTheResultBesideAnEmptyError(): void
+    {
+        $this->assertSame(['a'], Nip86Response::tryFromArray(['result' => ['a'], 'error' => ''])?->getResult());
+    }
+
+    public function testTryFromArrayRefusesAnEmptyErrorWithoutAResult(): void
     {
         $this->assertNull(Nip86Response::tryFromArray(['error' => '']));
+    }
+
+    public function testAnEmptyErrorBesideAResultIsWrittenBackAsTheResultAlone(): void
+    {
+        $this->assertSame('{"result":1}', Nip86Response::tryFromJson('{"result":1,"error":""}')?->toJson());
     }
 
     public function testTryFromArrayRefusesANonStringError(): void

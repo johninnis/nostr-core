@@ -45,6 +45,8 @@ final readonly class EventKind implements Stringable, IdentityKeyedInterface
     public const int FILE_METADATA = 1063;
     public const int POLL = 1068;
     public const int COMMENT = 1111;
+    public const int VOICE_MESSAGE = 1222;
+    public const int VOICE_MESSAGE_COMMENT = 1244;
     public const int LIVE_CHAT_MESSAGE = 1311;
     public const int REPORTING = 1984;
     public const int COMMUNITY_POST_APPROVAL = 4550;
@@ -72,7 +74,7 @@ final readonly class EventKind implements Stringable, IdentityKeyedInterface
     public const int BLOCKED_RELAYS_LIST = 10006;
     public const int SEARCH_RELAYS_LIST = 10007;
     public const int PROFILE_BADGES = 10008;
-    public const int USER_GROUPS_LIST = 10009;
+    public const int SIMPLE_GROUPS_LIST = 10009;
     public const int EXTERNAL_IDENTITIES = 10011;
     public const int RELAY_FEEDS_LIST = 10012;
     public const int PRIVATE_EVENT_RELAY_LIST = 10013;
@@ -117,7 +119,7 @@ final readonly class EventKind implements Stringable, IdentityKeyedInterface
     public const int USER_STATUS = 30315;
     public const int WIKI_ARTICLE = 30818;
     public const int WIKI_REDIRECT = 30819;
-    public const int DRAFT_EVENT = 31234;
+    public const int DRAFT_WRAP = 31234;
     public const int CALENDAR_EVENT_DATE = 31922;
     public const int CALENDAR_EVENT_TIME = 31923;
     public const int CALENDAR = 31924;
@@ -129,6 +131,7 @@ final readonly class EventKind implements Stringable, IdentityKeyedInterface
     public const int COMMUNITY_DEFINITION = 34550;
     public const int CASHU_MINT_ANNOUNCEMENT = 38172;
     public const int FEDIMINT_ANNOUNCEMENT = 38173;
+    public const int GROUP_METADATA = 39000;
     public const int STARTER_PACK = 39089;
     public const int MEDIA_STARTER_PACK = 39092;
 

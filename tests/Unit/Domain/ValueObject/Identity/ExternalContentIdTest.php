@@ -28,6 +28,20 @@ final class ExternalContentIdTest extends TestCase
         $this->assertSame(self::EPISODE_HINT, (string) $id->getHint());
     }
 
+    public function testTryFromStringKeepsTheHintAsWritten(): void
+    {
+        $id = ExternalContentId::tryFromString(self::EPISODE, self::EPISODE_KIND, 'HTTPS://Fountain.FM:443/episode/1#top') ?? throw new RuntimeException('Expected a valid external content id');
+
+        $this->assertSame('HTTPS://Fountain.FM:443/episode/1#top', (string) $id->getHint());
+    }
+
+    public function testTryFromStringKeepsTheHintsFragment(): void
+    {
+        $id = ExternalContentId::tryFromString(self::EPISODE, self::EPISODE_KIND, 'https://x.example/#/episode/1') ?? throw new RuntimeException('Expected a valid external content id');
+
+        $this->assertSame('https://x.example/#/episode/1', (string) $id->getHint());
+    }
+
     public function testTryFromStringDropsAHintThatIsNotAUrl(): void
     {
         $id = ExternalContentId::tryFromString(self::EPISODE, self::EPISODE_KIND, 'not a url') ?? throw new RuntimeException('Expected a valid external content id');

@@ -28,3 +28,4 @@ An empty value is not a hashtag. `Tag` itself permits an empty value, because th
 - The rule binds what this library *writes*. A `#t` filter carries raw strings, because `TagFilter` is generic over every tag type and cannot know which of them are hashtags; a caller building a `#t` filter canonicalises its values through `Hashtag` first, and one that does not will match nothing on a conforming relay.
 - `Tag::hashtag()` no longer takes a string, `LongformMetadata` takes and returns a `HashtagCollection` rather than a `list<Hashtag>`, and `EventContent::extractHashtags()` returns one too. All three are breaking changes on the 0.x line, taken together so that a consumer adapts to the hashtag type once rather than twice.
 - Do not add a string overload anywhere on this path to spare a caller the wrap. The wrap is where the rule is applied, and a second way in is a second answer to what a hashtag is.
+- Shared decision: nostr-adrs ADR-0004.

@@ -33,7 +33,6 @@ final class Nip98ValidationFailureTest extends TestCase
         yield 'disagreeing method tags' => [Nip98ValidationFailure::DisagreeingMethodTags, 'disagreeing_method_tags'];
         yield 'method mismatch' => [Nip98ValidationFailure::MethodMismatch, 'method_mismatch'];
         yield 'disagreeing payload tags' => [Nip98ValidationFailure::DisagreeingPayloadTags, 'disagreeing_payload_tags'];
-        yield 'payload tag without body hash' => [Nip98ValidationFailure::PayloadTagWithoutBodyHash, 'payload_tag_without_body_hash'];
         yield 'missing payload tag' => [Nip98ValidationFailure::MissingPayloadTag, 'missing_payload_tag'];
         yield 'payload mismatch' => [Nip98ValidationFailure::PayloadMismatch, 'payload_mismatch'];
         yield 'replayed' => [Nip98ValidationFailure::Replayed, 'replayed'];

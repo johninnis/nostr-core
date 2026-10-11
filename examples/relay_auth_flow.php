@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Innis\Nostr\Core\Application\Service\Nip42Validator;
-use Innis\Nostr\Core\Domain\Enum\ReasonPrefix;
 use Innis\Nostr\Core\Domain\Factory\RumourFactory;
 use Innis\Nostr\Core\Domain\Service\EventValidator;
 use Innis\Nostr\Core\Domain\Service\Nip42EventChecker;
@@ -48,4 +47,13 @@ $staleFailure = $validator->validate($reply, new RelayChallenge($relayUrl, Chall
     ?? throw new RuntimeException('an answer to another challenge must never validate');
 
 echo 'Replayed against another challenge: '.$staleFailure->value.PHP_EOL;
-echo 'Wire reason:                        '.ReasonPrefix::AuthRequired->format($staleFailure->message()).PHP_EOL;
+echo 'Wire reason:                        '.$staleFailure->reasonPrefix()->format($staleFailure->message()).PHP_EOL;
+echo '                                    a replaced challenge is answered auth-required, so the client answers the current one'.PHP_EOL;
+echo PHP_EOL;
+
+$foreignFailure = $validator->validate($reply, new RelayChallenge(RelayUrl::fromString('wss://another-relay.example.com'), $challenge))
+    ?? throw new RuntimeException('an answer naming another relay must never validate');
+
+echo 'Presented to another relay:         '.$foreignFailure->value.PHP_EOL;
+echo 'Wire reason:                        '.$foreignFailure->reasonPrefix()->format($foreignFailure->message()).PHP_EOL;
+echo '                                    answering a challenge again cannot fix it, so it is invalid'.PHP_EOL;

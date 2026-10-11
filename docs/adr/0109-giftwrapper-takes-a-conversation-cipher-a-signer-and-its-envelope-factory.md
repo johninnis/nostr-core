@@ -14,7 +14,7 @@ Two of the four were never consumed apart. Every use of the ECDH service derived
 
 ## Decision
 
-- `ConversationCipher` (`Domain\Service`) takes NIP-44 encryption and ECDH, and offers `encrypt(plaintext, ownKey, peer)` and `decrypt(ciphertext, ownKey, peer)`. Each derives the conversation key, runs the cipher, and zeroes the key. A failure stays the primitive's thrown fault.
+- `ConversationCipher` (`Domain\Service`) takes NIP-44 encryption and ECDH, and offers `encrypt(plaintext, ownKey, peer)` and `decrypt(ciphertext, ownKey, peer)`. Each derives the conversation key, runs the cipher, and zeroes the key. A failure stays the primitive's thrown fault; a peer key the key agreement refuses is the derivation's `EncryptionException` (ADR-0089).
 - `ConversationCipher` implements `ConversationCipherInterface`, beside it in `Domain\Service`, and `GiftWrapper` takes that interface, a signature service and the envelope factory, so a test or a host substitutes the cipher without touching the gift wrap (ADR-0098). It converts a thrown decryption fault on the peer's ciphertext to a returned `GiftWrapUnwrapFailure` where the ciphertext enters, as before (ADR-0089).
 - `GiftWrapper::create(encryption, signatureService, ecdh)` builds the cipher and the random envelope factory, so a host composing the default stack is unchanged.
 - `GiftWrapper`, `GiftWrapEnvelope`, `GiftWrapEnvelopeFactoryInterface` and `RandomGiftWrapEnvelopeFactory` stay together in the crypto concern. (Carried forward.)

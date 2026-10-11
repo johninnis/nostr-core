@@ -15,6 +15,13 @@ use Mdanter\Ecc\Primitives\PointInterface;
 
 final class Secp256k1Math
 {
+    private const int COORDINATE_LENGTH = 32;
+    private const string EVEN_Y_PREFIX = "\x02";
+    private const string ODD_Y_PREFIX = "\x03";
+    private const string UNCOMPRESSED_PREFIX = "\x04";
+    private const string CASHU_HASH_TO_CURVE_DOMAIN = 'Secp256k1_HashToCurve_Cashu_';
+    private const int CASHU_HASH_TO_CURVE_COUNTERS = 65536;
+
     private function __construct()
     {
     }
@@ -38,15 +45,43 @@ final class Secp256k1Math
 
     public static function liftX(GMP $x): ?PointInterface
     {
-        if (!self::isXCoordinateInField($x)) {
+        return self::pointWithParity($x, false);
+    }
+
+    public static function decompressPoint(string $compressed): ?PointInterface
+    {
+        $prefix = substr($compressed, 0, 1);
+
+        if (1 + self::COORDINATE_LENGTH !== strlen($compressed) || !in_array($prefix, [self::EVEN_Y_PREFIX, self::ODD_Y_PREFIX], true)) {
             return null;
         }
 
-        try {
-            return self::curve()->getPoint($x, self::curve()->recoverYfromX(false, $x));
-        } catch (PointRecoveryException|PointNotOnCurveException) {
-            return null;
+        return self::pointWithParity(gmp_import(substr($compressed, 1)), self::ODD_Y_PREFIX === $prefix);
+    }
+
+    public static function serialiseUncompressed(PointInterface $point): string
+    {
+        return self::UNCOMPRESSED_PREFIX.self::gmpToBytes($point->getX(), self::COORDINATE_LENGTH).self::gmpToBytes($point->getY(), self::COORDINATE_LENGTH);
+    }
+
+    public static function negate(PointInterface $point): PointInterface
+    {
+        return $point->isInfinity() ? $point : self::curve()->getPoint($point->getX(), gmp_sub(self::curve()->getPrime(), $point->getY()));
+    }
+
+    public static function cashuHashToCurve(string $message): ?PointInterface
+    {
+        $messageHash = hash('sha256', self::CASHU_HASH_TO_CURVE_DOMAIN.$message, true);
+
+        for ($counter = 0; $counter < self::CASHU_HASH_TO_CURVE_COUNTERS; ++$counter) {
+            $point = self::decompressPoint(self::EVEN_Y_PREFIX.hash('sha256', $messageHash.pack('V', $counter), true));
+
+            if (null !== $point) {
+                return $point;
+            }
         }
+
+        return null;
     }
 
     public static function taggedHash(string $tag, string $msg): string
@@ -80,6 +115,19 @@ final class Secp256k1Math
             return str_pad($bytes, $length, "\0", STR_PAD_LEFT);
         } finally {
             sodium_memzero($bytes);
+        }
+    }
+
+    private static function pointWithParity(GMP $x, bool $hasOddY): ?PointInterface
+    {
+        if (!self::isXCoordinateInField($x)) {
+            return null;
+        }
+
+        try {
+            return self::curve()->getPoint($x, self::curve()->recoverYfromX($hasOddY, $x));
+        } catch (PointRecoveryException|PointNotOnCurveException) {
+            return null;
         }
     }
 }

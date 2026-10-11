@@ -20,7 +20,6 @@ enum Nip98ValidationFailure: string implements AuthHeaderFailureInterface
     case DisagreeingMethodTags = 'disagreeing_method_tags';
     case MethodMismatch = 'method_mismatch';
     case DisagreeingPayloadTags = 'disagreeing_payload_tags';
-    case PayloadTagWithoutBodyHash = 'payload_tag_without_body_hash';
     case MissingPayloadTag = 'missing_payload_tag';
     case PayloadMismatch = 'payload_mismatch';
     case Replayed = 'replayed';
@@ -41,7 +40,6 @@ enum Nip98ValidationFailure: string implements AuthHeaderFailureInterface
             self::DisagreeingMethodTags => 'Event method tags disagree',
             self::MethodMismatch => 'Method in method tag does not match request method',
             self::DisagreeingPayloadTags => 'Event payload tags disagree',
-            self::PayloadTagWithoutBodyHash => 'Event contains payload tag but no request body hash was supplied for verification',
             self::MissingPayloadTag => 'Event missing payload tag',
             self::PayloadMismatch => 'Payload hash does not match request body',
             self::Replayed => 'Auth event has already been used',

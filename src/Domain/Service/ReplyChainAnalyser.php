@@ -8,16 +8,17 @@ use Innis\Nostr\Core\Domain\Collection\EventReferenceCollection;
 use Innis\Nostr\Core\Domain\Collection\PublicKeyCollection;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Enum\Nip10Marker;
+use Innis\Nostr\Core\Domain\Enum\ThreadingConvention;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\ExternalContentId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
-use Innis\Nostr\Core\Domain\ValueObject\Protocol\HttpUrl;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\WebUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReference;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\PubkeyReference;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\ReplyChain;
+use Innis\Nostr\Core\Domain\ValueObject\Reference\TagReferences;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\SoleTagValue;
-use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 
 final class ReplyChainAnalyser
@@ -28,15 +29,18 @@ final class ReplyChainAnalyser
 
     public static function analyse(TagCollection $tags, ?EventKind $kind = null): ReplyChain
     {
-        if (null !== $kind && $kind->is(EventKind::COMMENT)) {
-            return self::analyseCommentReplyChain($tags, $kind);
-        }
-
-        return self::analyseNip10ReplyChain($tags, $kind);
+        return match (ThreadingConvention::ofKind($kind)) {
+            ThreadingConvention::Comment => self::analyseCommentReplyChain($tags, $kind),
+            // Deliberate: a channel message reads its e tags by marker alone, so its root is the channel, not a message — see nostr-adrs ADR-0012
+            ThreadingConvention::Channel => self::markedReplyChain(TagReferenceExtractor::extract($tags), $kind),
+            ThreadingConvention::LiveChat => self::analyseLiveChatReplyChain($tags, $kind),
+            ThreadingConvention::Chat => self::analyseChatReplyChain($tags, $kind),
+            ThreadingConvention::ShortNote, null => self::analyseNip10ReplyChain($tags, $kind),
+        };
     }
 
     // Deliberate: the root and the parent are each read address first, then event, then external content, every tag name as one claim — see ADR-0085
-    private static function analyseCommentReplyChain(TagCollection $tags, EventKind $kind): ReplyChain
+    private static function analyseCommentReplyChain(TagCollection $tags, ?EventKind $kind): ReplyChain
     {
         $rootEvents = [];
         $parentEvents = [];
@@ -110,54 +114,83 @@ final class ReplyChainAnalyser
         return ExternalContentId::tryFromString($value, $kind, self::soleHint($tags, $idType));
     }
 
-    // Deliberate: the hint is a sole claim among the web URLs the tags carry, read in canonical form, so the tag order never picks one — see ADR-0085
+    // Deliberate: the hint is a sole claim among the web URLs the tags carry, compared exactly as written, so the tag order never picks a spelling — see ADR-0085
     private static function soleHint(TagCollection $tags, TagType $idType): ?string
     {
-        $urls = array_values(array_filter(array_map(static fn (Tag $tag): ?HttpUrl => HttpUrl::tryFromString($tag->getValue(1)), $tags->findByType($idType))));
-
-        return SoleTagValue::fromValues(array_map(strval(...), $urls))->getValue();
+        return SoleTagValue::fromValues(
+            $tags->getValuesByType($idType, 1),
+            static fn (string $hint): ?string => WebUrl::tryFromString($hint)?->__toString(),
+        )->getValue();
     }
 
     private static function analyseNip10ReplyChain(TagCollection $tags, ?EventKind $kind): ReplyChain
     {
         $references = TagReferenceExtractor::extract($tags);
-        $eventReferences = $references->getEvents()->toArray();
-        $participants = new PublicKeyCollection(array_map(
-            static fn (PubkeyReference $reference): PublicKey => $reference->getPubkey(),
-            $references->getPubkeys()->toArray()
-        ))->unique();
-
-        $rootEvent = null;
-        $parentEvent = null;
-        $mentionedEvents = [];
-
         $hasMarkers = array_any(
-            $eventReferences,
+            $references->getEvents()->toArray(),
             static fn (EventReference $reference): bool => null !== $reference->getMarker(),
         );
 
-        if ($hasMarkers) {
-            $rootEvent = self::soleClaim(self::markedAs($eventReferences, Nip10Marker::Root), self::eventIdKey(...));
-            $parentEvent = self::soleClaim(self::markedAs($eventReferences, Nip10Marker::Reply), self::eventIdKey(...));
-            $mentionedEvents = array_values(array_filter(
-                $eventReferences,
-                static fn (EventReference $reference): bool => !in_array($reference->getMarker(), [Nip10Marker::Root, Nip10Marker::Reply], true),
-            ));
-        } elseif (1 === count($eventReferences)) {
-            $parentEvent = $eventReferences[0];
-        } elseif (count($eventReferences) > 1) {
-            $rootEvent = $eventReferences[0];
-            $parentEvent = $eventReferences[count($eventReferences) - 1];
-            $mentionedEvents = array_slice($eventReferences, 1, -1);
-        }
+        return $hasMarkers ? self::markedReplyChain($references, $kind) : self::positionalReplyChain($references, $kind);
+    }
+
+    private static function markedReplyChain(TagReferences $references, ?EventKind $kind): ReplyChain
+    {
+        $events = $references->getEvents()->toArray();
 
         return new ReplyChain(
             $kind,
-            $rootEvent,
-            $parentEvent,
-            $participants,
-            new EventReferenceCollection($mentionedEvents)
+            self::soleClaim(self::markedAs($events, Nip10Marker::Root), self::eventIdKey(...)),
+            self::soleClaim(self::markedAs($events, Nip10Marker::Reply), self::eventIdKey(...)),
+            self::participants($references),
+            new EventReferenceCollection(array_values(array_filter(
+                $events,
+                static fn (EventReference $reference): bool => !in_array($reference->getMarker(), [Nip10Marker::Root, Nip10Marker::Reply], true),
+            ))),
         );
+    }
+
+    private static function positionalReplyChain(TagReferences $references, ?EventKind $kind): ReplyChain
+    {
+        $events = $references->getEvents()->toArray();
+        $count = count($events);
+
+        return new ReplyChain(
+            $kind,
+            $count > 1 ? $events[0] : null,
+            $count > 0 ? $events[$count - 1] : null,
+            self::participants($references),
+            new EventReferenceCollection(array_slice($events, 1, -1)),
+        );
+    }
+
+    // Deliberate: a live chat message names its parent in its e tags and has no root, its a tag naming the activity — see nostr-adrs ADR-0012
+    private static function analyseLiveChatReplyChain(TagCollection $tags, ?EventKind $kind): ReplyChain
+    {
+        $references = TagReferenceExtractor::extract($tags);
+
+        return self::rootlessReplyChain($references, self::soleClaim($references->getEvents()->toArray(), self::eventIdKey(...)), $kind);
+    }
+
+    // Deliberate: a chat message's first q tag naming an event is its parent, the one place q threads, and it has no root — see nostr-adrs ADR-0012
+    private static function analyseChatReplyChain(TagCollection $tags, ?EventKind $kind): ReplyChain
+    {
+        $references = TagReferenceExtractor::extract($tags);
+
+        return self::rootlessReplyChain($references, $references->getQuotes()->toArray()[0] ?? null, $kind);
+    }
+
+    private static function rootlessReplyChain(TagReferences $references, ?EventReference $parent, ?EventKind $kind): ReplyChain
+    {
+        return new ReplyChain($kind, null, $parent, self::participants($references), new EventReferenceCollection());
+    }
+
+    private static function participants(TagReferences $references): PublicKeyCollection
+    {
+        return new PublicKeyCollection(array_map(
+            static fn (PubkeyReference $reference): PublicKey => $reference->getPubkey(),
+            $references->getPubkeys()->toArray(),
+        ))->unique();
     }
 
     /**

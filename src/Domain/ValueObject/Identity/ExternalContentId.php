@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Identity;
 
-use Innis\Nostr\Core\Domain\ValueObject\Protocol\HttpUrl;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\WebUrl;
 use Override;
 use Stringable;
 
@@ -13,7 +13,7 @@ final readonly class ExternalContentId implements Stringable
     private function __construct(
         private string $value,
         private string $kind,
-        private ?HttpUrl $hint,
+        private ?WebUrl $hint,
     ) {
     }
 
@@ -22,7 +22,7 @@ final readonly class ExternalContentId implements Stringable
     {
         $isText = '' !== $value && '' !== $kind && mb_check_encoding($value, 'UTF-8') && mb_check_encoding($kind, 'UTF-8');
 
-        return $isText ? new self($value, $kind, HttpUrl::tryFromString($hint)) : null;
+        return $isText ? new self($value, $kind, WebUrl::tryFromString($hint)) : null;
     }
 
     public function getValue(): string
@@ -35,7 +35,7 @@ final readonly class ExternalContentId implements Stringable
         return $this->kind;
     }
 
-    public function getHint(): ?HttpUrl
+    public function getHint(): ?WebUrl
     {
         return $this->hint;
     }

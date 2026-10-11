@@ -54,9 +54,11 @@ final readonly class Nip42EventChecker implements Nip42EventCheckerInterface
     {
         $claimed = Challenge::tryFromString($event->getTags()->getSoleValueByType(TagType::fromString(TagType::CHALLENGE))->getValue());
 
-        return true === $claimed?->equals($challenge)
-            ? null
-            : Nip42ValidationFailure::ChallengeMismatch;
+        return match (true) {
+            null === $claimed => Nip42ValidationFailure::ChallengeUnstated,
+            $claimed->equals($challenge) => null,
+            default => Nip42ValidationFailure::ChallengeMismatch,
+        };
     }
 
     private function validateRelay(Event $event, RelayUrl $relayUrl): ?Nip42ValidationFailure

@@ -28,3 +28,4 @@ The comparison is not constant-time, deliberately. The scheme token is a public 
 - Nothing about what the package accepts as an authenticated request changes. The set of headers that authenticate is identical; only the set that are recognised as attempts widened.
 - Do not "harden" this back to an exact-bytes comparison. It refuses well-formed requests that RFC 9110 says are equivalent, and it protects nothing, because the token is public and the signature is checked regardless.
 - Do not extend the same reasoning to the rest of the header. Everything after the token is data, and the base64 payload is matched exactly.
+- Shared decision: nostr-adrs ADR-0023.

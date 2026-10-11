@@ -26,6 +26,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayChallenge;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Sha256Hash;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\WebUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
@@ -33,6 +34,7 @@ use Innis\Nostr\Core\Tests\Fake\FakeSignatureService;
 use Innis\Nostr\Core\Tests\Support\EventMother;
 use Innis\Nostr\Core\Tests\Support\KeyMother;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class RumourFactoryTest extends TestCase
@@ -105,6 +107,31 @@ final class RumourFactoryTest extends TestCase
         $this->assertSame($method, $methodTags[0]->getValue());
         $this->assertCount(1, $payloadTags);
         $this->assertSame((string) $payloadHash, $payloadTags[0]->getValue());
+    }
+
+    #[DataProvider('methodsAsFetchSendsThem')]
+    public function testCreateHttpAuthWritesTheMethodAsFetchSendsIt(string $given, string $written): void
+    {
+        $event = $this->authorFactory()->createHttpAuth(Nip98Request::fromBodyHash(HttpUrl::fromString('https://api.example.com/'), $given));
+
+        $this->assertSame([$written], $event->getTags()->getValuesByType(TagType::method()));
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function methodsAsFetchSendsThem(): iterable
+    {
+        yield 'delete in lower case' => ['delete', 'DELETE'];
+        yield 'get in mixed case' => ['Get', 'GET'];
+        yield 'head in mixed case' => ['hEAD', 'HEAD'];
+        yield 'options in lower case' => ['options', 'OPTIONS'];
+        yield 'post in lower case' => ['post', 'POST'];
+        yield 'put in mixed case' => ['pUt', 'PUT'];
+        yield 'patch in lower case, which Fetch sends as written' => ['patch', 'patch'];
+        yield 'patch in upper case' => ['PATCH', 'PATCH'];
+        yield 'another method' => ['Propfind', 'Propfind'];
+        yield 'a non-ASCII letter Fetch does not fold' => ["po\u{17F}t", "po\u{17F}t"];
     }
 
     public function testCanCreateHttpAuthWithoutPayload(): void
@@ -194,11 +221,11 @@ final class RumourFactoryTest extends TestCase
         $this->assertSame('', (string) $this->repostOf($target)->getContent());
     }
 
-    public function testRepostOfAnEventWhoseDashTagCarriesAValueEmbedsIt(): void
+    public function testRepostOfAnEventWhoseDashTagCarriesAValueDoesNotEmbedIt(): void
     {
         $target = $this->signedEvent(EventKind::TEXT_NOTE, new TagCollection([Tag::fromArray([TagType::PROTECTED, 'x'])]));
 
-        $this->assertSame($target->toJson(), (string) $this->repostOf($target)->getContent());
+        $this->assertSame('', (string) $this->repostOf($target)->getContent());
     }
 
     public function testRepostIsAuthoredByTheReposter(): void
@@ -354,6 +381,144 @@ final class RumourFactoryTest extends TestCase
         ]));
 
         $this->assertContains(self::THIRD_PUBKEY_HEX, $this->replyTo($parent)->getTags()->getValuesByType(TagType::pubkey()));
+    }
+
+    public function testReplyCopiesTheRootAuthorAnUnmarkedTagNamesInItsFifthElement(): void
+    {
+        $rootId = str_repeat('1', 64);
+        $parent = $this->signedEvent(EventKind::TEXT_NOTE, new TagCollection([Tag::fromArray(['e', $rootId, 'wss://root.example.com', '', self::THIRD_PUBKEY_HEX])]));
+
+        $this->assertSame(['e', $rootId, 'wss://root.example.com', 'root', self::THIRD_PUBKEY_HEX], self::tagsOfType($this->replyTo($parent), TagType::event())[0]);
+    }
+
+    public function testReplyCopiesTheRootAuthorAnUnmarkedTagNamesInItsFourthElement(): void
+    {
+        $rootId = str_repeat('1', 64);
+        $parent = $this->signedEvent(EventKind::TEXT_NOTE, new TagCollection([Tag::fromArray(['e', $rootId, '', self::THIRD_PUBKEY_HEX])]));
+
+        $this->assertSame(['e', $rootId, '', 'root', self::THIRD_PUBKEY_HEX], self::tagsOfType($this->replyTo($parent), TagType::event())[0]);
+    }
+
+    public function testReplyTagsTheRootAuthorAnUnmarkedTagNames(): void
+    {
+        $parent = $this->signedEvent(EventKind::TEXT_NOTE, new TagCollection([Tag::fromArray(['e', str_repeat('1', 64), '', self::THIRD_PUBKEY_HEX])]));
+
+        $this->assertContains(self::THIRD_PUBKEY_HEX, $this->replyTo($parent)->getTags()->getValuesByType(TagType::pubkey()));
+    }
+
+    public function testReplyToAChatMessageIsAChatMessage(): void
+    {
+        $this->assertTrue($this->replyTo($this->signedEvent(EventKind::CHAT_MESSAGE))->getKind()->is(EventKind::CHAT_MESSAGE));
+    }
+
+    public function testReplyToAChatMessageQuotesItsParent(): void
+    {
+        $parent = $this->signedEvent(EventKind::CHAT_MESSAGE);
+
+        $this->assertSame([['q', $parent->getId()->toHex(), '', $parent->getPubkey()->toHex()]], $this->replyTo($parent)->getTags()->toJsonArray());
+    }
+
+    public function testReplyToAChatMessageNamesWhereTheParentCanBeFound(): void
+    {
+        $parent = $this->signedEvent(EventKind::CHAT_MESSAGE);
+        $reply = $this->replyTo($parent, RelayUrl::fromString('wss://relay.example.com'));
+
+        $this->assertSame([['q', $parent->getId()->toHex(), 'wss://relay.example.com', $parent->getPubkey()->toHex()]], $reply->getTags()->toJsonArray());
+    }
+
+    public function testReplyToAChannelMessageIsAChannelMessage(): void
+    {
+        $this->assertTrue($this->replyTo($this->signedEvent(EventKind::CHANNEL_MESSAGE))->getKind()->is(EventKind::CHANNEL_MESSAGE));
+    }
+
+    public function testReplyToAChannelMessageIsRootedAtItsChannelAndRepliesToIt(): void
+    {
+        $channelId = str_repeat('4', 64);
+        $parent = $this->signedEvent(EventKind::CHANNEL_MESSAGE, new TagCollection([Tag::fromArray(['e', $channelId, 'wss://channel.example.com', 'root'])]));
+
+        $this->assertSame(
+            [
+                ['e', $channelId, 'wss://channel.example.com', 'root'],
+                ['e', $parent->getId()->toHex(), '', 'reply', $parent->getPubkey()->toHex()],
+                ['p', $parent->getPubkey()->toHex()],
+            ],
+            $this->replyTo($parent)->getTags()->toJsonArray(),
+        );
+    }
+
+    public function testReplyToAChannelMessageNamesWhereTheParentCanBeFound(): void
+    {
+        $parent = $this->signedEvent(EventKind::CHANNEL_MESSAGE);
+        $reply = $this->replyTo($parent, RelayUrl::fromString('wss://relay.example.com'));
+
+        $this->assertSame(
+            [
+                ['e', $parent->getId()->toHex(), 'wss://relay.example.com', 'reply', $parent->getPubkey()->toHex()],
+                ['p', $parent->getPubkey()->toHex(), 'wss://relay.example.com'],
+            ],
+            $reply->getTags()->toJsonArray(),
+        );
+    }
+
+    public function testReplyToALiveChatMessageIsALiveChatMessage(): void
+    {
+        $this->assertTrue($this->replyTo($this->signedEvent(EventKind::LIVE_CHAT_MESSAGE))->getKind()->is(EventKind::LIVE_CHAT_MESSAGE));
+    }
+
+    public function testReplyToALiveChatMessageCarriesItsActivityAndNamesTheParent(): void
+    {
+        $activity = ['a', '30311:'.self::THIRD_PUBKEY_HEX.':stream', 'wss://live.example.com', 'root'];
+        $parent = $this->signedEvent(EventKind::LIVE_CHAT_MESSAGE, new TagCollection([Tag::fromArray($activity)]));
+
+        $this->assertSame(
+            [$activity, ['e', $parent->getId()->toHex(), '', $parent->getPubkey()->toHex()]],
+            $this->replyTo($parent)->getTags()->toJsonArray(),
+        );
+    }
+
+    public function testReplyToALiveChatMessageWhoseActivityTagsDisagreeCarriesNoActivity(): void
+    {
+        $parent = $this->signedEvent(EventKind::LIVE_CHAT_MESSAGE, new TagCollection([
+            Tag::fromArray(['a', '30311:'.self::THIRD_PUBKEY_HEX.':one']),
+            Tag::fromArray(['a', '30311:'.self::THIRD_PUBKEY_HEX.':two']),
+        ]));
+
+        $this->assertSame([], self::tagsOfType($this->replyTo($parent), TagType::addressable()));
+    }
+
+    public function testReplyToALiveChatMessageCarriesTheFirstActivityTagWhenTheyDifferOnlyByRelay(): void
+    {
+        $first = ['a', '30311:'.self::THIRD_PUBKEY_HEX.':stream', 'wss://one.example.com'];
+        $parent = $this->signedEvent(EventKind::LIVE_CHAT_MESSAGE, new TagCollection([
+            Tag::fromArray($first),
+            Tag::fromArray(['a', '30311:'.self::THIRD_PUBKEY_HEX.':stream', 'wss://two.example.com']),
+        ]));
+
+        $this->assertSame([$first], self::tagsOfType($this->replyTo($parent), TagType::addressable()));
+    }
+
+    public function testReplyToALiveChatMessageSkipsAnActivityTagThatIsNoCoordinate(): void
+    {
+        $activity = ['a', '30311:'.self::THIRD_PUBKEY_HEX.':stream'];
+        $parent = $this->signedEvent(EventKind::LIVE_CHAT_MESSAGE, new TagCollection([Tag::fromArray(['a', 'not-a-coordinate']), Tag::fromArray($activity)]));
+
+        $this->assertSame([$activity], self::tagsOfType($this->replyTo($parent), TagType::addressable()));
+    }
+
+    public function testReplyToAVoiceMessageIsAComment(): void
+    {
+        $this->assertTrue($this->replyTo($this->signedEvent(EventKind::VOICE_MESSAGE))->getKind()->is(EventKind::COMMENT));
+    }
+
+    public function testReplyToAVoiceMessageCommentKeepsItsRootScope(): void
+    {
+        $rootId = str_repeat('1', 64);
+        $parent = $this->signedEvent(EventKind::VOICE_MESSAGE_COMMENT, new TagCollection([Tag::fromArray(['E', $rootId, '', self::THIRD_PUBKEY_HEX]), Tag::fromArray(['K', '1222'])]));
+
+        $this->assertSame(
+            [['E', $rootId, '', self::THIRD_PUBKEY_HEX], ['K', '1222']],
+            array_slice($this->replyTo($parent)->getTags()->toJsonArray(), 0, 2),
+        );
     }
 
     public function testReplyTagsEachPubkeyOnce(): void
@@ -650,7 +815,7 @@ final class RumourFactoryTest extends TestCase
                 'full-article',
                 'My Full Article',
                 'A summary of the article',
-                HttpUrl::fromString('https://example.com/image.jpg'),
+                WebUrl::fromString('https://example.com/image.jpg'),
                 $publishedAt,
                 HashtagCollection::fromStrings(['nostr', 'bitcoin']),
             ),
@@ -692,7 +857,7 @@ final class RumourFactoryTest extends TestCase
             $content,
         );
 
-        $this->assertTrue($event->getKind()->is(EventKind::DRAFT_EVENT));
+        $this->assertTrue($event->getKind()->is(EventKind::DRAFT_WRAP));
         $this->assertTrue($event->getContent()->equals($content));
 
         $tags = $event->getTags();
@@ -740,26 +905,26 @@ final class RumourFactoryTest extends TestCase
         $this->assertSame([['e', $target->getId()->toHex()], ['k', '1']], $deletion->getTags()->toJsonArray());
     }
 
-    public function testCreateDeletionNamesAReplaceableEventByItsCoordinate(): void
+    public function testCreateDeletionNamesAReplaceableEventByItsVersionAndItsCoordinate(): void
     {
         $target = $this->signedBy($this->keyPair, EventKind::RELAY_LIST, new TagCollection());
 
         $deletion = $this->authorFactory()->createDeletion($target);
 
         $this->assertSame(
-            [['a', '10002:'.$this->keyPair->getPublicKey()->toHex().':'], ['k', '10002']],
+            [['e', $target->getId()->toHex()], ['a', '10002:'.$this->keyPair->getPublicKey()->toHex().':'], ['k', '10002']],
             $deletion->getTags()->toJsonArray(),
         );
     }
 
-    public function testCreateDeletionNamesAnAddressableEventByItsCoordinate(): void
+    public function testCreateDeletionNamesAnAddressableEventByItsVersionAndItsCoordinate(): void
     {
         $target = $this->signedBy($this->keyPair, EventKind::LONGFORM_CONTENT, new TagCollection([Tag::identifier('my-article')]));
 
         $deletion = $this->authorFactory()->createDeletion($target);
 
         $this->assertSame(
-            [['a', '30023:'.$this->keyPair->getPublicKey()->toHex().':my-article'], ['k', '30023']],
+            [['e', $target->getId()->toHex()], ['a', '30023:'.$this->keyPair->getPublicKey()->toHex().':my-article'], ['k', '30023']],
             $deletion->getTags()->toJsonArray(),
         );
     }
@@ -968,11 +1133,18 @@ final class RumourFactoryTest extends TestCase
         );
     }
 
-    public function testCommentOnACommentCopiesAnExternalRootHintInItsCanonicalForm(): void
+    public function testCommentOnACommentCopiesAnExternalRootHintAsWritten(): void
     {
         $parent = $this->signedEvent(EventKind::COMMENT, new TagCollection([Tag::fromArray(['I', 'isbn:9780765382030', 'HTTPS://Example.com:443/book']), Tag::fromArray(['K', 'isbn'])]));
 
-        $this->assertSame(['I', 'isbn:9780765382030', 'https://example.com/book'], $this->replyTo($parent)->getTags()->toJsonArray()[0]);
+        $this->assertSame(['I', 'isbn:9780765382030', 'HTTPS://Example.com:443/book'], $this->replyTo($parent)->getTags()->toJsonArray()[0]);
+    }
+
+    public function testCommentOnACommentCopiesAnExternalRootHintWithItsFragment(): void
+    {
+        $parent = $this->signedEvent(EventKind::COMMENT, new TagCollection([Tag::fromArray(['I', 'isbn:9780765382030', 'HTTPS://Example.com:443/book#chapter-2']), Tag::fromArray(['K', 'isbn'])]));
+
+        $this->assertSame(['I', 'isbn:9780765382030', 'HTTPS://Example.com:443/book#chapter-2'], $this->replyTo($parent)->getTags()->toJsonArray()[0]);
     }
 
     public function testCommentOnACommentDropsACopiedExternalRootHintThatIsNotAWebUrl(): void

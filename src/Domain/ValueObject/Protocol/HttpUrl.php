@@ -53,7 +53,7 @@ final readonly class HttpUrl implements Stringable
 
     public static function fromString(string $url): self
     {
-        return self::tryFromString($url) ?? throw new InvalidArgumentException('An HTTP URL needs an http or https scheme, a host that is an RFC 3986 registered name or an IPv6 literal, a canonical port, and UTF-8 text without a control character');
+        return self::tryFromString($url) ?? throw new InvalidArgumentException('An HTTP URL needs an http or https scheme, a host that is an RFC 3986 registered name or an IPv6 literal, a canonical port, no credentials, and UTF-8 text without a control character');
     }
 
     /**
@@ -61,19 +61,20 @@ final readonly class HttpUrl implements Stringable
      */
     private static function splitHostAndPort(string $authority): ?array
     {
-        $at = strrpos($authority, '@');
-        $hostAndPort = false === $at ? $authority : substr($authority, $at + 1);
+        if (str_contains($authority, '@')) {
+            return null;
+        }
 
-        if (str_starts_with($hostAndPort, '[')) {
-            return 1 === preg_match(self::IP_LITERAL_AUTHORITY, $hostAndPort, $literal, PREG_UNMATCHED_AS_NULL) && self::isIpv6Address($literal[2])
+        if (str_starts_with($authority, '[')) {
+            return 1 === preg_match(self::IP_LITERAL_AUTHORITY, $authority, $literal, PREG_UNMATCHED_AS_NULL) && self::isIpv6Address($literal[2])
                 ? [$literal[1], $literal[3] ?? '']
                 : null;
         }
 
-        $colon = strpos($hostAndPort, ':');
-        $host = false === $colon ? $hostAndPort : substr($hostAndPort, 0, $colon);
+        $colon = strpos($authority, ':');
+        $host = false === $colon ? $authority : substr($authority, 0, $colon);
 
-        return 1 === preg_match(self::REG_NAME, $host) ? [$host, false === $colon ? '' : substr($hostAndPort, $colon + 1)] : null;
+        return 1 === preg_match(self::REG_NAME, $host) ? [$host, false === $colon ? '' : substr($authority, $colon + 1)] : null;
     }
 
     private static function isIpv6Address(string $text): bool

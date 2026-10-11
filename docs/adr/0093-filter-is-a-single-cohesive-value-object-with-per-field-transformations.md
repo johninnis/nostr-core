@@ -14,7 +14,7 @@ The `withX()` methods look like duplication at a glance: each is a near-identica
 
 ## Decision
 
-Keep `Filter` as one value object, built from its eight wire fields, with one explicit `withX()` method for each field callers transform: `withAuthors`, `withKinds`, `withSince`, `withUntil` and `withLimit`. A field no caller derives from an existing filter has no `withX()`.
+Keep `Filter` as one value object, built from its eight wire fields, with one explicit `withX()` method for each field callers transform: `withAuthors`, `withKinds`, `withTags`, `withSince`, `withUntil` and `withLimit`. A field no caller derives from an existing filter has no `withX()`.
 
 - **The eight fields are one concept.** A filter is a single selector defined by the wire protocol; its fields only have meaning together, as the conjunction that decides whether an event matches, so nesting them inside a `Criteria` sub-object would fragment one wire object across several types. Its named constructors take those fields as they are, because the eight together are the filter and a parameter object holding them would be a second `Filter`; they need no fence.
 - **`null` is a meaningful, load-bearing value.** A `null` field means "this criterion is absent", and that is distinct from an empty collection. A single nullable-override `with(...)` cannot express "clear this field" versus "leave it unchanged", so it could not implement `withUntil(null)` correctly. (Carried forward.)

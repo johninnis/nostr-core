@@ -16,6 +16,7 @@ ADR-0065 parsed a CLOSED without its message as an empty one, and answered `null
 
 `ReasonPrefix` and the message classes implement nostr-adrs ADR-0031:
 
+- `ReasonPrefix` holds the NIP-01 words, `unsupported` (NIP-01's `CLOSED` example), `auth-required` (NIP-42) and `info` (NIP-43).
 - `ClosedMessage` requires two payload elements and ignores any after them (ADR-0113); a CLOSED without its message is `null`.
 - `ReasonPrefix::ofRefusal()` reads the known prefix at the head of the text and answers `Error` when there is none, the word is not in the enum, or the text is empty. `ClosedMessage::getReasonPrefix()` returns `ReasonPrefix`, and a refused `OkMessage::getReasonPrefix()` returns non-null.
 - An accepted OK's `getReasonPrefix()` reads the head with `tryFromMessage()` and answers `null` when it names no known word.
@@ -26,5 +27,6 @@ ADR-0065 parsed a CLOSED without its message as an empty one, and answered `null
 
 - `ClosedMessage::getReasonPrefix()` narrows from `?ReasonPrefix` to `ReasonPrefix`.
 - Breaking: `OkMessage` and `ClosedMessage` lose their public constructors; callers use `accepted`, `refused` and `closed`.
-- Do not add a word to the enum unless a NIP defines it. Do not add a per-prefix boolean beyond `isAuthRequired()`, which a resend loop asks directly.
+- Breaking: `unsupported` and `info` are cases a consumer's exhaustive `match` on `ReasonPrefix` must now handle.
+- Do not add a word to the enum unless a NIP uses it as a prefix. Do not add a per-prefix boolean beyond `isAuthRequired()`, which a resend loop asks directly.
 - Shared decision: nostr-adrs ADR-0031.

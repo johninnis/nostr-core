@@ -7,7 +7,6 @@ namespace Innis\Nostr\Core\Infrastructure\Crypto;
 use Innis\Nostr\Core\Domain\Collection\EventCollection;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
-use Innis\Nostr\Core\Domain\Exception\EcdhException;
 use Innis\Nostr\Core\Domain\Exception\EncryptionException;
 use Innis\Nostr\Core\Domain\Exception\GiftWrapException;
 use Innis\Nostr\Core\Domain\Failure\GiftWrapUnwrapFailure;
@@ -169,7 +168,7 @@ final readonly class GiftWrapper implements GiftWrapServiceInterface
         // Deliberate: the ciphertext comes from a peer, so the primitive's thrown decryption fault is converted to a returned failure here, where it enters — see ADR-0089
         try {
             return $this->cipher->decrypt((string) $envelope->getContent(), $recipientPrivateKey, $envelope->getPubkey());
-        } catch (EcdhException|EncryptionException) {
+        } catch (EncryptionException) {
             return null;
         }
     }

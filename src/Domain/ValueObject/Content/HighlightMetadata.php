@@ -68,33 +68,23 @@ final readonly class HighlightMetadata
     private static function extractSourceUrl(TagCollection $tags): ?HttpUrl
     {
         $webPages = array_values(array_filter(
-            array_map(
-                static fn (Tag $tag): ?array => self::markedWebPage($tag),
-                $tags->findByType(TagType::fromString(TagType::REFERENCE)),
-            ),
-            static fn (?array $page): bool => null !== $page,
+            $tags->findByType(TagType::fromString(TagType::REFERENCE)),
+            static fn (Tag $tag): bool => null !== self::canonicalUrl($tag->getValue() ?? ''),
         ));
-        $marked = array_values(array_filter($webPages, static fn (array $page): bool => self::SOURCE_MARKER === $page['marker']));
+        $marked = array_values(array_filter($webPages, static fn (Tag $tag): bool => self::SOURCE_MARKER === $tag->getValue(1)));
         $candidates = [] !== $marked
             ? $marked
-            : array_values(array_filter($webPages, static fn (array $page): bool => self::MENTION_MARKER !== $page['marker']));
+            : array_values(array_filter($webPages, static fn (Tag $tag): bool => self::MENTION_MARKER !== $tag->getValue(1)));
 
-        $sole = SoleTagValue::fromValues(array_map(
-            static fn (array $page): string => (string) $page['url'],
-            $candidates,
-        ))->getValue();
-
-        return null === $sole ? null : HttpUrl::tryFromString($sole);
+        return HttpUrl::tryFromString(SoleTagValue::fromValues(
+            array_map(static fn (Tag $tag): string => $tag->getValue() ?? '', $candidates),
+            self::canonicalUrl(...),
+        )->getValue());
     }
 
-    /**
-     * @return array{url: HttpUrl, marker: ?string}|null
-     */
-    private static function markedWebPage(Tag $tag): ?array
+    private static function canonicalUrl(string $url): ?string
     {
-        $url = HttpUrl::tryFromString($tag->getValue());
-
-        return null === $url ? null : ['url' => $url, 'marker' => $tag->getValue(1)];
+        return HttpUrl::tryFromString($url)?->__toString();
     }
 
     /**

@@ -9,10 +9,13 @@ use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Payment\CashuAmount;
 use Innis\Nostr\Core\Domain\ValueObject\Payment\Nutzap;
+use Innis\Nostr\Core\Domain\ValueObject\Payment\NutzapProof;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Tests\Support\EventMother;
+use Innis\Nostr\Core\Tests\Support\NutzapMother;
 use Innis\Nostr\Core\Tests\Support\TagCollectionMother;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -271,6 +274,71 @@ final class NutzapTest extends TestCase
         $this->assertNull(Nutzap::tryFromEvent($event)?->getAmount());
     }
 
+    public function testANonBitcoinUnitCarriesItsAmountInThatUnit(): void
+    {
+        $event = $this->buildNutzapEvent([
+            ['proof', json_encode(['amount' => 21, 'id' => 'a', 'secret' => 's', 'C' => '02a'])],
+            ['unit', 'usd'],
+        ]);
+
+        $this->assertTrue(CashuAmount::from(21, 'usd')->equals(Nutzap::tryFromEvent($event)?->getCashuAmount() ?? self::fail('Expected an amount')));
+    }
+
+    public function testABitcoinUnitCarriesItsAmountInThatUnit(): void
+    {
+        $event = $this->buildNutzapEvent([
+            ['proof', json_encode(['amount' => 21000, 'id' => 'a', 'secret' => 's', 'C' => '02a'])],
+            ['unit', 'msat'],
+        ]);
+
+        $this->assertTrue(CashuAmount::from(21000, 'msat')->equals(Nutzap::tryFromEvent($event)?->getCashuAmount() ?? self::fail('Expected an amount')));
+    }
+
+    public function testAnAbsentUnitCarriesTheAmountInSat(): void
+    {
+        $event = $this->buildNutzapEvent([['proof', json_encode(['amount' => 21, 'id' => 'a', 'secret' => 's', 'C' => '02a'])]]);
+
+        $this->assertSame('sat', Nutzap::tryFromEvent($event)?->getCashuAmount()?->getUnit());
+    }
+
+    public function testAnEmptyUnitIsItsOwnUnit(): void
+    {
+        $event = $this->buildNutzapEvent([
+            ['proof', json_encode(['amount' => 21, 'id' => 'a', 'secret' => 's', 'C' => '02a'])],
+            ['unit', ''],
+        ]);
+
+        $this->assertSame('', Nutzap::tryFromEvent($event)?->getCashuAmount()?->getUnit());
+    }
+
+    public function testANutzapWithoutAnAmountStatingProofCarriesNoAmountInItsUnit(): void
+    {
+        $event = $this->buildNutzapEvent([['proof', 'not json'], ['unit', 'usd']]);
+
+        $this->assertNull((Nutzap::tryFromEvent($event) ?? self::fail('Expected a nutzap'))->getCashuAmount());
+    }
+
+    public function testANonBitcoinAmountAboveTheBitcoinCeilingIsRead(): void
+    {
+        $event = $this->buildNutzapEvent([
+            ['proof', json_encode(['amount' => 200_000_000_000_000, 'id' => 'a', 'secret' => 's', 'C' => '02a'])],
+            ['unit', 'usd'],
+        ]);
+
+        $this->assertSame(200_000_000_000_000, Nutzap::tryFromEvent($event)?->getCashuAmount()?->getAmount());
+    }
+
+    public function testASumBeyondTheIntegerRangeRefusesTheNutzap(): void
+    {
+        $event = $this->buildNutzapEvent([
+            ['proof', json_encode(['amount' => PHP_INT_MAX, 'id' => 'a', 'secret' => 's', 'C' => '02a'])],
+            ['proof', json_encode(['amount' => 1, 'id' => 'b', 'secret' => 's', 'C' => '02b'])],
+            ['unit', 'usd'],
+        ]);
+
+        $this->assertNull(Nutzap::tryFromEvent($event));
+    }
+
     public function testARepeatedIdenticalProofIsOneProof(): void
     {
         $proof = json_encode(['amount' => 21, 'id' => 'a', 'secret' => 's', 'C' => '02a']);
@@ -304,6 +372,92 @@ final class NutzapTest extends TestCase
         ]);
 
         $this->assertNull(Nutzap::tryFromEvent($event)?->getRecipientPubkey());
+    }
+
+    public function testItsMintIsItsUTagKeptExactlyAsWritten(): void
+    {
+        $this->assertSame('HTTPS://Mint.example', (string) NutzapMother::nutzap([['u', 'HTTPS://Mint.example']])->getMint());
+    }
+
+    public function testARepeatedIdenticalUTagIsOneMint(): void
+    {
+        $this->assertSame(NutzapMother::MINT, (string) NutzapMother::nutzap([['u', NutzapMother::MINT], ['u', NutzapMother::MINT]])->getMint());
+    }
+
+    /**
+     * @param list<list<string>> $mintTags
+     */
+    #[DataProvider('tagsNamingNoMint')]
+    public function testANutzapWhoseUTagsNameNoOneWebUrlNamesNoMint(array $mintTags): void
+    {
+        $this->assertNull(NutzapMother::nutzap($mintTags)->getMint());
+    }
+
+    /**
+     * @return iterable<string, array{list<list<string>>}>
+     */
+    public static function tagsNamingNoMint(): iterable
+    {
+        yield 'no u tag' => [[]];
+        yield 'u tags that disagree' => [[['u', NutzapMother::MINT], ['u', 'https://other.example']]];
+        yield 'two spellings of one mint' => [[['u', NutzapMother::MINT], ['u', 'HTTPS://mint.example']]];
+        yield 'a u tag that is no web URL' => [[['u', 'wss://mint.example']]];
+    }
+
+    public function testItsProofsAreTheProofTagsThatStateAnAmount(): void
+    {
+        $nutzap = NutzapMother::nutzap([NutzapMother::proofTag(10), ['proof', 'not a proof'], NutzapMother::proofTag(5)]);
+
+        $this->assertSame([10, 5], array_map(static fn (NutzapProof $proof): int => $proof->getAmount(), $nutzap->getProofs()->toArray()));
+    }
+
+    public function testEachProofCarriesTheKeyItsSecretLocksItTo(): void
+    {
+        $nutzap = NutzapMother::nutzap([NutzapMother::proofTag(10)]);
+
+        $this->assertSame(NutzapMother::P2PK_KEY, $nutzap->getProofs()->toArray()[0]->getLockKey()?->toHex());
+    }
+
+    public function testANutzapWithoutProofTagsHasNoProofs(): void
+    {
+        $this->assertTrue(NutzapMother::nutzap([['p', NutzapMother::RECIPIENT]])->getProofs()->isEmpty());
+    }
+
+    public function testItsKeysetIdsAreTheIdsItsProofsName(): void
+    {
+        $nutzap = NutzapMother::nutzap([NutzapMother::proofTag(1, keysetId: 'a'), NutzapMother::proofTag(2, keysetId: 'b')]);
+
+        $this->assertSame(['a', 'b'], $nutzap->getKeysetIds());
+    }
+
+    public function testAKeysetIdItsProofsRepeatIsNamedOnceWhereFirstNamed(): void
+    {
+        $nutzap = NutzapMother::nutzap([
+            NutzapMother::proofTag(1, keysetId: 'b'),
+            NutzapMother::proofTag(2, keysetId: 'a'),
+            NutzapMother::proofTag(4, keysetId: 'b'),
+        ]);
+
+        $this->assertSame(['b', 'a'], $nutzap->getKeysetIds());
+    }
+
+    public function testItsKeysetIdsAreKeptAsWritten(): void
+    {
+        $nutzap = NutzapMother::nutzap([NutzapMother::proofTag(1, keysetId: 'AB'), NutzapMother::proofTag(2, keysetId: 'ab')]);
+
+        $this->assertSame(['AB', 'ab'], $nutzap->getKeysetIds());
+    }
+
+    public function testAProofWithoutAKeysetIdNamesNone(): void
+    {
+        $nutzap = NutzapMother::nutzap([NutzapMother::proofTag(1, keysetId: null), NutzapMother::proofTag(2, keysetId: 'a')]);
+
+        $this->assertSame(['a'], $nutzap->getKeysetIds());
+    }
+
+    public function testANutzapWithoutProofsNamesNoKeysetIds(): void
+    {
+        $this->assertSame([], NutzapMother::nutzap([['p', NutzapMother::RECIPIENT]])->getKeysetIds());
     }
 
     /**

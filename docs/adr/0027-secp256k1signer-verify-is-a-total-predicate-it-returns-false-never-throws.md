@@ -29,3 +29,4 @@ This is **not** symmetric with `sign`. `sign` throws on a wrong-length message (
 - A relay or client verifying untrusted events never crashes on a malformed or hostile signature; the worst outcome is a `false`.
 - A real defect in the FFI or pure-PHP verify path surfaces as "invalid signature" instead of an exception. The correctness suites (BIP-340 vectors, cross-engine property sweeps) are the guard against such a defect, not a propagated throw.
 - Do not "let the exception bubble so callers can see the real error" — `verify` is a predicate, and a relay's per-event call site has no safe action on a thrown verifier other than rejecting the event, which `false` already does. The single sanctioned swallow lives here, behind this record.
+- Shared decision: nostr-adrs ADR-0017.

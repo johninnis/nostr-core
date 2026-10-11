@@ -24,7 +24,7 @@ final readonly class Challenge implements Stringable
         return self::tryFromString($value) ?? throw new InvalidArgumentException('An AUTH challenge cannot be empty');
     }
 
-    // Deliberate: constant-time, because this is the secret a client proves it was told — see ADR-0070
+    // Deliberate: constant-time, as defence in depth, though the challenge is a nonce sent in the clear — see ADR-0070
     public function equals(self $other): bool
     {
         return hash_equals($this->value, $other->value);

@@ -7,7 +7,7 @@ namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Content;
 use Innis\Nostr\Core\Domain\Collection\HashtagCollection;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\ValueObject\Content\LongformMetadata;
-use Innis\Nostr\Core\Domain\ValueObject\Protocol\HttpUrl;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\WebUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use Innis\Nostr\Core\Tests\Support\TagCollectionMother;
@@ -72,11 +72,18 @@ final class LongformMetadataTest extends TestCase
         $this->assertSame([['d', 's'], ['title', ''], ['summary', '']], $metadata->toTags()->toJsonArray());
     }
 
-    public function testTryFromTagCollectionHoldsTheImageInCanonicalForm(): void
+    public function testTryFromTagCollectionKeepsTheImageAsWritten(): void
     {
         $tags = TagCollectionMother::fromRaw([['d', 's'], ['image', 'HTTPS://Example.com:443/i.jpg#f']]);
 
-        $this->assertSame('https://example.com/i.jpg', (string) LongformMetadata::tryFromTagCollection($tags)?->getImage());
+        $this->assertSame('HTTPS://Example.com:443/i.jpg#f', (string) LongformMetadata::tryFromTagCollection($tags)?->getImage());
+    }
+
+    public function testWritesTheImageAsGiven(): void
+    {
+        $metadata = LongformMetadata::from('s', null, null, WebUrl::fromString('HTTPS://Example.com:443/i.jpg#f'), null, new HashtagCollection());
+
+        $this->assertSame([['d', 's'], ['image', 'HTTPS://Example.com:443/i.jpg#f']], $metadata->toTags()->toJsonArray());
     }
 
     #[DataProvider('imagesThatAreNotWebUrls')]
@@ -96,6 +103,7 @@ final class LongformMetadataTest extends TestCase
         yield 'ftp' => ['ftp://example.com/i.jpg'];
         yield 'data' => ['data:image/png;base64,AAAA'];
         yield 'text' => ['not a url'];
+        yield 'credentials' => ['https://user@example.com/i.jpg'];
     }
 
     public function testTryFromArrayRefusesAValueThatIsNotAnArray(): void
@@ -126,7 +134,7 @@ final class LongformMetadataTest extends TestCase
             'my-slug',
             'Title',
             'Summary',
-            HttpUrl::fromString('https://example.com/img.jpg'),
+            WebUrl::fromString('https://example.com/img.jpg'),
             Timestamp::fromInt(1700000000),
             HashtagCollection::fromStrings(['nostr', 'dev'])
         );

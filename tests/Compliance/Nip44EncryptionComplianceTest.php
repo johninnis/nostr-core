@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Compliance;
 
-use Innis\Nostr\Core\Domain\Exception\EcdhException;
 use Innis\Nostr\Core\Domain\Exception\EncryptionException;
 use Innis\Nostr\Core\Domain\Service\EcdhServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
@@ -278,7 +277,7 @@ final class Nip44EncryptionComplianceTest extends TestCase
             return;
         }
 
-        $this->expectException(EcdhException::class);
+        $this->expectException(EncryptionException::class);
 
         ConversationKey::derive($privateKey, $publicKey, new Secp256k1Ecdh(null));
     }

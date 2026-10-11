@@ -7,7 +7,7 @@ namespace Innis\Nostr\Core\Domain\ValueObject\Content;
 use Innis\Nostr\Core\Domain\Collection\HashtagCollection;
 use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Service\JsonWireFormat;
-use Innis\Nostr\Core\Domain\ValueObject\Protocol\HttpUrl;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\WebUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
@@ -19,7 +19,7 @@ final readonly class LongformMetadata
         private string $identifier,
         private ?string $title,
         private ?string $summary,
-        private ?HttpUrl $image,
+        private ?WebUrl $image,
         private ?Timestamp $publishedAt,
         private HashtagCollection $topics,
     ) {
@@ -29,7 +29,7 @@ final readonly class LongformMetadata
         string $identifier,
         ?string $title,
         ?string $summary,
-        ?HttpUrl $image,
+        ?WebUrl $image,
         ?Timestamp $publishedAt,
         HashtagCollection $topics,
     ): ?self {
@@ -45,7 +45,7 @@ final readonly class LongformMetadata
         string $identifier,
         ?string $title,
         ?string $summary,
-        ?HttpUrl $image,
+        ?WebUrl $image,
         ?Timestamp $publishedAt,
         HashtagCollection $topics,
     ): self {
@@ -68,7 +68,7 @@ final readonly class LongformMetadata
         return $this->summary;
     }
 
-    public function getImage(): ?HttpUrl
+    public function getImage(): ?WebUrl
     {
         return $this->image;
     }
@@ -94,7 +94,7 @@ final readonly class LongformMetadata
             $identifier,
             $tags->getSoleValueByType(TagType::fromString(TagType::TITLE))->getValue(),
             $tags->getSoleValueByType(TagType::fromString(TagType::SUMMARY))->getValue(),
-            HttpUrl::tryFromString($tags->getSoleValueByType(TagType::fromString(TagType::IMAGE))->getValue()),
+            WebUrl::tryFromString($tags->getSoleValueByType(TagType::fromString(TagType::IMAGE))->getValue()),
             $tags->getPublishedAt(),
             $tags->getHashtags(),
         );
@@ -158,7 +158,7 @@ final readonly class LongformMetadata
             $identifier,
             JsonWireFormat::stringField($data, 'title'),
             JsonWireFormat::stringField($data, 'summary'),
-            HttpUrl::tryFromString(JsonWireFormat::stringField($data, 'image')),
+            WebUrl::tryFromString(JsonWireFormat::stringField($data, 'image')),
             $publishedAt,
             HashtagCollection::fromStrings($data['topics'] ?? null),
         );

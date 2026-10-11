@@ -66,7 +66,8 @@ final readonly class Nip86Response
 
         $error = $fields['error'] ?? null;
 
-        if (null !== $error) {
+        // Deliberate: an absent, null or empty error has described no failure, so a result beside it is a success — see nostr-adrs ADR-0037
+        if (null !== $error && '' !== $error) {
             return is_string($error) ? self::tryFailure($error) : null;
         }
 

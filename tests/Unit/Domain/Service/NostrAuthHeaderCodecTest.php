@@ -138,16 +138,28 @@ final class NostrAuthHeaderCodecTest extends TestCase
         $this->assertEquals($event, NostrAuthHeaderCodec::decodeBlossom(NostrAuthHeaderCodec::encode($event) ?? ''));
     }
 
-    public function testDecodeBlossomRejectsAnOversizeHeader(): void
+    public function testDecodeBlossomRejectsAHeaderOverItsOwnBound(): void
     {
-        $header = NostrAuthHeaderCodec::HEADER_PREFIX.str_repeat('A', NostrAuthHeaderCodec::MAX_HEADER_LENGTH);
+        $header = NostrAuthHeaderCodec::HEADER_PREFIX.str_repeat('A', NostrAuthHeaderCodec::MAX_BLOSSOM_HEADER_LENGTH);
 
         self::assertSame(AuthHeaderDecodeFailure::TooLong, NostrAuthHeaderCodec::decodeBlossom($header));
     }
 
+    public function testDecodeBlossomRejectsAHeaderOf8001Characters(): void
+    {
+        self::assertSame(AuthHeaderDecodeFailure::TooLong, NostrAuthHeaderCodec::decodeBlossom('Nostr '.str_repeat('A', 7995)));
+    }
+
+    public function testDecodeBlossomReadsAHeaderLongerThanTheNip98Bound(): void
+    {
+        $event = $this->signedEvent(str_repeat('a', NostrAuthHeaderCodec::MAX_HEADER_LENGTH));
+
+        $this->assertEquals($event, NostrAuthHeaderCodec::decodeBlossom(NostrAuthHeaderCodec::encodeBlossom($event) ?? ''));
+    }
+
     public function testEncodeBlossomRefusesAHeaderDecodeBlossomWouldRefuseAsTooLong(): void
     {
-        $this->assertNull(NostrAuthHeaderCodec::encodeBlossom($this->signedEvent(str_repeat('a', NostrAuthHeaderCodec::MAX_HEADER_LENGTH))));
+        $this->assertNull(NostrAuthHeaderCodec::encodeBlossom($this->signedEvent(str_repeat('a', NostrAuthHeaderCodec::MAX_BLOSSOM_HEADER_LENGTH))));
     }
 
     public function testDecodeBlossomRejectsMissingPrefix(): void

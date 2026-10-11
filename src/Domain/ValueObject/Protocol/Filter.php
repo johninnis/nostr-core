@@ -184,6 +184,20 @@ final readonly class Filter implements JsonSerializable, Stringable
         );
     }
 
+    public function withTags(TagFilter $tags): self
+    {
+        return self::from(
+            ids: $this->ids,
+            authors: $this->authors,
+            kinds: $this->kinds,
+            tags: $tags,
+            since: $this->since,
+            until: $this->until,
+            limit: $this->limit,
+            search: $this->search,
+        );
+    }
+
     public function withSince(?Timestamp $since): self
     {
         return self::from(

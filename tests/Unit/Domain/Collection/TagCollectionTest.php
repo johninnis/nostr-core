@@ -784,6 +784,20 @@ final class TagCollectionTest extends TestCase
         $this->assertSame('', $collection->getSoleValueByType(TagType::fromString(TagType::RELAY))->getValue());
     }
 
+    public function testGetSoleValueByTypeReadsValuesThatCanonicaliseAlikeAsOneClaim(): void
+    {
+        $collection = new TagCollection([Tag::fromArray(['t', 'upload']), Tag::fromArray(['t', 'UPLOAD'])]);
+
+        $this->assertSame('upload', $collection->getSoleValueByType(TagType::hashtag(), strtolower(...))->getValue());
+    }
+
+    public function testGetSoleValueByTypeNamesTheDistinctCanonicalValuesThatDisagree(): void
+    {
+        $collection = new TagCollection([Tag::fromArray(['t', 'Upload']), Tag::fromArray(['t', 'DELETE']), Tag::fromArray(['t', 'upload'])]);
+
+        $this->assertSame(['upload', 'delete'], $collection->getSoleValueByType(TagType::hashtag(), strtolower(...))->getDistinctValues());
+    }
+
     public function testGetIdentifierIsTheEmptyStringWithoutADTag(): void
     {
         $this->assertSame('', new TagCollection()->getIdentifier());

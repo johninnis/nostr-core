@@ -34,4 +34,39 @@ final class SoleTagValueTest extends TestCase
     {
         $this->assertNull(SoleTagValue::fromValues(['a', 'b'])->getValue());
     }
+
+    public function testDisagreeingValuesNameTheDistinctValuesInTheOrderFirstSeen(): void
+    {
+        $this->assertSame(['b', 'a'], SoleTagValue::fromValues(['b', 'a', 'b'])->getDistinctValues());
+    }
+
+    public function testOneClaimNamesItsValueOnce(): void
+    {
+        $this->assertSame(['a'], SoleTagValue::fromValues(['a', 'a'])->getDistinctValues());
+    }
+
+    public function testNoValuesNameNone(): void
+    {
+        $this->assertSame([], SoleTagValue::fromValues([])->getDistinctValues());
+    }
+
+    public function testValuesThatCanonicaliseAlikeAreOneClaim(): void
+    {
+        $this->assertSame('upload', SoleTagValue::fromValues(['upload', 'UPLOAD'], strtolower(...))->getValue());
+    }
+
+    public function testCanonicalValuesThatDifferDisagree(): void
+    {
+        $this->assertSame(['upload', 'delete'], SoleTagValue::fromValues(['Upload', 'DELETE'], strtolower(...))->getDistinctValues());
+    }
+
+    public function testAValueWithNoCanonicalFormTakesNoPart(): void
+    {
+        $this->assertSame('1', SoleTagValue::fromValues(['1', 'x'], static fn (string $value): ?string => ctype_digit($value) ? $value : null)->getValue());
+    }
+
+    public function testValuesNoneOfWhichHasACanonicalFormAreAbsent(): void
+    {
+        $this->assertSame(SoleTagValueState::Absent, SoleTagValue::fromValues(['x'], static fn (string $value): ?string => null)->getState());
+    }
 }

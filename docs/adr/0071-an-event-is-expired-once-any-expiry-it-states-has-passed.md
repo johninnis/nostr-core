@@ -27,3 +27,4 @@ An event that states one expiry is unaffected, which is every conforming event. 
 - A relay may therefore delete such an event, because what it deletes is exactly what it has stopped serving. The alternative rule, expiring only once every stated expiry has passed, would have kept the two sets apart and left the relay serving an event it had been asked to expire.
 - The derivation behind the predicate is public: `Rumour::expiresAt()` returns the earliest stated expiry that parses, or null when none does, and `ExpirationDerivation::earliestStated()` answers the same question from raw tag values, so a relay store can reach the identical instant from its index columns without decoding the event. `isExpiredAt()` is the predicate over that derivation, and nostr-relay's `StoredEvent` no longer reimplements it.
 - Do not restore `getFirstValueByType` here. It reads as the simpler code and it is the bug.
+- Shared decision: nostr-adrs ADR-0011.

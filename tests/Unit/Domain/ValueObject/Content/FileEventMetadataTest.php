@@ -88,6 +88,13 @@ final class FileEventMetadataTest extends TestCase
         $this->assertNull(FileEventMetadata::tryFromEvent(self::event(EventKind::FILE_METADATA, $tags)));
     }
 
+    public function testTryFromEventReadsAnEventWhoseMimeTypeCarriesAParameter(): void
+    {
+        $tags = [...array_values(array_filter(self::completeTags(), static fn (array $tag): bool => 'm' !== $tag[0])), ['m', 'image/png; charset=binary']];
+
+        $this->assertSame('image/png', FileEventMetadata::tryFromEvent(self::event(EventKind::FILE_METADATA, $tags))?->getMetadata()->getMimeType());
+    }
+
     public function testTryFromEventRefusesAnEventWhoseMimeTypeIsNotOne(): void
     {
         $tags = [...array_values(array_filter(self::completeTags(), static fn (array $tag): bool => 'm' !== $tag[0])), ['m', 'png']];

@@ -9,6 +9,7 @@ use Innis\Nostr\Core\Domain\Collection\TagCollection;
 use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Enum\EventKindCategory;
 use Innis\Nostr\Core\Domain\Enum\Nip10Marker;
+use Innis\Nostr\Core\Domain\Enum\ThreadingConvention;
 use Innis\Nostr\Core\Domain\Service\ContentReferenceTagBuilder;
 use Innis\Nostr\Core\Domain\Service\ReplyChainAnalyser;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
@@ -18,11 +19,11 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\LongformMetadata;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\ExternalContentId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
-use Innis\Nostr\Core\Domain\ValueObject\Protocol\HttpUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Nip98Request;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayChallenge;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\WebUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Reference\EventReference;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\SoleTagValue;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
@@ -38,6 +39,7 @@ final readonly class RumourFactory
         TagType::ROOT_KIND,
         TagType::ROOT_PUBKEY,
     ];
+    private const array FETCH_NORMALISED_METHODS = ['DELETE', 'GET', 'HEAD', 'OPTIONS', 'POST', 'PUT'];
 
     public function __construct(private PublicKey $author)
     {
@@ -79,11 +81,18 @@ final readonly class RumourFactory
         return Rumour::draft($this->author, EventKind::fromInt(EventKind::TEXT_NOTE), $content, ContentReferenceTagBuilder::buildTags($content));
     }
 
+    // Deliberate: a short note, chat, channel or live chat message is answered in its own kind and anything else by a comment — see nostr-adrs ADR-0076
     public function createReply(Event $parent, EventContent $content, ?RelayUrl $hint = null): Rumour
     {
-        return $parent->getKind()->is(EventKind::TEXT_NOTE)
-            ? Rumour::draft($this->author, EventKind::fromInt(EventKind::TEXT_NOTE), $content, ContentReferenceTagBuilder::buildTags($content, self::shortNoteReplyTags($parent, $hint)))
-            : Rumour::draft($this->author, EventKind::fromInt(EventKind::COMMENT), $content, ContentReferenceTagBuilder::buildTags($content, self::commentTags($parent, $hint)));
+        $parentKind = $parent->getKind();
+
+        return match (ThreadingConvention::ofKind($parentKind)) {
+            ThreadingConvention::ShortNote => $this->replyOfKind($parentKind, $content, self::shortNoteReplyTags($parent, $hint)),
+            ThreadingConvention::Chat => $this->replyOfKind($parentKind, $content, new TagCollection([Tag::quote($parent->getId(), $hint, $parent->getPubkey())])),
+            ThreadingConvention::Channel => $this->replyOfKind($parentKind, $content, self::channelReplyTags($parent, $hint)),
+            ThreadingConvention::LiveChat => $this->replyOfKind($parentKind, $content, self::liveChatReplyTags($parent, $hint)),
+            ThreadingConvention::Comment, null => $this->replyOfKind(EventKind::fromInt(EventKind::COMMENT), $content, self::commentTags($parent, $hint)),
+        };
     }
 
     public function createReaction(Event $target, ?EventContent $reaction = null, ?RelayUrl $relay = null): Rumour
@@ -123,7 +132,7 @@ final readonly class RumourFactory
     {
         $tags = [
             Tag::fromArray([TagType::URL, (string) $request->getUrl()]),
-            Tag::fromArray([TagType::METHOD, $request->getMethod()]),
+            Tag::fromArray([TagType::METHOD, self::methodAsFetchSendsIt($request->getMethod())]),
         ];
 
         $bodyHash = $request->getBodyHash();
@@ -146,7 +155,7 @@ final readonly class RumourFactory
             Tag::fromArray([TagType::PARENT_KIND, (string) $draftKind->toInt()]),
         ]);
 
-        return Rumour::draft($this->author, EventKind::fromInt(EventKind::DRAFT_EVENT), $content, $tags);
+        return Rumour::draft($this->author, EventKind::fromInt(EventKind::DRAFT_WRAP), $content, $tags);
     }
 
     public function createDeletion(Event $target): Rumour
@@ -162,7 +171,8 @@ final readonly class RumourFactory
         $coordinate = EventCoordinate::tryFromEvent($target);
 
         $tags = new TagCollection([
-            null === $coordinate ? Tag::event($target->getId()) : $coordinate->toATag(),
+            Tag::event($target->getId()),
+            ...(null === $coordinate ? [] : [$coordinate->toATag()]),
             Tag::fromArray([TagType::PARENT_KIND, (string) $target->getKind()->toInt()]),
         ]);
 
@@ -220,6 +230,19 @@ final readonly class RumourFactory
         return $others->isEmpty() ? new PublicKeyCollection([$this->author]) : $others;
     }
 
+    // Deliberate: Fetch's six standard methods are written upper-cased, as Fetch sends them, and any other as given — see nostr-adrs ADR-0070
+    private static function methodAsFetchSendsIt(string $method): string
+    {
+        $upperCased = strtoupper($method);
+
+        return in_array($upperCased, self::FETCH_NORMALISED_METHODS, true) ? $upperCased : $method;
+    }
+
+    private function replyOfKind(EventKind $kind, EventContent $content, TagCollection $threadTags): Rumour
+    {
+        return Rumour::draft($this->author, $kind, $content, ContentReferenceTagBuilder::buildTags($content, $threadTags));
+    }
+
     private static function addressableCoordinate(Event $event): ?EventCoordinate
     {
         return EventKindCategory::Replaceable === $event->getKind()->category() ? null : EventCoordinate::tryFromEvent($event);
@@ -253,9 +276,44 @@ final readonly class RumourFactory
             return null;
         }
 
-        $author = null === $root->getMarker() ? null : $root->getAuthor();
+        return new EventReference($root->getEventId(), $root->getRelayUrl(), Nip10Marker::Root, $root->getAuthor());
+    }
 
-        return new EventReference($root->getEventId(), $root->getRelayUrl(), Nip10Marker::Root, $author);
+    private static function channelReplyTags(Event $parent, ?RelayUrl $hint): TagCollection
+    {
+        $channel = ReplyChainAnalyser::analyse($parent->getTags(), $parent->getKind())->getRoot();
+
+        return new TagCollection([
+            ...($channel instanceof EventReference ? [$channel->toETag()] : []),
+            new EventReference($parent->getId(), $hint, Nip10Marker::Reply, $parent->getPubkey())->toETag(),
+            Tag::pubkey($parent->getPubkey(), $hint),
+        ]);
+    }
+
+    private static function liveChatReplyTags(Event $parent, ?RelayUrl $hint): TagCollection
+    {
+        return new TagCollection([...self::liveActivity($parent), Tag::event($parent->getId(), $hint, $parent->getPubkey())]);
+    }
+
+    /**
+     * @return list<Tag>
+     */
+    // Deliberate: the activity is the parent's a tags read as one claim, whatever relay hints they carry, and the first tag stating it is carried as written — see nostr-adrs ADR-0076
+    private static function liveActivity(Event $parent): array
+    {
+        $tags = $parent->getTags();
+        $activity = $tags->getSoleValueByType(TagType::addressable(), self::coordinateText(...))->getValue();
+        $stating = null === $activity ? null : array_find(
+            $tags->findByType(TagType::addressable()),
+            static fn (Tag $tag): bool => $activity === self::coordinateText($tag->getValue() ?? ''),
+        );
+
+        return null === $stating ? [] : [$stating];
+    }
+
+    private static function coordinateText(string $value): ?string
+    {
+        return EventCoordinate::tryFromString($value)?->__toString();
     }
 
     private static function commentTags(Event $parent, ?RelayUrl $hint): TagCollection
@@ -268,7 +326,7 @@ final readonly class RumourFactory
      */
     private static function commentRootScope(Event $parent, ?RelayUrl $hint): array
     {
-        $root = $parent->getKind()->is(EventKind::COMMENT) ? self::scopedRoot($parent) : null;
+        $root = ThreadingConvention::Comment === ThreadingConvention::ofKind($parent->getKind()) ? self::scopedRoot($parent) : null;
 
         return null === $root ? self::rootScopeOf($parent, $hint) : self::copiedRootScope($parent, $root);
     }
@@ -303,16 +361,16 @@ final readonly class RumourFactory
         return null === $author ? $scope : [...$scope, Tag::fromArray([TagType::ROOT_PUBKEY, $author->toHex()])];
     }
 
-    // Deliberate: a copied external content hint is written as the web URL it reads as, or not at all — see ADR-0085
+    // Deliberate: a copied external content hint is written exactly as its author wrote it when it is a web URL, or not at all — see ADR-0085
     private static function copiedScopeTag(Tag $tag): Tag
     {
         if (!$tag->getType()->is(TagType::ROOT_EXTERNAL_CONTENT)) {
             return $tag;
         }
 
-        $page = HttpUrl::tryFromString($tag->getValue(1));
+        $hint = WebUrl::tryFromString($tag->getValue(1));
 
-        return Tag::fromArray([TagType::ROOT_EXTERNAL_CONTENT, $tag->getValue(0) ?? '', ...(null === $page ? [] : [(string) $page])]);
+        return Tag::fromArray([TagType::ROOT_EXTERNAL_CONTENT, $tag->getValue(0) ?? '', ...(null === $hint ? [] : [(string) $hint])]);
     }
 
     private static function knownRootAuthor(Event $comment, EventReference|EventCoordinate|ExternalContentId $root): ?PublicKey

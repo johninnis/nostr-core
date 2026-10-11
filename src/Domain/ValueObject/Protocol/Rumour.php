@@ -112,7 +112,7 @@ final readonly class Rumour
 
     /**
      * This rumour with one NIP-40 `expiration` tag naming $expiresAt, replacing any it carries — a reader tolerates
-     * many (shared ADR-0011), but a writer emits exactly one.
+     * many (nostr-adrs ADR-0011), but a writer emits exactly one.
      */
     public function withExpiration(Timestamp $expiresAt): self
     {
@@ -159,12 +159,10 @@ final readonly class Rumour
         return $this->expiresAt()?->hasPassedAt($reference) ?? false;
     }
 
+    // Deliberate: any tag named "-" protects the event, whatever follows the name, so a value never makes it republishable — see nostr-adrs ADR-0078
     public function isProtected(): bool
     {
-        return array_any(
-            $this->tags->findByType(TagType::protected()),
-            static fn (Tag $tag): bool => [] === $tag->getValues(),
-        );
+        return $this->tags->hasType(TagType::protected());
     }
 
     public function getPublishedAt(): ?Timestamp

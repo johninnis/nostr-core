@@ -24,6 +24,21 @@ final class ReasonPrefixTest extends TestCase
         $this->assertSame(ReasonPrefix::AuthRequired, ReasonPrefix::tryFromMessage('auth-required: we only accept events from registered users'));
     }
 
+    public function testTryFromMessageReadsTheUnsupportedPrefixNip01sClosedExampleUses(): void
+    {
+        $this->assertSame(ReasonPrefix::Unsupported, ReasonPrefix::tryFromMessage('unsupported: filter contains unknown elements'));
+    }
+
+    public function testTryFromMessageReadsTheNip43InfoPrefix(): void
+    {
+        $this->assertSame(ReasonPrefix::Info, ReasonPrefix::tryFromMessage('info: welcome to wss://relay.bunk.skunk!'));
+    }
+
+    public function testOfRefusalReadsTheUnsupportedPrefix(): void
+    {
+        $this->assertSame(ReasonPrefix::Unsupported, ReasonPrefix::ofRefusal('unsupported: filter contains unknown elements'));
+    }
+
     public function testTryFromMessageRoundTripsWhatFormatWrote(): void
     {
         $this->assertSame(ReasonPrefix::Invalid, ReasonPrefix::tryFromMessage(ReasonPrefix::Invalid->format('bad signature')));
@@ -61,7 +76,7 @@ final class ReasonPrefixTest extends TestCase
 
     public function testOfRefusalIsErrorForAnUnknownPrefix(): void
     {
-        $this->assertSame(ReasonPrefix::Error, ReasonPrefix::ofRefusal('unsupported: filter contains unknown elements'));
+        $this->assertSame(ReasonPrefix::Error, ReasonPrefix::ofRefusal('teapot: short and stout'));
     }
 
     public function testOfRefusalIsErrorForAnEmptyMessage(): void

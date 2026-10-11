@@ -127,11 +127,46 @@ final class FileMetadataTest extends TestCase
         self::assertSame([null, 'a picture'], [$metadata?->getMimeType(), $metadata?->getAlt()]);
     }
 
-    public function testTryFromImetaTagReadsNoMimeTypeFromAValueThatIsNotOne(): void
+    public function testTryFromImetaTagReadsTheMimeTypeBeforeAParameter(): void
     {
-        $tag = Tag::fromArray(['imeta', 'url https://cdn.example.com/abc.png', 'm image/png; charset=utf-8', 'alt a picture']);
+        $tag = Tag::fromArray(['imeta', 'url https://cdn.example.com/abc.png', 'm text/plain; charset=utf-8']);
 
-        self::assertNull(FileMetadata::tryFromImetaTag($tag)?->getMimeType());
+        self::assertSame('text/plain', FileMetadata::tryFromImetaTag($tag)?->getMimeType());
+    }
+
+    public function testTryFromTagCollectionReadsTheMimeTypeBeforeAParameter(): void
+    {
+        $tags = TagCollectionMother::fromRaw([['url', 'https://cdn.example.com/abc.png'], ['m', 'Text/Plain;charset=utf-8']]);
+
+        self::assertSame('text/plain', FileMetadata::tryFromTagCollection($tags)?->getMimeType());
+    }
+
+    public function testTryFromTagCollectionReadsTheMimeTypeWithoutTheSpacesAndTabsAroundIt(): void
+    {
+        $tags = TagCollectionMother::fromRaw([['url', 'https://cdn.example.com/abc.png'], ['m', " \ttext/plain \t; charset=utf-8"]]);
+
+        self::assertSame('text/plain', FileMetadata::tryFromTagCollection($tags)?->getMimeType());
+    }
+
+    public function testTryFromTagCollectionReadsNoMimeTypeAroundWhichANewlineStands(): void
+    {
+        $tags = TagCollectionMother::fromRaw([['url', 'https://cdn.example.com/abc.png'], ['m', "text/plain\n"]]);
+
+        self::assertNull(FileMetadata::tryFromTagCollection($tags)?->getMimeType());
+    }
+
+    public function testTryFromTagCollectionReadsNoMimeTypeFromAParameterAlone(): void
+    {
+        $tags = TagCollectionMother::fromRaw([['url', 'https://cdn.example.com/abc.png'], ['m', '; charset=utf-8']]);
+
+        self::assertNull(FileMetadata::tryFromTagCollection($tags)?->getMimeType());
+    }
+
+    public function testTryFromTagCollectionKeepsEveryFallbackInOrder(): void
+    {
+        $tags = TagCollectionMother::fromRaw([['url', 'https://cdn.example.com/abc.png'], ['fallback', 'https://b.example/abc.png'], ['fallback', 'https://a.example/abc.png']]);
+
+        self::assertSame(['https://b.example/abc.png', 'https://a.example/abc.png'], FileMetadata::tryFromTagCollection($tags)?->getFallbacks());
     }
 
     public function testFromThrowsForAnEmptyUrl(): void
@@ -305,9 +340,11 @@ final class FileMetadataTest extends TestCase
      * @param list<string> $otherFields
      */
     #[DataProvider('fieldsThatAreNotKept')]
-    public function testTryFromImetaTagRefusesATagWhoseOnlyValidFieldIsTheUrl(array $otherFields): void
+    public function testTryFromImetaTagReadsATagWhoseOtherFieldsAreNotKeptAsItsUrl(array $otherFields): void
     {
-        self::assertNull(FileMetadata::tryFromImetaTag(Tag::fromArray(['imeta', 'url https://cdn.example.com/abc.png', ...$otherFields])));
+        $tag = Tag::fromArray(['imeta', 'url https://cdn.example.com/abc.png', ...$otherFields]);
+
+        self::assertTrue(FileMetadata::from('https://cdn.example.com/abc.png')->equals(FileMetadata::tryFromImetaTag($tag) ?? self::fail('Expected metadata')));
     }
 
     /**
@@ -318,7 +355,18 @@ final class FileMetadataTest extends TestCase
         yield 'a size that is not a decimal integer' => [['size abc']];
         yield 'a MIME type that is not one' => [['m not-a-mime-type']];
         yield 'two disagreeing dimensions' => [['dim 1x1', 'dim 2x2']];
-        yield 'an entry with no value' => [['alt']];
+        yield 'a NIP-94 field this reader does not model' => [['service nip96']];
+        yield 'a field no NIP defines' => [['note hello']];
+    }
+
+    public function testTryFromImetaTagRefusesATagWhoseOnlyOtherEntryHasNoValue(): void
+    {
+        self::assertNull(FileMetadata::tryFromImetaTag(Tag::fromArray(['imeta', 'url https://cdn.example.com/abc.png', 'alt'])));
+    }
+
+    public function testTryFromImetaTagRefusesATagWhoseOnlyOtherFieldIsASecondUrl(): void
+    {
+        self::assertNull(FileMetadata::tryFromImetaTag(Tag::fromArray(['imeta', 'url https://cdn.example.com/abc.png', 'url https://cdn.example.com/abc.png'])));
     }
 
     public function testFromThrowsForANegativeSize(): void

@@ -50,6 +50,13 @@ final class Nip04CipherTest extends TestCase
         new Nip04Cipher()->encrypt("caf\xC3", SecretKeyMaterial::fromBytes(str_repeat("\x42", 32)));
     }
 
+    public function testEncryptReportsAPlaintextThatIsNotUtf8BeforeItsLength(): void
+    {
+        $this->expectExceptionObject(new EncryptionException('NIP-04 plaintext must be UTF-8'));
+
+        new Nip04Cipher()->encrypt(str_repeat('a', 65568)."\xC3", SecretKeyMaterial::fromBytes(str_repeat("\x42", 32)));
+    }
+
     public function testDecryptRefusesPlaintextThatIsNotUtf8(): void
     {
         $adapter = new Nip04Cipher();

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\ValueObject\Tag;
 
+use Innis\Nostr\Core\Domain\ValueObject\Identity\EventCoordinate;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayUrl;
@@ -57,6 +58,11 @@ final readonly class Tag
     public static function rootEvent(EventId $eventId, ?RelayUrl $relayUrl = null, ?PublicKey $author = null): self
     {
         return self::withRelayHint(TagType::ROOT_EVENT, $eventId->toHex(), $relayUrl, $author?->toHex());
+    }
+
+    public static function quote(EventId|EventCoordinate $target, ?RelayUrl $relayUrl = null, ?PublicKey $author = null): self
+    {
+        return self::withRelayHint(TagType::QUOTE, $target instanceof EventId ? $target->toHex() : (string) $target, $relayUrl, $author?->toHex());
     }
 
     public static function pubkey(PublicKey $pubkey, ?RelayUrl $relayUrl = null, ?string $petname = null): self

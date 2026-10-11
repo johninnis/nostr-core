@@ -7,9 +7,11 @@ namespace Innis\Nostr\Core\Tests\Integration\Domain\Service;
 use Innis\Nostr\Core\Domain\Exception\EncryptionException;
 use Innis\Nostr\Core\Domain\Service\ConversationCipher;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
+use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Infrastructure\Crypto\Nip44Cipher;
 use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 final class ConversationCipherTest extends TestCase
 {
@@ -41,5 +43,28 @@ final class ConversationCipherTest extends TestCase
         $this->expectException(EncryptionException::class);
 
         $this->cipher->decrypt($ciphertext, $eve->getPrivateKey(), $alice->getPublicKey());
+    }
+
+    public function testAPeerKeyTheKeyAgreementRefusesFailsEncryption(): void
+    {
+        $this->expectException(EncryptionException::class);
+
+        $this->cipher->encrypt('hello', KeyPair::generate(CryptoFixtures::signer())->getPrivateKey(), self::offCurveKey());
+    }
+
+    public function testASenderKeyTheKeyAgreementRefusesFailsDecryption(): void
+    {
+        $alice = KeyPair::generate(CryptoFixtures::signer());
+        $bob = KeyPair::generate(CryptoFixtures::signer());
+        $ciphertext = $this->cipher->encrypt('hello bob', $alice->getPrivateKey(), $bob->getPublicKey());
+
+        $this->expectException(EncryptionException::class);
+
+        $this->cipher->decrypt($ciphertext, $bob->getPrivateKey(), self::offCurveKey());
+    }
+
+    private static function offCurveKey(): PublicKey
+    {
+        return PublicKey::tryFromHex(str_repeat('0', 63).'5') ?? throw new RuntimeException('Invalid fixture public key');
     }
 }

@@ -496,6 +496,29 @@ final class FilterTest extends TestCase
         $this->assertNull($filter->withUntil(null)->getUntil());
     }
 
+    public function testWithTagsReplacesTheTagFilter(): void
+    {
+        $filter = Filter::from(kinds: EventKindCollection::fromInts([1059]), tags: TagFilter::fromValues(['p' => [str_repeat('a', 64)]]));
+
+        $this->assertSame(['p' => [str_repeat('b', 64)]], $filter->withTags(TagFilter::fromValues(['p' => [str_repeat('b', 64)]]))->getTags()?->getValues());
+    }
+
+    public function testWithTagsKeepsTheOtherFields(): void
+    {
+        $filter = Filter::from(kinds: EventKindCollection::fromInts([1059]), limit: 10);
+
+        $this->assertSame(['kinds' => [1059], '#p' => [str_repeat('b', 64)], 'limit' => 10], $filter->withTags(TagFilter::fromValues(['p' => [str_repeat('b', 64)]]))->toArray());
+    }
+
+    public function testWithTagsLeavesTheOriginalFilterUnchanged(): void
+    {
+        $filter = Filter::from(kinds: EventKindCollection::fromInts([1059]));
+
+        $filter->withTags(TagFilter::fromValues(['p' => [str_repeat('b', 64)]]));
+
+        $this->assertNull($filter->getTags());
+    }
+
     public function testWithLimitReturnsNewFilterWithReplacedLimit(): void
     {
         $filter = Filter::from(kinds: EventKindCollection::fromInts([1]), limit: 10);

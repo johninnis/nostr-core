@@ -48,11 +48,11 @@ final class Nip42EventCheckerTest extends TestCase
         $this->assertSame(Nip42ValidationFailure::ChallengeMismatch, $this->checker()->check($event, self::relayChallenge(), self::at()));
     }
 
-    public function testAMissingChallengeTagIsRefusedAsAMismatch(): void
+    public function testAMissingChallengeTagIsRefusedAsUnstated(): void
     {
         $event = $this->authEvent(challenge: null);
 
-        $this->assertSame(Nip42ValidationFailure::ChallengeMismatch, $this->checker()->check($event, self::relayChallenge(), self::at()));
+        $this->assertSame(Nip42ValidationFailure::ChallengeUnstated, $this->checker()->check($event, self::relayChallenge(), self::at()));
     }
 
     public function testADifferentRelayIsRefused(): void
@@ -116,7 +116,7 @@ final class Nip42EventCheckerTest extends TestCase
         $this->assertNull($this->checker(tolerance: 0)->check($this->authEvent(createdAt: self::NOW), self::relayChallenge(), self::at()));
     }
 
-    public function testAnEventCarryingTwoChallengeTagsIsRefused(): void
+    public function testAnEventCarryingTwoChallengeTagsIsRefusedAsUnstated(): void
     {
         $event = $this->eventWithTags([
             Tag::tryFromArray([TagType::RELAY, self::RELAY_URL]),
@@ -124,7 +124,7 @@ final class Nip42EventCheckerTest extends TestCase
             Tag::tryFromArray([TagType::CHALLENGE, 'a-second-challenge']),
         ]);
 
-        $this->assertSame(Nip42ValidationFailure::ChallengeMismatch, $this->checker()->check($event, self::relayChallenge(), self::at()));
+        $this->assertSame(Nip42ValidationFailure::ChallengeUnstated, $this->checker()->check($event, self::relayChallenge(), self::at()));
     }
 
     public function testAnEventCarryingTwoRelayTagsIsRefused(): void
@@ -138,11 +138,11 @@ final class Nip42EventCheckerTest extends TestCase
         $this->assertSame(Nip42ValidationFailure::RelayMismatch, $this->checker()->check($event, self::relayChallenge(), self::at()));
     }
 
-    public function testAnEmptyChallengeTagIsRefused(): void
+    public function testAnEmptyChallengeTagIsRefusedAsUnstated(): void
     {
         $event = $this->authEvent(challenge: '');
 
-        $this->assertSame(Nip42ValidationFailure::ChallengeMismatch, $this->checker()->check($event, self::relayChallenge(), self::at()));
+        $this->assertSame(Nip42ValidationFailure::ChallengeUnstated, $this->checker()->check($event, self::relayChallenge(), self::at()));
     }
 
     public function testAStaleEventIsRefusedForItsTimestampBeforeItsChallengeIsRead(): void
