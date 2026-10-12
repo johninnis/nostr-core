@@ -152,7 +152,7 @@ final class Nip42EventCheckerTest extends TestCase
         $this->assertSame(Nip42ValidationFailure::TimestampOutsideTolerance, $this->checker()->check($event, self::relayChallenge(), self::at()));
     }
 
-    // Deliberate: the signature is the event validator's business, not NIP-42's — see ADR-0127
+    // Deliberate: the signature is the event validator's business, not NIP-42's — see ADR-0143
     public function testAnEventWhoseSignatureDoesNotVerifyStillPassesTheNip42Check(): void
     {
         $event = $this->authEvent();

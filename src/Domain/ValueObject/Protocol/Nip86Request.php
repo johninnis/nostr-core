@@ -36,7 +36,7 @@ final readonly class Nip86Request
         return self::tryFrom($method, $params) ?? throw new InvalidArgumentException('A NIP-86 request must name a method');
     }
 
-    // Deliberate: a string, not Nip86Method — a relay may serve methods the specification does not define — see ADR-0069
+    // Deliberate: a string, not Nip86Method — a relay may serve methods the specification does not define — see ADR-0140
     public function getMethod(): string
     {
         return $this->method;

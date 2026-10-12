@@ -331,7 +331,7 @@ final readonly class RumourFactory
         return null === $root ? self::rootScopeOf($parent, $hint) : self::copiedRootScope($parent, $root);
     }
 
-    // Deliberate: a parent comment that resolves no root, or no single non-empty K, has no root scope to copy and is itself the root, since NIP-22 comments MUST point to the root scope — see ADR-0085
+    // Deliberate: a parent comment that resolves no root, or no single non-empty K, has no root scope to copy and is itself the root, since NIP-22 comments MUST point to the root scope — see ADR-0141
     private static function scopedRoot(Event $comment): EventReference|EventCoordinate|ExternalContentId|null
     {
         $rootKind = $comment->getTags()->getSoleValueByType(TagType::rootKind())->getValue();
@@ -342,7 +342,7 @@ final readonly class RumourFactory
     /**
      * @return list<Tag>
      */
-    // Deliberate: NIP-22 comments MUST point to the authors when one is available, so a copied scope without a P gains one for the root author it names — see ADR-0085
+    // Deliberate: NIP-22 comments MUST point to the authors when one is available, so a copied scope without a P gains one for the root author it names — see ADR-0141
     private static function copiedRootScope(Event $parent, EventReference|EventCoordinate|ExternalContentId $root): array
     {
         $scope = array_map(
@@ -361,7 +361,7 @@ final readonly class RumourFactory
         return null === $author ? $scope : [...$scope, Tag::fromArray([TagType::ROOT_PUBKEY, $author->toHex()])];
     }
 
-    // Deliberate: a copied external content hint is written exactly as its author wrote it when it is a web URL, or not at all — see ADR-0085
+    // Deliberate: a copied external content hint is written exactly as its author wrote it when it is a web URL, or not at all — see ADR-0141
     private static function copiedScopeTag(Tag $tag): Tag
     {
         if (!$tag->getType()->is(TagType::ROOT_EXTERNAL_CONTENT)) {

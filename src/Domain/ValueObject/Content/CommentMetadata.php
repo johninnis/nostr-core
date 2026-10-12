@@ -23,7 +23,7 @@ final readonly class CommentMetadata
     ) {
     }
 
-    // Deliberate: NIP-22's K and k MUST be present, so an empty kind names none — see ADR-0085
+    // Deliberate: NIP-22's K and k MUST be present, so an empty kind names none — see ADR-0141
     public static function tryFrom(string $rootKind, string $parentKind, CommentScope $rootScope): ?self
     {
         $isKind = static fn (string $kind): bool => '' !== $kind && mb_check_encoding($kind, 'UTF-8');
@@ -72,7 +72,7 @@ final readonly class CommentMetadata
         return self::tryFrom($rootKind, $parentKind, $rootScope);
     }
 
-    // Deliberate: the scope is the comment's one root, read address first, then event, then external content, every tag name as one claim — see ADR-0085
+    // Deliberate: the scope is the comment's one root, read address first, then event, then external content, every tag name as one claim — see ADR-0141
     private static function determineRootScope(TagCollection $tags): ?CommentScope
     {
         $root = ReplyChainAnalyser::analyse($tags, EventKind::fromInt(EventKind::COMMENT))->getRoot();

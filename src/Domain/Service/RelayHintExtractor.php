@@ -54,7 +54,7 @@ final class RelayHintExtractor
     /**
      * @return list<RelayUrl>
      */
-    // Deliberate: a NIP-22 comment names its root scope in upper-case E, A and P tags, whose relay hints are as much hints as their lower-case parents' — see ADR-0085
+    // Deliberate: a NIP-22 comment names its root scope in upper-case E, A and P tags, whose relay hints are as much hints as their lower-case parents' — see ADR-0141
     private static function extractFromRootScope(TagCollection $tags): array
     {
         $relayUrls = array_map(static fn (Tag $tag): ?RelayUrl => match ((string) $tag->getType()) {

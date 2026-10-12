@@ -17,7 +17,7 @@ ADR-0065 parsed a CLOSED without its message as an empty one, and answered `null
 `ReasonPrefix` and the message classes implement nostr-adrs ADR-0031:
 
 - `ReasonPrefix` holds the NIP-01 words, `unsupported` (NIP-01's `CLOSED` example), `auth-required` (NIP-42) and `info` (NIP-43).
-- `ClosedMessage` requires two payload elements and ignores any after them (ADR-0113); a CLOSED without its message is `null`.
+- `ClosedMessage` requires two payload elements and ignores any after them (ADR-0142); a CLOSED without its message is `null`.
 - `ReasonPrefix::ofRefusal()` reads the known prefix at the head of the text and answers `Error` when there is none, the word is not in the enum, or the text is empty. `ClosedMessage::getReasonPrefix()` returns `ReasonPrefix`, and a refused `OkMessage::getReasonPrefix()` returns non-null.
 - An accepted OK's `getReasonPrefix()` reads the head with `tryFromMessage()` and answers `null` when it names no known word.
 - The reason is computed from the text on each call and never stored.

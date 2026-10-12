@@ -26,7 +26,7 @@ final class NostrAuthHeaderCodec
         return self::decodeCredentials($authHeader, Base64Codec::tryDecodeCanonical(...), self::MAX_HEADER_LENGTH);
     }
 
-    // Deliberate: BUD-11 writes unpadded base64url, and the padded base64 every Blossom client wrote before it is still read — see ADR-0135
+    // Deliberate: BUD-11 writes unpadded base64url, and the padded base64 every Blossom client wrote before it is still read — see ADR-0144
     public static function decodeBlossom(string $authHeader): Event|AuthHeaderDecodeFailure
     {
         return self::decodeCredentials(

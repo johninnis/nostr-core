@@ -27,7 +27,7 @@ final readonly class ReplyChain
     ) {
     }
 
-    // Deliberate: derived, never stored, so a chain cannot claim a reply it has no root or parent for; the kind decides whether the event threads at all — see ADR-0085
+    // Deliberate: derived, never stored, so a chain cannot claim a reply it has no root or parent for; the kind decides whether the event threads at all — see ADR-0141
     public function isReply(): bool
     {
         $convention = ThreadingConvention::ofKind($this->kind);

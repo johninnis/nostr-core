@@ -14,7 +14,7 @@ enum ThreadingConvention
     case LiveChat;
     case Chat;
 
-    // Deliberate: the one place a kind's threading is decided, so the reply chain, its analyser and the reply builder cannot disagree on which kinds thread or how, and naming no kind reads the tags as a NIP-10 thread — see ADR-0085
+    // Deliberate: the one place a kind's threading is decided, so the reply chain, its analyser and the reply builder cannot disagree on which kinds thread or how, and naming no kind reads the tags as a NIP-10 thread — see ADR-0141
     public static function ofKind(?EventKind $kind): ?self
     {
         return match ($kind?->toInt()) {

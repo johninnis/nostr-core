@@ -16,7 +16,7 @@ Comparison had the same shape of problem: whether a comparison leaks where the t
 
 `Challenge` is a protocol value object beside `SubscriptionId` and `RelayUrl`. It is built through the trust boundary the package uses everywhere: `Challenge::tryFromString()` returns null for anything that is not a non-empty string, `Challenge::fromString()` asserts the same on a trusted value and throws otherwise. `equals()` compares in constant time with `hash_equals`.
 
-`AuthMessage` carries a `Challenge` and parses one from the wire; `RelayChallenge` pairs it with the relay that issued it, and `Nip42Validator::validate()` and `RumourFactory::createAuth()` take that pair (ADR-0127); `TagReferences` holds a `ChallengeCollection`, so the general tag-reference extractor parses a `challenge` tag rather than handing back its raw text. There is no path through this library on which a challenge is an unvalidated string.
+`AuthMessage` carries a `Challenge` and parses one from the wire; `RelayChallenge` pairs it with the relay that issued it, and `Nip42Validator::validate()` and `RumourFactory::createAuth()` take that pair (ADR-0143); `TagReferences` holds a `ChallengeCollection`, so the general tag-reference extractor parses a `challenge` tag rather than handing back its raw text. There is no path through this library on which a challenge is an unvalidated string.
 
 The constant-time comparison is defence in depth, not the protection: the challenge is sent in the clear, and it costs nothing to keep it from ever being compared by a path that leaks timing.
 

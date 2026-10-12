@@ -26,7 +26,7 @@ final readonly class Nip42EventChecker implements Nip42EventCheckerInterface
         }
     }
 
-    // Deliberate: the signature is not checked here — an AUTH event is validated as an event before it reaches NIP-42 — see ADR-0127
+    // Deliberate: the signature is not checked here — an AUTH event is validated as an event before it reaches NIP-42 — see ADR-0143
     #[Override]
     public function check(Event $event, RelayChallenge $relayChallenge, Timestamp $at): ?Nip42ValidationFailure
     {

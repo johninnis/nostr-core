@@ -17,7 +17,7 @@ final readonly class ExternalContentId implements Stringable
     ) {
     }
 
-    // Deliberate: the identifier is paired with its NIP-73 type, read from the K or k tag beside it, so neither may be empty — see ADR-0085
+    // Deliberate: the identifier is paired with its NIP-73 type, read from the K or k tag beside it, so neither may be empty — see ADR-0141
     public static function tryFromString(string $value, string $kind, ?string $hint = null): ?self
     {
         $isText = '' !== $value && '' !== $kind && mb_check_encoding($value, 'UTF-8') && mb_check_encoding($kind, 'UTF-8');

@@ -39,7 +39,7 @@ final class ReplyChainAnalyser
         };
     }
 
-    // Deliberate: the root and the parent are each read address first, then event, then external content, every tag name as one claim — see ADR-0085
+    // Deliberate: the root and the parent are each read address first, then event, then external content, every tag name as one claim — see ADR-0141
     private static function analyseCommentReplyChain(TagCollection $tags, ?EventKind $kind): ReplyChain
     {
         $rootEvents = [];
@@ -102,7 +102,7 @@ final class ReplyChainAnalyser
         return $reference->getEventId()->identityKey();
     }
 
-    // Deliberate: external content is named by one I (or i) value paired with one K (or k) value, its NIP-73 type, each a sole claim — see ADR-0085
+    // Deliberate: external content is named by one I (or i) value paired with one K (or k) value, its NIP-73 type, each a sole claim — see ADR-0141
     private static function externalContent(TagCollection $tags, TagType $idType, TagType $kindType): ?ExternalContentId
     {
         $value = $tags->getSoleValueByType($idType)->getValue();
@@ -114,7 +114,7 @@ final class ReplyChainAnalyser
         return ExternalContentId::tryFromString($value, $kind, self::soleHint($tags, $idType));
     }
 
-    // Deliberate: the hint is a sole claim among the web URLs the tags carry, compared exactly as written, so the tag order never picks a spelling — see ADR-0085
+    // Deliberate: the hint is a sole claim among the web URLs the tags carry, compared exactly as written, so the tag order never picks a spelling — see ADR-0141
     private static function soleHint(TagCollection $tags, TagType $idType): ?string
     {
         return SoleTagValue::fromValues(

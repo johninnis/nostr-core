@@ -25,7 +25,7 @@ enum Nip42ValidationFailure: string
         };
     }
 
-    // Deliberate: only a replaced challenge is fixed by answering the current one, so every other failure is invalid: — see ADR-0127
+    // Deliberate: only a replaced challenge is fixed by answering the current one, so every other failure is invalid: — see ADR-0143
     public function reasonPrefix(): ReasonPrefix
     {
         return self::ChallengeMismatch === $this ? ReasonPrefix::AuthRequired : ReasonPrefix::Invalid;

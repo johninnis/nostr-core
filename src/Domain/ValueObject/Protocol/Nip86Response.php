@@ -43,7 +43,7 @@ final readonly class Nip86Response
     /**
      * @return array{result: mixed}|array{error: string}
      */
-    // Deliberate: exactly one of result and error is emitted, never both, because a reply carrying each would let two readers disagree about whether the call succeeded — see ADR-0069
+    // Deliberate: exactly one of result and error is emitted, never both, because a reply carrying each would let two readers disagree about whether the call succeeded — see ADR-0140
     public function toArray(): array
     {
         return null === $this->error

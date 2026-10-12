@@ -132,7 +132,7 @@ final readonly class Rumour
         return $this->content;
     }
 
-    // Deliberate: delegates so the package has one answer to this question — a mention-marked e tag is not a reply, and neither is an unparseable one — see ADR-0085
+    // Deliberate: delegates so the package has one answer to this question — a mention-marked e tag is not a reply, and neither is an unparseable one — see ADR-0141
     public function isReply(): bool
     {
         return ReplyChainAnalyser::analyse($this->tags, $this->kind)->isReply();

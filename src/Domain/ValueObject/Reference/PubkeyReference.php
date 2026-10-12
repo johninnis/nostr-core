@@ -18,7 +18,7 @@ final readonly class PubkeyReference
     ) {
     }
 
-    // Deliberate: only a p tag carries a NIP-02 petname in its third element; a NIP-22 P tag names the root author and a relay — see ADR-0085
+    // Deliberate: only a p tag carries a NIP-02 petname in its third element; a NIP-22 P tag names the root author and a relay — see ADR-0141
     public static function tryFromTag(Tag $tag): ?self
     {
         $pubkey = PublicKey::tryFromHex($tag->getValue(0) ?? '');
