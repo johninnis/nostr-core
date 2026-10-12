@@ -4,7 +4,7 @@
 
 Accepted
 
-Supersedes ADR-0060. That record decided that the NIP-19 entities are distinct value objects behind an interface, and that decision is carried forward here unchanged. It also stated that NIP-19 makes the `naddr` identifier mandatory, and — through `EventCoordinate` — a coordinate existed only for an addressable kind with a non-empty identifier. That part is revised: what a coordinate is, for every implementation, is the shared decision nostr-adrs ADR-0007, and a deletion by coordinate follows nostr-adrs ADR-0016. This record holds what is particular to this package, and settles the empty-`special` question ADR-0059 left open.
+Supersedes ADR-0060. That record decided that the NIP-19 entities are distinct value objects behind an interface, and that decision is carried forward here unchanged. It also stated that NIP-19 makes the `naddr` identifier mandatory, and — through `EventCoordinate` — a coordinate existed only for an addressable kind with a non-empty identifier. That part is revised: what a coordinate is, for every implementation, is the shared decision nostr-adrs ADR-0007, and a deletion by coordinate follows nostr-adrs ADR-0124. This record holds what is particular to this package, and settles the empty-`special` question ADR-0059 left open.
 
 ## Context
 
@@ -36,4 +36,4 @@ Each NIP-19 entity is its own `final readonly` value object — `Npub`, `Note`, 
 - **Do not give `Npub` or `Note` their own hrp or bech32 parsing.**
 - `EventCoordinateTest` and `NaddrTest` carry the vectors — kind 10002 with an empty `d` accepted and with a non-empty `d` rejected, kind 30023 with an empty and a non-empty `d` accepted, kind 1 rejected, a missing `author` or `kind` rejected, a non-UTF-8 identifier rejected, an unknown TLV ignored — and fail if the coordinate rule is narrowed again.
 - Breaking: ADR-0060's `Nip19Codec::decodeComplexEntity` is `Nip19Codec::decodeEntity`, named for what it does: it decodes an entity of any prefix this package reads.
-- Shared decisions: nostr-adrs ADR-0007 (the coordinate), ADR-0016 (a deletion by coordinate, which `RumourFactory::createDeletion` builds), ADR-0084 (relay hints) and ADR-0094 (repeated and malformed records).
+- Shared decisions: nostr-adrs ADR-0007 (the coordinate), ADR-0124 (a deletion by coordinate, which `RumourFactory::createDeletion` builds), ADR-0084 (relay hints) and ADR-0094 (repeated and malformed records).

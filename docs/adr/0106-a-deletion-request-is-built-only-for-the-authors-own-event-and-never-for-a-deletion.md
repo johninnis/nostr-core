@@ -4,11 +4,11 @@
 
 Accepted
 
-The rules are the shared decisions nostr-adrs ADR-0086 and ADR-0093; this record holds what is particular to this package.
+The rules are the shared decisions nostr-adrs ADR-0125 and ADR-0093; this record holds what is particular to this package.
 
 ## Context
 
-nostr-adrs ADR-0086 decides for every implementation that a deletion request is built only for a target its author published, because NIP-09 makes every compliant reader ignore a reference to another author's event, and a builder that writes one shows its caller a deletion nobody honours.
+nostr-adrs ADR-0125 decides for every implementation that a deletion request is built only for a target its author published. For most targets the reason is that NIP-09 makes every compliant reader ignore a reference to another author's event, and a builder that writes one shows its caller a deletion nobody honours. A gift wrap addressed to the author is the one event signed by another key that readers honour (nostr-adrs ADR-0123), and it is refused for another reason: the request is public, so it leaks that the author's key received that wrap, and when it deleted it.
 
 NIP-09: "Publishing a deletion request event against a deletion request has no effect." nostr-adrs ADR-0093 decides that such a request is still a valid event, and that whoever applies deletions ignores that target; a builder that writes one shows its caller a deletion that does nothing, for the same reason as above.
 
@@ -22,7 +22,7 @@ Reading is the other side of the same rule: `NipComplianceValidator::validateNip
 
 ## Consequences
 
-- Every deletion request this package builds names only events its author can delete, and never a deletion request.
+- Every deletion request this package builds names only events its author published, and never a deletion request or a gift wrap addressed to its author.
 - Do not relax the check to let a caller publish a request for an event it does not own.
 - Do not refuse a received deletion request for naming a deletion request; ignore that target where deletions are applied.
-- Shared decisions: nostr-adrs ADR-0086 and ADR-0093.
+- Shared decisions: nostr-adrs ADR-0093 and ADR-0125.
