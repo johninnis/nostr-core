@@ -52,6 +52,9 @@ jobs:
       - name: Run the examples
         run: composer examples
 
+      - name: Check path lengths
+        run: composer check-path-lengths
+
   # The README offers a gmp-only deployment (no ext-ffi, no libsecp256k1) as a supported
   # configuration. Nothing verified it: the suite errored on the NIP-49 tests and the
   # FFI-path skips tripped failOnSkipped. This leg runs what such a host can actually run.

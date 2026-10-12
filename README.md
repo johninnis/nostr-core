@@ -386,6 +386,9 @@ composer check-rector
 
 # Run every script in examples/, failing on the first that fails
 composer examples
+
+# Check that no tracked path component exceeds 95 characters
+composer check-path-lengths
 ```
 
 CI runs the full gate on PHP 8.4 and 8.5, plus a separate leg with `ext-ffi` disabled and no `libsecp256k1` that runs `test-no-ffi` — the gmp-only deployment the Requirements section offers is verified rather than assumed.
