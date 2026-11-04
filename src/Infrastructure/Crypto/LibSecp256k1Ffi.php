@@ -39,9 +39,11 @@ final readonly class LibSecp256k1Ffi
     private const int XONLY_PUBKEY_LENGTH = 32;
 
     private const array LIBRARY_NAMES = [
+        'libsecp256k1.so.6',
         'libsecp256k1.so.2',
         'libsecp256k1.so.1',
         'libsecp256k1.so',
+        'libsecp256k1.6.dylib',
         'libsecp256k1.2.dylib',
         'libsecp256k1.dylib',
     ];

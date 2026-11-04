@@ -257,7 +257,7 @@ The `examples/` directory is covered by PHPStan and php-cs-fixer in CI, like `sr
 | [NIP-02](https://github.com/nostr-protocol/nips/blob/master/02.md) | Follow list | Kind 3 with contact list tags |
 | [NIP-04](https://github.com/nostr-protocol/nips/blob/master/04.md) | Encrypted direct messages | **Deprecated — use NIP-44.** Kind 4 with recipient validation; `Nip04Cipher` for AES-256-CBC encrypt/decrypt over a 32-byte ECDH shared secret. Unauthenticated and malleable; both interface methods carry `#[Deprecated]`. Shipped for kind-4 interoperability only — read [SECURITY.md](SECURITY.md#what-this-library-provides) before using it |
 | [NIP-05](https://github.com/nostr-protocol/nips/blob/master/05.md) | DNS-based identity | Identifier parsing and HTTP verification |
-| [NIP-09](https://github.com/nostr-protocol/nips/blob/master/09.md) | Event deletion | Kind 5 with deletion tag validation and `isDeletion()` detection; `RumourFactory::createDeletion` names every target by its id, a replaceable or addressable one by its coordinate as well, with its `k` tag (nostr-adrs ADR-0124) |
+| [NIP-09](https://github.com/nostr-protocol/nips/blob/master/09.md) | Event deletion | Kind 5 with deletion tag validation and `isDeletion()` detection; `RumourFactory::createDeletion` names every target by its id, a replaceable or addressable one by its coordinate as well, with its `k` tag (nostr-adrs ADR-0124); `DeletionCoverage::covers($deletion, $target)` is the one judgement of whether a request deletes an event, whichever arrived first (its author's own event or a gift wrap addressed to the author by `e`, the author's own coordinate up to the request's `created_at` by `a`, never a deletion request; nostr-adrs ADR-0093, ADR-0124, ADR-0126), `DeletionCoverage::deletedCoordinates($deletion)` the request's own coordinates, `DeletionCoverage::lookupFilters($target)` the filters that find the requests a store holds that could delete an event, each then judged by `covers`; where a party holds the requests it checks against is its own choice (ADR-0145); pinned by the corpus shared with @innis/nostr-core and both relays (`tests/Vectors/deletion.json`, nostr-adrs ADR-0127) |
 | [NIP-10](https://github.com/nostr-protocol/nips/blob/master/10.md) | Reply conventions | Reply chain analysis with root/reply/mention markers; `RumourFactory::createReply` answers a kind 1 note with a kind 1 note that names the root and the root's author, read from the tag naming the root whether or not it is marked (nostr-adrs ADR-0076) |
 | [NIP-11](https://github.com/nostr-protocol/nips/blob/master/11.md) | Relay information | Relay metadata fetching and parsing; `Nip11Info::getPubkey()` and `getSelf()` read the operator's and the relay's own public key |
 | [NIP-17](https://github.com/nostr-protocol/nips/blob/master/17.md) | Private direct messages | Kind 14 with NIP-44 encryption and gift wrap (kind 1059); `Rumour::getChatRoom()` is the author plus the `p` tags, `RumourFactory::createPrivateMessage` and `createPrivateReaction` take the room's receivers, leaving the author out unless no one else is in it, when the room is the author alone and its one `p` tag names the author; a private reaction tags the author of the message it answers last among its `p` tags, the sender included; `GiftWrapper::wrapForChatRoom` wraps once to every member, so a room of one is wrapped once to its author; a rumour may serialise to at most 163840 bytes (`GiftWrapper::MAX_RUMOUR_LENGTH`) |
@@ -308,10 +308,13 @@ Operations routed through `LibSecp256k1Ffi` when the library is loaded:
 To install the native library:
 
 ```bash
-# Current Debian/Ubuntu releases (provides libsecp256k1.so.2)
+# Ubuntu 26.04 and Debian 13 backports (libsecp256k1 0.7, provides libsecp256k1.so.6)
+sudo apt install libsecp256k1-6
+
+# Debian 13 (provides libsecp256k1.so.2)
 sudo apt install libsecp256k1-2
 
-# Older Debian/Ubuntu releases (provides libsecp256k1.so.1)
+# Debian 12 and Ubuntu 24.04 (provides libsecp256k1.so.1)
 sudo apt install libsecp256k1-1
 
 # macOS (Homebrew)
