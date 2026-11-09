@@ -12,6 +12,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
 use InvalidArgumentException;
 use Override;
 use ParagonIE_Sodium_Core_ChaCha20;
+use SensitiveParameter;
 
 final readonly class Nip44Cipher implements Nip44EncryptionInterface
 {
@@ -50,7 +51,7 @@ final readonly class Nip44Cipher implements Nip44EncryptionInterface
     }
 
     #[Override]
-    public function encrypt(string $plaintext, ConversationKey $conversationKey): string
+    public function encrypt(#[SensitiveParameter] string $plaintext, ConversationKey $conversationKey): string
     {
         return $this->encryptWithNonce($plaintext, $conversationKey, $this->randomBytes->bytes(self::NONCE_LENGTH));
     }
@@ -96,7 +97,7 @@ final readonly class Nip44Cipher implements Nip44EncryptionInterface
         $mac = substr($decoded, -self::MAC_LENGTH);
         $ciphertext = substr($decoded, 1 + self::NONCE_LENGTH, $decodedLength - 1 - self::NONCE_LENGTH - self::MAC_LENGTH);
 
-        $plaintext = $conversationKey->expose(function (string $prk) use ($nonce, $ciphertext, $mac): string {
+        $plaintext = $conversationKey->expose(function (#[SensitiveParameter] string $prk) use ($nonce, $ciphertext, $mac): string {
             $messageKeys = $this->deriveMessageKeys($prk, $nonce);
 
             try {
@@ -136,7 +137,7 @@ final readonly class Nip44Cipher implements Nip44EncryptionInterface
     }
 
     // Deliberate: kept private, not public, so production code cannot supply a reusable nonce — see ADR-0014
-    private function encryptWithNonce(string $plaintext, ConversationKey $conversationKey, string $nonce): string
+    private function encryptWithNonce(#[SensitiveParameter] string $plaintext, ConversationKey $conversationKey, string $nonce): string
     {
         $plaintextLength = strlen($plaintext);
 
@@ -153,7 +154,7 @@ final readonly class Nip44Cipher implements Nip44EncryptionInterface
             throw new EncryptionException('Nonce must be 32 bytes');
         }
 
-        $payload = $conversationKey->expose(function (string $prk) use ($plaintext, $nonce): string {
+        $payload = $conversationKey->expose(function (#[SensitiveParameter] string $prk) use ($plaintext, $nonce): string {
             $messageKeys = $this->deriveMessageKeys($prk, $nonce);
             $padded = $this->pad($plaintext);
 
@@ -182,7 +183,7 @@ final readonly class Nip44Cipher implements Nip44EncryptionInterface
     /**
      * @return array{chachaKey: string, chachaNonce: string, hmacKey: string}
      */
-    private function deriveMessageKeys(string $prk, string $nonce): array
+    private function deriveMessageKeys(#[SensitiveParameter] string $prk, string $nonce): array
     {
         $expanded = $this->hkdfExpand($prk, $nonce, self::MESSAGE_KEYS_LENGTH);
 
@@ -197,7 +198,7 @@ final readonly class Nip44Cipher implements Nip44EncryptionInterface
         }
     }
 
-    private function hkdfExpand(string $prk, string $info, int $length): string
+    private function hkdfExpand(#[SensitiveParameter] string $prk, string $info, int $length): string
     {
         $iterations = (int) ceil($length / self::SHA256_LENGTH);
         $output = '';
@@ -216,7 +217,7 @@ final readonly class Nip44Cipher implements Nip44EncryptionInterface
         }
     }
 
-    private function pad(string $plaintext): string
+    private function pad(#[SensitiveParameter] string $plaintext): string
     {
         $plaintextLength = strlen($plaintext);
         $paddedLength = $this->calculatePaddedLength($plaintextLength);
@@ -227,7 +228,7 @@ final readonly class Nip44Cipher implements Nip44EncryptionInterface
         return $lengthPrefix.$plaintext.str_repeat("\0", $paddedLength - $plaintextLength);
     }
 
-    private function unpad(string $padded): string
+    private function unpad(#[SensitiveParameter] string $padded): string
     {
         $paddedLength = strlen($padded);
         [$plaintextLength, $prefixLength] = $this->readLengthPrefix($padded);
@@ -258,7 +259,7 @@ final readonly class Nip44Cipher implements Nip44EncryptionInterface
     /**
      * @return array{int, int}
      */
-    private function readLengthPrefix(string $padded): array
+    private function readLengthPrefix(#[SensitiveParameter] string $padded): array
     {
         $short = unpack('n', $padded);
 

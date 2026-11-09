@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Support;
 
+use Innis\Nostr\Core\Domain\Exception\CryptoException;
 use Innis\Nostr\Core\Domain\Service\EcdhServiceInterface;
 use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Ecdh;
@@ -16,11 +17,27 @@ final class CryptoFixtures
 
     public static function signer(): SignatureServiceInterface
     {
-        return self::$signer ??= Secp256k1Signer::create();
+        if (null === self::$signer) {
+            try {
+                self::$signer = Secp256k1Signer::create();
+            } catch (CryptoException) {
+                self::$signer = Secp256k1Signer::createPurePhp();
+            }
+        }
+
+        return self::$signer;
     }
 
     public static function ecdh(): EcdhServiceInterface
     {
-        return self::$ecdh ??= Secp256k1Ecdh::create();
+        if (null === self::$ecdh) {
+            try {
+                self::$ecdh = Secp256k1Ecdh::create();
+            } catch (CryptoException) {
+                self::$ecdh = Secp256k1Ecdh::createPurePhp();
+            }
+        }
+
+        return self::$ecdh;
     }
 }

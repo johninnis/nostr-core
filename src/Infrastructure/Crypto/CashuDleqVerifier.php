@@ -59,7 +59,7 @@ final readonly class CashuDleqVerifier implements CashuDleqVerifierInterface
         return null !== $scalar && gmp_cmp($scalar, 0) > 0 && gmp_cmp($scalar, Secp256k1Math::generator()->getOrder()) < 0 ? $scalar : null;
     }
 
-    // Deliberate: a point is read only compressed, as NUT-00 writes it, though cashu-ts also reads an uncompressed C — see nostr-adrs ADR-0121
+    // Deliberate: a point is read only compressed, as NUT-00 writes it, though cashu-ts also reads an uncompressed C — see nostr-adrs ADR-0128
     private static function tryReadPoint(?string $hex): ?PointInterface
     {
         $bytes = self::tryReadHex($hex, self::COMPRESSED_POINT_LENGTH);

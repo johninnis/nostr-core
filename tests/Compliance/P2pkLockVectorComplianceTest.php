@@ -11,7 +11,7 @@ use RuntimeException;
 
 final class P2pkLockVectorComplianceTest extends TestCase
 {
-    private const int VECTOR_COUNT = 47;
+    private const int VECTOR_COUNT = 60;
 
     public function testTheVectorsAreFullyLoaded(): void
     {

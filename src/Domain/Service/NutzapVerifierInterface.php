@@ -10,6 +10,6 @@ use Innis\Nostr\Core\Domain\ValueObject\Payment\NutzapInfo;
 
 interface NutzapVerifierInterface
 {
-    // Deliberate: verifies only what the two events establish; DLEQ against the mint's keysets is NutzapDleqVerifierInterface's, and neither event's signature is checked here — see nostr-adrs ADR-0121
+    // Deliberate: verifies only what the two events establish; DLEQ against the mint's keysets is NutzapDleqVerifierInterface's, and neither event's signature is checked here — see nostr-adrs ADR-0128
     public function verify(Nutzap $nutzap, NutzapInfo $recipientsInfo): ?NutzapVerificationFailure;
 }

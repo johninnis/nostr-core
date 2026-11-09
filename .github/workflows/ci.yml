@@ -59,7 +59,7 @@ jobs:
   # configuration. Nothing verified it: the suite errored on the NIP-49 tests and the
   # FFI-path skips tripped failOnSkipped. This leg runs what such a host can actually run.
   pure-php:
-    name: pure-PHP fallback (no ext-ffi, no libsecp256k1)
+    name: pure PHP (no ext-ffi, no libsecp256k1)
     runs-on: ubuntu-26.04
 
     steps:

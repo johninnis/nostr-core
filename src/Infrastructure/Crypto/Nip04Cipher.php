@@ -12,6 +12,7 @@ use Innis\Nostr\Core\Domain\Service\Nip04EncryptionInterface;
 use Innis\Nostr\Core\Domain\Service\Nip04InputValidator;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\SecretKeyMaterial;
 use Override;
+use SensitiveParameter;
 
 final readonly class Nip04Cipher implements Nip04EncryptionInterface
 {
@@ -27,13 +28,13 @@ final readonly class Nip04Cipher implements Nip04EncryptionInterface
 
     #[Override]
     #[Deprecated(message: 'NIP-04 is unauthenticated and deprecated by the Nostr protocol; use Nip44Cipher instead')]
-    public function encrypt(string $plaintext, SecretKeyMaterial $sharedSecret): string
+    public function encrypt(#[SensitiveParameter] string $plaintext, SecretKeyMaterial $sharedSecret): string
     {
         Nip04InputValidator::validatePlaintext($plaintext);
 
         $iv = $this->randomBytes->bytes(self::IV_LENGTH);
 
-        $ciphertext = $sharedSecret->expose(static function (string $key) use ($plaintext, $iv): string {
+        $ciphertext = $sharedSecret->expose(static function (#[SensitiveParameter] string $key) use ($plaintext, $iv): string {
             $ct = openssl_encrypt($plaintext, self::CIPHER, $key, OPENSSL_RAW_DATA, $iv);
             if (false === $ct) {
                 throw new EncryptionException('NIP-04 encryption failed');
@@ -65,7 +66,7 @@ final readonly class Nip04Cipher implements Nip04EncryptionInterface
             throw new EncryptionException(self::DECRYPTION_FAILED);
         }
 
-        return $sharedSecret->expose(static function (string $key) use ($ciphertext, $iv): string {
+        return $sharedSecret->expose(static function (#[SensitiveParameter] string $key) use ($ciphertext, $iv): string {
             $plaintext = openssl_decrypt($ciphertext, self::CIPHER, $key, OPENSSL_RAW_DATA, $iv);
 
             if (false === $plaintext) {

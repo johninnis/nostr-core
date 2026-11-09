@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Integration\Infrastructure\Crypto;
 
+use Innis\Nostr\Core\Domain\ValueObject\Identity\Ncryptsec;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Infrastructure\Crypto\Nip49Cipher;
+use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 #[Group('ffi')]
 final class Nip49PasswordLifecycleTest extends TestCase
 {
+    private const string EMPTY_PASSWORD_NCRYPTSEC = 'ncryptsec1qggw7t0c7gnf7wlaq22n8hcfzrp5x3k634qupzvxdqul58xttg00fzhgme3knt3vn54qye88jlm6mx68w2v2eu20sg5mmmqrvcftqefjalfz4zu93df8ys7gcgteewcytlhlz63lg8z5ylq4svm5ed2s';
+    private const string EMPTY_PASSWORD_KEY_HEX = '1111111111111111111111111111111111111111111111111111111111111111';
+
     public function testItRoundTripsWhenTheProviderReturnsAFreshStringEachCall(): void
     {
         $cipher = Nip49Cipher::create();
@@ -24,16 +29,19 @@ final class Nip49PasswordLifecycleTest extends TestCase
         $this->assertSame($expectedHex, $recovered->toHex());
     }
 
-    // Deliberate: revealPassword XORs against zeros to detach the buffer; an empty password makes that a zero-length XOR, which must stay a legal no-op rather than an error — see ADR-0028
-    public function testAnEmptyPasswordSurvivesTheDetachmentStep(): void
+    public function testEncryptingUnderAnEmptyPasswordIsRefused(): void
     {
-        $cipher = Nip49Cipher::create();
-        $privateKey = PrivateKey::generate();
-        $expectedHex = $privateKey->toHex();
+        $this->expectException(InvalidArgumentException::class);
 
-        $ncryptsec = $cipher->encrypt($privateKey, static fn (): string => '');
+        Nip49Cipher::create()->encrypt(PrivateKey::generate(), static fn (): string => '');
+    }
 
-        $this->assertSame($expectedHex, $cipher->decrypt($ncryptsec, static fn (): string => '')->toHex());
+    // Deliberate: such an ncryptsec may already exist and its owner must still be able to recover the key — see nostr-adrs ADR-0129
+    public function testAnNcryptsecMadeUnderAnEmptyPasswordIsStillRead(): void
+    {
+        $ncryptsec = Ncryptsec::tryFromString(self::EMPTY_PASSWORD_NCRYPTSEC) ?? self::fail('The fixture is no ncryptsec');
+
+        $this->assertSame(self::EMPTY_PASSWORD_KEY_HEX, Nip49Cipher::create()->decrypt($ncryptsec, static fn (): string => '')->toHex());
     }
 
     private static function freshPassword(): string

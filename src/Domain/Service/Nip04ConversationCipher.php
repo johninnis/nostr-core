@@ -10,6 +10,7 @@ use Innis\Nostr\Core\Domain\Exception\EncryptionException;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Override;
+use SensitiveParameter;
 
 final readonly class Nip04ConversationCipher implements ConversationCipherInterface
 {
@@ -23,7 +24,7 @@ final readonly class Nip04ConversationCipher implements ConversationCipherInterf
 
     #[Override]
     #[Deprecated(message: 'NIP-04 is unauthenticated and deprecated by the Nostr protocol; use ConversationCipher instead')]
-    public function encrypt(string $plaintext, PrivateKey $ownKey, PublicKey $peer): string
+    public function encrypt(#[SensitiveParameter] string $plaintext, PrivateKey $ownKey, PublicKey $peer): string
     {
         Nip04InputValidator::validatePlaintext($plaintext);
 

@@ -8,18 +8,18 @@ final readonly class Nip98Request
 {
     private function __construct(
         private HttpUrl $url,
-        private string $method,
+        private HttpMethod $method,
         private ?Sha256Hash $bodyHash,
     ) {
     }
 
     // Deliberate: the empty body's hash is no body, so it demands no payload tag and admits one only when it states that hash — see nostr-adrs ADR-0024
-    public static function fromBodyHash(HttpUrl $url, string $method, ?Sha256Hash $bodyHash = null): self
+    public static function fromBodyHash(HttpUrl $url, HttpMethod $method, ?Sha256Hash $bodyHash = null): self
     {
         return new self($url, $method, true === $bodyHash?->isOfEmptyContent() ? null : $bodyHash);
     }
 
-    public static function fromBody(HttpUrl $url, string $method, string $body): self
+    public static function fromBody(HttpUrl $url, HttpMethod $method, string $body): self
     {
         return self::fromBodyHash($url, $method, Sha256Hash::ofContent($body));
     }
@@ -29,7 +29,7 @@ final readonly class Nip98Request
         return $this->url;
     }
 
-    public function getMethod(): string
+    public function getMethod(): HttpMethod
     {
         return $this->method;
     }

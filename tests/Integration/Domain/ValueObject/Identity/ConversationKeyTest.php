@@ -41,7 +41,7 @@ final class ConversationKeyTest extends TestCase
     {
         $this->expectExceptionMessage('ECDH public key is not a valid curve point');
 
-        ConversationKey::derive(self::ownKey(), self::offCurveKey(), new Secp256k1Ecdh(null));
+        ConversationKey::derive(self::ownKey(), self::offCurveKey(), Secp256k1Ecdh::createPurePhp());
     }
 
     public function testTryFromHexAcceptsValidHex(): void

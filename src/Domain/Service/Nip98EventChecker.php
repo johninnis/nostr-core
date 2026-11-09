@@ -8,6 +8,7 @@ use Innis\Nostr\Core\Domain\Entity\Event;
 use Innis\Nostr\Core\Domain\Enum\SoleTagValueState;
 use Innis\Nostr\Core\Domain\Failure\Nip98ValidationFailure;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\HttpMethod;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\HttpUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Nip98Request;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Sha256Hash;
@@ -93,7 +94,7 @@ final readonly class Nip98EventChecker implements Nip98EventCheckerInterface
         return $claimedUrl->equals($requestUrl) ? null : Nip98ValidationFailure::UrlMismatch;
     }
 
-    private function validateMethod(Event $event, string $requestMethod): ?Nip98ValidationFailure
+    private function validateMethod(Event $event, HttpMethod $requestMethod): ?Nip98ValidationFailure
     {
         $claim = $event->getTags()->getSoleValueByType(TagType::method());
         $claimed = $claim->getValue();
@@ -104,7 +105,7 @@ final readonly class Nip98EventChecker implements Nip98EventCheckerInterface
                 : Nip98ValidationFailure::DisagreeingMethodTags;
         }
 
-        return $claimed === $requestMethod
+        return true === HttpMethod::tryFromString($claimed)?->equals($requestMethod)
             ? null
             : Nip98ValidationFailure::MethodMismatch;
     }

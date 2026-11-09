@@ -9,17 +9,18 @@ use Innis\Nostr\Core\Domain\Exception\SecretKeyMaterialZeroedException;
 use Innis\Nostr\Core\Domain\Service\HexCodec;
 use InvalidArgumentException;
 use SensitiveParameter;
+use SensitiveParameterValue;
 
-// Deliberate: a plain final class, not final readonly, so zero() can null the bytes field to wipe the secret — see ADR-0015
-final class SecretKeyMaterial
+// Deliberate: the bytes sit in a mutable cell inside SensitiveParameterValue, PHP's own opaque holder, so var_dump, print_r, var_export, an array cast and serialize all see nothing, and zero() can still wipe them in place — see ADR-0148
+final readonly class SecretKeyMaterial
 {
     public const int BYTE_LENGTH = 32;
 
-    private ?string $bytes;
+    private SensitiveParameterValue $opaqueCell;
 
     private function __construct(#[SensitiveParameter] string $bytes)
     {
-        $this->bytes = $bytes;
+        $this->opaqueCell = new SensitiveParameterValue(new SecretCell($bytes));
     }
 
     public static function tryFromBytes(#[SensitiveParameter] string $bytes): ?self
@@ -55,12 +56,14 @@ final class SecretKeyMaterial
      */
     public function expose(Closure $fn): mixed
     {
-        if (null === $this->bytes) {
+        $cell = $this->cell();
+
+        if (null === $cell->bytes) {
             throw new SecretKeyMaterialZeroedException();
         }
 
-        // Deliberate: XOR forces a fresh, non-copy-on-write buffer so sodium_memzero wipes the exposed bytes, not a throwaway; do not reduce to $this->bytes — see ADR-0028
-        $exposed = $this->bytes ^ str_repeat("\0", self::BYTE_LENGTH);
+        // Deliberate: XOR forces a fresh, non-copy-on-write buffer so sodium_memzero wipes the exposed bytes, not a throwaway; do not reduce to the stored bytes — see ADR-0150
+        $exposed = $cell->bytes ^ str_repeat("\0", self::BYTE_LENGTH);
 
         try {
             return $fn($exposed);
@@ -71,21 +74,25 @@ final class SecretKeyMaterial
 
     public function zero(): void
     {
-        if (null === $this->bytes) {
-            return;
-        }
+        $cell = $this->cell();
 
-        sodium_memzero($this->bytes);
-        $this->bytes = null;
+        if (null !== $cell->bytes) {
+            sodium_memzero($cell->bytes);
+        }
     }
 
     public function isZeroed(): bool
     {
-        return null === $this->bytes;
+        return null === $this->cell()->bytes;
     }
 
     public function __destruct()
     {
         $this->zero();
+    }
+
+    private function cell(): SecretCell
+    {
+        return $this->opaqueCell->getValue();
     }
 }

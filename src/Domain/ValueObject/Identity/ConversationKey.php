@@ -24,7 +24,7 @@ final readonly class ConversationKey
         } catch (EcdhException $refusal) {
             throw new EncryptionException($refusal->getMessage(), previous: $refusal);
         }
-        $conversationKey = $sharedX->expose(static fn (string $sharedXBytes): string => hash_hmac('sha256', $sharedXBytes, 'nip44-v2', true));
+        $conversationKey = $sharedX->expose(static fn (#[SensitiveParameter] string $sharedXBytes): string => hash_hmac('sha256', $sharedXBytes, 'nip44-v2', true));
 
         $sharedX->zero();
 

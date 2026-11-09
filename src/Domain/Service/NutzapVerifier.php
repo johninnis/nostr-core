@@ -20,10 +20,11 @@ final readonly class NutzapVerifier implements NutzapVerifierInterface
 
         return match (true) {
             true !== $nutzap->getRecipientPubkey()?->equals($recipientsInfo->getPubkey()) => NutzapVerificationFailure::RecipientMismatch,
-            // Deliberate: the mint is compared exactly as written, never normalised, as the recipient's #u filter matches it — see nostr-adrs ADR-0121
+            // Deliberate: the mint is compared exactly as written, never normalised, as the recipient's #u filter matches it — see nostr-adrs ADR-0128
             null === $mint || !$recipientsInfo->getMints()->contains($mint) => NutzapVerificationFailure::MintNotListed,
             [] === $proofs => NutzapVerificationFailure::NoProof,
             !array_all($proofs, static fn (NutzapProof $proof): bool => $proof->isLockedTo($recipientsInfo->getP2pkPubkey())) => NutzapVerificationFailure::ProofNotLockedToRecipient,
+            $nutzap->getProofs()->repeatsASecret() => NutzapVerificationFailure::ProofRepeated,
             default => null,
         };
     }

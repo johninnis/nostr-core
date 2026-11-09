@@ -6,7 +6,7 @@ Accepted
 
 ## Context
 
-`LibSecp256k1Ffi::computeSharedX` calls `secp256k1_ecdh`, which takes a hash callback. The callback here copies the shared point's x-coordinate out unhashed, because NIP-04 and NIP-44 key agreement consume the raw x-coordinate (ADR-0101).
+`LibSecp256k1Ffi::computeSharedX` calls `secp256k1_ecdh`, which takes a hash callback. The callback here copies the shared point's x-coordinate out unhashed, because NIP-04 and NIP-44 key agreement consume the raw x-coordinate (ADR-0146).
 
 PHP's FFI turns a PHP callable passed where C expects a function pointer into a native trampoline, and it keeps every trampoline it makes, together with a reference to the callable, until the request ends. It never frees one early, and it makes a new one at every conversion, even of the same closure. Building the closure inside `computeSharedX` therefore leaked one trampoline per key agreement: about 590 bytes a call, 47 MB after 80,000 calls. A long-running relay, signer or bunker does key agreement for every NIP-44 message it opens, so its memory grew without bound.
 

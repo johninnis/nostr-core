@@ -29,6 +29,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
 use InvalidArgumentException;
 use Override;
+use SensitiveParameter;
 
 final readonly class GiftWrapper implements GiftWrapServiceInterface
 {
@@ -184,7 +185,7 @@ final readonly class GiftWrapper implements GiftWrapServiceInterface
         return $senderKeyPair;
     }
 
-    private function sealAndWrap(string $rumourJson, KeyPair $senderKeyPair, PublicKey $recipientPublicKey): Event
+    private function sealAndWrap(#[SensitiveParameter] string $rumourJson, KeyPair $senderKeyPair, PublicKey $recipientPublicKey): Event
     {
         $envelope = $this->envelopeFactory->create();
         $ephemeralKeyPair = $envelope->getEphemeralKeyPair();

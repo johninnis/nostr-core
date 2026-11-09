@@ -8,8 +8,6 @@ use Innis\Nostr\Core\Domain\Service\SignatureServiceInterface;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
-use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
-use Innis\Nostr\Core\Infrastructure\Crypto\NativeRandomBytesGenerator;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Signer;
 use Innis\Nostr\Core\Tests\Fake\QueuedRandomBytesGenerator;
 use PHPUnit\Framework\Attributes\Group;
@@ -270,28 +268,21 @@ final class Bip340ComplianceTest extends TestCase
 
     private function ffiService(): Secp256k1Signer
     {
-        $randomBytes = new NativeRandomBytesGenerator();
-        $ffi = LibSecp256k1Ffi::tryLoad($randomBytes)
-            ?? self::markTestSkipped('libsecp256k1 FFI unavailable');
-
-        return new Secp256k1Signer($ffi, $randomBytes);
+        return Secp256k1Signer::create();
     }
 
     private function purePhpService(): Secp256k1Signer
     {
-        return new Secp256k1Signer(null, new NativeRandomBytesGenerator());
+        return Secp256k1Signer::createPurePhp();
     }
 
     private function ffiServiceWithFixedAux(string $aux): Secp256k1Signer
     {
-        $ffi = LibSecp256k1Ffi::tryLoad(new NativeRandomBytesGenerator())
-            ?? self::markTestSkipped('libsecp256k1 FFI unavailable');
-
-        return new Secp256k1Signer($ffi, QueuedRandomBytesGenerator::withBytes($aux));
+        return Secp256k1Signer::create(QueuedRandomBytesGenerator::withBytes(str_repeat("\x01", 32), $aux));
     }
 
     private function purePhpServiceWithFixedAux(string $aux): Secp256k1Signer
     {
-        return new Secp256k1Signer(null, QueuedRandomBytesGenerator::withBytes($aux));
+        return Secp256k1Signer::createPurePhp(QueuedRandomBytesGenerator::withBytes($aux));
     }
 }

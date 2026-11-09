@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Exception\EncryptionException;
+use SensitiveParameter;
 
 final class Nip04InputValidator
 {
@@ -18,7 +19,7 @@ final class Nip04InputValidator
     {
     }
 
-    public static function validatePlaintext(string $plaintext): void
+    public static function validatePlaintext(#[SensitiveParameter] string $plaintext): void
     {
         // Deliberate: decrypt refuses a plaintext that is not UTF-8, so encrypt never seals one — see ADR-0116
         if (!mb_check_encoding($plaintext, 'UTF-8')) {

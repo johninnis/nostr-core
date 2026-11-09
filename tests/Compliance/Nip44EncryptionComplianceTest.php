@@ -65,7 +65,7 @@ final class Nip44EncryptionComplianceTest extends TestCase
     #[DataProvider('conversationKeyVectorsProvider')]
     public function testConversationKeyDerivationPurePhp(string $sec1, string $pub2, string $expectedKey): void
     {
-        $this->assertConversationKey(new Secp256k1Ecdh(null), $sec1, $pub2, $expectedKey);
+        $this->assertConversationKey(Secp256k1Ecdh::createPurePhp(), $sec1, $pub2, $expectedKey);
     }
 
     private function assertConversationKey(EcdhServiceInterface $ecdh, string $sec1, string $pub2, string $expectedKey): void
@@ -279,7 +279,7 @@ final class Nip44EncryptionComplianceTest extends TestCase
 
         $this->expectException(EncryptionException::class);
 
-        ConversationKey::derive($privateKey, $publicKey, new Secp256k1Ecdh(null));
+        ConversationKey::derive($privateKey, $publicKey, Secp256k1Ecdh::createPurePhp());
     }
 
     /**

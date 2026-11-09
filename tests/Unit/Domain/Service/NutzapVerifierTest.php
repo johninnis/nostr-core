@@ -32,6 +32,32 @@ final class NutzapVerifierTest extends TestCase
         $this->assertNull(new NutzapVerifier()->verify($nutzap, NutzapMother::recipientsInfo()));
     }
 
+    public function testAProofRespelledInOtherWhitespaceIsAProofRepeated(): void
+    {
+        [$name, $proof] = NutzapMother::proofTag(21);
+        $nutzap = NutzapMother::payingNutzap([[$name, ' '.$proof]]);
+
+        $this->assertSame(NutzapVerificationFailure::ProofRepeated, new NutzapVerifier()->verify($nutzap, NutzapMother::recipientsInfo()));
+    }
+
+    public function testTwoProofsNamingOneSecretWithDifferentAmountsAreAProofRepeated(): void
+    {
+        $secret = NutzapMother::secret('02'.NutzapMother::P2PK_KEY);
+        $nutzap = NutzapMother::nutzap([
+            ['p', NutzapMother::RECIPIENT],
+            ['u', NutzapMother::MINT],
+            ['proof', json_encode(['amount' => 1, 'secret' => $secret], JSON_THROW_ON_ERROR)],
+            ['proof', json_encode(['amount' => 1000, 'secret' => $secret], JSON_THROW_ON_ERROR)],
+        ]);
+
+        $this->assertSame(NutzapVerificationFailure::ProofRepeated, new NutzapVerifier()->verify($nutzap, NutzapMother::recipientsInfo()));
+    }
+
+    public function testAByteIdenticalProofTagIsOneProofAndVerifies(): void
+    {
+        $this->assertNull(new NutzapVerifier()->verify(NutzapMother::payingNutzap([NutzapMother::proofTag(21)]), NutzapMother::recipientsInfo()));
+    }
+
     public function testInfoAuthoredBySomeoneOtherThanTheRecipientIsARecipientMismatch(): void
     {
         $this->assertSame(

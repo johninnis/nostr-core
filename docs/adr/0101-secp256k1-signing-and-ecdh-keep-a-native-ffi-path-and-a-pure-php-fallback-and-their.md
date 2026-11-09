@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by ADR-0146
 
 Supersedes ADR-0025 and ADR-0057. ADR-0057 narrowed one sentence of ADR-0025's reasoning — "a caller cannot observe which path ran" — while saying it did not supersede it, so the current decision could only be read across both. Both decisions are carried forward unchanged; this record restates them as one and holds the complete current decision.
 

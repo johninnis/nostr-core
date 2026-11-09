@@ -9,9 +9,6 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\ConversationKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\SecretKeyMaterial;
-use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
-use Innis\Nostr\Core\Infrastructure\Crypto\NativeRandomBytesGenerator;
-use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Backend;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Ecdh;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Signer;
 use PHPUnit\Framework\Attributes\Group;
@@ -26,21 +23,10 @@ final class Secp256k1EcdhTest extends TestCase
     private const int REPEATED_AGREEMENT_MEMORY_BOUND_BYTES = 65536;
 
     #[Group('ffi')]
-    public function testBackendReportsNativeWhenFfiHandleIsInjected(): void
-    {
-        $ffi = LibSecp256k1Ffi::tryLoad(new NativeRandomBytesGenerator())
-            ?? self::markTestSkipped('libsecp256k1 FFI unavailable');
-
-        $this->assertSame(Secp256k1Backend::Native, new Secp256k1Ecdh($ffi)->backend());
-    }
-
-    #[Group('ffi')]
     public function testRepeatedNativeKeyAgreementKeepsMemoryFlat(): void
     {
-        $ffi = LibSecp256k1Ffi::tryLoad(new NativeRandomBytesGenerator())
-            ?? self::markTestSkipped('libsecp256k1 FFI unavailable');
-        $ecdh = new Secp256k1Ecdh($ffi);
-        $signer = new Secp256k1Signer($ffi, new NativeRandomBytesGenerator());
+        $ecdh = Secp256k1Ecdh::create();
+        $signer = Secp256k1Signer::create();
         $privateKey = PrivateKey::generate();
         $otherPublicKey = $signer->derivePublicKey(PrivateKey::generate());
         $ecdh->computeSharedX($privateKey, $otherPublicKey);
@@ -53,15 +39,10 @@ final class Secp256k1EcdhTest extends TestCase
         $this->assertLessThan(self::REPEATED_AGREEMENT_MEMORY_BOUND_BYTES, memory_get_usage() - $memoryBefore);
     }
 
-    public function testBackendReportsPurePhpWhenNoFfiHandleIsInjected(): void
-    {
-        $this->assertSame(Secp256k1Backend::PurePhp, new Secp256k1Ecdh(null)->backend());
-    }
-
     public function testComputeSharedXIsSymmetric(): void
     {
-        $ecdh = new Secp256k1Ecdh(null);
-        $signer = new Secp256k1Signer(null, new NativeRandomBytesGenerator());
+        $ecdh = Secp256k1Ecdh::createPurePhp();
+        $signer = Secp256k1Signer::createPurePhp();
 
         $privateKeyA = PrivateKey::generate();
         $privateKeyB = PrivateKey::generate();
@@ -76,8 +57,8 @@ final class Secp256k1EcdhTest extends TestCase
 
     public function testComputeSharedXIsDeterministic(): void
     {
-        $ecdh = new Secp256k1Ecdh(null);
-        $signer = new Secp256k1Signer(null, new NativeRandomBytesGenerator());
+        $ecdh = Secp256k1Ecdh::createPurePhp();
+        $signer = Secp256k1Signer::createPurePhp();
 
         $privateKey = PrivateKey::generate();
         $otherPublicKey = $signer->derivePublicKey(PrivateKey::generate());
@@ -90,8 +71,8 @@ final class Secp256k1EcdhTest extends TestCase
 
     public function testComputeSharedXMatchesLegacyConversationKeyDerivation(): void
     {
-        $ecdh = new Secp256k1Ecdh(null);
-        $signer = new Secp256k1Signer(null, new NativeRandomBytesGenerator());
+        $ecdh = Secp256k1Ecdh::createPurePhp();
+        $signer = Secp256k1Signer::createPurePhp();
 
         $privateKey = PrivateKey::generate();
         $otherPublicKey = $signer->derivePublicKey(PrivateKey::generate());
@@ -107,8 +88,8 @@ final class Secp256k1EcdhTest extends TestCase
 
     public function testComputeSharedXProducesThirtyTwoBytes(): void
     {
-        $ecdh = new Secp256k1Ecdh(null);
-        $signer = new Secp256k1Signer(null, new NativeRandomBytesGenerator());
+        $ecdh = Secp256k1Ecdh::createPurePhp();
+        $signer = Secp256k1Signer::createPurePhp();
 
         $privateKey = PrivateKey::generate();
         $otherPublicKey = $signer->derivePublicKey(PrivateKey::generate());
@@ -120,7 +101,7 @@ final class Secp256k1EcdhTest extends TestCase
 
     public function testComputeSharedXRejectsInFieldOffCurvePublicKeyOnPurePhpPath(): void
     {
-        $ecdh = new Secp256k1Ecdh(null);
+        $ecdh = Secp256k1Ecdh::createPurePhp();
         $offCurveKey = PublicKey::tryFromHex(self::OFF_CURVE_X_HEX);
         $this->assertNotNull($offCurveKey);
 
@@ -128,7 +109,8 @@ final class Secp256k1EcdhTest extends TestCase
         $ecdh->computeSharedX(PrivateKey::generate(), $offCurveKey);
     }
 
-    public function testComputeSharedXRejectsInFieldOffCurvePublicKeyOnDefaultPath(): void
+    #[Group('ffi')]
+    public function testComputeSharedXRejectsInFieldOffCurvePublicKeyOnNativePath(): void
     {
         $ecdh = Secp256k1Ecdh::create();
         $offCurveKey = PublicKey::tryFromHex(self::OFF_CURVE_X_HEX);
@@ -140,20 +122,22 @@ final class Secp256k1EcdhTest extends TestCase
 
     public function testComputeSharedXRejectsZeroXCoordinateOnPurePhpPath(): void
     {
-        $this->assertFieldRangeRejection(new Secp256k1Ecdh(null), self::ZERO_X_HEX);
+        $this->assertFieldRangeRejection(Secp256k1Ecdh::createPurePhp(), self::ZERO_X_HEX);
     }
 
-    public function testComputeSharedXRejectsZeroXCoordinateOnDefaultPath(): void
+    #[Group('ffi')]
+    public function testComputeSharedXRejectsZeroXCoordinateOnNativePath(): void
     {
         $this->assertFieldRangeRejection(Secp256k1Ecdh::create(), self::ZERO_X_HEX);
     }
 
     public function testComputeSharedXRejectsXCoordinateAtFieldPrimeOnPurePhpPath(): void
     {
-        $this->assertFieldRangeRejection(new Secp256k1Ecdh(null), self::FIELD_PRIME_X_HEX);
+        $this->assertFieldRangeRejection(Secp256k1Ecdh::createPurePhp(), self::FIELD_PRIME_X_HEX);
     }
 
-    public function testComputeSharedXRejectsXCoordinateAtFieldPrimeOnDefaultPath(): void
+    #[Group('ffi')]
+    public function testComputeSharedXRejectsXCoordinateAtFieldPrimeOnNativePath(): void
     {
         $this->assertFieldRangeRejection(Secp256k1Ecdh::create(), self::FIELD_PRIME_X_HEX);
     }

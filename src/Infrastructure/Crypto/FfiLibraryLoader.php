@@ -7,6 +7,7 @@ namespace Innis\Nostr\Core\Infrastructure\Crypto;
 use FFI;
 use FFI\CData;
 use FFI\Exception as FfiException;
+use SensitiveParameter;
 
 final class FfiLibraryLoader
 {
@@ -34,7 +35,7 @@ final class FfiLibraryLoader
         return null;
     }
 
-    public static function toBuffer(FFI $ffi, string $data): CData
+    public static function toBuffer(FFI $ffi, #[SensitiveParameter] string $data): CData
     {
         $length = strlen($data);
         if (0 === $length) {

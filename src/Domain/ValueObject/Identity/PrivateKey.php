@@ -63,7 +63,7 @@ final readonly class PrivateKey
     }
 
     // Deliberate: sodium_compare reads its operands as little-endian numbers in constant time, so the big-endian scalar and order are reversed and the bounds 0 < k < n checked with it rather than compared as hex, which branches on the secret's digits — see ADR-0120
-    private static function isWithinCurveOrder(string $bytes): bool
+    private static function isWithinCurveOrder(#[SensitiveParameter] string $bytes): bool
     {
         $littleEndian = strrev($bytes);
 
@@ -82,7 +82,7 @@ final readonly class PrivateKey
 
     public function toBech32(): string
     {
-        return $this->material->expose(static fn (string $bytes): string => Bech32Codec::encode(self::BECH32_HRP, $bytes)
+        return $this->material->expose(static fn (#[SensitiveParameter] string $bytes): string => Bech32Codec::encode(self::BECH32_HRP, $bytes)
             ?? throw new SerialisationException('A 32-byte private key always fits a bech32 string'));
     }
 

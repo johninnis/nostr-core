@@ -16,6 +16,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use InvalidArgumentException;
 use Normalizer;
 use Override;
+use SensitiveParameter;
 
 final readonly class Nip49Cipher implements Nip49EncryptionInterface
 {
@@ -46,11 +47,11 @@ final readonly class Nip49Cipher implements Nip49EncryptionInterface
         $logN = $this->workFactor->getEncryptLogN();
         $salt = $this->randomBytes->bytes(Ncryptsec::SALT_LENGTH);
         $nonce = $this->randomBytes->bytes(Ncryptsec::NONCE_LENGTH);
-        $derivedKey = $this->deriveKey($passwordProvider, $salt, $logN);
+        $derivedKey = $this->deriveKey(self::refusingAnEmptyPassword($passwordProvider), $salt, $logN);
 
         try {
             $aeadOutput = $privateKey->expose(
-                static fn (string $nsecBytes): string => sodium_crypto_aead_xchacha20poly1305_ietf_encrypt(
+                static fn (#[SensitiveParameter] string $nsecBytes): string => sodium_crypto_aead_xchacha20poly1305_ietf_encrypt(
                     $nsecBytes,
                     chr($keySecurity->value),
                     $nonce,
@@ -101,6 +102,21 @@ final readonly class Nip49Cipher implements Nip49EncryptionInterface
 
     /**
      * @param Closure(): string $passwordProvider
+     *
+     * @return Closure(): string
+     */
+    // Deliberate: only encryption refuses it, as an empty password is what a failed read returns, and a key already wrapped under one must stay recoverable — see nostr-adrs ADR-0129
+    private static function refusingAnEmptyPassword(Closure $passwordProvider): Closure
+    {
+        return static function () use ($passwordProvider): string {
+            $password = $passwordProvider();
+
+            return '' === $password ? throw new InvalidArgumentException('NIP-49 will not encrypt a key under an empty password') : $password;
+        };
+    }
+
+    /**
+     * @param Closure(): string $passwordProvider
      */
     private function deriveKey(Closure $passwordProvider, string $salt, int $logN): string
     {
@@ -125,7 +141,7 @@ final readonly class Nip49Cipher implements Nip49EncryptionInterface
     /**
      * @param Closure(): string $passwordProvider
      */
-    // Deliberate: XORing against zeros forces a fresh buffer this adapter solely owns, so the caller's sodium_memzero lands on it instead of separating a throwaway; returning the provider's own string aliases whatever the caller still holds and makes the wipe a no-op — the same copy-on-write trap SecretKeyMaterial::expose avoids, see ADR-0028
+    // Deliberate: XORing against zeros forces a fresh buffer this adapter solely owns, so the caller's sodium_memzero lands on it instead of separating a throwaway; returning the provider's own string aliases whatever the caller still holds and makes the wipe a no-op — the same copy-on-write trap SecretKeyMaterial::expose avoids, see ADR-0150
     private function revealPassword(Closure $passwordProvider): string
     {
         $revealed = $passwordProvider();

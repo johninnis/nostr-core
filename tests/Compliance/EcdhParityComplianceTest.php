@@ -6,8 +6,6 @@ namespace Innis\Nostr\Core\Tests\Compliance;
 
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\SecretKeyMaterial;
-use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
-use Innis\Nostr\Core\Infrastructure\Crypto\NativeRandomBytesGenerator;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Ecdh;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Signer;
 use PHPUnit\Framework\Attributes\Group;
@@ -21,8 +19,8 @@ final class EcdhParityComplianceTest extends TestCase
     public function testFfiAndPurePhpComputeByteIdenticalSharedXAcrossRandomInputs(): void
     {
         $ffiEcdh = $this->ffiEcdhService();
-        $purePhpEcdh = new Secp256k1Ecdh(null);
-        $signer = new Secp256k1Signer(null, new NativeRandomBytesGenerator());
+        $purePhpEcdh = Secp256k1Ecdh::createPurePhp();
+        $signer = Secp256k1Signer::createPurePhp();
 
         $problems = [];
 
@@ -49,8 +47,8 @@ final class EcdhParityComplianceTest extends TestCase
     public function testSharedXIsSymmetricAcrossBothEngines(): void
     {
         $ffiEcdh = $this->ffiEcdhService();
-        $purePhpEcdh = new Secp256k1Ecdh(null);
-        $signer = new Secp256k1Signer(null, new NativeRandomBytesGenerator());
+        $purePhpEcdh = Secp256k1Ecdh::createPurePhp();
+        $signer = Secp256k1Signer::createPurePhp();
 
         for ($i = 0; $i < self::ITERATIONS; ++$i) {
             $privateKeyA = PrivateKey::generate();
@@ -71,11 +69,7 @@ final class EcdhParityComplianceTest extends TestCase
 
     private function ffiEcdhService(): Secp256k1Ecdh
     {
-        $randomBytes = new NativeRandomBytesGenerator();
-        $ffi = LibSecp256k1Ffi::tryLoad($randomBytes)
-            ?? self::markTestSkipped('libsecp256k1 FFI unavailable');
-
-        return new Secp256k1Ecdh($ffi);
+        return Secp256k1Ecdh::create();
     }
 
     private static function bytes(SecretKeyMaterial $sharedX): string

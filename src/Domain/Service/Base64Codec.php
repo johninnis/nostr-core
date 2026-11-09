@@ -10,7 +10,7 @@ final class Base64Codec
     {
     }
 
-    // Deliberate: base64_decode skips whitespace and tolerates missing padding and non-zero trailing bits even in strict mode, so only the encoding that re-encodes to itself is read — see nostr-adrs ADR-0095
+    // Deliberate: base64_decode skips whitespace and tolerates missing padding and non-zero trailing bits even in strict mode, so only the encoding that re-encodes to itself is read — see nostr-adrs ADR-0132
     public static function tryDecodeCanonical(string $encoded): ?string
     {
         $decoded = base64_decode($encoded, true);

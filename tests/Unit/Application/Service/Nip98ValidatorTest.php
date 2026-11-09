@@ -18,6 +18,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\EventId;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\HttpMethod;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\HttpUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Nip98Request;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
@@ -126,7 +127,7 @@ final class Nip98ValidatorTest extends TestCase
 
     private static function request(): Nip98Request
     {
-        return Nip98Request::fromBodyHash(HttpUrl::fromString(self::URL), 'GET');
+        return Nip98Request::fromBodyHash(HttpUrl::fromString(self::URL), HttpMethod::fromString('GET'));
     }
 
     private function clockAt(int $now): ClockInterface

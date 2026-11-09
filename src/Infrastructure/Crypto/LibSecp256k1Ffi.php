@@ -9,7 +9,7 @@ use FFI\CData;
 use Innis\Nostr\Core\Application\Port\RandomBytesGeneratorInterface;
 use Innis\Nostr\Core\Domain\Exception\CryptoException;
 use Innis\Nostr\Core\Domain\Exception\EcdhException;
-use Throwable;
+use SensitiveParameter;
 
 final readonly class LibSecp256k1Ffi
 {
@@ -40,11 +40,14 @@ final readonly class LibSecp256k1Ffi
 
     private const array LIBRARY_NAMES = [
         'libsecp256k1.so.6',
+        'libsecp256k1.so.5',
         'libsecp256k1.so.2',
         'libsecp256k1.so.1',
         'libsecp256k1.so',
         'libsecp256k1.6.dylib',
+        'libsecp256k1.5.dylib',
         'libsecp256k1.2.dylib',
+        'libsecp256k1.1.dylib',
         'libsecp256k1.dylib',
     ];
 
@@ -55,30 +58,20 @@ final readonly class LibSecp256k1Ffi
     ) {
     }
 
-    public static function tryLoad(RandomBytesGeneratorInterface $randomBytes = new NativeRandomBytesGenerator()): ?self
+    // Deliberate: a host without the library is told so here rather than handed a weaker signer it never asked for; the pure-PHP path is its own explicit choice — see ADR-0146
+    public static function load(RandomBytesGeneratorInterface $randomBytes = new NativeRandomBytesGenerator()): self
     {
-        $ffi = FfiLibraryLoader::tryLoad(self::CDEF, self::LIBRARY_NAMES);
-        if (null === $ffi) {
-            return null;
-        }
+        $ffi = FfiLibraryLoader::tryLoad(self::CDEF, self::LIBRARY_NAMES)
+            ?? throw new CryptoException('libsecp256k1 could not be loaded through ext-ffi, which needs ffi.enable and the shared library; the secp256k1 adapters\' createPurePhp() accepts the path that is not constant-time');
+        $context = $ffi->secp256k1_context_create(self::CONTEXT_SIGN_VERIFY);
 
-        $seed32 = $randomBytes->bytes(self::CONTEXT_SEED_LENGTH);
-        $context = null;
-
-        try {
-            $context = $ffi->secp256k1_context_create(self::CONTEXT_SIGN_VERIFY);
-            if (1 === $ffi->secp256k1_context_randomize($context, FfiLibraryLoader::toBuffer($ffi, $seed32))) {
-                return new self($ffi, $context, self::copySharedXCallback($ffi));
-            }
-        } catch (Throwable) {
-            // Deliberate: a loadable-but-incompatible native library is a failed capability probe, not a fault — fall through to the pure-PHP path rather than propagate — see ADR-0101
-        }
-
-        if (null !== $context) {
+        if (1 !== $ffi->secp256k1_context_randomize($context, FfiLibraryLoader::toBuffer($ffi, $randomBytes->bytes(self::CONTEXT_SEED_LENGTH)))) {
             $ffi->secp256k1_context_destroy($context);
+
+            throw new CryptoException('libsecp256k1 refused to randomise its context');
         }
 
-        return null;
+        return new self($ffi, $context, self::copySharedXCallback($ffi));
     }
 
     // Deliberate: the hash callback is converted to a C function pointer once per handle, because FFI retains a trampoline for every PHP callable passed to C and would leak one per key agreement — see ADR-0124
@@ -94,7 +87,7 @@ final readonly class LibSecp256k1Ffi
         return $callback;
     }
 
-    public function sign(string $messageBytes, string $privkeyBytes, string $auxRand32): string
+    public function sign(string $messageBytes, #[SensitiveParameter] string $privkeyBytes, #[SensitiveParameter] string $auxRand32): string
     {
         return $this->withKeypair($privkeyBytes, function (CData $keypair) use ($messageBytes, $auxRand32): string {
             $sig = $this->ffi->new('unsigned char[64]');
@@ -123,7 +116,7 @@ final readonly class LibSecp256k1Ffi
         );
     }
 
-    public function derivePublicKey(string $privkeyBytes): string
+    public function derivePublicKey(#[SensitiveParameter] string $privkeyBytes): string
     {
         return $this->withKeypair($privkeyBytes, function (CData $keypair): string {
             $pubkey = $this->ffi->new('secp256k1_xonly_pubkey');
@@ -147,7 +140,7 @@ final readonly class LibSecp256k1Ffi
      *
      * @return T
      */
-    private function withKeypair(string $privkeyBytes, callable $use): mixed
+    private function withKeypair(#[SensitiveParameter] string $privkeyBytes, callable $use): mixed
     {
         $keypair = $this->ffi->new('secp256k1_keypair');
         $privkeyBuffer = FfiLibraryLoader::toBuffer($this->ffi, $privkeyBytes);
@@ -164,7 +157,7 @@ final readonly class LibSecp256k1Ffi
         }
     }
 
-    public function computeSharedX(string $privkeyBytes, string $peerXOnlyPubkeyBytes): string
+    public function computeSharedX(#[SensitiveParameter] string $privkeyBytes, string $peerXOnlyPubkeyBytes): string
     {
         $compressed = "\x02".$peerXOnlyPubkeyBytes;
 
@@ -182,7 +175,7 @@ final readonly class LibSecp256k1Ffi
         $output = $this->ffi->new('unsigned char['.self::XONLY_PUBKEY_LENGTH.']');
 
         try {
-            // Deliberate: secp256k1_ecdh runs the constant-time scalar multiply; the raw-x callback returns the shared point's x-coordinate unhashed, which is what NIP-04/NIP-44 key agreement consumes — see ADR-0101
+            // Deliberate: secp256k1_ecdh runs the constant-time scalar multiply; the raw-x callback returns the shared point's x-coordinate unhashed, which is what NIP-04/NIP-44 key agreement consumes — see ADR-0146
             if (1 !== $this->ffi->secp256k1_ecdh($this->context, $output, FFI::addr($pubkey), $privkeyBuffer, $this->copySharedX, null)) {
                 throw new EcdhException('ECDH secret scalar is invalid');
             }

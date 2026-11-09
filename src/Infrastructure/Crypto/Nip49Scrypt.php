@@ -6,6 +6,7 @@ namespace Innis\Nostr\Core\Infrastructure\Crypto;
 
 use FFI;
 use Innis\Nostr\Core\Domain\Exception\CryptoException;
+use SensitiveParameter;
 
 final readonly class Nip49Scrypt
 {
@@ -41,7 +42,7 @@ final readonly class Nip49Scrypt
         return new self(FfiLibraryLoader::tryLoad(self::CDEF, self::LIBRARY_NAMES));
     }
 
-    public function derive(string $password, string $salt, int $logN): string
+    public function derive(#[SensitiveParameter] string $password, string $salt, int $logN): string
     {
         $ffi = $this->ffi;
         if (null === $ffi) {

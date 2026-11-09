@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Domain\Service;
 
+use SensitiveParameter;
+
 final class HexCodec
 {
     private function __construct()
@@ -15,7 +17,7 @@ final class HexCodec
      *
      * @return non-empty-string|null
      */
-    public static function tryCanonical(string $hex, int $byteLength): ?string
+    public static function tryCanonical(#[SensitiveParameter] string $hex, int $byteLength): ?string
     {
         if (strlen($hex) !== $byteLength * 2) {
             return null;

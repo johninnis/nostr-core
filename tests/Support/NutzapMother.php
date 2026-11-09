@@ -41,9 +41,9 @@ final class NutzapMother
         ));
     }
 
-    public static function secret(string $lockKey): string
+    public static function secret(string $lockKey, string $nonce = 'b00bdd0467b0090a25bdf2d2f0d45ac4e355c482c1418350f273a04fedaaee83'): string
     {
-        return json_encode(['P2PK', ['nonce' => 'b00bdd0467b0090a25bdf2d2f0d45ac4e355c482c1418350f273a04fedaaee83', 'data' => $lockKey]], JSON_THROW_ON_ERROR);
+        return json_encode(['P2PK', ['nonce' => $nonce, 'data' => $lockKey]], JSON_THROW_ON_ERROR);
     }
 
     /**
@@ -54,7 +54,7 @@ final class NutzapMother
         return ['proof', json_encode(array_filter([
             'amount' => $amount,
             'id' => $keysetId,
-            'secret' => self::secret($lockKey),
+            'secret' => self::secret($lockKey, hash('sha256', (string) $amount)),
             'C' => self::UNBLINDED_SIGNATURE,
             'dleq' => ['e' => self::DLEQ_E, 's' => self::DLEQ_S, 'r' => self::DLEQ_R],
         ], static fn (mixed $field): bool => null !== $field), JSON_THROW_ON_ERROR)];

@@ -12,6 +12,7 @@ use Mdanter\Ecc\Exception\PointRecoveryException;
 use Mdanter\Ecc\Primitives\CurveFpInterface;
 use Mdanter\Ecc\Primitives\GeneratorPoint;
 use Mdanter\Ecc\Primitives\PointInterface;
+use SensitiveParameter;
 
 final class Secp256k1Math
 {
@@ -84,14 +85,14 @@ final class Secp256k1Math
         return null;
     }
 
-    public static function taggedHash(string $tag, string $msg): string
+    public static function taggedHash(string $tag, #[SensitiveParameter] string $msg): string
     {
         $tagHash = hash('sha256', $tag, true);
 
         return hash('sha256', $tagHash.$tagHash.$msg, true);
     }
 
-    public static function reduceToScalar(string $bytes): GMP
+    public static function reduceToScalar(#[SensitiveParameter] string $bytes): GMP
     {
         return gmp_mod(gmp_import($bytes), self::generator()->getOrder());
     }
@@ -103,7 +104,7 @@ final class Secp256k1Math
         return self::reduceToScalar(self::taggedHash('BIP0340/challenge', $input));
     }
 
-    public static function gmpToBytes(GMP $value, int $length): string
+    public static function gmpToBytes(#[SensitiveParameter] GMP $value, int $length): string
     {
         $bytes = gmp_export($value);
 

@@ -34,7 +34,7 @@ final readonly class MintKeyset
         return $this->keysByAmount[$amount] ?? null;
     }
 
-    // Deliberate: the id, the unit and each key are kept as written, and whether a key is a curve point is left to the DLEQ check — see nostr-adrs ADR-0121
+    // Deliberate: the id, the unit and each key are kept as written, and whether a key is a curve point is left to the DLEQ check — see nostr-adrs ADR-0128
     public static function tryFromArray(mixed $data): ?self
     {
         $fields = JsonWireFormat::objectFields($data);

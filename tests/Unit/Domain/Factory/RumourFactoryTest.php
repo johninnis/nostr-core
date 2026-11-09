@@ -20,6 +20,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\KeyPair;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Nip19\Npub;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Challenge;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\HttpMethod;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\HttpUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Nip98Request;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\RelayChallenge;
@@ -50,7 +51,7 @@ final class RumourFactoryTest extends TestCase
 
     public function testHttpAuthForTheEmptyBodysHashCarriesNoPayloadTag(): void
     {
-        $event = $this->authorFactory()->createHttpAuth(Nip98Request::fromBodyHash(HttpUrl::fromString('https://api.example.com/'), 'GET', Sha256Hash::ofContent('')));
+        $event = $this->authorFactory()->createHttpAuth(Nip98Request::fromBodyHash(HttpUrl::fromString('https://api.example.com/'), HttpMethod::fromString('GET'), Sha256Hash::ofContent('')));
 
         $this->assertFalse($event->getTags()->hasType(TagType::payload()));
     }
@@ -92,7 +93,7 @@ final class RumourFactoryTest extends TestCase
         $method = 'POST';
         $payloadHash = Sha256Hash::ofContent('{"data":"test"}');
 
-        $event = $this->authorFactory()->createHttpAuth(Nip98Request::fromBodyHash(HttpUrl::fromString($url), $method, $payloadHash));
+        $event = $this->authorFactory()->createHttpAuth(Nip98Request::fromBodyHash(HttpUrl::fromString($url), HttpMethod::fromString($method), $payloadHash));
 
         $this->assertTrue($event->getKind()->is(EventKind::HTTP_AUTH));
         $this->assertSame('', (string) $event->getContent());
@@ -112,7 +113,7 @@ final class RumourFactoryTest extends TestCase
     #[DataProvider('methodsAsFetchSendsThem')]
     public function testCreateHttpAuthWritesTheMethodAsFetchSendsIt(string $given, string $written): void
     {
-        $event = $this->authorFactory()->createHttpAuth(Nip98Request::fromBodyHash(HttpUrl::fromString('https://api.example.com/'), $given));
+        $event = $this->authorFactory()->createHttpAuth(Nip98Request::fromBodyHash(HttpUrl::fromString('https://api.example.com/'), HttpMethod::fromString($given)));
 
         $this->assertSame([$written], $event->getTags()->getValuesByType(TagType::method()));
     }
@@ -131,12 +132,11 @@ final class RumourFactoryTest extends TestCase
         yield 'patch in lower case, which Fetch sends as written' => ['patch', 'patch'];
         yield 'patch in upper case' => ['PATCH', 'PATCH'];
         yield 'another method' => ['Propfind', 'Propfind'];
-        yield 'a non-ASCII letter Fetch does not fold' => ["po\u{17F}t", "po\u{17F}t"];
     }
 
     public function testCanCreateHttpAuthWithoutPayload(): void
     {
-        $event = $this->authorFactory()->createHttpAuth(Nip98Request::fromBodyHash(HttpUrl::fromString('https://api.example.com/'), 'GET'));
+        $event = $this->authorFactory()->createHttpAuth(Nip98Request::fromBodyHash(HttpUrl::fromString('https://api.example.com/'), HttpMethod::fromString('GET')));
 
         $this->assertTrue($event->getKind()->is(EventKind::HTTP_AUTH));
         $this->assertFalse($event->getTags()->hasType(TagType::payload()));

@@ -19,4 +19,4 @@ PHP's `base64_decode($x, true)` is strict only about the alphabet. It skips whit
 
 - A payload from a writer that leaves off padding or wraps lines is refused. That writer is not following RFC 4648 "with padding", which both NIPs name.
 - There is one canonical-base64 reader; do not reintroduce a bare `base64_decode($x, true)` on a value a peer wrote.
-- Shared decision: nostr-adrs ADR-0095.
+- Shared decision: nostr-adrs ADR-0132.

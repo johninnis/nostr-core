@@ -34,7 +34,7 @@ final class NutzapProofTest extends TestCase
 
     public function testCarriesTheSecretAsWritten(): void
     {
-        $this->assertSame(NutzapMother::secret('02'.NutzapMother::P2PK_KEY), self::proof(NutzapMother::proofTag(21)[1])->getSecret());
+        $this->assertSame(NutzapMother::secret('02'.NutzapMother::P2PK_KEY, hash('sha256', '21')), self::proof(NutzapMother::proofTag(21)[1])->getSecret());
     }
 
     public function testCarriesTheUnblindedSignatureAsWritten(): void

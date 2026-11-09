@@ -20,20 +20,20 @@
         "ext-mbstring": "*",
         "ext-openssl": "*",
         "ext-sodium": "*",
-        "paragonie/ecc": "^2.5",
-        "paragonie/sodium_compat": "^2.5.1"
+        "paragonie/ecc": "^2.6",
+        "paragonie/sodium_compat": "^2.5.2"
     },
     "suggest": {
-        "ext-ffi": "Native libsecp256k1 acceleration and NIP-49 scrypt (required for NIP-49)"
+        "ext-ffi": "The native libsecp256k1 that Secp256k1Signer::create() and Secp256k1Ecdh::create() require, and NIP-49 scrypt"
     },
     "require-dev": {
         "ext-ffi": "*",
-        "friendsofphp/php-cs-fixer": "^3.95",
-        "innis/coding-standards": "^0.2",
-        "phpstan/phpstan": "~2.3.4",
-        "phpstan/phpstan-phpunit": "^2.0",
-        "phpunit/phpunit": "^13.1",
-        "rector/rector": "~2.8.3"
+        "friendsofphp/php-cs-fixer": "^3.95.29",
+        "innis/coding-standards": "^0.2.4",
+        "phpstan/phpstan": "~2.3.5",
+        "phpstan/phpstan-phpunit": "^2.1.1",
+        "phpunit/phpunit": "^13.4.6",
+        "rector/rector": "~2.8.4"
     },
     "autoload": {
         "psr-4": {

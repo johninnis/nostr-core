@@ -10,6 +10,6 @@ use Innis\Nostr\Core\Domain\ValueObject\Payment\Nutzap;
 
 interface NutzapDleqVerifierInterface
 {
-    // Deliberate: a second verification after NutzapVerifierInterface's, over the proofs the read nutzap carries, as only it needs the mint's keysets — see nostr-adrs ADR-0121
+    // Deliberate: a second verification after NutzapVerifierInterface's, over the proofs the read nutzap carries, as only it needs the mint's keysets — see nostr-adrs ADR-0128
     public function verify(Nutzap $nutzap, MintKeysetCollection $keysets): ?NutzapDleqFailure;
 }

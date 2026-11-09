@@ -17,7 +17,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\Tag;
 use Innis\Nostr\Core\Domain\ValueObject\Tag\TagType;
 use Innis\Nostr\Core\Domain\ValueObject\Timestamp;
-use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Signer;
+use Innis\Nostr\Core\Tests\Support\CryptoFixtures;
 use Innis\Nostr\Core\Tests\Support\EventMother;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -33,7 +33,7 @@ final class ZapReceiptVerifierTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->signer = Secp256k1Signer::create();
+        $this->signer = CryptoFixtures::signer();
         $this->verifier = new ZapReceiptVerifier($this->signer);
         $this->provider = KeyPair::generate($this->signer);
         $this->sender = KeyPair::generate($this->signer);

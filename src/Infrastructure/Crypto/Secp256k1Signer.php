@@ -12,6 +12,7 @@ use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
 use InvalidArgumentException;
 use Override;
+use SensitiveParameter;
 use Throwable;
 
 final readonly class Secp256k1Signer implements SignatureServiceInterface
@@ -19,7 +20,7 @@ final readonly class Secp256k1Signer implements SignatureServiceInterface
     private const int SCHNORR_MESSAGE_LENGTH = 32;
     private const int AUX_RAND_LENGTH = 32;
 
-    public function __construct(
+    private function __construct(
         private ?LibSecp256k1Ffi $ffi,
         private RandomBytesGeneratorInterface $randomBytes,
     ) {
@@ -27,16 +28,13 @@ final readonly class Secp256k1Signer implements SignatureServiceInterface
 
     public static function create(RandomBytesGeneratorInterface $randomBytes = new NativeRandomBytesGenerator()): self
     {
-        // Deliberate: probes for native libsecp256k1; absent it, signing uses the pure-PHP path, which is NOT constant-time — prefer the native path for server-side signers, see ADR-0101
-        $ffi = LibSecp256k1Ffi::tryLoad($randomBytes);
-
-        return new self($ffi, $randomBytes);
+        return new self(LibSecp256k1Ffi::load($randomBytes), $randomBytes);
     }
 
-    // Deliberate: deployment introspection only, and deliberately absent from SignatureServiceInterface so no domain or application code can branch on the backend — see ADR-0101
-    public function backend(): Secp256k1Backend
+    // Deliberate: the pure-PHP path is NOT constant-time, so it is reached only by naming it, never by a host losing its native library — see ADR-0146
+    public static function createPurePhp(RandomBytesGeneratorInterface $randomBytes = new NativeRandomBytesGenerator()): self
     {
-        return null !== $this->ffi ? Secp256k1Backend::Native : Secp256k1Backend::PurePhp;
+        return new self(null, $randomBytes);
     }
 
     #[Override]
@@ -47,8 +45,8 @@ final readonly class Secp256k1Signer implements SignatureServiceInterface
             throw new InvalidArgumentException(sprintf('Nostr signs a 32-byte event id; got %d bytes', strlen($message)));
         }
 
-        return $privateKey->expose(function (string $privkeyBytes) use ($message): Signature {
-            // Deliberate: native libsecp256k1 when present, pure-PHP fallback otherwise; one contract, both pinned by the conformance suites — see ADR-0101
+        return $privateKey->expose(function (#[SensitiveParameter] string $privkeyBytes) use ($message): Signature {
+            // Deliberate: native libsecp256k1 when present, pure-PHP fallback otherwise; one contract, both pinned by the conformance suites — see ADR-0146
             if (null !== $this->ffi) {
                 $auxRand = $this->randomBytes->bytes(self::AUX_RAND_LENGTH);
 
@@ -63,7 +61,7 @@ final readonly class Secp256k1Signer implements SignatureServiceInterface
     #[Override]
     public function verify(PublicKey $publicKey, string $message, Signature $signature): bool
     {
-        // Deliberate: verify stays length-agnostic (unlike sign) — see ADR-0013; native/pure-PHP dispatch — see ADR-0101
+        // Deliberate: verify stays length-agnostic (unlike sign) — see ADR-0013; native/pure-PHP dispatch — see ADR-0146
         try {
             if (null !== $this->ffi) {
                 return $this->ffi->verify($signature->toBytes(), $message, $publicKey->toBytes());
@@ -79,8 +77,8 @@ final readonly class Secp256k1Signer implements SignatureServiceInterface
     #[Override]
     public function derivePublicKey(PrivateKey $privateKey): PublicKey
     {
-        return $privateKey->expose(function (string $privkeyBytes): PublicKey {
-            // Deliberate: native libsecp256k1 when present, pure-PHP fallback otherwise — see ADR-0101
+        return $privateKey->expose(function (#[SensitiveParameter] string $privkeyBytes): PublicKey {
+            // Deliberate: native libsecp256k1 when present, pure-PHP fallback otherwise — see ADR-0146
             if (null !== $this->ffi) {
                 return PublicKey::tryFromBytes($this->ffi->derivePublicKey($privkeyBytes))
                     ?? throw new CryptoException('Key derivation produced invalid public key');
@@ -90,7 +88,7 @@ final readonly class Secp256k1Signer implements SignatureServiceInterface
         });
     }
 
-    private function derivePublicKeyPurePhp(string $privkeyBytes): PublicKey
+    private function derivePublicKeyPurePhp(#[SensitiveParameter] string $privkeyBytes): PublicKey
     {
         $publicKeyPoint = Secp256k1Math::generator()->mul(gmp_import($privkeyBytes));
 
@@ -99,7 +97,7 @@ final readonly class Secp256k1Signer implements SignatureServiceInterface
     }
 
     // Deliberate: BIP-340 is composed here over paragonie/ecc arithmetic rather than through its SchnorrSigner, which takes secrets as unwiped hex and reads its message by content — see ADR-0122
-    private function signPurePhp(string $privkeyBytes, string $message): Signature
+    private function signPurePhp(#[SensitiveParameter] string $privkeyBytes, string $message): Signature
     {
         $generator = Secp256k1Math::generator();
         $n = $generator->getOrder();

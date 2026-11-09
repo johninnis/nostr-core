@@ -42,7 +42,7 @@ final readonly class NutzapInfo
         return $this->relays;
     }
 
-    // Deliberate: no one P2PK key, or the author's own, is no nutzap info, never a fall-back to the author's key — see nostr-adrs ADR-0121
+    // Deliberate: no one P2PK key, or the author's own, is no nutzap info, never a fall-back to the author's key — see nostr-adrs ADR-0128
     public static function tryFromEvent(Event $event): ?self
     {
         if (!$event->getKind()->is(EventKind::NUTZAP_MINT_RECOMMENDATION)) {

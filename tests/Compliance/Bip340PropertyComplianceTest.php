@@ -6,7 +6,6 @@ namespace Innis\Nostr\Core\Tests\Compliance;
 
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
-use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
 use Innis\Nostr\Core\Infrastructure\Crypto\NativeRandomBytesGenerator;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Signer;
 use PHPUnit\Framework\Attributes\Group;
@@ -106,15 +105,11 @@ final class Bip340PropertyComplianceTest extends TestCase
 
     private function ffiService(): Secp256k1Signer
     {
-        $randomBytes = new NativeRandomBytesGenerator();
-        $ffi = LibSecp256k1Ffi::tryLoad($randomBytes)
-            ?? self::markTestSkipped('libsecp256k1 FFI unavailable');
-
-        return new Secp256k1Signer($ffi, $randomBytes);
+        return Secp256k1Signer::create();
     }
 
     private function purePhpService(): Secp256k1Signer
     {
-        return new Secp256k1Signer(null, new NativeRandomBytesGenerator());
+        return Secp256k1Signer::createPurePhp();
     }
 }

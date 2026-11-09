@@ -10,6 +10,7 @@ enum NutzapVerificationFailure: string
     case MintNotListed = 'mint_not_listed';
     case NoProof = 'no_proof';
     case ProofNotLockedToRecipient = 'proof_not_locked_to_recipient';
+    case ProofRepeated = 'proof_repeated';
 
     public function message(): string
     {
@@ -18,6 +19,7 @@ enum NutzapVerificationFailure: string
             self::MintNotListed => 'The nutzap names no mint its recipient\'s nutzap info lists',
             self::NoProof => 'The nutzap has no proof that states an amount',
             self::ProofNotLockedToRecipient => 'A nutzap proof is not locked to the recipient\'s P2PK key alone',
+            self::ProofRepeated => 'Two nutzap proofs name one secret, which a mint spends once',
         };
     }
 }

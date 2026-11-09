@@ -7,9 +7,6 @@ namespace Innis\Nostr\Core\Tests\Integration\Infrastructure\Crypto;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PrivateKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\PublicKey;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\Signature;
-use Innis\Nostr\Core\Infrastructure\Crypto\LibSecp256k1Ffi;
-use Innis\Nostr\Core\Infrastructure\Crypto\NativeRandomBytesGenerator;
-use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Backend;
 use Innis\Nostr\Core\Infrastructure\Crypto\Secp256k1Signer;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\Group;
@@ -18,13 +15,7 @@ use RuntimeException;
 
 final class Secp256k1SignerTest extends TestCase
 {
-    public function testCreateUsesTheNativeBackendExactlyWhenTheLibraryLoads(): void
-    {
-        $expected = null === LibSecp256k1Ffi::tryLoad() ? Secp256k1Backend::PurePhp : Secp256k1Backend::Native;
-
-        $this->assertSame($expected, Secp256k1Signer::create()->backend());
-    }
-
+    #[Group('ffi')]
     public function testCreateYieldsASignerWhoseSignaturesVerify(): void
     {
         $service = Secp256k1Signer::create();
@@ -34,17 +25,6 @@ final class Secp256k1SignerTest extends TestCase
 
         $signature = $service->sign($privateKey, $message);
         $this->assertTrue($service->verify($service->derivePublicKey($privateKey), $message, $signature));
-    }
-
-    #[Group('ffi')]
-    public function testBackendReportsNativeWhenFfiHandleIsInjected(): void
-    {
-        $this->assertSame(Secp256k1Backend::Native, $this->ffiService()->backend());
-    }
-
-    public function testBackendReportsPurePhpWhenNoFfiHandleIsInjected(): void
-    {
-        $this->assertSame(Secp256k1Backend::PurePhp, $this->purePhpService()->backend());
     }
 
     public function testSignAndVerifyRoundTripViaPurePhp(): void
@@ -182,15 +162,11 @@ final class Secp256k1SignerTest extends TestCase
 
     private function ffiService(): Secp256k1Signer
     {
-        $randomBytes = new NativeRandomBytesGenerator();
-        $ffi = LibSecp256k1Ffi::tryLoad($randomBytes)
-            ?? self::markTestSkipped('libsecp256k1 FFI unavailable');
-
-        return new Secp256k1Signer($ffi, $randomBytes);
+        return Secp256k1Signer::create();
     }
 
     private function purePhpService(): Secp256k1Signer
     {
-        return new Secp256k1Signer(null, new NativeRandomBytesGenerator());
+        return Secp256k1Signer::createPurePhp();
     }
 }

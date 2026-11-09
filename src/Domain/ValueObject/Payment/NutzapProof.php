@@ -55,7 +55,7 @@ final readonly class NutzapProof
         return $this->lockKey?->equals($key) ?? false;
     }
 
-    // Deliberate: the proof is carried whole as written, a field absent when missing or mistyped, for the DLEQ check against its mint's keyset — see nostr-adrs ADR-0121
+    // Deliberate: the proof is carried whole as written, a field absent when missing or mistyped, for the DLEQ check against its mint's keyset — see nostr-adrs ADR-0128
     public static function tryFromJson(string $json): ?self
     {
         $proof = JsonWireFormat::decodeObject($json);

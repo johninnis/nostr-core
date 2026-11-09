@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Innis\Nostr\Core\Domain\Service;
 
 use Innis\Nostr\Core\Domain\Enum\Bech32Variant;
+use SensitiveParameter;
 
 final class Bech32Codec
 {
@@ -34,7 +35,7 @@ final class Bech32Codec
     /**
      * @return non-empty-string|null
      */
-    public static function encode(string $hrp, string $bytes, Bech32Variant $variant = Bech32Variant::Bech32): ?string
+    public static function encode(string $hrp, #[SensitiveParameter] string $bytes, Bech32Variant $variant = Bech32Variant::Bech32): ?string
     {
         if (1 !== preg_match(self::ENCODABLE_HRP, $hrp)) {
             return null;
@@ -60,7 +61,7 @@ final class Bech32Codec
     /**
      * @return array{hrp: string, data: string}|null
      */
-    public static function decode(string $bech32, Bech32Variant $variant = Bech32Variant::Bech32): ?array
+    public static function decode(#[SensitiveParameter] string $bech32, Bech32Variant $variant = Bech32Variant::Bech32): ?array
     {
         $length = strlen($bech32);
 
@@ -132,7 +133,7 @@ final class Bech32Codec
         ];
     }
 
-    public static function decodeWithHrp(string $bech32, string $expectedHrp, Bech32Variant $variant = Bech32Variant::Bech32): ?string
+    public static function decodeWithHrp(#[SensitiveParameter] string $bech32, string $expectedHrp, Bech32Variant $variant = Bech32Variant::Bech32): ?string
     {
         $decoded = self::decode($bech32, $variant);
 

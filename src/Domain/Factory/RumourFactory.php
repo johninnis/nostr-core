@@ -132,7 +132,7 @@ final readonly class RumourFactory
     {
         $tags = [
             Tag::fromArray([TagType::URL, (string) $request->getUrl()]),
-            Tag::fromArray([TagType::METHOD, self::methodAsFetchSendsIt($request->getMethod())]),
+            Tag::fromArray([TagType::METHOD, self::methodAsFetchSendsIt((string) $request->getMethod())]),
         ];
 
         $bodyHash = $request->getBodyHash();

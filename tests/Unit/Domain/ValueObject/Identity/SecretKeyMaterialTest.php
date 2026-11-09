@@ -4,14 +4,62 @@ declare(strict_types=1);
 
 namespace Innis\Nostr\Core\Tests\Unit\Domain\ValueObject\Identity;
 
+use Exception;
 use Innis\Nostr\Core\Domain\Exception\SecretKeyMaterialZeroedException;
 use Innis\Nostr\Core\Domain\ValueObject\Identity\SecretKeyMaterial;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use SensitiveParameter;
 
 final class SecretKeyMaterialTest extends TestCase
 {
+    private const string PRINTABLE_BYTES = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ012345';
     private const string EXACT_LENGTH_BYTES = "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20";
+
+    public function testVarDumpShowsNoSecretBytes(): void
+    {
+        ob_start();
+        var_dump(SecretKeyMaterial::fromBytes(self::EXACT_LENGTH_BYTES));
+
+        $this->assertStringNotContainsString(self::EXACT_LENGTH_BYTES, (string) ob_get_clean());
+    }
+
+    public function testPrintRShowsNoSecretBytes(): void
+    {
+        $this->assertStringNotContainsString(self::PRINTABLE_BYTES, print_r(SecretKeyMaterial::fromBytes(self::PRINTABLE_BYTES), true));
+    }
+
+    public function testVarExportShowsNoSecretBytes(): void
+    {
+        $this->assertStringNotContainsString(self::PRINTABLE_BYTES, var_export(SecretKeyMaterial::fromBytes(self::PRINTABLE_BYTES), true));
+    }
+
+    public function testAnArrayCastShowsNoSecretBytes(): void
+    {
+        $this->assertStringNotContainsString(self::PRINTABLE_BYTES, print_r((array) SecretKeyMaterial::fromBytes(self::PRINTABLE_BYTES), true));
+    }
+
+    public function testSerialisingIsRefused(): void
+    {
+        $this->expectException(Exception::class);
+
+        serialize(SecretKeyMaterial::fromBytes(self::EXACT_LENGTH_BYTES));
+    }
+
+    public function testExposeStillHandsOverTheBytes(): void
+    {
+        $this->assertSame(self::PRINTABLE_BYTES, SecretKeyMaterial::fromBytes(self::PRINTABLE_BYTES)->expose(static fn (#[SensitiveParameter] string $bytes): string => $bytes.''));
+    }
+
+    public function testZeroingAKeyAlsoZeroesItsClone(): void
+    {
+        $material = SecretKeyMaterial::fromBytes(self::EXACT_LENGTH_BYTES);
+        $clone = clone $material;
+
+        $material->zero();
+
+        $this->assertTrue($clone->isZeroed());
+    }
 
     public function testConstructorRejectsShortInput(): void
     {

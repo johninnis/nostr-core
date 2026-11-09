@@ -10,6 +10,7 @@ use Innis\Nostr\Core\Domain\Failure\Nip98ValidationFailure;
 use Innis\Nostr\Core\Domain\Service\Nip98EventChecker;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventContent;
 use Innis\Nostr\Core\Domain\ValueObject\Content\EventKind;
+use Innis\Nostr\Core\Domain\ValueObject\Protocol\HttpMethod;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\HttpUrl;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Nip98Request;
 use Innis\Nostr\Core\Domain\ValueObject\Protocol\Rumour;
@@ -160,7 +161,7 @@ final class Nip98EventCheckerTest extends TestCase
 
     public function testAUrlForAnotherHostIsRefused(): void
     {
-        $request = Nip98Request::fromBodyHash(HttpUrl::fromString('https://other-relay.example.com/'), 'POST', Sha256Hash::ofContent(self::BODY));
+        $request = Nip98Request::fromBodyHash(HttpUrl::fromString('https://other-relay.example.com/'), HttpMethod::fromString('POST'), Sha256Hash::ofContent(self::BODY));
 
         $this->assertSame(Nip98ValidationFailure::UrlMismatch, $this->check($this->event(self::conformingTags()), $request));
     }
@@ -175,7 +176,7 @@ final class Nip98EventCheckerTest extends TestCase
     public function testAMatchingQueryStringPasses(): void
     {
         $event = $this->event([['u', 'https://relay.example.com/api?token=abc&page=1'], ['method', 'GET']]);
-        $request = Nip98Request::fromBodyHash(HttpUrl::fromString('https://relay.example.com/api?token=abc&page=1'), 'GET');
+        $request = Nip98Request::fromBodyHash(HttpUrl::fromString('https://relay.example.com/api?token=abc&page=1'), HttpMethod::fromString('GET'));
 
         $this->assertNull($this->check($event, $request));
     }
@@ -183,7 +184,7 @@ final class Nip98EventCheckerTest extends TestCase
     public function testADifferentQueryStringIsRefused(): void
     {
         $event = $this->event([['u', 'https://relay.example.com/api?token=abc'], ['method', 'GET']]);
-        $request = Nip98Request::fromBodyHash(HttpUrl::fromString('https://relay.example.com/api?token=xyz'), 'GET');
+        $request = Nip98Request::fromBodyHash(HttpUrl::fromString('https://relay.example.com/api?token=xyz'), HttpMethod::fromString('GET'));
 
         $this->assertSame(Nip98ValidationFailure::UrlMismatch, $this->check($event, $request));
     }
@@ -212,6 +213,13 @@ final class Nip98EventCheckerTest extends TestCase
     public function testAnotherMethodIsRefused(): void
     {
         $this->assertSame(Nip98ValidationFailure::MethodMismatch, $this->check($this->event(self::conformingTags()), self::get()));
+    }
+
+    public function testAnEmptyMethodTagIsAMismatch(): void
+    {
+        $event = $this->event([['u', self::URL], ['method', '']]);
+
+        $this->assertSame(Nip98ValidationFailure::MethodMismatch, $this->check($event, self::post()));
     }
 
     public function testTheMethodIsComparedCaseSensitively(): void
@@ -279,7 +287,7 @@ final class Nip98EventCheckerTest extends TestCase
 
     public function testTheEmptyBodysHashIsNoBody(): void
     {
-        $request = Nip98Request::fromBodyHash(HttpUrl::fromString(self::URL), 'GET', Sha256Hash::ofContent(''));
+        $request = Nip98Request::fromBodyHash(HttpUrl::fromString(self::URL), HttpMethod::fromString('GET'), Sha256Hash::ofContent(''));
 
         $this->assertNull($this->check($this->event([['u', self::URL], ['method', 'GET']]), $request));
     }
@@ -287,7 +295,7 @@ final class Nip98EventCheckerTest extends TestCase
     public function testAPayloadTagCarryingTheEmptyBodysHashIsAdmittedOnAnEmptyBody(): void
     {
         $event = $this->event([['u', self::URL], ['method', 'GET'], ['payload', hash('sha256', '')]]);
-        $request = Nip98Request::fromBodyHash(HttpUrl::fromString(self::URL), 'GET', Sha256Hash::ofContent(''));
+        $request = Nip98Request::fromBodyHash(HttpUrl::fromString(self::URL), HttpMethod::fromString('GET'), Sha256Hash::ofContent(''));
 
         $this->assertNull($this->check($event, $request));
     }
@@ -358,17 +366,17 @@ final class Nip98EventCheckerTest extends TestCase
 
     private static function post(): Nip98Request
     {
-        return Nip98Request::fromBodyHash(HttpUrl::fromString(self::URL), 'POST');
+        return Nip98Request::fromBodyHash(HttpUrl::fromString(self::URL), HttpMethod::fromString('POST'));
     }
 
     private static function postWithBody(string $body): Nip98Request
     {
-        return Nip98Request::fromBody(HttpUrl::fromString(self::URL), 'POST', $body);
+        return Nip98Request::fromBody(HttpUrl::fromString(self::URL), HttpMethod::fromString('POST'), $body);
     }
 
     private static function get(): Nip98Request
     {
-        return Nip98Request::fromBodyHash(HttpUrl::fromString(self::URL), 'GET');
+        return Nip98Request::fromBodyHash(HttpUrl::fromString(self::URL), HttpMethod::fromString('GET'));
     }
 
     private function eventExpiringAt(string ...$expirations): Event

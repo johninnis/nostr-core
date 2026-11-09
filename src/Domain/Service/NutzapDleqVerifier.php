@@ -26,7 +26,7 @@ final readonly class NutzapDleqVerifier implements NutzapDleqVerifierInterface
         return match (true) {
             [] === $proofs => NutzapDleqFailure::NoProof,
             !array_all($proofs, static fn (NutzapProof $proof): bool => null !== self::keysetOf($proof, $keysets)) => NutzapDleqFailure::UnknownKeyset,
-            // Deliberate: a keyset's unit is compared exactly with the nutzap's, as its amounts are in that unit and a misstated unit tag would show a false amount — see nostr-adrs ADR-0121
+            // Deliberate: a keyset's unit is compared exactly with the nutzap's, as its amounts are in that unit and a misstated unit tag would show a false amount — see nostr-adrs ADR-0128
             !array_all($proofs, static fn (NutzapProof $proof): bool => self::keysetOf($proof, $keysets)?->getUnit() === $unit) => NutzapDleqFailure::UnitMismatch,
             !array_all($proofs, static fn (NutzapProof $proof): bool => null !== self::mintKeyOf($proof, $keysets)) => NutzapDleqFailure::NoMintKey,
             !array_all($proofs, fn (NutzapProof $proof): bool => $this->hasValidDleq($proof, $keysets)) => NutzapDleqFailure::DleqInvalid,
